@@ -1,0 +1,73 @@
+# Qwen 3.5 4B bf16 LoRA config for Colab Pro L4 (22GB VRAM)
+# Use this for rapid debug cycles before running full 9B training on the 5090.
+#
+# VRAM budget:
+#   model weights (bf16):      ~8 GB
+#   LoRA adapter + optim:      ~1.5 GB
+#   activations (2048 ctx):    ~1.0 GB
+#   TOTAL:                     ~10-12 GB (comfortable on L4 22GB)
+
+model:
+  name: "unsloth/Qwen3.5-4B"
+  max_seq_length: 2048
+  dtype: "bfloat16"
+  load_in_4bit: false
+  load_in_16bit: true
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  bias: "none"
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  use_rslora: false
+  use_gradient_checkpointing: "unsloth"
+
+training:
+  output_dir: "outputs/qwen35_4b_debug"
+  num_train_epochs: 1              # Debug: one epoch only
+  per_device_train_batch_size: 2
+  gradient_accumulation_steps: 2
+  learning_rate: 2.0e-4
+  lr_scheduler_type: "cosine"
+  warmup_steps: 50
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  optim: "adamw_8bit"
+  bf16: true
+  tf32: true
+  logging_steps: 10
+  save_strategy: "steps"
+  save_steps: 200
+  save_total_limit: 2
+  seed: 42
+  report_to: "wandb"
+
+data:
+  train_datasets:
+    - name: "alpineai/cosql"
+      split: "train[:1000]"          # small slice for fast debug
+      weight: 0.50
+    - name: "gretelai/synthetic_text_to_sql"
+      split: "train[:500]"
+      weight: 0.50
+  eval_datasets:
+    - name: "alpineai/cosql"
+      split: "validation[:100]"
+
+wandb:
+  project: "multiturn-sql-finetuning"
+  run_name: "qwen35_4b_colab_debug"
+  tags:
+    - "qwen3.5"
+    - "multi-turn"
+    - "bf16-lora"
+    - "colab-l4"
+    - "debug"

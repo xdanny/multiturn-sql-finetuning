@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Environments
+.env
+.env.local
+.env.*.local
+
+# Models, checkpoints, datasets
+outputs/
+checkpoints/
+wandb/
+lightning_logs/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.gguf
+*.ckpt
+data/cache/
+data/raw/
+data/processed/
+models/
+
+# Notebooks
+.ipynb_checkpoints/
+*.ipynb_bak
+
+# Results & plots
+results/
+plots/
+*.png
+*.svg
+!docs/**/*.png
+!docs/**/*.svg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+logs/
+*.log

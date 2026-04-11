@@ -1,0 +1,83 @@
+# Qwen 3.5 9B bf16 LoRA training config for RTX 5090 (32GB VRAM)
+# Verified April 2026 — Unsloth 2026.4.0+ required for Qwen 3.5 fused_ce_loss fix
+#
+# VRAM budget:
+#   model weights (bf16):      ~18 GB
+#   LoRA adapter:              ~0.1 GB
+#   optimizer state (8bit):    ~1.8 GB
+#   activations (2048 ctx):    ~2.0 GB
+#   gradient buffers:          ~1.0 GB
+#   framework overhead:        ~0.2 GB
+#   TOTAL:                     ~23 GB (safe on 32GB 5090)
+
+model:
+  name: "unsloth/Qwen3.5-9B"   # Official Unsloth-optimized weights
+  max_seq_length: 2048         # 4096 works but tight; 8192 needs fused_ce_loss fix
+  dtype: "bfloat16"            # Do NOT use 4-bit — Qwen 3.5 QLoRA unstable
+  load_in_4bit: false
+  load_in_16bit: true
+
+lora:
+  r: 32
+  alpha: 64
+  dropout: 0.05
+  bias: "none"
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  use_rslora: false
+  use_gradient_checkpointing: "unsloth"  # Unsloth-optimized GC (30% VRAM savings)
+
+training:
+  output_dir: "outputs/qwen35_9b_multiturn_sql"
+  num_train_epochs: 3
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 4   # effective batch size = 4
+  learning_rate: 2.0e-4
+  lr_scheduler_type: "cosine"
+  warmup_steps: 100
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  optim: "adamw_8bit"
+  bf16: true
+  tf32: true                       # RTX 5090 tensor core optimization
+  logging_steps: 10
+  save_strategy: "steps"
+  save_steps: 500
+  save_total_limit: 3
+  eval_strategy: "steps"
+  eval_steps: 500
+  seed: 42
+  report_to: "wandb"
+
+data:
+  train_datasets:
+    - name: "alpineai/cosql"
+      split: "train"
+      weight: 0.40           # multi-turn, with clarifications
+    - name: "jellyChiru/SParC"
+      split: "train"
+      weight: 0.30           # multi-turn SQL sequences
+    - name: "gretelai/synthetic_text_to_sql"
+      split: "train"
+      weight: 0.30           # single-turn reinforcement (prevent catastrophic forgetting)
+  eval_datasets:
+    - name: "alpineai/cosql"
+      split: "validation"
+    - name: "jellyChiru/SParC"
+      split: "validation"
+
+wandb:
+  project: "multiturn-sql-finetuning"
+  run_name: "qwen35_9b_bf16_lora_5090"
+  tags:
+    - "qwen3.5"
+    - "multi-turn"
+    - "bf16-lora"
+    - "rtx5090"
+    - "blackwell"
