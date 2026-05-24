@@ -65,6 +65,7 @@ def test_load_prepared_records_expands_multi_turn_dialogs(tmp_path) -> None:
                 "id": "dialog-a",
                 "source": "unit",
                 "database_id": "db1",
+                "history_policy": "gold_sql_teacher_forced",
                 "evaluation_mode": "oracle_planner_diagnostic",
                 "planning_label_source": "gold_reference_sql",
                 "uses_oracle_planning_hints": True,
@@ -103,6 +104,7 @@ def test_load_prepared_records_expands_multi_turn_dialogs(tmp_path) -> None:
     assert records[1]["messages"][-1]["content"] == "q2"
     assert records[1]["messages"][2]["content"] == "SELECT 1;"
     assert records[0]["evaluation_mode"] == "oracle_planner_diagnostic"
+    assert records[0]["history_policy"] == "gold_sql_teacher_forced"
     assert records[0]["planning_label_source"] == "gold_reference_sql"
     assert records[0]["uses_oracle_planning_hints"] is True
     assert records[0]["semantic_context_pruned_by_oracle_labels"] is True

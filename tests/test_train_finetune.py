@@ -10,6 +10,7 @@ from train.finetune import (
     build_sft_config,
     load_jsonl_dataset,
     oracle_diagnostic_row_count,
+    require_oracle_diagnostic_acknowledgement,
 )
 
 
@@ -67,6 +68,36 @@ def test_oracle_diagnostic_row_count_counts_marked_rows(tmp_path) -> None:
     dataset = load_jsonl_dataset(path)
 
     assert oracle_diagnostic_row_count(dataset) == 1
+
+
+def test_oracle_diagnostic_rows_require_explicit_acknowledgement(tmp_path) -> None:
+    path = tmp_path / "train.jsonl"
+    path.write_text(
+        json.dumps(
+            {
+                "messages": [{"role": "user", "content": "q"}],
+                "evaluation_mode": "oracle_planner_diagnostic",
+            }
+        )
+        + "\n"
+    )
+    dataset = load_jsonl_dataset(path)
+
+    with pytest.raises(ValueError, match="allow-oracle-diagnostic-data"):
+        require_oracle_diagnostic_acknowledgement(
+            dataset,
+            dataset_name="training",
+            allow_oracle_diagnostic_data=False,
+        )
+
+    assert (
+        require_oracle_diagnostic_acknowledgement(
+            dataset,
+            dataset_name="training",
+            allow_oracle_diagnostic_data=True,
+        )
+        == 1
+    )
 
 
 def test_build_sft_config_applies_smoke_test_overrides() -> None:

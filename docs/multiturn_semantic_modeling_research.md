@@ -246,6 +246,9 @@ Implemented in `data.prepare` and tests:
 - `eval.run_eval`, `eval.local_benchmark`, and `eval.prompt_optimize` reject
   oracle-conditioned prepared inputs by default unless `--allow-oracle-plan` is
   passed.
+- `train.finetune` rejects oracle-conditioned training/eval JSONL by default
+  unless `--allow-oracle-diagnostic-data` is passed, so diagnostic fine-tunes
+  cannot be mistaken for production-style runs.
 - Schema-aware label extraction parses compact schema text before filtering
   columns, preventing CoSQL double-quoted literal values from becoming
   `relevant_columns`.

@@ -3,6 +3,8 @@
 This repo is testing whether a local Qwen 3.5 9B model can become useful on
 BIRD-Interact-style multi-turn SQL. The current reproducible evidence is still a
 CoSQL proxy slice, not a BIRD-Interact score and not a hosted-model comparison.
+The broader methodology, dataset roles, training boundaries, and benchmark
+rules are defined in `docs/methodology.md`.
 
 ## Evaluation Modes
 

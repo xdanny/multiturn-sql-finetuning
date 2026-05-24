@@ -252,7 +252,8 @@ def test_iter_formatted_records_adds_semantic_model_from_tables_path(tmp_path) -
                 {
                     "database_id": "store",
                     "interaction": [
-                        {"utterance": "Total amount?", "query": "SELECT SUM(amount) FROM orders;"}
+                        {"utterance": "Total amount?", "query": "SELECT SUM(amount) FROM orders;"},
+                        {"utterance": "Now list order ids.", "query": "SELECT order_id FROM orders;"},
                     ],
                 }
             ],
@@ -264,6 +265,9 @@ def test_iter_formatted_records_adds_semantic_model_from_tables_path(tmp_path) -
     assert len(records) == 1
     assert "Semantic model:" in records[0]["messages"][1]["content"]
     assert "sum_amount=sum(amount)" in records[0]["messages"][1]["content"]
+    assert records[0]["assistant_turn_count"] == 2
+    assert records[0]["turn_format"] == "multi_turn_dialog"
+    assert records[0]["history_policy"] == "gold_sql_teacher_forced"
 
 
 def test_iter_formatted_records_respects_sql_label_and_pruning_spec(tmp_path) -> None:
@@ -342,6 +346,9 @@ def test_iter_formatted_records_marks_non_oracle_generation(tmp_path) -> None:
     assert records[0]["uses_oracle_planning_hints"] is False
     assert records[0]["semantic_context_pruned_by_oracle_labels"] is False
     assert records[0]["gold_plans"][0]["relevant_tables"] == ["customers"]
+    assert records[0]["assistant_turn_count"] == 1
+    assert records[0]["turn_format"] == "single_turn"
+    assert records[0]["history_policy"] == "single_turn"
     assert "oracle_diagnostic_warning" not in records[0]
 
 

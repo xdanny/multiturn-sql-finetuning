@@ -103,6 +103,7 @@ def expand_prepared_record(record: dict[str, Any], *, index: int) -> list[dict[s
     dialog_id = str(record.get("dialog_id") or record.get("id") or f"prepared-{index}")
     source = record.get("source", "prepared")
     database_id = record.get("database_id")
+    history_policy = record.get("history_policy")
     schema_link_labels = record.get("schema_link_labels") or []
     gold_plans = record.get("gold_plans") or schema_link_labels
     predicted_plans = record.get("predicted_plans") or []
@@ -124,6 +125,7 @@ def expand_prepared_record(record: dict[str, Any], *, index: int) -> list[dict[s
                 "reference_sql": messages[assistant_index]["content"],
                 "source": source,
                 "database_id": database_id,
+                "history_policy": history_policy,
                 "evaluation_mode": evaluation_mode,
                 "planning_label_source": record.get("planning_label_source"),
                 "uses_oracle_planning_hints": uses_oracle_planning_hints,

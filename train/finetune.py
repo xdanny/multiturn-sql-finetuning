@@ -41,6 +41,24 @@ def oracle_diagnostic_row_count(dataset: Dataset) -> int:
     return sum(1 for mode in dataset["evaluation_mode"] if mode == ORACLE_PLANNER_DIAGNOSTIC)
 
 
+def require_oracle_diagnostic_acknowledgement(
+    dataset: Dataset,
+    *,
+    dataset_name: str,
+    allow_oracle_diagnostic_data: bool,
+) -> int:
+    """Reject oracle-labelled rows unless the run explicitly opts into diagnostics."""
+
+    oracle_rows = oracle_diagnostic_row_count(dataset)
+    if oracle_rows and not allow_oracle_diagnostic_data:
+        raise ValueError(
+            f"{oracle_rows}/{len(dataset)} {dataset_name} rows are oracle planner diagnostics. "
+            "Pass --allow-oracle-diagnostic-data only when the run is explicitly a "
+            "teacher-forced diagnostic, not a production-style fine-tune."
+        )
+    return oracle_rows
+
+
 def build_sft_config(
     config: dict[str, Any],
     *,
@@ -147,6 +165,7 @@ def train(
     max_steps: int | None,
     output_dir: Path | None,
     report_to: str | None,
+    allow_oracle_diagnostic_data: bool,
 ) -> None:
     config = load_config(config_path)
     train_dataset = load_jsonl_dataset(data_path)
@@ -154,7 +173,11 @@ def train(
 
     print(f"Loaded config: {config_path}")
     print(f"Loaded train rows: {len(train_dataset)} from {data_path}")
-    oracle_train_rows = oracle_diagnostic_row_count(train_dataset)
+    oracle_train_rows = require_oracle_diagnostic_acknowledgement(
+        train_dataset,
+        dataset_name="training",
+        allow_oracle_diagnostic_data=allow_oracle_diagnostic_data,
+    )
     if oracle_train_rows:
         print(
             "WARNING: "
@@ -163,7 +186,11 @@ def train(
         )
     if eval_dataset is not None:
         print(f"Loaded eval rows: {len(eval_dataset)} from {eval_data_path}")
-        oracle_eval_rows = oracle_diagnostic_row_count(eval_dataset)
+        oracle_eval_rows = require_oracle_diagnostic_acknowledgement(
+            eval_dataset,
+            dataset_name="eval",
+            allow_oracle_diagnostic_data=allow_oracle_diagnostic_data,
+        )
         if oracle_eval_rows:
             print(
                 "WARNING: "
@@ -218,6 +245,14 @@ def main() -> None:
     parser.add_argument("--max-steps", type=int, default=None, help="Bounded smoke-test training")
     parser.add_argument("--output-dir", type=Path, default=None, help="Override config training output_dir")
     parser.add_argument("--report-to", default=None, help="Override Trainer report_to, e.g. none")
+    parser.add_argument(
+        "--allow-oracle-diagnostic-data",
+        action="store_true",
+        help=(
+            "Allow training/eval JSONL that contains gold SQL-derived planning hints. "
+            "Use only for explicit oracle diagnostic runs."
+        ),
+    )
     args = parser.parse_args()
 
     train(
@@ -229,6 +264,7 @@ def main() -> None:
         max_steps=args.max_steps,
         output_dir=args.output_dir,
         report_to=args.report_to,
+        allow_oracle_diagnostic_data=args.allow_oracle_diagnostic_data,
     )
 
 

@@ -373,9 +373,10 @@ mostly value grounding, grain/fanout, and execution errors.
 This satisfies the diagnostic goal, but it is not a deployable serving path:
 the labels are extracted from gold SQL. These rows are now treated as
 `evaluation_mode=oracle_planner_diagnostic` and require `--allow-oracle-plan`
-for endpoint or prompt-search evaluation. The next production-quality iteration
-must predict or retrieve those labels from the question, history, schema, and
-semantic model before SQL generation.
+for endpoint or prompt-search evaluation. Training on those rows now also
+requires `--allow-oracle-diagnostic-data`. The next production-quality
+iteration must predict or retrieve those labels from the question, history,
+schema, and semantic model before SQL generation.
 
 ## Oracle Schema-Pruned Labelled Training Iteration
 

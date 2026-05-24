@@ -20,6 +20,7 @@ from datasets import Dataset, load_dataset
 from huggingface_hub.errors import HfHubHTTPError
 
 from data.plan_contract import (
+    assistant_turn_count,
     evaluation_mode_from_flags,
     normalize_plan,
     validate_prepared_record_contract,
@@ -384,7 +385,14 @@ def build_conversation(
 
     if len(messages) < 3:
         raise FormatterError("conversation must include system, user, and assistant messages")
-    record: dict[str, Any] = {"messages": messages, "source": source}
+    assistant_turns = assistant_turn_count(messages)
+    record: dict[str, Any] = {
+        "messages": messages,
+        "source": source,
+        "assistant_turn_count": assistant_turns,
+        "turn_format": "multi_turn_dialog" if assistant_turns > 1 else "single_turn",
+        "history_policy": "gold_sql_teacher_forced" if assistant_turns > 1 else "single_turn",
+    }
     oracle_labels = [
         labels_from_sql(message["content"], schema_columns=schema_columns)
         for message in messages

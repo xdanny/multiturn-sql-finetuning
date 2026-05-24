@@ -13,7 +13,8 @@ checks, cost accounting, and larger-model baselines.
 > Oracle diagnostic: the `0.890` schema-pruned result uses gold SQL-derived
 > planning hints in the eval prompt. It is an upper bound for the
 > schema-linking/planning layer, not a production evaluation. Production-style
-> evals omit `--allow-oracle-plan`.
+> evals omit `--allow-oracle-plan`, and training rejects those rows unless
+> `--allow-oracle-diagnostic-data` is passed explicitly.
 
 ## Current State
 
@@ -47,6 +48,8 @@ Known constraints:
 - Local execution scoring reports both strict label-aware accuracy and value-only accuracy. Treat older single `accuracy` numbers as strict-era results unless they come from `results/rescored/`.
 - Failure analysis now classifies every wrong rescored turn into actionable labels and compares adapters or prompt variants against a baseline under `plots/failure_taxonomy/`.
 - Schema-link label generation and semantic prompt pruning are available through `data.prepare --include-sql-labels --prune-semantic-model`. These flags now mark produced rows as `evaluation_mode=oracle_planner_diagnostic`. On the fixed 100-turn CoSQL slice, the best oracle prompt-only pruned-label run reaches `0.850` value accuracy, and training on that oracle-labelled format reaches `0.890`.
+- The end-to-end methodology, dataset roles, training strategy boundaries, and
+  benchmark claim rules are documented in `docs/methodology.md`.
 
 ## Leakage Policy
 
@@ -64,7 +67,9 @@ teacher-forced by gold SQL. The code writes `uses_oracle_planning_hints`,
 `evaluation_mode` fields into JSONL records so downstream training and eval
 outputs carry that caveat with them. Training on those rows is still useful, but
 it should be reported as learning to consume an oracle planning contract, not as
-solving multi-turn SQL end to end.
+solving multi-turn SQL end to end. `train.finetune` now fails on oracle
+diagnostic rows by default; pass `--allow-oracle-diagnostic-data` only when the
+run name, result manifest, and writeup all label the run as a diagnostic.
 
 The next academically valid comparison is:
 
