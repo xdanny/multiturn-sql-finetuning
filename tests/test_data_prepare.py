@@ -7,6 +7,7 @@ import pytest
 from data.prepare import (
     DatasetSpec,
     FormatterError,
+    build_dataset_manifest,
     format_bird,
     format_cosql,
     format_gretelai,
@@ -16,6 +17,7 @@ from data.prepare import (
     parse_dataset_specs,
     schema_from_spider_table,
     semantic_model_from_spider_table,
+    write_dataset_manifest,
     write_jsonl,
 )
 
@@ -189,6 +191,48 @@ def test_write_jsonl_round_trips_records(tmp_path) -> None:
     assert row["database_id"] == "hospital_1"
     assert row["messages"][0]["role"] == "system"
     assert row["schema_link_labels"][0]["relevant_tables"] == ["department"]
+
+
+def test_build_dataset_manifest_summarizes_composition(tmp_path) -> None:
+    records = [
+        {
+            "source": "cosql",
+            "evaluation_mode": "non_oracle_generation",
+            "turn_format": "multi_turn_dialog",
+            "history_policy": "gold_sql_teacher_forced",
+            "assistant_turn_count": 2,
+        },
+        {
+            "source": "sparc",
+            "evaluation_mode": "non_oracle_generation",
+            "turn_format": "single_turn",
+            "history_policy": "single_turn",
+            "assistant_turn_count": 1,
+        },
+    ]
+    specs = [
+        DatasetSpec("cosql", "train", "cosql", weight=0.5, include_sql_labels=False),
+        DatasetSpec("sparc", "train", "sparc", weight=0.25, include_sql_labels=True),
+    ]
+
+    manifest = build_dataset_manifest(
+        records=records,
+        specs=specs,
+        source_counts={"cosql": 1, "sparc": 1},
+    )
+
+    assert manifest["total_records"] == 2
+    assert manifest["source_counts"] == {"cosql": 1, "sparc": 1}
+    assert manifest["evaluation_modes"] == {"non_oracle_generation": 2}
+    assert manifest["turn_formats"] == {"multi_turn_dialog": 1, "single_turn": 1}
+    assert manifest["history_policies"] == {"gold_sql_teacher_forced": 1, "single_turn": 1}
+    assert manifest["assistant_turns"] == {"total": 3, "max_per_record": 2}
+    assert manifest["dataset_specs"][0]["configured_weight"] == 0.5
+    assert manifest["dataset_specs"][1]["include_sql_labels"] is True
+
+    output = tmp_path / "manifest.json"
+    write_dataset_manifest(manifest, output)
+    assert json.loads(output.read_text()) == manifest
 
 
 def test_schema_from_spider_table_groups_columns() -> None:

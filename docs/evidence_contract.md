@@ -40,7 +40,8 @@ python -m data.prepare \
   --config configs/cosql_dev_planner.yaml \
   --section eval \
   --limit 100 \
-  --output data/processed/eval_cosql_dev_100.jsonl
+  --output data/processed/eval_cosql_dev_100.jsonl \
+  --manifest-output data/processed/eval_cosql_dev_100.manifest.json
 ```
 
 Create the first 100-turn predicted-planner artifact:

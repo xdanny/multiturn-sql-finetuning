@@ -100,7 +100,8 @@ python -m data.prepare \
   --config configs/cosql_dev_planner.yaml \
   --section eval \
   --limit 100 \
-  --output data/processed/eval_cosql_dev_100.jsonl
+  --output data/processed/eval_cosql_dev_100.jsonl \
+  --manifest-output data/processed/eval_cosql_dev_100.manifest.json
 
 python -m eval.planner_eval \
   --input data/processed/eval_cosql_dev_100.jsonl \
@@ -128,6 +129,11 @@ The generated `data/processed/eval_cosql_dev_predicted_planner_100.jsonl`
 contains the first 100 CoSQL turns across 32 dialogs with `evaluation_mode` set
 to `predicted_planner`. It is ready for endpoint SQL evaluation, but it is not
 itself an execution result.
+
+The optional `data.prepare --manifest-output` file records dataset composition:
+source counts, evaluation modes, turn formats, history policies, assistant-turn
+totals, and configured dataset weights. Use it when reporting a training or eval
+artifact so dataset mixing is not hidden in prose.
 
 Current fixed-slice lexical planner baseline:
 

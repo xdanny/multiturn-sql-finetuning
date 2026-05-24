@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections import Counter
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -508,11 +509,56 @@ def write_jsonl(records: Iterable[dict[str, Any]], output: Path) -> int:
     return count
 
 
+def build_dataset_manifest(
+    *,
+    records: list[dict[str, Any]],
+    specs: list[DatasetSpec],
+    source_counts: dict[str, int],
+) -> dict[str, Any]:
+    """Summarize prepared-data composition for reproducible training claims."""
+
+    return {
+        "schema_version": 1,
+        "total_records": len(records),
+        "source_counts": dict(source_counts),
+        "evaluation_modes": dict(Counter(str(record.get("evaluation_mode", "unknown")) for record in records)),
+        "turn_formats": dict(Counter(str(record.get("turn_format", "unknown")) for record in records)),
+        "history_policies": dict(Counter(str(record.get("history_policy", "unknown")) for record in records)),
+        "assistant_turns": {
+            "total": sum(int(record.get("assistant_turn_count") or 0) for record in records),
+            "max_per_record": max((int(record.get("assistant_turn_count") or 0) for record in records), default=0),
+        },
+        "dataset_specs": [
+            {
+                "name": spec.name,
+                "split": spec.split,
+                "formatter": spec.formatter,
+                "configured_weight": spec.weight,
+                "tables_path": spec.tables_path,
+                "include_sql_labels": spec.include_sql_labels,
+                "prune_semantic_model": spec.prune_semantic_model,
+            }
+            for spec in specs
+        ],
+    }
+
+
+def write_dataset_manifest(manifest: dict[str, Any], output: Path) -> None:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, default=None)
     parser.add_argument("--section", choices=["train", "eval"], default="train")
     parser.add_argument("--output", type=Path, default=Path("data/processed/train.jsonl"))
+    parser.add_argument(
+        "--manifest-output",
+        type=Path,
+        default=None,
+        help="Optional JSON summary of prepared-data composition and provenance.",
+    )
     parser.add_argument("--limit", type=int, default=None, help="Limit examples per dataset")
     parser.add_argument("--strict", action="store_true", help="Fail if a configured dataset is unavailable")
     parser.add_argument(
@@ -560,7 +606,14 @@ def main() -> int:
         counts[spec.name] = len(records)
 
     total = write_jsonl(all_records, args.output)
+    if args.manifest_output:
+        write_dataset_manifest(
+            build_dataset_manifest(records=all_records, specs=specs, source_counts=counts),
+            args.manifest_output,
+        )
     print(f"Wrote {args.output}")
+    if args.manifest_output:
+        print(f"Wrote dataset manifest: {args.manifest_output}")
     for name, count in counts.items():
         print(f"  {name}: {count} examples")
     print(f"  total: {total} examples")

@@ -34,6 +34,9 @@ Prepared JSONL records now carry `assistant_turn_count`, `turn_format`, and
 `history_policy`. A multi-turn CoSQL dialog should show
 `history_policy=gold_sql_teacher_forced`, because the expanded prompt for turn N
 contains prior reference SQL from the dialog, not the model's own earlier output.
+`data.prepare --manifest-output <path>` writes a companion JSON manifest with
+source counts, evaluation modes, turn formats, history policies, assistant-turn
+totals, and configured dataset weights.
 
 ## Dataset Decomposition
 
@@ -68,6 +71,8 @@ The `weight` field in dataset configs is metadata for experiment design today;
 current preparation caps each configured source with `--limit` and does not yet
 perform weighted sampling. A larger training run should replace per-source caps
 with an explicit mixture manifest before claiming dataset-scale conclusions.
+Until then, every prepared artifact used for a claim should include the
+composition manifest produced by `data.prepare --manifest-output`.
 
 ## Benchmark Methodology
 
@@ -127,4 +132,3 @@ Not supported yet:
 - local 9B is competitive on BIRD-Interact;
 - the predicted planner improves SQL execution;
 - current dataset mixing is optimal.
-
