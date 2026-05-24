@@ -5,6 +5,7 @@ __pycache__/
 *.so
 .Python
 .venv/
+.venv-vllm/
 venv/
 env/
 *.egg-info/
@@ -13,6 +14,7 @@ build/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+unsloth_compiled_cache/
 
 # Environments
 .env

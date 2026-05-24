@@ -1,0 +1,28 @@
+{
+  "input_artifact": "data/processed/eval_cosql_dev_100.jsonl",
+  "input_command": "python -m data.prepare --config configs/cosql_dev_planner.yaml --section eval --limit 100 --output data/processed/eval_cosql_dev_100.jsonl --manifest-output data/processed/eval_cosql_dev_100.manifest.json",
+  "input_manifest_artifact": "data/processed/eval_cosql_dev_100.manifest.json",
+  "predicted_planner_artifact": "data/processed/eval_cosql_dev_predicted_planner_100.jsonl",
+  "planner_command": "python -m eval.planner_eval --input data/processed/eval_cosql_dev_100.jsonl --limit 100 --predicted-prepared-output data/processed/eval_cosql_dev_predicted_planner_100.jsonl --output results/planner_eval_cosql_dev_100.jsonl --summary-output results/planner_eval_cosql_dev_100_summary.json",
+  "aggregation_f1": 0.5316666666666666,
+  "column_f1": 0.11726479076479077,
+  "dialog_count": 32,
+  "duplicate_policy_match": 0.87,
+  "evaluation_modes": {
+    "non_oracle_generation": 100
+  },
+  "group_by_f1": 0.83,
+  "join_f1": 0.79,
+  "macro_planner_score": 0.5707582972582973,
+  "oracle_prompt_rows": 0,
+  "prediction_sources": {
+    "lexical_schema_baseline": 100
+  },
+  "rows": 100,
+  "selected_count_match": 0.18,
+  "skeleton_f1": 0.6478650793650793,
+  "sources": {
+    "data/raw/cosql_dataset/sql_state_tracking/cosql_dev.json": 100
+  },
+  "table_f1": 0.5992698412698413
+}

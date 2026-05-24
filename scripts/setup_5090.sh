@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# One-shot install script for Qwen 3.5 9B fine-tuning + vLLM serving on RTX 5090 (Blackwell, sm_120)
-# Assumes: Linux or WSL2, CUDA 12.8+ already installed, NVIDIA driver 575.64.03+
-# Run scripts/verify_blackwell.py first to confirm prerequisites.
+# One-shot install script for Qwen 3.5 9B fine-tuning on RTX 5090 (Blackwell, sm_120).
+# Assumes: Linux or WSL2 with NVIDIA driver 575.64.03+.
+# CUDA Toolkit 12.8+ is needed only if you choose the optional vLLM/source-build path.
+# Run scripts/verify_blackwell.py --phase training first to confirm prerequisites.
 
 set -euo pipefail
 
@@ -28,9 +29,9 @@ else
 fi
 
 echo
-echo "=== Step 1: PyTorch nightly cu128 (required for sm_120) ==="
-${PIP} install --pre torch torchvision torchaudio \
-    --index-url https://download.pytorch.org/whl/nightly/cu128
+echo "=== Step 1: PyTorch cu128 (required for sm_120) ==="
+${PIP} install torch torchvision torchaudio \
+    --index-url https://download.pytorch.org/whl/cu128
 
 echo
 echo "=== Step 2: Core training stack ==="
@@ -53,6 +54,8 @@ echo
 echo "=== Step 4: Evaluation stack (RAGAS + datacompy + sqlglot) ==="
 ${PIP} install \
     "ragas>=0.4.3" \
+    "langchain-community<0.4" \
+    "langchain-google-vertexai" \
     "datacompy>=0.13.0" \
     "sqlparse>=0.5.0" \
     "sqlglot>=25.0.0" \
@@ -93,4 +96,5 @@ fi
 
 echo
 echo "=== Setup complete ==="
-echo "Run: python scripts/verify_blackwell.py"
+echo "Run: python scripts/verify_blackwell.py --phase training"
+echo "Run: python scripts/verify_blackwell.py --phase serving  # after installing CUDA Toolkit + vLLM"

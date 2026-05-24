@@ -57,20 +57,30 @@ training:
 
 data:
   train_datasets:
-    - name: "alpineai/cosql"
+    - name: "data/raw/cosql_dataset/sql_state_tracking/cosql_train.json"
       split: "train"
-      weight: 0.40           # multi-turn, with clarifications
+      formatter: "cosql"
+      tables_path: "data/raw/cosql_dataset/tables.json"
+      weight: 0.50           # official local CoSQL archive from Yale
     - name: "jellyChiru/SParC"
       split: "train"
-      weight: 0.30           # multi-turn SQL sequences
+      formatter: "sparc"
+      weight: 0.25           # accessible HF mirror is flattened question/query rows
     - name: "gretelai/synthetic_text_to_sql"
       split: "train"
-      weight: 0.30           # single-turn reinforcement (prevent catastrophic forgetting)
+      formatter: "gretelai"
+      weight: 0.25           # schema-rich single-turn reinforcement
   eval_datasets:
-    - name: "alpineai/cosql"
+    - name: "data/raw/cosql_dataset/sql_state_tracking/cosql_dev.json"
       split: "validation"
+      formatter: "cosql"
+      tables_path: "data/raw/cosql_dataset/tables.json"
     - name: "jellyChiru/SParC"
       split: "validation"
+      formatter: "sparc"
+    - name: "birdsql/bird_mini_dev"
+      split: "mini_dev_sqlite"
+      formatter: "bird"
 
 wandb:
   project: "multiturn-sql-finetuning"

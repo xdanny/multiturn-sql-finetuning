@@ -1,0 +1,7 @@
+[
+  {
+    "name": "semantic_grounding",
+    "source": "prompt_search_static",
+    "instruction": "Before choosing SQL objects, map the user request to the semantic model: identify the relevant cube, metric or count, dimensions, filters, and join hints. Then emit only the final SQL over physical table and column names."
+  }
+]

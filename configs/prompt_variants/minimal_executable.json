@@ -1,0 +1,7 @@
+[
+  {
+    "name": "minimal_executable",
+    "source": "prompt_search_static",
+    "instruction": "Generate the simplest executable SQLite query that answers the current turn. Use only tables and columns present in the schema, and avoid extra joins or selected columns unless the question requires them."
+  }
+]
