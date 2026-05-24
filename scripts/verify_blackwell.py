@@ -10,10 +10,12 @@ Run this BEFORE installing anything — it tells you what's missing.
 
 from __future__ import annotations
 
+import os
+import shutil
 import subprocess
 import sys
-from dataclasses import dataclass
-
+from argparse import ArgumentParser
+from dataclasses import dataclass, field
 
 # ANSI colors
 GREEN = "\033[92m"
@@ -30,6 +32,10 @@ class CheckResult:
     passed: bool
     detail: str
     fix: str | None = None
+    phases: set[str] = field(default_factory=lambda: {"training"})
+
+    def required_for(self, phase: str) -> bool:
+        return phase == "all" or phase in self.phases
 
 
 def check_nvidia_driver() -> CheckResult:
@@ -64,6 +70,7 @@ def check_nvidia_driver() -> CheckResult:
 
 
 def check_cuda_toolkit() -> CheckResult:
+    phases = {"serving"}
     try:
         out = subprocess.check_output(["nvcc", "--version"], text=True)
         # e.g. "Cuda compilation tools, release 12.9, V12.9.86"
@@ -76,21 +83,52 @@ def check_cuda_toolkit() -> CheckResult:
                         "CUDA toolkit",
                         True,
                         f"nvcc {version_str}",
+                        phases=phases,
                     )
                 return CheckResult(
                     "CUDA toolkit",
                     False,
                     f"nvcc {version_str} — need 12.8+",
                     "Install CUDA 12.8+ from developer.nvidia.com/cuda-toolkit",
+                    phases=phases,
                 )
-        return CheckResult("CUDA toolkit", False, "could not parse nvcc output")
+        return CheckResult(
+            "CUDA toolkit",
+            False,
+            "could not parse nvcc output",
+            phases=phases,
+        )
     except FileNotFoundError:
         return CheckResult(
             "CUDA toolkit",
             False,
-            "nvcc not found in PATH",
+            "nvcc not found in PATH (not required for PyTorch/Unsloth training)",
             "Install CUDA 12.8+ and add /usr/local/cuda/bin to PATH",
+            phases=phases,
         )
+
+
+def check_c_compiler() -> CheckResult:
+    candidates = []
+    cc_env = os.environ.get("CC")
+    if cc_env:
+        candidates.append(cc_env)
+    candidates.extend(["cc", "gcc", "clang", "zig"])
+
+    for candidate in candidates:
+        resolved = shutil.which(candidate)
+        if resolved:
+            return CheckResult(
+                "C compiler",
+                True,
+                f"{candidate} -> {resolved}",
+            )
+    return CheckResult(
+        "C compiler",
+        False,
+        "no cc/gcc/clang/zig found in PATH",
+        "Install a C compiler or set CC=/path/to/compiler for Triton kernel builds",
+    )
 
 
 def check_python() -> CheckResult:
@@ -283,6 +321,7 @@ def check_bitsandbytes() -> CheckResult:
 
 
 def check_vllm() -> CheckResult:
+    phases = {"serving"}
     try:
         import vllm
     except ImportError:
@@ -291,8 +330,9 @@ def check_vllm() -> CheckResult:
             False,
             "not installed (needed only for serving phase)",
             "Build from source: see scripts/setup_5090.sh",
+            phases=phases,
         )
-    return CheckResult("vLLM", True, vllm.__version__)
+    return CheckResult("vLLM", True, vllm.__version__, phases=phases)
 
 
 def check_ragas() -> CheckResult:
@@ -309,11 +349,21 @@ def check_ragas() -> CheckResult:
 
 
 def main() -> int:
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--phase",
+        choices=["training", "serving", "all"],
+        default="training",
+        help="Fail only checks required for this phase.",
+    )
+    args = parser.parse_args()
+
     print(f"\n{BOLD}Blackwell / RTX 5090 toolchain probe{RESET}\n")
 
     checks = [
         check_nvidia_driver(),
         check_cuda_toolkit(),
+        check_c_compiler(),
         check_python(),
         check_pytorch(),
         check_gpu_compute_capability(),
@@ -329,18 +379,20 @@ def main() -> int:
     all_passed = True
     for r in checks:
         mark = f"{GREEN}✓{RESET}" if r.passed else f"{RED}✗{RESET}"
-        print(f"  {mark} {BOLD}{r.name:26s}{RESET} {r.detail}")
-        if not r.passed:
+        required = r.required_for(args.phase)
+        suffix = "" if required else f" {BLUE}(not required for {args.phase}){RESET}"
+        print(f"  {mark} {BOLD}{r.name:26s}{RESET} {r.detail}{suffix}")
+        if not r.passed and required:
             all_passed = False
             if r.fix:
                 print(f"      {YELLOW}→ {r.fix}{RESET}")
 
     print()
     if all_passed:
-        print(f"{GREEN}{BOLD}All checks passed — ready to train.{RESET}\n")
+        print(f"{GREEN}{BOLD}Required {args.phase} checks passed.{RESET}\n")
         return 0
     print(
-        f"{YELLOW}{BOLD}Some checks failed — run `bash scripts/setup_5090.sh` to fix.{RESET}\n"
+        f"{YELLOW}{BOLD}Some required {args.phase} checks failed.{RESET}\n"
     )
     return 1
 

@@ -1,0 +1,8 @@
+[
+  {
+    "name": "schema_pruned_minimal",
+    "source": "oracle_gold_sql_schema_pruned_static",
+    "requires_planning_hints": true,
+    "instruction": "For oracle diagnostic runs only, generate the simplest executable SQLite query that satisfies the current turn and the gold SQL-derived planning hints. Prefer the pruned semantic model, avoid extra joins or selected columns, and keep the selected expressions in the requested order."
+  }
+]

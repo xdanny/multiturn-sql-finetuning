@@ -52,15 +52,27 @@ training:
 
 data:
   train_datasets:
-    - name: "alpineai/cosql"
-      split: "train[:1000]"          # small slice for fast debug
+    - name: "data/raw/cosql_dataset/sql_state_tracking/cosql_train.json"
+      split: "train"
+      formatter: "cosql"
+      tables_path: "data/raw/cosql_dataset/tables.json"
       weight: 0.50
+    - name: "jellyChiru/SParC"
+      split: "train[:1000]"          # small slice for fast debug
+      formatter: "sparc"
+      weight: 0.25
     - name: "gretelai/synthetic_text_to_sql"
       split: "train[:500]"
-      weight: 0.50
+      formatter: "gretelai"
+      weight: 0.25
   eval_datasets:
-    - name: "alpineai/cosql"
+    - name: "data/raw/cosql_dataset/sql_state_tracking/cosql_dev.json"
       split: "validation[:100]"
+      formatter: "cosql"
+      tables_path: "data/raw/cosql_dataset/tables.json"
+    - name: "jellyChiru/SParC"
+      split: "validation[:100]"
+      formatter: "sparc"
 
 wandb:
   project: "multiturn-sql-finetuning"
