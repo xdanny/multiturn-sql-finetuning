@@ -4,7 +4,9 @@ import json
 
 import pytest
 
+from data.plan_contract import PREDICTED_PLANNER
 from eval.planner_eval import (
+    annotate_prepared_records_with_lexical_plans,
     evaluate_planner_records,
     extract_schema_inventory,
     lexical_planner,
@@ -216,3 +218,45 @@ def test_run_planner_eval_writes_rows_and_summary(tmp_path) -> None:
     summary_row = json.loads(summary.read_text())
     assert row["planner_scores"]["macro_planner_score"] >= 0.0
     assert summary_row["rows"] == 1
+
+
+def test_annotate_prepared_records_with_lexical_plans_writes_predicted_mode(tmp_path) -> None:
+    input_path = tmp_path / "prepared.jsonl"
+    output_path = tmp_path / "predicted.jsonl"
+    input_path.write_text(
+        json.dumps(
+            {
+                "messages": [
+                    {"role": "system", "content": "sys"},
+                    {
+                        "role": "user",
+                        "content": (
+                            "Schema/context:\n"
+                            "airlines(airline_id int, name text, country text)\n\n"
+                            "Question:\nList airline names."
+                        ),
+                    },
+                    {"role": "assistant", "content": "SELECT name FROM airlines;"},
+                ],
+                "gold_plans": [
+                    {
+                        "relevant_tables": ["airlines"],
+                        "relevant_columns": ["airlines.name"],
+                        "join_path": [],
+                        "query_skeleton": {"select": True},
+                        "projection_shape": {"selected_count": 1, "preserve_duplicates": True},
+                    }
+                ],
+            }
+        )
+        + "\n"
+    )
+
+    assert annotate_prepared_records_with_lexical_plans(input_path, output_path, limit=None) == 1
+
+    row = json.loads(output_path.read_text())
+    assert row["evaluation_mode"] == PREDICTED_PLANNER
+    assert row["uses_oracle_planning_hints"] is False
+    assert row["semantic_context_pruned_by_oracle_labels"] is False
+    assert row["predicted_plans"][0]["prediction_source"] == "lexical_schema_baseline"
+    assert row["predicted_plans"][0]["relevant_tables"] == ["airlines"]

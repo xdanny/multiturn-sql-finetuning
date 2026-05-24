@@ -6,17 +6,25 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
-from collections.abc import Iterable
+from collections import Counter
+from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import Any
 
 from datasets import load_dataset
 from openai import OpenAI
 
-from data.plan_contract import ORACLE_PLANNER_DIAGNOSTIC
+from data.plan_contract import (
+    ORACLE_PLANNER_DIAGNOSTIC,
+    PREDICTED_PLANNER,
+    predicted_planning_hint_from_plan,
+    validate_prepared_record_contract,
+)
 from data.prepare import ORACLE_DIAGNOSTIC_WARNING
 from eval.ragas_metrics import extract_sql, score_single_turn
+from eval.result_manifest import build_result_manifest, write_result_manifest
 
 BENCHMARKS = ["prepared", "sparc", "bird_mini_dev"]
 SQL_ONLY_INSTRUCTION = (
@@ -42,6 +50,32 @@ def enforce_sql_only_instruction(messages: list[dict[str, str]]) -> list[dict[st
             message["content"] = f"{message['content']}\n\n{SQL_ONLY_INSTRUCTION}"
             return updated
     return [{"role": "system", "content": SQL_ONLY_INSTRUCTION}, *updated]
+
+
+def add_predicted_plan_to_last_user_message(
+    messages: list[dict[str, str]], predicted_plan: dict[str, Any]
+) -> list[dict[str, str]]:
+    """Append non-oracle planner output to the current user turn."""
+
+    updated = [dict(message) for message in messages]
+    hint = predicted_planning_hint_from_plan(predicted_plan)
+    for message in reversed(updated):
+        if message.get("role") == "user":
+            message["content"] = f"{message['content']}\n\n{hint}"
+            return updated
+    return [*updated, {"role": "user", "content": hint}]
+
+
+def messages_for_generation(record: dict[str, Any]) -> list[dict[str, str]]:
+    """Return the prompt sent to the model for one expanded eval turn."""
+
+    messages = record["messages"]
+    if record.get("evaluation_mode") == PREDICTED_PLANNER:
+        predicted_plan = record.get("predicted_plan")
+        if not predicted_plan:
+            raise ValueError("predicted_planner eval records must include predicted_plan")
+        messages = add_predicted_plan_to_last_user_message(messages, predicted_plan)
+    return enforce_sql_only_instruction(messages)
 
 
 def assistant_turn_indices(messages: list[dict[str, str]]) -> list[int]:
@@ -119,6 +153,8 @@ def load_prepared_records(
             if limit is not None and len(records) >= limit:
                 break
             record = json.loads(line)
+            if record.get("evaluation_mode"):
+                validate_prepared_record_contract(record)
             if record_uses_oracle_plan(record) and not allow_oracle_plan:
                 raise ValueError(
                     f"{path} contains gold SQL-derived oracle planning hints. "
@@ -225,6 +261,47 @@ def write_results(records: Iterable[dict[str, Any]], output: Path) -> int:
     return count
 
 
+def summarize_eval_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
+    """Aggregate metrics for result manifests and claim ledgers."""
+
+    if not results:
+        return {}
+    metrics = {
+        "execution_accuracy": sum(result["execution_score"] for result in results) / len(results),
+        "strict_execution_accuracy": sum(
+            result.get("strict_execution_score", result["execution_score"]) for result in results
+        )
+        / len(results),
+        "value_execution_accuracy": sum(
+            result.get("value_execution_score", result["execution_score"]) for result in results
+        )
+        / len(results),
+        "syntax_accuracy": sum(float(bool(result.get("syntax_valid"))) for result in results)
+        / len(results),
+        "mean_generation_latency_ms": sum(
+            float(result.get("generation_latency_ms") or 0.0) for result in results
+        )
+        / len(results),
+        "sources": dict(Counter(str(result.get("source", "unknown")) for result in results)),
+        "evaluation_modes": dict(
+            Counter(str(result.get("evaluation_mode", "unknown")) for result in results)
+        ),
+    }
+    if any(result.get("dialog_id") for result in results):
+        metrics["dialog_count"] = len({result.get("dialog_id") for result in results})
+        per_dialog: dict[str, list[float]] = {}
+        for result in results:
+            if result.get("dialog_id"):
+                per_dialog.setdefault(str(result["dialog_id"]), []).append(result["execution_score"])
+        metrics["interaction_match_rate"] = (
+            sum(1.0 for scores in per_dialog.values() if all(score == 1.0 for score in scores))
+            / len(per_dialog)
+            if per_dialog
+            else 0.0
+        )
+    return metrics
+
+
 def database_path_for_record(record: dict[str, Any], database_root: Path | None) -> Path | None:
     if database_root is None or not record.get("database_id"):
         return None
@@ -246,6 +323,9 @@ def run_eval(
     temperature: float,
     max_tokens: int,
     allow_oracle_plan: bool,
+    manifest_output: Path | None = None,
+    prompt_variant: str | None = None,
+    command: Sequence[str] | None = None,
 ) -> int:
     client = OpenAI(base_url=endpoint, api_key=api_key)
     records = load_benchmark_records(
@@ -261,7 +341,7 @@ def run_eval(
         raw_generation, generation_latency_ms = generate_sql(
             client,
             model_name=model_name,
-            messages=enforce_sql_only_instruction(record["messages"]),
+            messages=messages_for_generation(record),
             temperature=temperature,
             max_tokens=max_tokens,
         )
@@ -287,10 +367,34 @@ def run_eval(
         )
 
     written = write_results(results, output)
-    mean_score = (
-        sum(result["execution_score"] for result in results) / len(results) if results else 0.0
+    metrics = summarize_eval_metrics(results)
+    if manifest_output is None:
+        manifest_output = output.with_suffix(".manifest.json")
+    evaluation_modes = metrics.get("evaluation_modes", {})
+    evaluation_mode = (
+        next(iter(evaluation_modes))
+        if len(evaluation_modes) == 1
+        else ",".join(sorted(evaluation_modes)) or "unknown"
     )
+    manifest = build_result_manifest(
+        run_id=output.stem,
+        benchmark=benchmark,
+        input_path=input_path,
+        output_path=output,
+        model_name=model_name,
+        endpoint=endpoint,
+        evaluation_mode=evaluation_mode,
+        oracle_allowed=allow_oracle_plan,
+        prompt_variant=prompt_variant,
+        database_root=database_root,
+        command=list(command or sys.argv),
+        row_count=written,
+        metrics=metrics,
+    )
+    write_result_manifest(manifest, manifest_output)
+    mean_score = metrics.get("execution_accuracy", 0.0)
     print(f"Wrote {written} rows to {output}")
+    print(f"Wrote result manifest to {manifest_output}")
     print(f"Mean normalized/execution score: {mean_score:.3f}")
     return 0 if written else 1
 
@@ -307,6 +411,8 @@ def main() -> int:
     parser.add_argument("--api-key", default="EMPTY")
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--max-tokens", type=int, default=512)
+    parser.add_argument("--manifest-output", type=Path, default=None)
+    parser.add_argument("--prompt-variant", default=None)
     parser.add_argument(
         "--allow-oracle-plan",
         action="store_true",
@@ -326,6 +432,9 @@ def main() -> int:
         temperature=args.temperature,
         max_tokens=args.max_tokens,
         allow_oracle_plan=args.allow_oracle_plan,
+        manifest_output=args.manifest_output,
+        prompt_variant=args.prompt_variant,
+        command=sys.argv,
     )
 
 

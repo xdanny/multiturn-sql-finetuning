@@ -25,6 +25,7 @@ This repo is now organized around verified, runnable gates:
 - Data preparation now injects Cube-inspired semantic model hints from Spider/CoSQL `tables.json` when available.
 - Training consumes prepared JSONL and supports bounded smoke tests with `--max-steps`.
 - Evaluation compares base and fine-tuned models through either a local Transformers runner or an OpenAI-compatible endpoint.
+- Endpoint evaluation writes a manifest that records the input hash, output hash, model, mode, command, and metrics behind each reported number.
 - Tests cover dataset formatting, training-data validation, SQL scoring, result loading, and plotting.
 - vLLM serving is verified in a separate `.venv-vllm` environment on WSL2 + RTX 5090.
 - The best oracle-conditioned endpoint run is the schema-pruned 100-step LoRA adapter at `0.890` value accuracy, `0.820` strict accuracy, and `1.000` syntax accuracy on the fixed 100-turn CoSQL dev slice. That run is a diagnostic upper bound because the planning hints are derived from gold/reference SQL.
@@ -42,6 +43,7 @@ Known constraints:
 - Qwen thinking mode must be disabled during endpoint evaluation with `chat_template_kwargs.enable_thinking=false`; otherwise generations can include reasoning prose.
 - Semantic model context increases prompt length. The current semantic endpoint run shows this cost directly, so future semantic prompts need retrieval and pruning.
 - DSPy-backed prompt search is available through `eval.prompt_optimize`; it can propose and score prompt variants against execution accuracy.
+- A non-oracle `predicted_planner` path is now wired: lexical planner output can be written back into prepared JSONL and injected into the SQL-generation prompt without reference SQL.
 - Local execution scoring reports both strict label-aware accuracy and value-only accuracy. Treat older single `accuracy` numbers as strict-era results unless they come from `results/rescored/`.
 - Failure analysis now classifies every wrong rescored turn into actionable labels and compares adapters or prompt variants against a baseline under `plots/failure_taxonomy/`.
 - Schema-link label generation and semantic prompt pruning are available through `data.prepare --include-sql-labels --prune-semantic-model`. These flags now mark produced rows as `evaluation_mode=oracle_planner_diagnostic`. On the fixed 100-turn CoSQL slice, the best oracle prompt-only pruned-label run reaches `0.850` value accuracy, and training on that oracle-labelled format reaches `0.890`.
@@ -54,7 +56,7 @@ This repo separates three different claims that are easy to blur:
 | --- | --- | --- |
 | `non_oracle_generation` | Question, conversation history, schema, semantic context, and any non-oracle retrieval artifacts | A deployable text-to-SQL path can work under those inputs. |
 | `oracle_planner_diagnostic` | The same inputs plus planning hints extracted from reference SQL, or semantic context pruned by those hints | An upper bound: SQL generation becomes easier when schema linking, join choice, projection shape, and duplicate policy are already solved. |
-| Future `predicted_planner` | Planner output predicted from question, history, schema, and optional value indexes | The real production claim: a system can create its own plan before generating SQL. |
+| `predicted_planner` | Planner output predicted from question, history, schema, and optional value indexes | The real production claim: a system can create its own plan before generating SQL. |
 
 Any row prepared with `--include-sql-labels` or `--prune-semantic-model` is
 teacher-forced by gold SQL. The code writes `uses_oracle_planning_hints`,
@@ -93,11 +95,12 @@ python -m data.prepare \
   --config configs/cosql_dev_planner.yaml \
   --section eval \
   --limit 100 \
-  --output data/processed/eval_cosql_dev_planner_100.jsonl
+  --output data/processed/eval_cosql_dev_100.jsonl
 
 python -m eval.planner_eval \
-  --input data/processed/eval_cosql_dev_planner_100.jsonl \
+  --input data/processed/eval_cosql_dev_100.jsonl \
   --limit 100 \
+  --predicted-prepared-output data/processed/eval_cosql_dev_predicted_planner_100.jsonl \
   --output results/planner_eval_cosql_dev_100.jsonl \
   --summary-output results/planner_eval_cosql_dev_100_summary.json
 ```
@@ -116,6 +119,11 @@ contain oracle planning hints unless `--allow-oracle-plan` is passed. That keeps
 the next project concrete: improve planner F1 first, then measure whether SQL
 generation improves from predicted plans.
 
+The generated `data/processed/eval_cosql_dev_predicted_planner_100.jsonl`
+contains the first 100 CoSQL turns across 32 dialogs with `evaluation_mode` set
+to `predicted_planner`. It is ready for endpoint SQL evaluation, but it is not
+itself an execution result.
+
 Current fixed-slice lexical planner baseline:
 
 | Slice | Planner source | Rows | Dialogs | Oracle prompt rows | Macro planner score | Table F1 | Column F1 | Skeleton F1 |
@@ -125,6 +133,8 @@ Current fixed-slice lexical planner baseline:
 The tracked summary is `docs/planner_baseline_cosql_dev_100_summary.json`.
 This is intentionally not a SQL execution result. It measures whether the
 non-oracle planner can recover the answer-key plan fields before SQL generation.
+The claim ledger and historical result manifests are tracked under
+`docs/evidence_contract.md` and `docs/result_manifests/`.
 
 ## Stack
 
@@ -256,7 +266,7 @@ python -m eval.run_eval \
   --benchmark prepared \
   --endpoint http://127.0.0.1:8000/v1 \
   --model-name multiturn-sql-100 \
-  --input data/processed/eval_100_each.jsonl \
+  --input data/processed/eval_cosql_dev_100.jsonl \
   --limit 100 \
   --max-tokens 192 \
   --database-root data/raw/cosql_dataset/database \

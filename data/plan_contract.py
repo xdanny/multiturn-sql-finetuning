@@ -110,9 +110,43 @@ def validate_prepared_record_contract(record: dict[str, Any]) -> None:
     predicted_plans = record.get("predicted_plans")
     if predicted_plans is not None and not isinstance(predicted_plans, list):
         raise ValueError("predicted_plans must be a list when present")
+    if isinstance(predicted_plans, list) and len(predicted_plans) != assistant_turn_count(messages):
+        raise ValueError("predicted_plans length must match assistant turns")
 
     if mode == ORACLE_PLANNER_DIAGNOSTIC and record.get("planning_label_source") != "gold_reference_sql":
         raise ValueError("oracle planner diagnostic records must declare gold_reference_sql labels")
 
     if mode == PREDICTED_PLANNER and not predicted_plans:
         raise ValueError("predicted planner records must include predicted_plans")
+
+
+def predicted_planning_hint_from_plan(plan: dict[str, Any]) -> str:
+    """Format non-oracle planner output as prompt context."""
+
+    normalized = normalize_plan(plan)
+    skeleton = normalized["query_skeleton"]
+    projection = normalized["projection_shape"]
+    skeleton_flags = [name for name, enabled in skeleton.items() if enabled]
+    lines = [
+        "Predicted SQL plan (generated without reference SQL):",
+        f"Relevant tables: {', '.join(normalized['relevant_tables']) or 'none'}",
+        f"Relevant columns: {', '.join(normalized['relevant_columns']) or 'none'}",
+        f"Join path: {'; '.join(normalized['join_path']) or 'none'}",
+        f"Query skeleton: {', '.join(skeleton_flags) or 'select'}",
+        (
+            "Projection shape: "
+            f"{projection['selected_count']} selected expression(s) in this order: "
+            f"{'; '.join(projection['selected_expressions']) or 'unknown'}"
+        ),
+    ]
+    if projection["aggregations"]:
+        lines.append(f"Aggregation outputs: {', '.join(projection['aggregations'])}")
+    if projection["group_by"]:
+        lines.append(f"Group by: {', '.join(projection['group_by'])}")
+    if projection["order_by"]:
+        lines.append(f"Order by: {projection['order_by']}")
+    if projection["limit"]:
+        lines.append(f"Limit: {projection['limit']}")
+    duplicate_note = "preserve duplicate rows" if projection["preserve_duplicates"] else "deduplicate rows"
+    lines.append(f"Duplicate policy: {duplicate_note}")
+    return "\n".join(lines)

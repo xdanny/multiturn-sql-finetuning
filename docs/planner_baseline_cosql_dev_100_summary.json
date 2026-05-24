@@ -1,7 +1,8 @@
 {
-  "input_artifact": "data/processed/eval_cosql_dev_planner_100.jsonl",
-  "input_command": "python -m data.prepare --config configs/cosql_dev_planner.yaml --section eval --limit 100 --output data/processed/eval_cosql_dev_planner_100.jsonl",
-  "planner_command": "python -m eval.planner_eval --input data/processed/eval_cosql_dev_planner_100.jsonl --limit 100 --output results/planner_eval_cosql_dev_100.jsonl --summary-output results/planner_eval_cosql_dev_100_summary.json",
+  "input_artifact": "data/processed/eval_cosql_dev_100.jsonl",
+  "input_command": "python -m data.prepare --config configs/cosql_dev_planner.yaml --section eval --limit 100 --output data/processed/eval_cosql_dev_100.jsonl",
+  "predicted_planner_artifact": "data/processed/eval_cosql_dev_predicted_planner_100.jsonl",
+  "planner_command": "python -m eval.planner_eval --input data/processed/eval_cosql_dev_100.jsonl --limit 100 --predicted-prepared-output data/processed/eval_cosql_dev_predicted_planner_100.jsonl --output results/planner_eval_cosql_dev_100.jsonl --summary-output results/planner_eval_cosql_dev_100_summary.json",
   "aggregation_f1": 0.5316666666666666,
   "column_f1": 0.11726479076479077,
   "dialog_count": 32,

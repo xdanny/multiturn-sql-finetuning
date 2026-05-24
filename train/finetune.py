@@ -5,11 +5,12 @@ Qwen bf16 LoRA fine-tuning on SQL chat data with Unsloth + TRL SFTTrainer.
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 from typing import Any
 
 import yaml
-from datasets import Dataset, load_dataset
+from datasets import Dataset
 
 from data.plan_contract import ORACLE_PLANNER_DIAGNOSTIC
 from data.prepare import ORACLE_DIAGNOSTIC_WARNING
@@ -23,12 +24,13 @@ def load_config(path: Path) -> dict[str, Any]:
 def load_jsonl_dataset(path: Path) -> Dataset:
     if not path.exists():
         raise FileNotFoundError(f"training data not found: {path}")
-    dataset = load_dataset("json", data_files=str(path), split="train")
-    if not len(dataset):
+
+    rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    if not rows:
         raise ValueError(f"training data is empty: {path}")
-    if "messages" not in dataset.column_names:
+    if any("messages" not in row for row in rows):
         raise ValueError(f"training data must contain a 'messages' column: {path}")
-    return dataset
+    return Dataset.from_list(rows)
 
 
 def oracle_diagnostic_row_count(dataset: Dataset) -> int:
@@ -47,10 +49,18 @@ def build_sft_config(
     output_dir: Path | None = None,
     report_to: str | None = None,
 ):
+    from transformers.utils import is_torch_bf16_gpu_available  # noqa: PLC0415
     from trl import SFTConfig  # noqa: PLC0415
 
     training_cfg = config["training"]
     model_cfg = config["model"]
+    bf16 = training_cfg.get("bf16", True)
+    tf32 = training_cfg.get("tf32", True)
+    use_cpu = training_cfg.get("use_cpu")
+    if use_cpu is None and bf16 and not is_torch_bf16_gpu_available():
+        use_cpu = True
+        bf16 = False
+        tf32 = False
     kwargs = {
         "output_dir": str(output_dir) if output_dir is not None else training_cfg["output_dir"],
         "num_train_epochs": training_cfg.get("num_train_epochs", 1),
@@ -62,8 +72,9 @@ def build_sft_config(
         "weight_decay": training_cfg.get("weight_decay", 0.0),
         "max_grad_norm": training_cfg.get("max_grad_norm", 1.0),
         "optim": training_cfg.get("optim", "adamw_torch"),
-        "bf16": training_cfg.get("bf16", True),
-        "tf32": training_cfg.get("tf32", True),
+        "bf16": bf16,
+        "tf32": tf32,
+        "use_cpu": use_cpu,
         "logging_steps": training_cfg.get("logging_steps", 10),
         "save_strategy": training_cfg.get("save_strategy", "steps"),
         "save_steps": training_cfg.get("save_steps", 500),

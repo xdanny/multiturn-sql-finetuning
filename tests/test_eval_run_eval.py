@@ -12,6 +12,7 @@ from eval.run_eval import (
     extract_reference_sql,
     generate_sql,
     load_prepared_records,
+    messages_for_generation,
     write_results,
 )
 
@@ -154,6 +155,55 @@ def test_load_prepared_records_limit_applies_to_turns(tmp_path) -> None:
 
     assert len(records) == 1
     assert records[0]["reference_sql"] == "SELECT 1;"
+
+
+def test_load_prepared_records_rejects_predicted_mode_without_predictions(tmp_path) -> None:
+    path = tmp_path / "prepared.jsonl"
+    path.write_text(
+        json.dumps(
+            {
+                "evaluation_mode": "predicted_planner",
+                "gold_plans": [{"relevant_tables": ["singer"]}],
+                "messages": [
+                    {"role": "system", "content": "sys"},
+                    {"role": "user", "content": "q1"},
+                    {"role": "assistant", "content": "SELECT 1;"},
+                ],
+            }
+        )
+        + "\n"
+    )
+
+    with pytest.raises(ValueError, match="predicted planner"):
+        load_prepared_records(path)
+
+
+def test_messages_for_generation_adds_predicted_plan_without_oracle_language() -> None:
+    record = {
+        "messages": [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "List airline names."},
+        ],
+        "evaluation_mode": "predicted_planner",
+        "predicted_plan": {
+            "relevant_tables": ["airlines"],
+            "relevant_columns": ["airlines.name"],
+            "join_path": [],
+            "query_skeleton": {"select": True},
+            "projection_shape": {
+                "selected_count": 1,
+                "selected_expressions": ["airlines.name"],
+                "preserve_duplicates": True,
+            },
+        },
+    }
+
+    messages = messages_for_generation(record)
+
+    assert "Return only one SQL query" in messages[0]["content"]
+    assert "Predicted SQL plan" in messages[-1]["content"]
+    assert "Relevant tables: airlines" in messages[-1]["content"]
+    assert "derived from reference SQL" not in messages[-1]["content"]
 
 
 def test_expand_prepared_record_uses_stable_fallback_dialog_id() -> None:

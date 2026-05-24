@@ -16,8 +16,13 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-from data.plan_contract import normalize_plan
-from eval.run_eval import load_prepared_records, write_results
+from data.plan_contract import PREDICTED_PLANNER, normalize_plan, validate_prepared_record_contract
+from eval.run_eval import (
+    assistant_turn_indices,
+    load_prepared_records,
+    record_uses_oracle_plan,
+    write_results,
+)
 
 PLAN_FIELDS = (
     "table_f1",
@@ -307,6 +312,74 @@ def run_planner_eval(
     return 0 if evaluated else 1
 
 
+def _gold_plans_for_record(record: dict[str, Any], assistant_count: int) -> list[dict[str, Any]]:
+    gold_plans = record.get("gold_plans")
+    if isinstance(gold_plans, list) and len(gold_plans) == assistant_count:
+        return [normalize_plan(plan) for plan in gold_plans]
+    schema_link_labels = record.get("schema_link_labels")
+    if isinstance(schema_link_labels, list):
+        return [
+            normalize_plan(schema_link_labels[index] if index < len(schema_link_labels) else {})
+            for index in range(assistant_count)
+        ]
+    return [normalize_plan({}) for _ in range(assistant_count)]
+
+
+def annotate_prepared_records_with_lexical_plans(
+    input_path: Path,
+    output_path: Path,
+    *,
+    limit: int | None,
+) -> int:
+    """Write dialog records with non-oracle lexical predicted planner output."""
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    written = 0
+    expanded_turns = 0
+    with input_path.open() as source, output_path.open("w") as target:
+        for line in source:
+            if not line.strip():
+                continue
+            if limit is not None and expanded_turns >= limit:
+                break
+            record = json.loads(line)
+            if record_uses_oracle_plan(record):
+                raise ValueError(
+                    f"{input_path} contains gold SQL-derived oracle planning hints. "
+                    "Predicted-planner artifacts must be generated from non-oracle prompts."
+                )
+            messages = record["messages"]
+            assistant_indices = assistant_turn_indices(messages)
+            if not assistant_indices:
+                continue
+
+            predicted_plans = []
+            for assistant_index in assistant_indices:
+                if limit is not None and expanded_turns >= limit:
+                    break
+                predicted_plans.append(lexical_planner(messages[:assistant_index]))
+                expanded_turns += 1
+
+            if not predicted_plans:
+                break
+            if len(predicted_plans) != len(assistant_indices):
+                messages = messages[: assistant_indices[len(predicted_plans) - 1] + 1]
+                assistant_indices = assistant_indices[: len(predicted_plans)]
+
+            updated = dict(record)
+            updated["messages"] = messages
+            updated["gold_plans"] = _gold_plans_for_record(record, len(assistant_indices))
+            updated["predicted_plans"] = predicted_plans
+            updated["evaluation_mode"] = PREDICTED_PLANNER
+            updated["uses_oracle_planning_hints"] = False
+            updated["semantic_context_pruned_by_oracle_labels"] = False
+            updated["predicted_plan_source"] = "lexical_schema_baseline"
+            validate_prepared_record_contract(updated)
+            target.write(json.dumps(updated, ensure_ascii=False) + "\n")
+            written += 1
+    return written
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", type=Path, required=True)
@@ -318,7 +391,20 @@ def main() -> int:
         action="store_true",
         help="Allow inputs whose prompts already contain gold SQL-derived planning hints.",
     )
+    parser.add_argument(
+        "--predicted-prepared-output",
+        type=Path,
+        default=None,
+        help="Also write prepared JSONL with non-oracle lexical predicted_plans.",
+    )
     args = parser.parse_args()
+    if args.predicted_prepared_output:
+        count = annotate_prepared_records_with_lexical_plans(
+            args.input,
+            args.predicted_prepared_output,
+            limit=args.limit,
+        )
+        print(f"Wrote {count} predicted-planner prepared records to {args.predicted_prepared_output}")
     return run_planner_eval(
         input_path=args.input,
         output=args.output,
