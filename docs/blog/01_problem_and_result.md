@@ -1,11 +1,15 @@
-# Local Multi-Turn SQL Fine-Tuning: What Actually Improved
+# Can a Local 9B Model Compete on Multi-Turn SQL?
 
-The first version of this project was easy to describe and too easy to
-misunderstand: fine-tune a local Qwen model on SQL chats and see whether it gets
-better. The more accurate version is narrower and more useful:
+The project starts from a concrete benchmark question:
 
-> Can a small LoRA run make a local model better at answering follow-up database
-> questions when the next SQL query depends on conversation history?
+> Can a locally fine-tuned Qwen 3.5 9B model become useful enough on
+> BIRD-Interact-style multi-turn SQL tasks to compete with much larger hosted
+> models?
+
+That is different from a generic "fine-tune a model on SQL chats" project. The
+benchmark target matters, the local serving constraint matters, and the
+comparison class matters. CoSQL is currently the small reproducible proxy slice;
+BIRD-Interact is the direction of the actual series.
 
 That distinction matters. Single-turn text-to-SQL is already a schema-linking
 problem. Multi-turn text-to-SQL adds state. A later question may say "what about
@@ -21,6 +25,10 @@ This repo now has a complete local loop:
 - Serve the base model and adapters through a local vLLM OpenAI-compatible API.
 - Evaluate on the same 100 assistant turns from CoSQL dev, spanning 32 dialogs.
 - Report both per-turn execution accuracy and dialog-level metrics.
+
+This loop does not yet produce a BIRD-Interact score. It proves the local
+training and evaluation path is sensitive enough to iterate before the harder
+benchmark harness is finished.
 
 The best non-oracle adapter so far is still the 100-step non-semantic run. It
 moved the vLLM endpoint from `0.370` to `0.530` execution accuracy on the fixed
@@ -51,7 +59,7 @@ that the model can learn stable decisions from them. A shallow semantic summary
 derived mechanically from `tables.json` is better than no structure, but it is
 not yet the same thing as a governed analytics model.
 
-## Why CoSQL Is a Good First Stress Test
+## Why CoSQL Is the First Proxy Slice
 
 CoSQL is a conversational text-to-SQL dataset built from Wizard-of-Oz dialogs
 over unseen databases. The official description emphasizes 30k+ turns, 10k+
@@ -59,7 +67,7 @@ annotated SQL queries, 3k dialogs, 200 databases, and 138 domains. More
 importantly, it frames conversational text-to-SQL as dialogue state tracking
 where the state is SQL, not a domain-specific slot map.
 
-That makes CoSQL a useful engineering target for this repo. It exercises:
+That makes CoSQL a useful engineering proxy for this repo. It exercises:
 
 - Carrying context across turns.
 - Resolving follow-up references.
@@ -73,9 +81,10 @@ That does not simulate a fully autonomous agent, because model errors do not
 compound across the conversation. It does isolate a narrower skill: given clean
 history, can the model use it?
 
-That is the right intermediate benchmark for fine-tuning. If a model cannot use
-gold history reliably, it will not survive a harder agent loop where it has to
-recover from its own earlier mistakes.
+That is the right intermediate gate for fine-tuning. If a model cannot use gold
+history reliably on CoSQL, it will not survive a harder BIRD-Interact-style loop
+where it has to handle dynamic interaction and recover from its own earlier
+mistakes.
 
 ## What The Numbers Do And Do Not Say
 
@@ -112,6 +121,8 @@ database is allowed to mean.
 Sources:
 
 - Qwen 3.5 9B model card: https://huggingface.co/Qwen/Qwen3.5-9B
+- BIRD-Interact project page: https://bird-interact.github.io/
+- BIRD-Interact paper: https://arxiv.org/abs/2510.05318
 - CoSQL project page: https://yale-lily.github.io/cosql
 - CoSQL paper: https://arxiv.org/abs/1909.05378
 - SParC paper: https://arxiv.org/abs/1906.02285

@@ -40,11 +40,15 @@ That keeps the dialog structure visible during training. It also creates a clean
 path for evaluation: expand every assistant SQL turn into a benchmark item while
 preserving the earlier turns as context.
 
-The current data mix has three jobs:
+The target benchmark direction is BIRD-Interact-style multi-turn SQL. The
+current data mix is a bridge toward that, not a claim that every dataset is
+equivalent:
 
 | Dataset | Job in this repo |
 | --- | --- |
-| CoSQL | Multi-turn dialog state and CoSQL dev evaluation |
+| BIRD-Interact | Target dynamic interaction benchmark and eventual larger-model comparison |
+| BIRD mini-dev | BIRD-style execution harness and SQLite database handling |
+| CoSQL | Current local proxy for multi-turn dialog state and CoSQL dev evaluation |
 | SParC | Context-dependent SQL coverage, currently from a flattened HF mirror |
 | Gretel synthetic SQL | Schema-rich single-turn reinforcement and SQL variety |
 

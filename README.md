@@ -1,7 +1,14 @@
 # Multi-Turn SQL Fine-Tuning
 
-Fine-tune Qwen 3.5 9B on SQL chat data, serve it locally on an RTX 5090, and
-benchmark the fine-tuned adapter against the base Qwen 3.5 9B model.
+Fine-tune Qwen 3.5 9B on SQL interaction data, serve it locally on an RTX 5090,
+and test whether a small local model can become useful enough on
+BIRD-Interact-style multi-turn SQL tasks to compete with much larger hosted
+models.
+
+The project target is not "make CoSQL go up" in isolation. CoSQL is the first
+small, reproducible multi-turn proxy slice. The longer benchmark direction is a
+BIRD-Interact-style comparison with the same interaction protocol, SQL execution
+checks, cost accounting, and larger-model baselines.
 
 > Oracle diagnostic: the `0.890` schema-pruned result uses gold SQL-derived
 > planning hints in the eval prompt. It is an upper bound for the
@@ -12,6 +19,8 @@ benchmark the fine-tuned adapter against the base Qwen 3.5 9B model.
 
 This repo is now organized around verified, runnable gates:
 
+- BIRD-Interact/BIRD-style evaluation is the target direction; CoSQL is the
+  current local proxy while that harness is built.
 - Data preparation writes TRL-compatible `messages` JSONL.
 - Data preparation now injects Cube-inspired semantic model hints from Spider/CoSQL `tables.json` when available.
 - Training consumes prepared JSONL and supports bounded smoke tests with `--max-steps`.
