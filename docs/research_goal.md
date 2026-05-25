@@ -51,18 +51,27 @@ The current repo has a useful local loop, but it is still mostly a proxy:
 - DSPy has been used for prompt variants; it still needs to optimize planner and semantic
   programs, not just final SQL wording.
 
-## Blog-Attached Lab Contract
+## Blog-Attached Notebook Contract
 
-The public post should link to the attached codebase and one shareable lab
-notebook:
+The public post should link to the attached codebase and run through marimo
+chapter notebooks:
+
+1. `notebooks/blog/01_benchmark_gap.py`
+2. `notebooks/blog/02_eval_protocol.py`
+3. `notebooks/blog/03_method_targets.py`
+4. `notebooks/blog/04_results_diagnostics.py`
+5. `notebooks/blog/05_next_experiments.py`
+
+The combined lab stays available as the compact runnable scenario:
 
 1. `notebooks/labs/local_multiturn_sql_lab.ipynb`
 2. `notebooks/labs/local_multiturn_sql_lab.py`
 
-The post explains the narrative, but every major claim should point to the lab
-notebook or a generated evidence artifact. The lab runs CPU-safe local
-experiments and evidence loaders. It may report CUDA, MPS, or XPU visibility,
-but it should not require the full GPU training setup or vLLM serving path.
+The post explains the narrative, but every major claim should name a marimo
+chapter notebook or generated evidence artifact. The notebooks run CPU-safe
+local experiments and evidence loaders. They may report CUDA, MPS, or XPU
+visibility, but they should not require the full GPU training setup or vLLM
+serving path.
 
 This matters because the blog should not be a static story written after the fact. It
 should behave like a lab walkthrough:
@@ -75,16 +84,17 @@ should behave like a lab walkthrough:
 4. Separate production-style proxy results from oracle diagnostics.
 5. Turn the remaining failures into next repo artifacts.
 
-Every public claim should name the attached lab notebook or generated evidence artifact
-that produced it. The public post should be readable on its own, but it should also
-let readers rerun the companion lab and see the boundary between current proxy
-evidence, oracle diagnostics, and future BIRD-Interact or hosted-model claims.
+Every public claim should name a marimo chapter notebook or generated evidence artifact
+that produced it. The public post should be readable on its own, but it should
+also let readers rerun the companion notebooks and see the boundary between current
+proxy evidence, oracle diagnostics, and future BIRD-Interact or hosted-model claims.
 The generated `target-evidence-matrix.md` is the public bridge between the toy lab
 behaviors and manifest-backed model evidence, so readers can see which targets are
 supported, pending, or only diagnostic.
 
 Expensive model serving and GPU training stay in scripts. The public reader path stays
-focused on the shareable lab notebook and generated evidence assets.
+focused on the marimo chapter notebooks, the combined shareable lab, and generated
+evidence assets.
 
 ## First DSL Experiment Surface
 
