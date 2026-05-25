@@ -17,6 +17,8 @@ behavior/recovery tuning.
 
 The first metric-DSL experiment surface is documented in
 `docs/metric_dsl_contract.md` and implemented in `data.metric_dsl`.
+Generated-history rollout evaluation is documented in
+`docs/rollout_eval_contract.md` and implemented in `eval.rollout_eval`.
 
 > Oracle diagnostic: the `0.890` schema-pruned result uses gold SQL-derived
 > planning hints in the eval prompt. It is an upper bound for the
@@ -39,6 +41,8 @@ This repo is now organized around verified, runnable gates:
   non-oracle CoSQL results as proxy-only, marks oracle rows as diagnostics, and
   keeps predicted-planner SQL, hosted baselines, and BIRD-Interact claims
   pending until matching artifacts exist.
+- Generated-history rollout evaluation is now wired so behavior/recovery can be
+  tested without teacher-forcing prior gold SQL into later turns.
 - Tests cover dataset formatting, training-data validation, SQL scoring, result loading, and plotting.
 - vLLM serving is verified in a separate `.venv-vllm` environment on WSL2 + RTX 5090.
 - The best oracle-conditioned endpoint run is the schema-pruned 100-step LoRA adapter at `0.890` value accuracy, `0.820` strict accuracy, and `1.000` syntax accuracy on the fixed 100-turn CoSQL dev slice. That run is a diagnostic upper bound because the planning hints are derived from gold/reference SQL.
@@ -157,6 +161,27 @@ The generated `data/processed/eval_cosql_dev_predicted_planner_100.jsonl`
 contains the first 100 CoSQL turns across 32 dialogs with `evaluation_mode` set
 to `predicted_planner`. It is ready for endpoint SQL evaluation, but it is not
 itself an execution result.
+
+## Generated-History Rollout
+
+Teacher-forced CoSQL evaluation answers a narrow question: can the model produce
+the current SQL when prior turns are clean reference SQL? Rollout evaluation asks
+the harder multi-turn question: what happens when the model has to continue from
+its own earlier SQL?
+
+```bash
+python -m eval.rollout_eval \
+  --model-name multiturn-sql-100 \
+  --endpoint http://127.0.0.1:8000/v1 \
+  --input data/processed/eval_cosql_dev_100.jsonl \
+  --database-root data/raw/cosql_dataset/database \
+  --output results/rollout/multiturn_sql_100_cosql_dev_100_rollout.jsonl
+```
+
+The runner writes `history_policy=model_generated_sql_rollout` rows and a result
+manifest. The claim ledger keeps the behavior/recovery improvement claim pending
+until a rollout result is compared against the same model and input under
+teacher-forced history.
 
 The optional `data.prepare --manifest-output` file records dataset composition:
 source counts, evaluation modes, turn formats, history policies, assistant-turn

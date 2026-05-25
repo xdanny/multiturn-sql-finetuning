@@ -153,10 +153,18 @@ def test_build_claim_ledger_separates_proxy_diagnostic_and_pending_claims(tmp_pa
     assert oracle["artifact_valid"] is True
 
     assert "predicted_planner_sql_execution" in pending
+    assert "model_generated_history_rollout" in pending
+    assert "rollout_beats_teacher_forced_history" in pending
     assert "hosted_sota_same_protocol" in pending
     assert "bird_interact_local_vs_hosted" in pending
     assert pending["predicted_planner_sql_execution"]["blocking_reason"] == (
         "no predicted_planner result manifest"
+    )
+    assert pending["model_generated_history_rollout"]["blocking_reason"] == (
+        "no model-generated-history rollout manifest"
+    )
+    assert pending["rollout_beats_teacher_forced_history"]["blocking_reason"] == (
+        "no side-by-side rollout-vs-teacher-forced comparison"
     )
 
     planner = next(row for row in rows if row["claim_id"] == "planner_lexical_schema_baseline")
@@ -431,6 +439,138 @@ def test_hosted_oracle_diagnostic_does_not_clear_hosted_sota_pending_claim(tmp_p
     assert oracle["claim_status"] == "diagnostic_upper_bound"
     assert oracle["production_claim_allowed"] is False
     assert "hosted_sota_same_protocol" in pending
+
+
+def test_rollout_manifest_clears_generated_history_pending_claim(tmp_path) -> None:
+    input_path = tmp_path / "data" / "eval.jsonl"
+    output_path = tmp_path / "results" / "rollout.jsonl"
+    _write_jsonl(
+        input_path,
+        [
+            {
+                "messages": [
+                    {"role": "user", "content": "q"},
+                    {"role": "assistant", "content": "SELECT 1"},
+                ],
+                "evaluation_mode": "non_oracle_generation",
+                "gold_plans": [{}],
+            }
+        ],
+    )
+    _write_jsonl(
+        output_path,
+        [
+            {
+                "id": "dialog-a:0",
+                "evaluation_mode": "non_oracle_generation",
+                "history_policy": "model_generated_sql_rollout",
+            }
+        ],
+    )
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            [
+                {
+                    "schema_version": 1,
+                    "run_id": "rollout",
+                    "benchmark": "prepared_rollout",
+                    "model_name": "local-9b",
+                    "endpoint": "local",
+                    "evaluation_mode": "non_oracle_generation",
+                    "oracle_allowed": False,
+                    "prompt_variant": None,
+                    "input_path": str(input_path.relative_to(tmp_path)),
+                    "input_sha256": _sha256(input_path),
+                    "output_path": str(output_path.relative_to(tmp_path)),
+                    "output_sha256": _sha256(output_path),
+                    "row_count": 1,
+                    "metrics": {
+                        "value_execution_accuracy": 1.0,
+                        "history_policy": "model_generated_sql_rollout",
+                    },
+                    "command": ["run"],
+                }
+            ]
+        )
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    rollout = next(row for row in rows if row["claim_id"] == "rollout")
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert rollout["claim_status"] == "supported_proxy"
+    assert rollout["history_policy"] == "model_generated_sql_rollout"
+    assert "model_generated_history_rollout" not in pending
+    assert "rollout_beats_teacher_forced_history" in pending
+
+
+def test_rollout_comparison_must_improve_before_clearing_behavior_pending_claim(
+    tmp_path,
+) -> None:
+    input_path = tmp_path / "data" / "eval.jsonl"
+    output_path = tmp_path / "results" / "rollout.jsonl"
+    _write_jsonl(
+        input_path,
+        [
+            {
+                "messages": [
+                    {"role": "user", "content": "q"},
+                    {"role": "assistant", "content": "SELECT 1"},
+                ],
+                "evaluation_mode": "non_oracle_generation",
+                "gold_plans": [{}],
+            }
+        ],
+    )
+    _write_jsonl(
+        output_path,
+        [
+            {
+                "id": "dialog-a:0",
+                "evaluation_mode": "non_oracle_generation",
+                "history_policy": "model_generated_sql_rollout",
+            }
+        ],
+    )
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            [
+                {
+                    "schema_version": 1,
+                    "run_id": "rollout_no_gain",
+                    "benchmark": "prepared_rollout",
+                    "model_name": "local-9b",
+                    "endpoint": "local",
+                    "evaluation_mode": "non_oracle_generation",
+                    "oracle_allowed": False,
+                    "prompt_variant": None,
+                    "input_path": str(input_path.relative_to(tmp_path)),
+                    "input_sha256": _sha256(input_path),
+                    "output_path": str(output_path.relative_to(tmp_path)),
+                    "output_sha256": _sha256(output_path),
+                    "row_count": 1,
+                    "metrics": {
+                        "value_execution_accuracy": 0.4,
+                        "history_policy": "model_generated_sql_rollout",
+                        "teacher_forced_comparison_run_id": "teacher_forced",
+                        "teacher_forced_input_sha256": _sha256(input_path),
+                        "teacher_forced_model_name": "local-9b",
+                        "teacher_forced_value_execution_accuracy": 0.5,
+                        "rollout_value_delta_vs_teacher_forced": -0.1,
+                    },
+                    "command": ["run"],
+                }
+            ]
+        )
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert "model_generated_history_rollout" not in pending
+    assert "rollout_beats_teacher_forced_history" in pending
 
 
 def test_planner_summary_with_oracle_prompt_rows_is_pending(tmp_path) -> None:

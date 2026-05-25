@@ -1,10 +1,12 @@
 claim_id,claim_status,evaluation_mode,allowed_public_claim,blocking_reason,required_artifact,value_execution_accuracy,strict_execution_accuracy,row_count,dialog_count
 bird_interact_local_vs_hosted,pending,not_run,no BIRD-Interact claim yet,no BIRD-Interact result manifest,BIRD-Interact local and hosted result manifests,,,,
 hosted_sota_same_protocol,pending,not_run,no hosted/SOTA comparison yet,no same-protocol hosted-model manifest,hosted-model result manifest with cost and latency,,,,
+model_generated_history_rollout,pending,non_oracle_generation,no generated-history rollout result yet,no model-generated-history rollout manifest,prepared_rollout result manifest with model_generated_sql_rollout history,,,,
 multiturn_sql_100_cosql_dev_100turns,supported_proxy,non_oracle_generation,local proxy result only,,,0.63,0.53,100,32
 planner_lexical_schema_baseline,supported_planner_quality,planner_scoring,"planner quality only, not SQL execution",,,,,100,32
 predicted_planner_sql_execution,pending,predicted_planner,pending predicted-planner SQL execution,no predicted_planner result manifest,same-protocol endpoint SQL result manifest,,,,
 qwen35_9b_base_cosql_dev_100turns,supported_proxy,non_oracle_generation,local proxy result only,,,0.59,0.37,100,32
+rollout_beats_teacher_forced_history,pending,not_run,no behavior/recovery improvement claim yet,no side-by-side rollout-vs-teacher-forced comparison,same-model rollout and teacher-forced manifests with comparison metrics,,,,
 schema_pruned_minimal_schemafix_oracle_cosql_dev_100turns,diagnostic_upper_bound,oracle_planner_diagnostic,oracle planner diagnostic only,,,0.85,0.64,100,32
 schema_pruned_projection_oracle_cosql_dev_100turns,diagnostic_upper_bound,oracle_planner_diagnostic,oracle planner diagnostic only,,,0.83,0.62,100,32
 schema_pruned_trained100_oracle_cosql_dev_100turns,diagnostic_upper_bound,oracle_planner_diagnostic,oracle planner diagnostic only,,,0.89,0.82,100,32

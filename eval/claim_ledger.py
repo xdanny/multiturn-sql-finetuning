@@ -21,6 +21,7 @@ PRODUCTION_MODES = {"non_oracle_generation", "predicted_planner"}
 HOSTED_ENDPOINT_PREFIXES = ("https://", "anthropic:", "google:")
 HOSTED_LATENCY_KEYS = ("mean_latency_ms", "p50_latency_ms", "latency_ms")
 HOSTED_COST_KEYS = ("total_cost_usd", "estimated_cost_usd", "cost_usd")
+MODEL_GENERATED_SQL_ROLLOUT = "model_generated_sql_rollout"
 MANDATORY_MANIFEST_FIELDS = (
     "schema_version",
     "run_id",
@@ -50,6 +51,24 @@ PENDING_CLAIMS = (
         "allowed_public_claim": "pending predicted-planner SQL execution",
         "blocking_reason": "no predicted_planner result manifest",
         "required_artifact": "same-protocol endpoint SQL result manifest",
+    },
+    {
+        "claim_id": "model_generated_history_rollout",
+        "claim_status": "pending",
+        "artifact_type": "pending_claim",
+        "evaluation_mode": "non_oracle_generation",
+        "allowed_public_claim": "no generated-history rollout result yet",
+        "blocking_reason": "no model-generated-history rollout manifest",
+        "required_artifact": "prepared_rollout result manifest with model_generated_sql_rollout history",
+    },
+    {
+        "claim_id": "rollout_beats_teacher_forced_history",
+        "claim_status": "pending",
+        "artifact_type": "pending_claim",
+        "evaluation_mode": "not_run",
+        "allowed_public_claim": "no behavior/recovery improvement claim yet",
+        "blocking_reason": "no side-by-side rollout-vs-teacher-forced comparison",
+        "required_artifact": "same-model rollout and teacher-forced manifests with comparison metrics",
     },
     {
         "claim_id": "hosted_sota_same_protocol",
@@ -306,6 +325,16 @@ def _manifest_row(
         "row_count": manifest.get("row_count"),
         "dialog_count": metrics.get("dialog_count"),
         "metric_keys": sorted(metrics),
+        "result_history_policy": metrics.get("history_policy"),
+        "teacher_forced_comparison_run_id": metrics.get("teacher_forced_comparison_run_id"),
+        "teacher_forced_input_sha256": metrics.get("teacher_forced_input_sha256"),
+        "teacher_forced_model_name": metrics.get("teacher_forced_model_name"),
+        "teacher_forced_value_execution_accuracy": metrics.get(
+            "teacher_forced_value_execution_accuracy"
+        ),
+        "rollout_value_delta_vs_teacher_forced": metrics.get(
+            "rollout_value_delta_vs_teacher_forced"
+        ),
         "strict_execution_accuracy": metrics.get("strict_execution_accuracy"),
         "value_execution_accuracy": metrics.get("value_execution_accuracy")
         if metrics.get("value_execution_accuracy") is not None
@@ -319,6 +348,9 @@ def _manifest_row(
         "output_sha256_matches": output_hash_matches,
     }
     row.update(input_contract)
+    if row.get("result_history_policy"):
+        row["history_policy"] = row["result_history_policy"]
+        row["teacher_forced_history"] = "teacher_forced" in str(row["result_history_policy"])
     row.update(output_contract)
     row.update(_classified_summary(classified_path))
     return row
@@ -362,6 +394,10 @@ def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any
         and row.get("evaluation_mode") == "predicted_planner"
         for row in rows
     )
+    has_rollout = any(_row_has_rollout_claim_support(row) for row in rows)
+    has_rollout_teacher_forced_comparison = any(
+        _row_has_rollout_teacher_forced_comparison(row) for row in rows
+    )
     has_hosted = any(_row_has_hosted_claim_support(row) for row in rows)
     has_bird_interact = any(
         row.get("artifact_type") == "result_manifest"
@@ -370,6 +406,8 @@ def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any
     )
     keep = {
         "predicted_planner_sql_execution": not has_predicted_sql,
+        "model_generated_history_rollout": not has_rollout,
+        "rollout_beats_teacher_forced_history": not has_rollout_teacher_forced_comparison,
         "hosted_sota_same_protocol": not has_hosted,
         "bird_interact_local_vs_hosted": not has_bird_interact,
     }
@@ -398,6 +436,33 @@ def _row_has_hosted_claim_support(row: dict[str, Any]) -> bool:
         return False
     metric_keys = set(row.get("metric_keys") or [])
     return bool(metric_keys & set(HOSTED_LATENCY_KEYS)) and bool(metric_keys & set(HOSTED_COST_KEYS))
+
+
+def _row_has_rollout_claim_support(row: dict[str, Any]) -> bool:
+    return (
+        row.get("artifact_type") == "result_manifest"
+        and row.get("artifact_valid")
+        and row.get("production_claim_allowed")
+        and row.get("benchmark") == "prepared_rollout"
+        and row.get("history_policy") == MODEL_GENERATED_SQL_ROLLOUT
+    )
+
+
+def _row_has_rollout_teacher_forced_comparison(row: dict[str, Any]) -> bool:
+    if not _row_has_rollout_claim_support(row):
+        return False
+    if row.get("teacher_forced_model_name") != row.get("model_name"):
+        return False
+    if row.get("teacher_forced_input_sha256") != row.get("input_sha256"):
+        return False
+    if not row.get("teacher_forced_comparison_run_id"):
+        return False
+    teacher_forced_score = _num(row.get("teacher_forced_value_execution_accuracy"))
+    rollout_score = _num(row.get("value_execution_accuracy"))
+    delta = _num(row.get("rollout_value_delta_vs_teacher_forced"))
+    if teacher_forced_score is None or rollout_score is None or delta is None:
+        return False
+    return delta > 0 and rollout_score > teacher_forced_score
 
 
 def build_claim_ledger(

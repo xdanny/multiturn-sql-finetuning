@@ -42,6 +42,14 @@ contains prior reference SQL from the dialog, not the model's own earlier output
 source counts, evaluation modes, turn formats, history policies, assistant-turn
 totals, and configured dataset weights.
 
+Generated-history rollout evaluation is separate from this teacher-forced path.
+`eval.rollout_eval` runs dialog turns sequentially and writes
+`history_policy=model_generated_sql_rollout` output rows, where each later turn
+sees the model's generated SQL from earlier turns. This is the required surface
+for behavior/recovery claims. A rollout result alone is not enough; it must be
+compared against the same model and input under teacher-forced history before
+claiming recovery behavior improved.
+
 ## Dataset Decomposition
 
 The fixed proxy result is intentionally decomposed before making broader claims:
@@ -79,7 +87,7 @@ The next strategy table should be more ambitious than these early runs:
 | Planner/DSL first, SQL second | Is it easier to learn a typed intermediate representation than raw SQL directly? |
 | Semantic-layer tuning | Does a governed model of entities, dimensions, measures, grain, and joins reduce errors that raw schema text cannot? |
 | `MEASURE()`-preserving metric DSL | Should the model preserve governed metrics until a compiler expands them to SQL? |
-| Behavior/recovery tuning | Can the model learn when to clarify, inspect values, repair SQL, and recover after its own previous mistakes? |
+| Behavior/recovery tuning | Can the model learn when to clarify, inspect values, repair SQL, and recover after its own previous mistakes under generated-history rollout? |
 
 The first `MEASURE()` experiment surface is implemented in `data.metric_dsl` and
 documented in `docs/metric_dsl_contract.md`. It scores semantic intent before SQL
