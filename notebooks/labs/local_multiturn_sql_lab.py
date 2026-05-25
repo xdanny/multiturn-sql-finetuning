@@ -45,16 +45,16 @@ def _():
 @app.cell
 def _(mo):
     runtime_choice = mo.ui.dropdown(
-        options=["cpu", "auto"],
-        value="cpu",
+        options=["auto", "cpu", "cuda", "mps", "xpu"],
+        value="auto",
         label="Runtime",
     )
     mo.vstack(
         [
             mo.md(
-                "Choose `cpu` for the portable default. Choose `auto` to report "
-                "CUDA, MPS, or XPU availability when PyTorch detects one. The "
-                "SQLite lab computation remains CPU-safe."
+                "Choose `auto` to auto-select CUDA, MPS, or XPU when PyTorch "
+                "detects one, otherwise CPU. Choose `cpu` to force the portable "
+                "fallback."
             ),
             runtime_choice,
         ]
@@ -80,10 +80,9 @@ def _(mo, report):
                 # Local multi-turn SQL lab
 
                 This lab is the runnable notebook attached to the post's codebase. It
-                uses a tiny in-memory SQLite warehouse so the experiment is CPU-safe by
-                default. The runtime selector reports CUDA, MPS, or XPU availability
-                when PyTorch can see an accelerator, but this lab does not require or
-                use GPU compute.
+                uses a tiny in-memory SQLite warehouse, so it can run on CPU or on
+                machines with CUDA, MPS, or XPU available. The default `auto` mode
+                selects an accelerator when PyTorch can see one and falls back to CPU.
 
                 Lab runtime: `{device.label}`. Accelerator availability: `{detected.label}`.
                 Shared scenario hash: `{contract["shared_input_sha256"]}`.
@@ -91,7 +90,7 @@ def _(mo, report):
             ),
             mo.ui.table(
                 report["accelerator_report"],
-                label="CUDA/MPS/XPU status reported only",
+                label="CUDA/MPS/XPU status for auto runtime",
             ),
         ]
     )

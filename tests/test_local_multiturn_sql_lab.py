@@ -9,7 +9,6 @@ from pathlib import Path
 import pytest
 
 import notebooks.labs.local_multiturn_sql_lab_support as lab_support
-from notebooks.labs.local_multiturn_sql_lab_support import Accelerator
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -23,7 +22,7 @@ def test_multiturn_lab_runs_without_requiring_gpu() -> None:
 
     report = lab_support.run_multiturn_lab()
 
-    assert report["device"].kind == "cpu"
+    assert report["device"].kind in {"cpu", "cuda", "mps", "xpu"}
     assert report["detected_accelerator"].kind in {"cuda", "mps", "xpu", "none"}
     assert {status["kind"] for status in report["accelerator_report"]} == {
         "cuda",
@@ -32,6 +31,7 @@ def test_multiturn_lab_runs_without_requiring_gpu() -> None:
     }
     assert all("available" in status for status in report["accelerator_report"])
     assert report["runtime_policy"]["reported_accelerators"] == "CUDA, MPS, XPU"
+    assert report["runtime_policy"]["accelerator_usage"] == "selected_if_available"
     assert set(report["systems"]) == {
         "direct_sql_baseline",
         "planner_first_sql",
@@ -71,54 +71,88 @@ def test_multiturn_lab_exposes_post_walkthrough_sections() -> None:
     assert "BIRD-Interact" in sections[6]["next_artifact"]
 
 
-def test_multiturn_lab_defaults_to_cpu_even_when_accelerator_is_detected(monkeypatch) -> None:
+def test_multiturn_lab_can_force_cpu_even_when_accelerator_is_detected(monkeypatch) -> None:
     monkeypatch.setattr(
         lab_support,
-        "available_accelerator",
-        lambda: Accelerator(kind="cuda", label="cuda test device", torch_available=True),
+        "accelerator_statuses",
+        lambda: [
+            {
+                "kind": "cuda",
+                "label": "cuda test device",
+                "torch_available": True,
+                "available": True,
+                "usage": "available_for_auto",
+            },
+            {
+                "kind": "mps",
+                "label": "mps unavailable",
+                "torch_available": True,
+                "available": False,
+                "usage": "available_for_auto",
+            },
+            {
+                "kind": "xpu",
+                "label": "xpu unavailable",
+                "torch_available": True,
+                "available": False,
+                "usage": "available_for_auto",
+            },
+        ],
     )
 
-    report = lab_support.run_multiturn_lab()
+    report = lab_support.run_multiturn_lab(device_preference="cpu")
 
     assert report["device"].kind == "cpu"
     assert report["device"].label == "cpu"
     assert report["detected_accelerator"].kind == "cuda"
     assert report["runtime_policy"]["device_preference"] == "cpu"
+    assert report["runtime_policy"]["accelerator_usage"] == "forced_cpu"
 
 
 @pytest.mark.parametrize("accelerator_kind", ["cuda", "mps", "xpu"])
-def test_multiturn_lab_auto_reports_detected_accelerator_without_using_it(
+def test_multiturn_lab_auto_selects_detected_accelerator(
     monkeypatch, accelerator_kind: str
 ) -> None:
-    monkeypatch.setattr(
-        lab_support,
-        "available_accelerator",
-        lambda: Accelerator(
-            kind=accelerator_kind,
-            label=f"{accelerator_kind} test device",
-            torch_available=True,
-        ),
-    )
+    def fake_statuses() -> list[dict[str, object]]:
+        return [
+            {
+                "kind": kind,
+                "label": f"{kind} test device"
+                if kind == accelerator_kind
+                else f"{kind} unavailable",
+                "torch_available": True,
+                "available": kind == accelerator_kind,
+                "usage": "available_for_auto",
+            }
+            for kind in ("cuda", "mps", "xpu")
+        ]
+
+    monkeypatch.setattr(lab_support, "accelerator_statuses", fake_statuses)
 
     report = lab_support.run_multiturn_lab(device_preference="auto")
 
-    assert report["device"].kind == "cpu"
-    assert report["device"].label == "cpu"
+    assert report["device"].kind == accelerator_kind
+    assert report["device"].label == f"{accelerator_kind} test device"
     assert report["detected_accelerator"].kind == accelerator_kind
     assert report["runtime_policy"]["device_preference"] == "auto"
     assert report["runtime_policy"]["fallback"] is None
-    assert report["runtime_policy"]["accelerator_usage"] == "reported_only"
+    assert report["runtime_policy"]["accelerator_usage"] == "selected_if_available"
 
 
 def test_multiturn_lab_auto_device_falls_back_to_cpu(monkeypatch) -> None:
     monkeypatch.setattr(
         lab_support,
-        "available_accelerator",
-        lambda: Accelerator(
-            kind="none",
-            label="no accelerator detected (torch not installed)",
-            torch_available=False,
-        ),
+        "accelerator_statuses",
+        lambda: [
+            {
+                "kind": kind,
+                "label": f"{kind} unavailable",
+                "torch_available": False,
+                "available": False,
+                "usage": "available_for_auto",
+            }
+            for kind in ("cuda", "mps", "xpu")
+        ],
     )
 
     report = lab_support.run_multiturn_lab(device_preference="auto")
@@ -126,12 +160,39 @@ def test_multiturn_lab_auto_device_falls_back_to_cpu(monkeypatch) -> None:
     assert report["device"].kind == "cpu"
     assert report["runtime_policy"]["device_preference"] == "auto"
     assert report["runtime_policy"]["fallback"] == "cpu"
-    assert report["runtime_policy"]["accelerator_usage"] == "reported_only"
+    assert report["runtime_policy"]["accelerator_usage"] == "selected_if_available"
+
+
+@pytest.mark.parametrize("accelerator_kind", ["cuda", "mps", "xpu"])
+def test_multiturn_lab_explicit_accelerator_falls_back_to_cpu_when_unavailable(
+    monkeypatch, accelerator_kind: str
+) -> None:
+    monkeypatch.setattr(
+        lab_support,
+        "accelerator_statuses",
+        lambda: [
+            {
+                "kind": kind,
+                "label": f"{kind} unavailable",
+                "torch_available": True,
+                "available": False,
+                "usage": "available_for_auto",
+            }
+            for kind in ("cuda", "mps", "xpu")
+        ],
+    )
+
+    report = lab_support.run_multiturn_lab(device_preference=accelerator_kind)
+
+    assert report["device"].kind == "cpu"
+    assert report["runtime_policy"]["device_preference"] == accelerator_kind
+    assert report["runtime_policy"]["fallback"] == "cpu"
+    assert report["runtime_policy"]["fallback_reason"] == f"{accelerator_kind}_unavailable"
 
 
 def test_multiturn_lab_rejects_unknown_device_preference() -> None:
     with pytest.raises(ValueError, match="device_preference"):
-        lab_support.run_multiturn_lab(device_preference="gpu")
+        lab_support.run_multiturn_lab(device_preference="tpu")
 
 
 def test_multiturn_lab_reports_each_accelerator_backend_without_using_gpu() -> None:
@@ -141,9 +202,9 @@ def test_multiturn_lab_reports_each_accelerator_backend_without_using_gpu() -> N
 
     assert set(statuses) == {"cuda", "mps", "xpu"}
     assert all(isinstance(status["available"], bool) for status in statuses.values())
-    assert all(status["usage"] == "reported_only" for status in statuses.values())
+    assert all(status["usage"] == "available_for_auto" for status in statuses.values())
     assert all(status["label"] for status in statuses.values())
-    assert report["device"].kind == "cpu"
+    assert report["device"].kind in {"cpu", "cuda", "mps", "xpu"}
 
 
 def test_multiturn_lab_exposes_behavior_failures_not_just_scores() -> None:
@@ -250,7 +311,7 @@ def test_shareable_lab_notebook_is_plain_python_marimo_app() -> None:
     assert "metric_dsl_eval_contract" in source
     assert "prompt_optimization_findings" in source
     assert "mo.ui.dropdown" in source
-    assert 'value="cpu"' in source
+    assert 'value="auto"' in source
     assert "device_preference=runtime_choice.value" in source
     for heading in [
         "## 1. Research question",
@@ -283,7 +344,7 @@ def test_shareable_lab_has_portable_jupyter_notebook_entrypoint() -> None:
         for cell in notebook["cells"]
     )
     assert "run_multiturn_lab" in text
-    assert "device_preference=\"cpu\"" in text
+    assert "device_preference=\"auto\"" in text
     assert "accelerator_report" in text
     assert "CUDA" in text
     assert "MPS" in text
@@ -302,8 +363,8 @@ def test_shareable_lab_has_portable_jupyter_notebook_entrypoint() -> None:
         for cell in notebook["cells"]
         if cell.get("cell_type") == "code"
     )
-    assert "report = run_multiturn_lab(device_preference=\"cpu\")" in code
-    assert "report[\"device\"].kind" in code
+    assert "report = run_multiturn_lab(device_preference=\"auto\")" in code
+    assert 'report["device"].kind in {"cpu", "cuda", "mps", "xpu"}' in code
     assert "report[\"accelerator_report\"]" in code
     assert "target_evidence_matrix()" in code
     assert "endpoint_run_scorecard()" in code
@@ -315,8 +376,8 @@ def test_shareable_lab_has_portable_jupyter_notebook_entrypoint() -> None:
         exec("".join(cell.get("source", "")), namespace)
 
     report = namespace["report"]
-    assert report["device"].kind == "cpu"
-    assert report["runtime_policy"]["accelerator_usage"] == "reported_only"
+    assert report["device"].kind in {"cpu", "cuda", "mps", "xpu"}
+    assert report["runtime_policy"]["accelerator_usage"] == "selected_if_available"
     assert {status["kind"] for status in report["accelerator_report"]} == {
         "cuda",
         "mps",
@@ -353,13 +414,11 @@ def test_blog_readme_points_to_shareable_lab_notebook() -> None:
 
     assert "attached codebase" in readme
     assert "notebooks/labs/local_multiturn_sql_lab.ipynb" in readme
-    assert "notebooks/blog/01_benchmark_gap.py" in readme
-    assert "notebooks/blog/02_eval_protocol.py" in readme
-    assert "notebooks/blog/03_method_targets.py" in readme
-    assert "notebooks/blog/04_results_diagnostics.py" in readme
-    assert "notebooks/blog/05_next_experiments.py" in readme
+    assert "notebooks/blog/" not in readme
+    assert "chapter notebook" not in readme
     assert "marimo edit notebooks/labs/local_multiturn_sql_lab.py" in readme
     assert "CPU-safe" in readme
+    assert "auto-selects CUDA, MPS, or XPU" in readme
     assert "planner-first" in readme
     assert "semantic-layer" in readme
     assert "MEASURE()" in readme

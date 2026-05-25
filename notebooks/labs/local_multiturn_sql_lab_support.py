@@ -47,7 +47,7 @@ def _accelerator_status(
         "label": label,
         "torch_available": torch_available,
         "available": available,
-        "usage": "reported_only",
+        "usage": "available_for_auto",
     }
 
 
@@ -145,6 +145,15 @@ def available_accelerator() -> Accelerator:
     return Accelerator(kind="none", label=label, torch_available=torch_available)
 
 
+def _accelerator_from_status(status: dict[str, Any]) -> Accelerator:
+    return Accelerator(
+        kind=str(status["kind"]),
+        label=str(status["label"]),
+        torch_available=bool(status["torch_available"]),
+        available=bool(status["available"]),
+    )
+
+
 def lab_walkthrough_sections() -> list[dict[str, str]]:
     return [
         {
@@ -229,20 +238,70 @@ def lab_walkthrough_sections() -> list[dict[str, str]]:
 
 
 def select_lab_device(
-    device_preference: str = "cpu",
+    device_preference: str = "auto",
 ) -> tuple[Accelerator, Accelerator, dict[str, Any], list[dict[str, Any]]]:
-    """Select the CPU-safe lab runtime and report available accelerators."""
+    """Select a portable lab runtime, falling back to CPU when needed."""
 
-    if device_preference not in {"cpu", "auto"}:
-        raise ValueError("device_preference must be 'cpu' or 'auto'")
+    allowed_devices = {"cpu", "auto", "cuda", "mps", "xpu"}
+    if device_preference not in allowed_devices:
+        raise ValueError("device_preference must be one of: auto, cpu, cuda, mps, xpu")
 
-    detected_accelerator = available_accelerator()
     accelerator_report = accelerator_statuses()
-    fallback = "cpu" if device_preference == "auto" and detected_accelerator.kind == "none" else None
+    statuses_by_kind = {
+        str(status["kind"]): status for status in accelerator_report
+    }
+    detected_accelerator = next(
+        (
+            _accelerator_from_status(statuses_by_kind[kind])
+            for kind in ("cuda", "mps", "xpu")
+            if kind in statuses_by_kind and statuses_by_kind[kind]["available"]
+        ),
+        Accelerator(
+            kind="none",
+            label=(
+                "no accelerator detected"
+                if any(bool(status["torch_available"]) for status in accelerator_report)
+                else "no accelerator detected (torch not installed)"
+            ),
+            torch_available=any(
+                bool(status["torch_available"]) for status in accelerator_report
+            ),
+        ),
+    )
+    fallback = None
+    fallback_reason = None
+    if device_preference == "cpu":
+        selected_kind = "cpu"
+        accelerator_usage = "forced_cpu"
+    elif device_preference == "auto":
+        selected_kind = detected_accelerator.kind
+        accelerator_usage = "selected_if_available"
+        if selected_kind == "none":
+            selected_kind = "cpu"
+            fallback = "cpu"
+            fallback_reason = "no_accelerator_detected"
+    else:
+        preferred = statuses_by_kind[device_preference]
+        accelerator_usage = "selected_if_available"
+        if preferred["available"]:
+            selected_kind = device_preference
+        else:
+            selected_kind = "cpu"
+            fallback = "cpu"
+            fallback_reason = f"{device_preference}_unavailable"
+
+    if selected_kind == "cpu":
+        torch_available = detected_accelerator.torch_available
+        selected_label = "cpu"
+    else:
+        selected = _accelerator_from_status(statuses_by_kind[selected_kind])
+        torch_available = selected.torch_available
+        selected_label = selected.label
+
     device = Accelerator(
-        kind="cpu",
-        label="cpu",
-        torch_available=detected_accelerator.torch_available,
+        kind=selected_kind,
+        label=selected_label,
+        torch_available=torch_available,
         available=True,
     )
 
@@ -252,7 +311,9 @@ def select_lab_device(
         {
             "device_preference": device_preference,
             "fallback": fallback,
-            "accelerator_usage": "reported_only",
+            "fallback_reason": fallback_reason,
+            "accelerator_usage": accelerator_usage,
+            "selected_device": selected_kind,
             "reported_accelerators": "CUDA, MPS, XPU",
         },
         accelerator_report,
@@ -656,7 +717,7 @@ def scenario_contract(turns: list[LabTurn]) -> dict[str, Any]:
     }
 
 
-def run_multiturn_lab(device_preference: str = "cpu") -> dict[str, Any]:
+def run_multiturn_lab(device_preference: str = "auto") -> dict[str, Any]:
     """Run a small executable multi-turn SQL lab with no external model download."""
 
     device, detected_accelerator, runtime_policy, accelerator_report = select_lab_device(
