@@ -244,6 +244,11 @@ def test_shareable_lab_notebook_is_plain_python_marimo_app() -> None:
     assert "app = marimo.App" in source
     assert "run_multiturn_lab" in source
     assert "data_engineering_gates" in source
+    assert "endpoint_run_scorecard" in source
+    assert "planner_scorecard" in source
+    assert "target_evidence_matrix" in source
+    assert "metric_dsl_eval_contract" in source
+    assert "prompt_optimization_findings" in source
     assert "mo.ui.dropdown" in source
     assert 'value="cpu"' in source
     assert "device_preference=runtime_choice.value" in source
@@ -252,7 +257,12 @@ def test_shareable_lab_notebook_is_plain_python_marimo_app() -> None:
         "## 2. Why single-turn SQL fails here",
         "## 3. The proxy slice",
         "## 4. Candidate fine-tuning targets",
+        "## Target scorecard",
         "## 5. Execution trace",
+        "## Failure slice",
+        "## Endpoint and planner evidence",
+        "## Metric DSL checkpoint",
+        "## DSPy boundary",
         "## Data engineering gates",
         "## 6. Boundary and next gates",
     ]:
@@ -278,6 +288,11 @@ def test_shareable_lab_has_portable_jupyter_notebook_entrypoint() -> None:
     assert "CUDA" in text
     assert "MPS" in text
     assert "XPU" in text
+    assert "endpoint_run_scorecard" in text
+    assert "planner_scorecard" in text
+    assert "target_evidence_matrix" in text
+    assert "metric_dsl_eval_contract" in text
+    assert "prompt_optimization_findings" in text
     assert "pip install" not in text
     assert "apt install" not in text
     assert "notebooks/blog/" not in text
@@ -290,6 +305,8 @@ def test_shareable_lab_has_portable_jupyter_notebook_entrypoint() -> None:
     assert "report = run_multiturn_lab(device_preference=\"cpu\")" in code
     assert "report[\"device\"].kind" in code
     assert "report[\"accelerator_report\"]" in code
+    assert "target_evidence_matrix()" in code
+    assert "endpoint_run_scorecard()" in code
 
     namespace: dict[str, object] = {}
     for cell in notebook["cells"]:

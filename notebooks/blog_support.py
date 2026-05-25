@@ -763,6 +763,100 @@ def target_comparison() -> pd.DataFrame:
     )
 
 
+def target_evidence_matrix() -> pd.DataFrame:
+    """Join the lab taxonomy to manifest-backed evidence and missing gates."""
+
+    ledger = claim_ledger().set_index("claim_id")
+    planner = read_json_artifact("docs/planner_baseline_cosql_dev_100_summary.json")
+
+    def status(claim_id: str) -> str:
+        return str(ledger.loc[claim_id, "claim_status"])
+
+    def value(claim_id: str, metric: str) -> float:
+        return float(ledger.loc[claim_id, metric])
+
+    rows = [
+        {
+            "fine_tuning_target": "Direct SQL SFT",
+            "lab_behavior": "Baseline failure mode: valid SQL loses follow-up state and value grounding.",
+            "manifest_backed_evidence": (
+                "100-step LoRA is manifest-backed on the fixed CoSQL proxy: "
+                f"{value('multiturn_sql_100_cosql_dev_100turns', 'strict_execution_accuracy'):.3f} "
+                "strict accuracy and "
+                f"{value('multiturn_sql_100_cosql_dev_100turns', 'value_execution_accuracy'):.3f} "
+                "value accuracy."
+            ),
+            "source_claim_ids": (
+                "qwen35_9b_base_cosql_dev_100turns; "
+                "multiturn_sql_100_cosql_dev_100turns"
+            ),
+            "evidence_level": status("multiturn_sql_100_cosql_dev_100turns"),
+            "missing_gate": "Same-protocol hosted baseline and BIRD-Interact transfer.",
+            "current_decision": "Use as the baseline every structured target must beat.",
+        },
+        {
+            "fine_tuning_target": "Planner/DSL first, SQL second",
+            "lab_behavior": "Carries metric, grain, and filters before SQL, but still needs value grounding.",
+            "manifest_backed_evidence": (
+                "Planner quality is manifest-backed, not SQL-improvement backed: "
+                f"macro={float(planner['macro_planner_score']):.3f}, "
+                f"table_f1={float(planner['table_f1']):.3f}, "
+                f"column_f1={float(planner['column_f1']):.3f}."
+            ),
+            "source_claim_ids": "planner_lexical_schema_baseline; predicted_planner_sql_execution",
+            "evidence_level": (
+                f"{status('planner_lexical_schema_baseline')} + "
+                f"{status('predicted_planner_sql_execution')}"
+            ),
+            "missing_gate": "Predicted-planner endpoint SQL manifest compared with direct SQL.",
+            "current_decision": "Highest-priority next build target because it attacks the oracle gap directly.",
+        },
+        {
+            "fine_tuning_target": "Semantic-layer tuning",
+            "lab_behavior": "Normalizes entities and values before SQL, fixing France -> FR.",
+            "manifest_backed_evidence": (
+                "Best non-oracle semantic prompt result is manifest-backed on the proxy: "
+                f"{value('semantic_prompt_minimal_executable_cosql_dev_100turns', 'value_execution_accuracy'):.3f} "
+                "value accuracy."
+            ),
+            "source_claim_ids": "semantic_prompt_minimal_executable_cosql_dev_100turns",
+            "evidence_level": status("semantic_prompt_minimal_executable_cosql_dev_100turns"),
+            "missing_gate": "Versioned semantic artifacts, retrieval/pruning, and row-matched method comparison.",
+            "current_decision": "Keep, but do not treat broad semantic context as a proven method win yet.",
+        },
+        {
+            "fine_tuning_target": "MEASURE()-preserving metric DSL",
+            "lab_behavior": "Keeps governed metric intent as MEASURE(revenue) before SQL expansion.",
+            "manifest_backed_evidence": (
+                "Parser, compiler, and offline evaluator exist, but the claim ledger "
+                "has no valid metric-DSL prediction/comparison manifest yet."
+            ),
+            "source_claim_ids": "metric_dsl_evaluation_manifest; metric_dsl_beats_direct_sql",
+            "evidence_level": (
+                f"{status('metric_dsl_evaluation_manifest')} + "
+                f"{status('metric_dsl_beats_direct_sql')}"
+            ),
+            "missing_gate": "Metric-DSL prediction manifest plus direct-SQL comparison on the same rows.",
+            "current_decision": "Promising for metric-heavy tasks; not rankable against direct SQL yet.",
+        },
+        {
+            "fine_tuning_target": "Behavior/recovery tuning",
+            "lab_behavior": "Uses empty-result feedback to repair a previous value-grounding error.",
+            "manifest_backed_evidence": (
+                "The claim ledger tracks rollout and recovery claims, but both are still pending."
+            ),
+            "source_claim_ids": "model_generated_history_rollout; rollout_beats_teacher_forced_history",
+            "evidence_level": (
+                f"{status('model_generated_history_rollout')} + "
+                f"{status('rollout_beats_teacher_forced_history')}"
+            ),
+            "missing_gate": "Model-generated-history rollout compared with same-model teacher-forced history.",
+            "current_decision": "Cannot be judged from teacher-forced CoSQL; needs rollout evaluation.",
+        },
+    ]
+    return pd.DataFrame(rows)
+
+
 def endpoint_run_scorecard() -> pd.DataFrame:
     summary = read_csv_artifact(
         "plots/rescored_vllm_semantic_prompt_iteration_100turns/summary.csv"
@@ -931,6 +1025,7 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     data_gates = data_engineering_gates()
     prompt_findings = prompt_optimization_findings()
     targets = target_comparison()
+    target_evidence = target_evidence_matrix()
     endpoint_runs = endpoint_run_scorecard()
 
     assets = {
@@ -986,6 +1081,10 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
         "target_comparison_md": _write_text(
             output / "target-comparison.md",
             _markdown_table(targets),
+        ),
+        "target_evidence_matrix_md": _write_text(
+            output / "target-evidence-matrix.md",
+            _markdown_table(target_evidence),
         ),
         "endpoint_run_scorecard_md": _write_text(
             output / "endpoint-run-scorecard.md",

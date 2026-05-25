@@ -11,7 +11,8 @@
     "planner_baseline_svg": "planner-baseline.svg",
     "prompt_optimization_findings_md": "prompt-optimization-findings.md",
     "shareable_lab_md": "shareable-lab.md",
-    "target_comparison_md": "target-comparison.md"
+    "target_comparison_md": "target-comparison.md",
+    "target_evidence_matrix_md": "target-evidence-matrix.md"
   },
   "schema_version": 1,
   "source_artifacts": [

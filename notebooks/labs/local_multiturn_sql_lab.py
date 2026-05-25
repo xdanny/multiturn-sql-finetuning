@@ -8,10 +8,38 @@ app = marimo.App(width="wide")
 def _():
     import marimo as mo
 
-    from notebooks.blog_support import data_engineering_gates
+    from notebooks.blog_support import (
+        accuracy_scorecard,
+        claim_table,
+        data_engineering_gates,
+        endpoint_run_scorecard,
+        lab_failure_trace,
+        lab_method_scorecard,
+        metric_dsl_demo,
+        metric_dsl_eval_contract,
+        planner_scorecard,
+        prompt_optimization_findings,
+        target_comparison,
+        target_evidence_matrix,
+    )
     from notebooks.labs.local_multiturn_sql_lab_support import run_multiturn_lab
 
-    return data_engineering_gates, mo, run_multiturn_lab
+    return (
+        accuracy_scorecard,
+        claim_table,
+        data_engineering_gates,
+        endpoint_run_scorecard,
+        lab_failure_trace,
+        lab_method_scorecard,
+        metric_dsl_demo,
+        metric_dsl_eval_contract,
+        mo,
+        planner_scorecard,
+        prompt_optimization_findings,
+        run_multiturn_lab,
+        target_comparison,
+        target_evidence_matrix,
+    )
 
 
 @app.cell
@@ -146,6 +174,31 @@ def _(mo, report):
 
 
 @app.cell
+def _(lab_method_scorecard, mo, target_comparison, target_evidence_matrix):
+    mo.vstack(
+        [
+            mo.md(
+                """
+                ## Target scorecard
+
+                The toy lab is not a benchmark, but it gives each candidate target
+                a concrete behavior to isolate. The target-comparison table connects
+                that behavior to the current repo evidence and the next gate needed
+                before it can become a real method claim.
+                """
+            ),
+            mo.ui.table(lab_method_scorecard(), label="Toy lab scores by target"),
+            mo.ui.table(target_comparison(), label="Method hypotheses and next gates"),
+            mo.ui.table(
+                target_evidence_matrix(),
+                label="Manifest-backed target evidence matrix",
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
 def _(mo, report):
     mo.md(
         """
@@ -217,6 +270,95 @@ def _(mo, report):
         [
             mo.md("## Plans and SQL"),
             mo.ui.table(plans, label="Generated intermediate plans and SQL"),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(lab_failure_trace, mo):
+    mo.vstack(
+        [
+            mo.md(
+                """
+                ## Failure slice
+
+                This filtered trace keeps the misses that matter for training data:
+                value grounding, context carryover, and recovery after an empty
+                result. It is the bridge between the toy scenario and the data
+                artifacts the repository still needs.
+                """
+            ),
+            mo.ui.table(lab_failure_trace(), label="Selected trainable failure modes"),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(accuracy_scorecard, claim_table, endpoint_run_scorecard, mo, planner_scorecard):
+    mo.vstack(
+        [
+            mo.md(
+                """
+                ## Endpoint and planner evidence
+
+                These tables are the checked-in evidence behind the article's
+                larger claims. The non-oracle scores are production-style proxy
+                results. The oracle rows are ceilings, not deployable evidence.
+                The planner table shows why a separate planning target is still
+                necessary.
+                """
+            ),
+            mo.ui.table(endpoint_run_scorecard(), label="Endpoint runs on the fixed CoSQL slice"),
+            mo.ui.table(accuracy_scorecard(), label="Accuracy ladder and oracle boundary"),
+            mo.ui.table(planner_scorecard(), label="Non-oracle planner baseline"),
+            mo.ui.table(claim_table(), label="Claim ledger boundary"),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(metric_dsl_demo, metric_dsl_eval_contract, mo):
+    demo = metric_dsl_demo()
+    mo.vstack(
+        [
+            mo.md(
+                f"""
+                ## Metric DSL checkpoint
+
+                A raw SQL target can return rows while erasing governed metric
+                intent. The DSL target keeps `MEASURE(revenue)` until a semantic
+                model compiles it to SQL.
+
+                Compiled SQL:
+
+                ```sql
+                {demo["compiled_sql"]}
+                ```
+                """
+            ),
+            mo.ui.table(metric_dsl_eval_contract(), label="Metric DSL evaluation contract"),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(mo, prompt_optimization_findings):
+    mo.vstack(
+        [
+            mo.md(
+                """
+                ## DSPy boundary
+
+                Prompt search is useful as a harness, but the current evidence says
+                the next useful DSPy target is the planner program, not more wording
+                search for final SQL.
+                """
+            ),
+            mo.ui.table(prompt_optimization_findings(), label="Prompt optimization findings"),
         ]
     )
     return

@@ -21,6 +21,7 @@ from notebooks.blog_support import (
     semantic_strategy_table,
     shareable_lab_attachment,
     target_comparison,
+    target_evidence_matrix,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -69,6 +70,11 @@ def test_public_blog_artifact_is_one_shareable_lab_notebook() -> None:
     assert "CUDA" in text
     assert "MPS" in text
     assert "XPU" in text
+    assert "endpoint_run_scorecard" in text
+    assert "planner_scorecard" in text
+    assert "target_evidence_matrix" in text
+    assert "metric_dsl_eval_contract" in text
+    assert "prompt_optimization_findings" in text
     assert "pip install" not in text
     assert "apt install" not in text
     assert "notebooks/blog/" not in text
@@ -264,6 +270,39 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert "shareable lab" in recovery["current_evidence"]
     assert recovery["claim_status"] == "pending"
 
+    evidence_matrix = target_evidence_matrix()
+    assert {
+        "fine_tuning_target",
+        "lab_behavior",
+        "manifest_backed_evidence",
+        "source_claim_ids",
+        "evidence_level",
+        "missing_gate",
+        "current_decision",
+    } <= set(evidence_matrix.columns)
+    assert set(evidence_matrix["fine_tuning_target"]) == {
+        "Direct SQL SFT",
+        "Planner/DSL first, SQL second",
+        "Semantic-layer tuning",
+        "MEASURE()-preserving metric DSL",
+        "Behavior/recovery tuning",
+    }
+    planner_row = evidence_matrix[
+        evidence_matrix["fine_tuning_target"] == "Planner/DSL first, SQL second"
+    ].iloc[0]
+    metric_row = evidence_matrix[
+        evidence_matrix["fine_tuning_target"] == "MEASURE()-preserving metric DSL"
+    ].iloc[0]
+    direct_row = evidence_matrix[
+        evidence_matrix["fine_tuning_target"] == "Direct SQL SFT"
+    ].iloc[0]
+    assert "macro=0.571" in planner_row["manifest_backed_evidence"]
+    assert "predicted_planner_sql_execution" in planner_row["source_claim_ids"]
+    assert "pending" in planner_row["evidence_level"]
+    assert "metric-DSL prediction/comparison manifest" in metric_row["manifest_backed_evidence"]
+    assert "0.530 strict" in direct_row["manifest_backed_evidence"]
+    assert "baseline every structured target must beat" in direct_row["current_decision"]
+
     endpoint_runs = endpoint_run_scorecard()
     assert {
         "run",
@@ -382,6 +421,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "data_engineering_gates_md",
         "prompt_optimization_findings_md",
         "target_comparison_md",
+        "target_evidence_matrix_md",
         "endpoint_run_scorecard_md",
     }
     assert set(manifest["source_artifacts"]) >= {
@@ -485,6 +525,16 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "MEASURE()-preserving metric DSL" in target_md
     assert "Behavior/recovery tuning" in target_md
     assert "shareable lab" in target_md
+
+    target_evidence_md = (
+        tmp_path / manifest["assets"]["target_evidence_matrix_md"]
+    ).read_text()
+    assert "Direct SQL SFT" in target_evidence_md
+    assert "Planner/DSL first, SQL second" in target_evidence_md
+    assert "predicted_planner_sql_execution" in target_evidence_md
+    assert "metric_dsl_beats_direct_sql" in target_evidence_md
+    assert "hosted baseline" in target_evidence_md
+    assert "notebooks/blog/" not in target_evidence_md
 
     endpoint_md = (tmp_path / manifest["assets"]["endpoint_run_scorecard_md"]).read_text()
     assert "Base Qwen 3.5 9B" in endpoint_md

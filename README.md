@@ -88,7 +88,8 @@ semantic-layer state, `MEASURE()`-preserving DSL, and behavior/recovery tuning.
 It defaults to CPU, reports CUDA/MPS/XPU visibility when PyTorch can see an
 accelerator, and does not require GPU compute or a model download. The public
 site consumes generated evidence such as `docs/blog/generated/shareable-lab.md`,
-`docs/blog/generated/lab-method-scores.md`, and
+`docs/blog/generated/lab-method-scores.md`,
+`docs/blog/generated/target-evidence-matrix.md`, and
 `docs/blog/generated/lab-failure-trace.md`.
 
 Deeper evidence maintenance stays separate from the public reader path. Expensive
