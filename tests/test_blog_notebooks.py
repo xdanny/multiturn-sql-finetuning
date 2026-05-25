@@ -7,11 +7,14 @@ from pathlib import Path
 from notebooks.blog_support import (
     accuracy_scorecard,
     claim_table,
+    endpoint_run_scorecard,
     export_blog_evidence,
     metric_dsl_demo,
     metric_dsl_eval_contract,
+    notebook_walkthrough,
     planner_scorecard,
     semantic_strategy_table,
+    target_comparison,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -82,6 +85,65 @@ def test_notebook_support_loads_current_artifacts() -> None:
     }
     assert set(metric_contract["status"]) == {"pending_manifest", "pending_comparison"}
 
+    walkthrough = notebook_walkthrough()
+    assert {
+        "checkpoint",
+        "reader_question",
+        "notebook",
+        "evidence_output",
+        "claim_boundary",
+    } <= set(walkthrough.columns)
+    assert "notebooks/labs/local_multiturn_sql_lab.py" in set(walkthrough["notebook"])
+    for notebook_path in BLOG_NOTEBOOKS.values():
+        assert notebook_path in set(walkthrough["notebook"])
+    assert any(
+        "single-turn" in question and "multi-turn" in question
+        for question in walkthrough["reader_question"]
+    )
+    assert any("MEASURE()" in boundary for boundary in walkthrough["claim_boundary"])
+
+    targets = target_comparison()
+    assert {
+        "fine_tuning_target",
+        "hypothesis",
+        "current_evidence",
+        "claim_status",
+        "next_gate",
+    } <= set(targets.columns)
+    assert set(targets["fine_tuning_target"]) == {
+        "Direct SQL SFT",
+        "Planner/DSL first, SQL second",
+        "Semantic-layer tuning",
+        "MEASURE()-preserving metric DSL",
+        "Behavior/recovery tuning",
+    }
+    direct = targets[targets["fine_tuning_target"] == "Direct SQL SFT"].iloc[0]
+    assert "0.640" in direct["current_evidence"]
+    assert direct["claim_status"] == "supported_proxy"
+    measure = targets[
+        targets["fine_tuning_target"] == "MEASURE()-preserving metric DSL"
+    ].iloc[0]
+    assert measure["claim_status"] == "pending"
+    assert "direct-SQL baseline" in measure["next_gate"]
+
+    endpoint_runs = endpoint_run_scorecard()
+    assert {
+        "run",
+        "prompt_variant",
+        "strict_accuracy",
+        "value_accuracy",
+        "syntax_accuracy",
+        "mean_latency_ms",
+    } <= set(endpoint_runs.columns)
+    assert "Base Qwen 3.5 9B" in set(endpoint_runs["run"])
+    assert "100-step LoRA" in set(endpoint_runs["run"])
+    assert (
+        endpoint_runs.loc[
+            endpoint_runs["run"] == "100-step LoRA", "strict_accuracy"
+        ].iloc[0]
+        == "0.530"
+    )
+
 
 def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     manifest = export_blog_evidence(tmp_path)
@@ -93,6 +155,9 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "planner_baseline_svg",
         "claim_table_md",
         "metric_dsl_contract_md",
+        "notebook_walkthrough_md",
+        "target_comparison_md",
+        "endpoint_run_scorecard_md",
     }
     assert set(manifest["source_artifacts"]) >= {
         "docs/claim_ledgers/cosql_dev_100.jsonl",
@@ -117,6 +182,24 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "metric_dsl_value_delta_vs_direct_sql" in metric_table_md
     assert "pending_comparison" in metric_table_md
 
+    walkthrough_md = (tmp_path / manifest["assets"]["notebook_walkthrough_md"]).read_text()
+    assert "notebooks/labs/local_multiturn_sql_lab.py" in walkthrough_md
+    assert "notebooks/blog/01_problem_and_result.py" in walkthrough_md
+    assert "notebooks/blog/06_data_engineering_for_multiturn_sql_eval.py" in walkthrough_md
+    assert "MEASURE()" in walkthrough_md
+
+    target_md = (tmp_path / manifest["assets"]["target_comparison_md"]).read_text()
+    assert "Direct SQL SFT" in target_md
+    assert "0.640" in target_md
+    assert "MEASURE()-preserving metric DSL" in target_md
+    assert "Behavior/recovery tuning" in target_md
+
+    endpoint_md = (tmp_path / manifest["assets"]["endpoint_run_scorecard_md"]).read_text()
+    assert "Base Qwen 3.5 9B" in endpoint_md
+    assert "100-step LoRA" in endpoint_md
+    assert "0.530" in endpoint_md
+    assert "0.640" in endpoint_md
+
 
 def test_checked_in_blog_evidence_assets_are_current(tmp_path) -> None:
     manifest = export_blog_evidence(tmp_path)
@@ -128,3 +211,24 @@ def test_checked_in_blog_evidence_assets_are_current(tmp_path) -> None:
 
     for asset_path in manifest["assets"].values():
         assert (checked_in_dir / asset_path).read_text() == (tmp_path / asset_path).read_text()
+
+
+def test_research_goal_states_notebook_led_method_comparison() -> None:
+    goal = (REPO_ROOT / "docs" / "research_goal.md").read_text()
+    blog_readme = (REPO_ROOT / "docs" / "blog" / "README.md").read_text()
+
+    for phrase in [
+        "single-turn",
+        "multi-turn analytical SQL",
+        "small specialized local model",
+        "Direct SQL SFT",
+        "Planner/DSL first, SQL second",
+        "Semantic-layer tuning",
+        "MEASURE()-preserving metric DSL",
+        "Behavior/recovery tuning",
+    ]:
+        assert phrase in goal
+
+    assert "Every public claim should name the notebook checkpoint" in goal
+    assert "notebook-walkthrough.md" in blog_readme
+    assert "notebooks/blog/06_data_engineering_for_multiturn_sql_eval.py" in blog_readme

@@ -38,6 +38,9 @@ Tracked outputs:
 - `docs/blog/generated/planner-baseline.svg`
 - `docs/blog/generated/claim-table.md`
 - `docs/blog/generated/metric-dsl-contract.md`
+- `docs/blog/generated/notebook-walkthrough.md`
+- `docs/blog/generated/target-comparison.md`
+- `docs/blog/generated/endpoint-run-scorecard.md`
 - `docs/blog/generated/manifest.json`
 
 `tests/test_blog_notebooks.py` compares the checked-in generated files against a
@@ -61,3 +64,6 @@ The intended pattern is:
 4. The post interprets what the artifact does and does not prove.
 
 This keeps the series tied to evidence instead of disconnected prose.
+The public site includes `notebook-walkthrough.md` so readers can move from the
+post into the marimo lab and chapter notebooks without guessing which artifact
+backs each claim.

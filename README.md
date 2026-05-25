@@ -76,7 +76,9 @@ Known constraints:
 ## Notebook-Driven Blog Series
 
 The blog series should be read as a guided run through the artifacts, not as a
-static recap. Each chapter in `docs/blog/` has a matching marimo notebook:
+static recap. Each chapter in `docs/blog/` has a matching marimo notebook, and
+the public post includes the generated walkthrough at
+`docs/blog/generated/notebook-walkthrough.md`:
 
 ```bash
 marimo edit notebooks/blog/01_problem_and_result.py

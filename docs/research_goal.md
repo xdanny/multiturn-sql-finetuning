@@ -66,6 +66,12 @@ should be a guided run through the evidence:
 4. State what it does not support.
 5. Point to the next experiment.
 
+Every public claim should name the notebook checkpoint or generated evidence artifact
+that produced it. The public post should be readable on its own, but it should also
+behave like a lab manual: readers can open the companion notebook, rerun the table or
+graph, and see the boundary between current proxy evidence, oracle diagnostics, and
+future BIRD-Interact or hosted-model claims.
+
 The notebooks are intentionally lightweight at first. Expensive model serving and GPU
 training stay in scripts, while notebooks read tracked manifests, summaries, results,
 and failure taxonomies. As the project matures, each notebook can grow from analysis

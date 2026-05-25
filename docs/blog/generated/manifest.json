@@ -2,8 +2,11 @@
   "assets": {
     "accuracy_ladder_svg": "accuracy-ladder.svg",
     "claim_table_md": "claim-table.md",
+    "endpoint_run_scorecard_md": "endpoint-run-scorecard.md",
     "metric_dsl_contract_md": "metric-dsl-contract.md",
-    "planner_baseline_svg": "planner-baseline.svg"
+    "notebook_walkthrough_md": "notebook-walkthrough.md",
+    "planner_baseline_svg": "planner-baseline.svg",
+    "target_comparison_md": "target-comparison.md"
   },
   "schema_version": 1,
   "source_artifacts": [
