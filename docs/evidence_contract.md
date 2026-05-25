@@ -105,6 +105,19 @@ Rollout rows use `history_policy=model_generated_sql_rollout`. A rollout result
 can support a proxy rollout claim, but not a behavior/recovery improvement claim
 until the ledger also has same-model teacher-forced comparison metrics.
 
+Create those comparison metrics with:
+
+```bash
+python -m eval.compare_rollout_history \
+  --rollout-manifest results/rollout/<run-id>.manifest.json \
+  --teacher-forced-manifest results/teacher_forced/<run-id>.manifest.json \
+  --output results/rollout/<run-id>.compared.manifest.json
+```
+
+The comparison command requires the same model, same input hash, non-oracle
+manifests, and a positive rollout value delta before the claim ledger can clear
+`rollout_beats_teacher_forced_history`.
+
 ## Blog Rule
 
 A blog sentence can make a benchmark claim only if it names one of:

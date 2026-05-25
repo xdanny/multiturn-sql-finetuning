@@ -39,6 +39,31 @@ python -m eval.rollout_eval \
 The runner writes a result manifest next to the output unless
 `--manifest-output` is supplied.
 
+## Compare Against Teacher-Forced History
+
+Rollout accuracy by itself does not prove behavior or recovery improved. The
+comparison must use the same model and exact same prepared input hash under the
+teacher-forced evaluator:
+
+```bash
+python -m eval.compare_rollout_history \
+  --rollout-manifest results/rollout/<run-id>.manifest.json \
+  --teacher-forced-manifest results/teacher_forced/<run-id>.manifest.json \
+  --output results/rollout/<run-id>.compared.manifest.json
+```
+
+The comparison command refuses mismatched models, mismatched input hashes,
+oracle diagnostics, and non-rollout manifests. The output is an augmented rollout
+manifest with:
+
+- `teacher_forced_comparison_run_id`
+- `teacher_forced_model_name`
+- `teacher_forced_input_sha256`
+- `teacher_forced_value_execution_accuracy`
+- `teacher_forced_strict_execution_accuracy`
+- `rollout_value_delta_vs_teacher_forced`
+- `rollout_strict_delta_vs_teacher_forced`
+
 ## Claim Boundary
 
 A generated-history rollout result can support only a proxy rollout claim until
@@ -48,7 +73,8 @@ teacher-forced history. The claim ledger tracks these separately:
 - `model_generated_history_rollout`: pending until a valid rollout manifest
   exists.
 - `rollout_beats_teacher_forced_history`: pending until comparison metrics show
-  a same-model rollout result beating the matching teacher-forced result.
+  a same-model, same-input rollout result beating the matching teacher-forced
+  result with a positive value-accuracy delta.
 
 Oracle inputs are rejected by default. `--allow-oracle-plan` is diagnostic only
 and sets `oracle_allowed=true` in the manifest, so those rows cannot become a

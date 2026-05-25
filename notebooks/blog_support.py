@@ -46,45 +46,58 @@ def read_jsonl_artifact(relative_path: str, limit: int | None = None) -> list[di
     return rows
 
 
+def claim_ledger() -> pd.DataFrame:
+    return pd.DataFrame(read_jsonl_artifact("docs/claim_ledgers/cosql_dev_100.jsonl"))
+
+
 def accuracy_scorecard() -> pd.DataFrame:
-    strict = read_csv_artifact("plots/vllm_iterations_100turns/summary.csv")
-    value = read_csv_artifact("plots/rescored_vllm_semantic_prompt_iteration_100turns/summary.csv")
+    ledger = claim_ledger().set_index("claim_id")
+
+    def score(run_id: str, metric: str) -> float:
+        value = ledger.loc[run_id, metric]
+        if pd.isna(value):
+            raise ValueError(f"Missing {metric} for {run_id}")
+        return float(value)
+
     rows = [
         {
             "run": "Base Qwen 3.5 9B",
             "mode": "non_oracle_generation",
             "metric": "strict_accuracy",
-            "score": float(strict.loc[strict["model_name"] == "unsloth/Qwen3.5-9B", "accuracy"].iloc[0]),
+            "score": score("qwen35_9b_base_cosql_dev_100turns", "strict_execution_accuracy"),
         },
         {
             "run": "100-step LoRA",
             "mode": "non_oracle_generation",
             "metric": "strict_accuracy",
-            "score": float(strict.loc[strict["model_name"] == "multiturn-sql-100", "accuracy"].iloc[0]),
+            "score": score("multiturn_sql_100_cosql_dev_100turns", "strict_execution_accuracy"),
         },
         {
             "run": "Best non-oracle prompt",
             "mode": "non_oracle_generation",
             "metric": "value_accuracy",
-            "score": float(
-                value.loc[
-                    (value["model_name"] == "multiturn-sql-semantic-50")
-                    & (value["prompt_variant"] == "minimal_executable"),
-                    "value_accuracy",
-                ].iloc[0]
+            "score": score(
+                "semantic_prompt_minimal_executable_cosql_dev_100turns",
+                "value_execution_accuracy",
             ),
         },
         {
             "run": "Oracle prompt ceiling",
             "mode": "oracle_planner_diagnostic",
             "metric": "value_accuracy",
-            "score": 0.850,
+            "score": score(
+                "schema_pruned_minimal_schemafix_oracle_cosql_dev_100turns",
+                "value_execution_accuracy",
+            ),
         },
         {
             "run": "Oracle-trained ceiling",
             "mode": "oracle_planner_diagnostic",
             "metric": "value_accuracy",
-            "score": 0.890,
+            "score": score(
+                "schema_pruned_trained100_oracle_cosql_dev_100turns",
+                "value_execution_accuracy",
+            ),
         },
     ]
     return pd.DataFrame(rows)
@@ -108,30 +121,39 @@ def planner_scorecard() -> pd.DataFrame:
 
 
 def claim_table() -> pd.DataFrame:
-    return pd.DataFrame(
-        [
-            {
-                "claim": "Small local model improves on the fixed CoSQL proxy",
-                "status": "supported",
-                "evidence": "Base strict 0.370 to 100-step LoRA strict 0.530",
-            },
-            {
-                "claim": "Best current non-oracle value score is useful but not production-ready",
-                "status": "supported",
-                "evidence": "0.640 value accuracy on 100 teacher-forced CoSQL turns",
-            },
-            {
-                "claim": "Schema linking and projection planning are high leverage",
-                "status": "supported as diagnostic",
-                "evidence": "Oracle-planner diagnostics reach 0.850 to 0.890 value accuracy",
-            },
-            {
-                "claim": "Local 9B beats hosted SOTA on BIRD-Interact",
-                "status": "not supported yet",
-                "evidence": "No BIRD-Interact or hosted-model baseline in this repo yet",
-            },
-        ]
+    ledger = claim_ledger()
+    selected = ledger[
+        ledger["claim_id"].isin(
+            [
+                "qwen35_9b_base_cosql_dev_100turns",
+                "multiturn_sql_100_cosql_dev_100turns",
+                "semantic_prompt_minimal_executable_cosql_dev_100turns",
+                "schema_pruned_trained100_oracle_cosql_dev_100turns",
+                "model_generated_history_rollout",
+                "rollout_beats_teacher_forced_history",
+                "hosted_sota_same_protocol",
+                "bird_interact_local_vs_hosted",
+            ]
+        )
+    ].copy()
+    selected["evidence"] = selected.apply(
+        lambda row: row["blocking_reason"]
+        if row["claim_status"] == "pending"
+        else (
+            f"value={row['value_execution_accuracy']}, "
+            f"strict={row['strict_execution_accuracy']}, rows={row['row_count']}"
+        ),
+        axis=1,
     )
+    return selected[
+        [
+            "claim_id",
+            "claim_status",
+            "evaluation_mode",
+            "allowed_public_claim",
+            "evidence",
+        ]
+    ].reset_index(drop=True)
 
 
 def semantic_strategy_table() -> pd.DataFrame:

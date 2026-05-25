@@ -13,6 +13,7 @@ from eval.run_eval import (
     generate_sql,
     load_prepared_records,
     messages_for_generation,
+    summarize_eval_metrics,
     write_results,
 )
 
@@ -228,6 +229,38 @@ def test_write_results_writes_jsonl(tmp_path) -> None:
 
     assert write_results([{"id": 1, "score": 1.0}], output) == 1
     assert json.loads(output.read_text()) == {"id": 1, "score": 1.0}
+
+
+def test_summarize_eval_metrics_records_teacher_forced_history_policy() -> None:
+    metrics = summarize_eval_metrics(
+        [
+            {
+                "execution_score": 1.0,
+                "strict_execution_score": 1.0,
+                "value_execution_score": 1.0,
+                "syntax_valid": True,
+                "generation_latency_ms": 10.0,
+                "source": "unit",
+                "evaluation_mode": "non_oracle_generation",
+                "dialog_id": "dialog-a",
+                "history_policy": "gold_sql_teacher_forced",
+            },
+            {
+                "execution_score": 0.0,
+                "strict_execution_score": 0.0,
+                "value_execution_score": 0.0,
+                "syntax_valid": True,
+                "generation_latency_ms": 20.0,
+                "source": "unit",
+                "evaluation_mode": "non_oracle_generation",
+                "dialog_id": "dialog-a",
+                "history_policy": "gold_sql_teacher_forced",
+            },
+        ]
+    )
+
+    assert metrics["history_policy"] == "gold_sql_teacher_forced"
+    assert metrics["history_policies"] == {"gold_sql_teacher_forced": 2}
 
 
 def test_enforce_sql_only_instruction_appends_to_system_message() -> None:

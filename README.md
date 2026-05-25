@@ -183,6 +183,16 @@ manifest. The claim ledger keeps the behavior/recovery improvement claim pending
 until a rollout result is compared against the same model and input under
 teacher-forced history.
 
+```bash
+python -m eval.compare_rollout_history \
+  --rollout-manifest results/rollout/multiturn_sql_100_cosql_dev_100_rollout.manifest.json \
+  --teacher-forced-manifest results/teacher_forced/multiturn_sql_100_cosql_dev_100.manifest.json \
+  --output results/rollout/multiturn_sql_100_cosql_dev_100_rollout.compared.manifest.json
+```
+
+The comparison command refuses mismatched models, mismatched input hashes, oracle
+diagnostics, and non-rollout manifests.
+
 The optional `data.prepare --manifest-output` file records dataset composition:
 source counts, evaluation modes, turn formats, history policies, assistant-turn
 totals, and configured dataset weights. Use it when reporting a training or eval

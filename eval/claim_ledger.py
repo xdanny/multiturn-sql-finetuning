@@ -389,11 +389,7 @@ def _planner_row(planner_summary_path: Path | None) -> dict[str, Any] | None:
 
 def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     rows = list(existing_rows)
-    has_predicted_sql = any(
-        row.get("artifact_type") == "result_manifest"
-        and row.get("evaluation_mode") == "predicted_planner"
-        for row in rows
-    )
+    has_predicted_sql = any(_row_has_predicted_sql_claim_support(row) for row in rows)
     has_rollout = any(_row_has_rollout_claim_support(row) for row in rows)
     has_rollout_teacher_forced_comparison = any(
         _row_has_rollout_teacher_forced_comparison(row) for row in rows
@@ -423,6 +419,15 @@ def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any
                 }
             )
     return pending
+
+
+def _row_has_predicted_sql_claim_support(row: dict[str, Any]) -> bool:
+    return (
+        row.get("artifact_type") == "result_manifest"
+        and row.get("artifact_valid")
+        and row.get("production_claim_allowed")
+        and row.get("evaluation_mode") == "predicted_planner"
+    )
 
 
 def _row_has_hosted_claim_support(row: dict[str, Any]) -> bool:

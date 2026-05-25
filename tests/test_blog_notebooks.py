@@ -5,6 +5,7 @@ from pathlib import Path
 
 from notebooks.blog_support import (
     accuracy_scorecard,
+    claim_table,
     metric_dsl_demo,
     planner_scorecard,
     semantic_strategy_table,
@@ -44,6 +45,13 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert set(scores["mode"]) == {"non_oracle_generation", "oracle_planner_diagnostic"}
     assert scores.loc[scores["run"] == "Base Qwen 3.5 9B", "score"].iloc[0] == 0.37
     assert scores.loc[scores["run"] == "Best non-oracle prompt", "score"].iloc[0] == 0.64
+    assert scores.loc[scores["run"] == "Oracle-trained ceiling", "score"].iloc[0] == 0.89
+
+    claims = claim_table()
+    assert "rollout_beats_teacher_forced_history" in set(claims["claim_id"])
+    rollout = claims[claims["claim_id"] == "rollout_beats_teacher_forced_history"].iloc[0]
+    assert rollout["claim_status"] == "pending"
+    assert "teacher-forced" in rollout["evidence"]
 
     planner = planner_scorecard()
     assert "column_f1" in set(planner["metric"])

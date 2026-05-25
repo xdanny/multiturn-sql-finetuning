@@ -328,9 +328,11 @@ def test_predicted_planner_manifest_requires_output_rows_with_predicted_mode(tmp
     rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
 
     row = rows[0]
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
     assert row["claim_status"] == "pending"
     assert row["artifact_valid"] is False
     assert row["blocking_reason"] == "predicted_planner output rows missing predicted_planner mode"
+    assert "predicted_planner_sql_execution" in pending
 
 
 def test_hosted_pending_claim_requires_cost_and_latency_metrics(tmp_path) -> None:

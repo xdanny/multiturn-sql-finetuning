@@ -289,6 +289,15 @@ def summarize_eval_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
             Counter(str(result.get("evaluation_mode", "unknown")) for result in results)
         ),
     }
+    history_policies = Counter(
+        str(result.get("history_policy"))
+        for result in results
+        if result.get("history_policy")
+    )
+    if history_policies:
+        metrics["history_policies"] = dict(history_policies)
+        if len(history_policies) == 1:
+            metrics["history_policy"] = next(iter(history_policies))
     if any(result.get("dialog_id") for result in results):
         metrics["dialog_count"] = len({result.get("dialog_id") for result in results})
         per_dialog: dict[str, list[float]] = {}
