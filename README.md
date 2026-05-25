@@ -162,6 +162,23 @@ contains the first 100 CoSQL turns across 32 dialogs with `evaluation_mode` set
 to `predicted_planner`. It is ready for endpoint SQL evaluation, but it is not
 itself an execution result.
 
+After running endpoint SQL evaluation on both the direct prepared input and the
+predicted-planner prepared input, compare the manifests before claiming the
+planner path helped:
+
+```bash
+python -m eval.compare_predicted_planner \
+  --predicted-manifest results/predicted_planner/multiturn_sql_100_cosql_dev_predicted.manifest.json \
+  --direct-manifest results/direct_sql/multiturn_sql_100_cosql_dev_direct.manifest.json \
+  --output results/predicted_planner/multiturn_sql_100_cosql_dev_predicted.compared.manifest.json
+```
+
+The comparison command refuses oracle diagnostics, non-prepared manifests,
+model mismatches, wrong output modes, and row-identity mismatches. The claim
+ledger only clears the predicted-planner SQL execution claim when the compared
+predicted-planner run beats direct SQL on value accuracy and the referenced
+direct-SQL manifest is included in the ledger input.
+
 ## Generated-History Rollout
 
 Teacher-forced CoSQL evaluation answers a narrow question: can the model produce

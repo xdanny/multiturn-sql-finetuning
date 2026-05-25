@@ -335,6 +335,17 @@ def _manifest_row(
         "rollout_value_delta_vs_teacher_forced": metrics.get(
             "rollout_value_delta_vs_teacher_forced"
         ),
+        "direct_sql_comparison_run_id": metrics.get("direct_sql_comparison_run_id"),
+        "direct_sql_model_name": metrics.get("direct_sql_model_name"),
+        "direct_sql_input_sha256": metrics.get("direct_sql_input_sha256"),
+        "direct_sql_output_sha256": metrics.get("direct_sql_output_sha256"),
+        "direct_sql_value_execution_accuracy": metrics.get(
+            "direct_sql_value_execution_accuracy"
+        ),
+        "predicted_planner_value_delta_vs_direct_sql": metrics.get(
+            "predicted_planner_value_delta_vs_direct_sql"
+        ),
+        "direct_sql_comparable_row_count": metrics.get("direct_sql_comparable_row_count"),
         "strict_execution_accuracy": metrics.get("strict_execution_accuracy"),
         "value_execution_accuracy": metrics.get("value_execution_accuracy")
         if metrics.get("value_execution_accuracy") is not None
@@ -389,7 +400,8 @@ def _planner_row(planner_summary_path: Path | None) -> dict[str, Any] | None:
 
 def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     rows = list(existing_rows)
-    has_predicted_sql = any(_row_has_predicted_sql_claim_support(row) for row in rows)
+    has_predicted_sql = any(_row_has_predicted_sql_claim_support(row, rows) for row in rows)
+    has_valid_predicted_manifest = any(_row_is_valid_predicted_sql_manifest(row) for row in rows)
     has_rollout = any(_row_has_rollout_claim_support(row) for row in rows)
     has_rollout_teacher_forced_comparison = any(
         _row_has_rollout_teacher_forced_comparison(row) for row in rows
@@ -410,6 +422,14 @@ def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any
     pending = []
     for row in PENDING_CLAIMS:
         if keep[row["claim_id"]]:
+            row = dict(row)
+            if row["claim_id"] == "predicted_planner_sql_execution" and has_valid_predicted_manifest:
+                row["blocking_reason"] = (
+                    "no same-model direct-SQL comparison with positive value delta"
+                )
+                row["required_artifact"] = (
+                    "compared predicted_planner manifest with direct-SQL baseline"
+                )
             pending.append(
                 {
                     **row,
@@ -421,13 +441,69 @@ def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any
     return pending
 
 
-def _row_has_predicted_sql_claim_support(row: dict[str, Any]) -> bool:
+def _row_is_valid_predicted_sql_manifest(row: dict[str, Any]) -> bool:
     return (
         row.get("artifact_type") == "result_manifest"
         and row.get("artifact_valid")
         and row.get("production_claim_allowed")
         and row.get("evaluation_mode") == "predicted_planner"
     )
+
+
+def _row_has_predicted_sql_claim_support(
+    row: dict[str, Any],
+    rows: list[dict[str, Any]],
+) -> bool:
+    if not _row_is_valid_predicted_sql_manifest(row):
+        return False
+    if row.get("direct_sql_model_name") != row.get("model_name"):
+        return False
+    if not row.get("direct_sql_comparison_run_id"):
+        return False
+    if not row.get("direct_sql_input_sha256") or not row.get("direct_sql_output_sha256"):
+        return False
+    comparable_rows = _num(row.get("direct_sql_comparable_row_count"))
+    row_count = _num(row.get("row_count"))
+    if comparable_rows is None or row_count is None or comparable_rows != row_count:
+        return False
+    if not _has_matching_direct_sql_row(row, rows):
+        return False
+    direct_score = _num(row.get("direct_sql_value_execution_accuracy"))
+    predicted_score = _num(row.get("value_execution_accuracy"))
+    delta = _num(row.get("predicted_planner_value_delta_vs_direct_sql"))
+    if direct_score is None or predicted_score is None or delta is None:
+        return False
+    return delta > 0 and predicted_score > direct_score
+
+
+def _has_matching_direct_sql_row(
+    predicted_row: dict[str, Any],
+    rows: list[dict[str, Any]],
+) -> bool:
+    direct_id = predicted_row.get("direct_sql_comparison_run_id")
+    for row in rows:
+        if row.get("claim_id") != direct_id:
+            continue
+        if row.get("artifact_type") != "result_manifest" or not row.get("artifact_valid"):
+            return False
+        if not row.get("production_claim_allowed"):
+            return False
+        if row.get("evaluation_mode") != "non_oracle_generation":
+            return False
+        if row.get("benchmark") != "prepared":
+            return False
+        if row.get("oracle_allowed"):
+            return False
+        if row.get("model_name") != predicted_row.get("model_name"):
+            return False
+        if row.get("input_sha256") != predicted_row.get("direct_sql_input_sha256"):
+            return False
+        if row.get("output_sha256") != predicted_row.get("direct_sql_output_sha256"):
+            return False
+        return _num(row.get("value_execution_accuracy")) == _num(
+            predicted_row.get("direct_sql_value_execution_accuracy")
+        )
+    return False
 
 
 def _row_has_hosted_claim_support(row: dict[str, Any]) -> bool:

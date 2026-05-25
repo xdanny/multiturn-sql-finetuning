@@ -77,7 +77,7 @@ The repo currently distinguishes these training strategies:
 | Plain non-oracle LoRA | CoSQL/SParC/synthetic-style chat rows without gold planning hints in the prompt. | Production-style proxy. |
 | Semantic-context LoRA | Non-oracle rows with schema/semantic model context. | Production-style proxy if no gold pruning is used. |
 | Oracle-labelled LoRA | Rows with gold SQL-derived planning hints or semantic pruning by gold tables. | Diagnostic only; useful for testing whether the SQL generator can consume a correct plan. |
-| Predicted-planner-to-SQL LoRA | Rows or prompts where the plan is produced without reference SQL. | Target production path; SQL execution results are still pending. |
+| Predicted-planner-to-SQL LoRA | Rows or prompts where the plan is produced without reference SQL. | Target production path; it supports an improvement claim only after same-model direct-SQL comparison metrics show a positive value-accuracy delta. |
 
 The next strategy table should be more ambitious than these early runs:
 
@@ -140,6 +140,12 @@ must be correct before SQL generation becomes reliable:
 The first implemented planner is a lexical baseline. It is intentionally weak
 and inspectable. Its purpose is to create a scoring surface before building a
 stronger planner, not to claim the planner problem is solved.
+
+Predicted-planner SQL execution is compared against direct SQL, not judged in
+isolation. A raw `predicted_planner` manifest proves only that the planner path
+ran. The repo requires a comparison artifact from `eval.compare_predicted_planner`
+and the referenced direct-SQL manifest in the ledger input before clearing the
+planner-to-SQL improvement claim.
 
 ## Current Claim Boundary
 

@@ -56,7 +56,7 @@ predicted-planner manifest whose output rows are not also marked
 | A prompt-only oracle diagnostic reaches `0.850` value accuracy. | `diagnostic_upper_bound` | `docs/result_manifests/cosql_dev_100_proxy.json` | `oracle_planner_diagnostic` | Yes, only as a ceiling test. |
 | Gold SQL-derived planning hints can push the best diagnostic run to `0.890` value accuracy. | `diagnostic_upper_bound` | `docs/result_manifests/cosql_dev_100_proxy.json` | `oracle_planner_diagnostic` | Yes, only as a ceiling test. |
 | The lexical planner baseline has macro score `0.571`, table F1 `0.599`, column F1 `0.117`, and skeleton F1 `0.648`. | `supported_planner_quality` | `docs/planner_baseline_cosql_dev_100_summary.json` | planner scoring | Yes, as planner quality, not SQL accuracy. |
-| A non-oracle predicted planner improves SQL execution. | Pending | `data/processed/eval_cosql_dev_predicted_planner_100.jsonl` can now be generated | `predicted_planner` | No, until endpoint SQL results exist. |
+| A non-oracle predicted planner improves SQL execution. | Pending | `data/processed/eval_cosql_dev_predicted_planner_100.jsonl` can now be generated | `predicted_planner` | No, until same-model direct-SQL comparison metrics show a positive value-accuracy delta. |
 | A generated-history rollout result exists for the fixed CoSQL proxy. | Pending | `eval.rollout_eval` is implemented | `non_oracle_generation` | No, until a rollout result manifest exists. |
 | Generated-history rollout beats teacher-forced history for the same model/input. | Pending | none | not run | No, until side-by-side comparison metrics exist. |
 | Local 9B competes with hosted large models. | Pending | none | not run | No. |
@@ -89,6 +89,23 @@ python -m eval.planner_eval \
 Future endpoint runs through `eval.run_eval` write a manifest next to the JSONL
 output by default. Historical manifest snapshots for the currently cited proxy
 numbers live in `docs/result_manifests/cosql_dev_100_proxy.json`.
+
+Compare a predicted-planner SQL run against direct SQL before claiming the
+planner improved execution:
+
+```bash
+python -m eval.compare_predicted_planner \
+  --predicted-manifest results/predicted_planner/<run-id>.manifest.json \
+  --direct-manifest results/direct_sql/<run-id>.manifest.json \
+  --output results/predicted_planner/<run-id>.compared.manifest.json
+```
+
+The comparison command requires non-oracle `prepared` manifests, the same model,
+`predicted_planner` output rows, direct `non_oracle_generation` output rows, and
+matching row identities. The claim ledger clears
+`predicted_planner_sql_execution` only when the predicted-planner value accuracy
+beats the direct-SQL value accuracy and the referenced direct-SQL manifest is
+present in the same ledger input.
 
 Run generated-history rollout without teacher-forcing prior gold SQL:
 

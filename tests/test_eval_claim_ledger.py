@@ -335,6 +335,272 @@ def test_predicted_planner_manifest_requires_output_rows_with_predicted_mode(tmp
     assert "predicted_planner_sql_execution" in pending
 
 
+def test_predicted_planner_manifest_requires_direct_sql_comparison_to_clear_pending(
+    tmp_path,
+) -> None:
+    input_path = tmp_path / "data" / "predicted.jsonl"
+    output_path = tmp_path / "results" / "predicted.jsonl"
+    _write_jsonl(
+        input_path,
+        [
+            {
+                "messages": [
+                    {"role": "user", "content": "q"},
+                    {"role": "assistant", "content": "SELECT 1"},
+                ],
+                "evaluation_mode": "predicted_planner",
+                "gold_plans": [{}],
+                "predicted_plans": [{}],
+            }
+        ],
+    )
+    _write_jsonl(output_path, [{"id": "a", "evaluation_mode": "predicted_planner"}])
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            [
+                {
+                    "schema_version": 1,
+                    "run_id": "predicted_without_comparison",
+                    "benchmark": "prepared",
+                    "model_name": "local-9b",
+                    "endpoint": "local",
+                    "evaluation_mode": "predicted_planner",
+                    "oracle_allowed": False,
+                    "prompt_variant": None,
+                    "input_path": str(input_path.relative_to(tmp_path)),
+                    "input_sha256": _sha256(input_path),
+                    "output_path": str(output_path.relative_to(tmp_path)),
+                    "output_sha256": _sha256(output_path),
+                    "row_count": 1,
+                    "metrics": {"value_execution_accuracy": 1.0},
+                    "command": ["run"],
+                }
+            ]
+        )
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert "predicted_planner_sql_execution" in pending
+    assert pending["predicted_planner_sql_execution"]["blocking_reason"] == (
+        "no same-model direct-SQL comparison with positive value delta"
+    )
+
+
+def test_predicted_planner_direct_sql_comparison_must_improve_before_clearing_pending(
+    tmp_path,
+) -> None:
+    input_path = tmp_path / "data" / "predicted.jsonl"
+    output_path = tmp_path / "results" / "predicted.jsonl"
+    _write_jsonl(
+        input_path,
+        [
+            {
+                "messages": [
+                    {"role": "user", "content": "q"},
+                    {"role": "assistant", "content": "SELECT 1"},
+                ],
+                "evaluation_mode": "predicted_planner",
+                "gold_plans": [{}],
+                "predicted_plans": [{}],
+            }
+        ],
+    )
+    _write_jsonl(output_path, [{"id": "a", "evaluation_mode": "predicted_planner"}])
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            [
+                {
+                    "schema_version": 1,
+                    "run_id": "predicted_no_gain",
+                    "benchmark": "prepared",
+                    "model_name": "local-9b",
+                    "endpoint": "local",
+                    "evaluation_mode": "predicted_planner",
+                    "oracle_allowed": False,
+                    "prompt_variant": None,
+                    "input_path": str(input_path.relative_to(tmp_path)),
+                    "input_sha256": _sha256(input_path),
+                    "output_path": str(output_path.relative_to(tmp_path)),
+                    "output_sha256": _sha256(output_path),
+                    "row_count": 1,
+                    "metrics": {
+                        "value_execution_accuracy": 0.4,
+                        "direct_sql_comparison_run_id": "direct",
+                        "direct_sql_model_name": "local-9b",
+                        "direct_sql_value_execution_accuracy": 0.5,
+                        "predicted_planner_value_delta_vs_direct_sql": -0.1,
+                    },
+                    "command": ["run"],
+                }
+            ]
+        )
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert "predicted_planner_sql_execution" in pending
+
+
+def test_predicted_planner_positive_direct_sql_delta_clears_pending_claim(tmp_path) -> None:
+    input_path = tmp_path / "data" / "predicted.jsonl"
+    output_path = tmp_path / "results" / "predicted.jsonl"
+    direct_input_path = tmp_path / "data" / "direct.jsonl"
+    direct_output_path = tmp_path / "results" / "direct.jsonl"
+    _write_jsonl(
+        input_path,
+        [
+            {
+                "messages": [
+                    {"role": "user", "content": "q"},
+                    {"role": "assistant", "content": "SELECT 1"},
+                ],
+                "evaluation_mode": "predicted_planner",
+                "gold_plans": [{}],
+                "predicted_plans": [{}],
+            }
+        ],
+    )
+    _write_jsonl(output_path, [{"id": "a", "evaluation_mode": "predicted_planner"}])
+    _write_jsonl(
+        direct_input_path,
+        [
+            {
+                "messages": [
+                    {"role": "user", "content": "q"},
+                    {"role": "assistant", "content": "SELECT 1"},
+                ],
+                "evaluation_mode": "non_oracle_generation",
+                "gold_plans": [{}],
+            }
+        ],
+    )
+    _write_jsonl(direct_output_path, [{"id": "a", "evaluation_mode": "non_oracle_generation"}])
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            [
+                {
+                    "schema_version": 1,
+                    "run_id": "direct",
+                    "benchmark": "prepared",
+                    "model_name": "local-9b",
+                    "endpoint": "local",
+                    "evaluation_mode": "non_oracle_generation",
+                    "oracle_allowed": False,
+                    "prompt_variant": None,
+                    "input_path": str(direct_input_path.relative_to(tmp_path)),
+                    "input_sha256": _sha256(direct_input_path),
+                    "output_path": str(direct_output_path.relative_to(tmp_path)),
+                    "output_sha256": _sha256(direct_output_path),
+                    "row_count": 1,
+                    "metrics": {
+                        "value_execution_accuracy": 0.5,
+                        "strict_execution_accuracy": 0.5,
+                    },
+                    "command": ["run"],
+                },
+                {
+                    "schema_version": 1,
+                    "run_id": "predicted_gain",
+                    "benchmark": "prepared",
+                    "model_name": "local-9b",
+                    "endpoint": "local",
+                    "evaluation_mode": "predicted_planner",
+                    "oracle_allowed": False,
+                    "prompt_variant": None,
+                    "input_path": str(input_path.relative_to(tmp_path)),
+                    "input_sha256": _sha256(input_path),
+                    "output_path": str(output_path.relative_to(tmp_path)),
+                    "output_sha256": _sha256(output_path),
+                    "row_count": 1,
+                    "metrics": {
+                        "value_execution_accuracy": 0.6,
+                        "direct_sql_comparison_run_id": "direct",
+                        "direct_sql_model_name": "local-9b",
+                        "direct_sql_input_sha256": _sha256(direct_input_path),
+                        "direct_sql_output_sha256": _sha256(direct_output_path),
+                        "direct_sql_value_execution_accuracy": 0.5,
+                        "predicted_planner_value_delta_vs_direct_sql": 0.1,
+                        "direct_sql_comparable_row_count": 1,
+                    },
+                    "command": ["run"],
+                }
+            ]
+        )
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert "predicted_planner_sql_execution" not in pending
+
+
+def test_predicted_planner_positive_delta_without_direct_manifest_stays_pending(tmp_path) -> None:
+    input_path = tmp_path / "data" / "predicted.jsonl"
+    output_path = tmp_path / "results" / "predicted.jsonl"
+    _write_jsonl(
+        input_path,
+        [
+            {
+                "messages": [
+                    {"role": "user", "content": "q"},
+                    {"role": "assistant", "content": "SELECT 1"},
+                ],
+                "evaluation_mode": "predicted_planner",
+                "gold_plans": [{}],
+                "predicted_plans": [{}],
+            }
+        ],
+    )
+    _write_jsonl(output_path, [{"id": "a", "evaluation_mode": "predicted_planner"}])
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            [
+                {
+                    "schema_version": 1,
+                    "run_id": "predicted_unbacked_gain",
+                    "benchmark": "prepared",
+                    "model_name": "local-9b",
+                    "endpoint": "local",
+                    "evaluation_mode": "predicted_planner",
+                    "oracle_allowed": False,
+                    "prompt_variant": None,
+                    "input_path": str(input_path.relative_to(tmp_path)),
+                    "input_sha256": _sha256(input_path),
+                    "output_path": str(output_path.relative_to(tmp_path)),
+                    "output_sha256": _sha256(output_path),
+                    "row_count": 1,
+                    "metrics": {
+                        "value_execution_accuracy": 0.6,
+                        "direct_sql_comparison_run_id": "direct",
+                        "direct_sql_model_name": "local-9b",
+                        "direct_sql_input_sha256": "direct-input",
+                        "direct_sql_output_sha256": "direct-output",
+                        "direct_sql_value_execution_accuracy": 0.5,
+                        "predicted_planner_value_delta_vs_direct_sql": 0.1,
+                        "direct_sql_comparable_row_count": 1,
+                    },
+                    "command": ["run"],
+                }
+            ]
+        )
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert "predicted_planner_sql_execution" in pending
+    assert pending["predicted_planner_sql_execution"]["blocking_reason"] == (
+        "no same-model direct-SQL comparison with positive value delta"
+    )
+
+
 def test_hosted_pending_claim_requires_cost_and_latency_metrics(tmp_path) -> None:
     input_path = tmp_path / "data" / "eval.jsonl"
     output_path = tmp_path / "results" / "hosted.jsonl"
