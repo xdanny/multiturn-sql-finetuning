@@ -36,6 +36,31 @@ def test_multiturn_lab_runs_without_requiring_gpu() -> None:
     )
 
 
+def test_multiturn_lab_exposes_post_walkthrough_sections() -> None:
+    report = lab_support.run_multiturn_lab()
+    sections = report["walkthrough_sections"]
+    section_ids = [section["section_id"] for section in sections]
+
+    assert section_ids == [
+        "research_question",
+        "single_turn_gap",
+        "proxy_slice",
+        "target_comparison",
+        "execution_trace",
+        "claim_boundary",
+        "next_gates",
+    ]
+    assert "small specialized model" in sections[0]["reader_question"]
+    assert "hosted SOTA" in sections[0]["reader_question"]
+    assert "single-turn SQL plus chat history" in sections[1]["takeaway"]
+    assert "100 CoSQL turns" in sections[2]["takeaway"]
+    assert "five fine-tuning targets" in sections[3]["takeaway"]
+    assert "four-turn SQLite scenario" in sections[4]["takeaway"]
+    assert "not a benchmark result" in sections[5]["takeaway"]
+    assert "non-oracle planner" in sections[6]["next_artifact"]
+    assert "BIRD-Interact" in sections[6]["next_artifact"]
+
+
 def test_multiturn_lab_defaults_to_cpu_even_when_accelerator_is_detected(monkeypatch) -> None:
     monkeypatch.setattr(
         lab_support,
@@ -194,6 +219,15 @@ def test_shareable_lab_notebook_is_plain_python_marimo_app() -> None:
     assert "mo.ui.dropdown" in source
     assert 'value="cpu"' in source
     assert "device_preference=runtime_choice.value" in source
+    for heading in [
+        "## 1. Research question",
+        "## 2. Why single-turn SQL fails here",
+        "## 3. The proxy slice",
+        "## 4. Candidate fine-tuning targets",
+        "## 5. Execution trace",
+        "## 6. Boundary and next gates",
+    ]:
+        assert heading in source
     assert 'if __name__ == "__main__":' in source
     assert "app.run()" in source
 

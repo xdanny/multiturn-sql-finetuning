@@ -62,12 +62,89 @@ def _(mo, report):
 
 @app.cell
 def _(mo, report):
+    sections = report["walkthrough_sections"]
+    mo.vstack(
+        [
+            mo.md(
+                """
+                ## 1. Research question
+
+                Can a small specialized model learn behavior and semantic concepts
+                well enough to challenge hosted SOTA on multi-turn data analysis?
+                This lab keeps that question executable before spending more GPU
+                time on a larger fine-tune.
+                """
+            ),
+            mo.ui.table(sections, label="Reader flow through the post argument"),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.vstack(
+        [
+            mo.md(
+                """
+                ## 2. Why single-turn SQL fails here
+
+                A strong zero-shot model can write a valid query for one complete
+                question. Multi-turn analysis adds state: the user can keep the
+                metric, change the filter, change the grain, and ask for a repair
+                after an empty result. Appending chat history does not guarantee the
+                model preserves that state.
+                """
+            )
+        ]
+    )
+    return
+
+
+@app.cell
+def _(mo, report):
+    contract = report["scenario_contract"]
+    mo.vstack(
+        [
+            mo.md(
+                f"""
+                ## 3. The proxy slice
+
+                The repository uses a fixed 100-turn CoSQL proxy slice for endpoint
+                iteration. This notebook uses a tiny four-turn SQLite scenario with
+                the same kind of follow-up pressure, so the method comparison is
+                runnable without downloading a model.
+
+                Shared scenario hash: `{contract["shared_input_sha256"]}`.
+                """
+            )
+        ]
+    )
+    return
+
+
+@app.cell
+def _(mo, report):
     matrix = report["method_matrix"]
     mo.vstack(
         [
-            mo.md("## Method matrix"),
+            mo.md("## 4. Candidate fine-tuning targets"),
             mo.ui.table(matrix, label="Fine-tuning targets compared by the lab"),
         ]
+    )
+    return
+
+
+@app.cell
+def _(mo, report):
+    mo.md(
+        """
+        ## 5. Execution trace
+
+        The trace below separates execution correctness from the intermediate
+        behaviors we need to train and score: context carryover, value grounding,
+        governed metric preservation, and recovery after a failed previous turn.
+        """
     )
     return
 
@@ -131,6 +208,22 @@ def _(mo, report):
             mo.md("## Plans and SQL"),
             mo.ui.table(plans, label="Generated intermediate plans and SQL"),
         ]
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        """
+        ## 6. Boundary and next gates
+
+        This lab is not a benchmark result. It is a compact way to inspect which
+        fine-tuning target deserves the next expensive endpoint run. The next
+        evidence gates are a non-oracle planner, a metric-DSL manifest, generated
+        history rollouts, hosted baselines on the same protocol, and transfer to
+        BIRD-Interact-style tasks.
+        """
     )
     return
 

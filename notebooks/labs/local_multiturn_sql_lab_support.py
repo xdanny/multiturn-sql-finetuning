@@ -61,6 +61,89 @@ def available_accelerator() -> Accelerator:
     return Accelerator(kind="cpu", label="cpu", torch_available=True)
 
 
+def lab_walkthrough_sections() -> list[dict[str, str]]:
+    return [
+        {
+            "section_id": "research_question",
+            "title": "Research question",
+            "reader_question": (
+                "Can a small specialized model learn behavior and semantic "
+                "concepts well enough to challenge hosted SOTA on multi-turn "
+                "data analysis?"
+            ),
+            "takeaway": (
+                "The lab starts from the same question as the post: model size is "
+                "not the main variable if the target behavior is wrong."
+            ),
+            "next_artifact": "Compare target formats before making a larger training run.",
+        },
+        {
+            "section_id": "single_turn_gap",
+            "title": "single-turn gap",
+            "reader_question": "Why is zero-shot benchmark SQL not enough for analysis?",
+            "takeaway": (
+                "single-turn SQL plus chat history is not enough when the user "
+                "changes filters, grain, values, and recovery state across turns."
+            ),
+            "next_artifact": "Make follow-up state visible in the execution trace.",
+        },
+        {
+            "section_id": "proxy_slice",
+            "title": "proxy slice",
+            "reader_question": "What fixed slice keeps iteration honest?",
+            "takeaway": (
+                "100 CoSQL turns are the current proxy for fast iteration; the "
+                "tiny SQLite lab mirrors the same failure classes without a model download."
+            ),
+            "next_artifact": "Keep CoSQL as a proxy and move the contract to BIRD-Interact.",
+        },
+        {
+            "section_id": "target_comparison",
+            "title": "target comparison",
+            "reader_question": "What should the small model learn?",
+            "takeaway": (
+                "The lab compares five fine-tuning targets: direct SQL, planner-first "
+                "SQL, semantic value grounding, MEASURE()-preserving DSL, and "
+                "behavior/recovery."
+            ),
+            "next_artifact": "Promote each target to a real endpoint evaluation manifest.",
+        },
+        {
+            "section_id": "execution_trace",
+            "title": "execution trace",
+            "reader_question": "Where does each target fail?",
+            "takeaway": (
+                "The four-turn SQLite scenario exposes context carryover, value "
+                "grounding, metric preservation, and recovery as separate behaviors."
+            ),
+            "next_artifact": "Score generated-history rollouts, not only teacher-forced turns.",
+        },
+        {
+            "section_id": "claim_boundary",
+            "title": "claim boundary",
+            "reader_question": "What does this lab prove?",
+            "takeaway": (
+                "This is not a benchmark result; it is a runnable method comparison "
+                "that explains what evidence the full repo still needs."
+            ),
+            "next_artifact": "Do not claim hosted-SOTA parity until same-protocol baselines exist.",
+        },
+        {
+            "section_id": "next_gates",
+            "title": "next gates",
+            "reader_question": "What should be built next?",
+            "takeaway": (
+                "The next repo work should turn planning, semantic concepts, DSL "
+                "preservation, and recovery into separately scored artifacts."
+            ),
+            "next_artifact": (
+                "non-oracle planner, metric DSL manifest, generated-history rollout, "
+                "hosted baseline, and BIRD-Interact transfer."
+            ),
+        },
+    ]
+
+
 def select_lab_device(device_preference: str = "cpu") -> tuple[Accelerator, Accelerator, dict[str, Any]]:
     """Select the CPU-safe lab runtime and report available accelerators."""
 
@@ -562,6 +645,7 @@ def run_multiturn_lab(device_preference: str = "cpu") -> dict[str, Any]:
         "systems": summaries,
         "method_matrix": method_matrix(),
         "scenario_contract": scenario_contract(turns),
+        "walkthrough_sections": lab_walkthrough_sections(),
     }
 
 

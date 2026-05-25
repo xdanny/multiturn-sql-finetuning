@@ -100,6 +100,7 @@ def test_notebook_support_loads_current_artifacts() -> None:
         "repo_url",
         "run_command",
         "device_policy",
+        "reader_flow",
         "what_runs",
         "claim_boundary",
     } <= set(lab_attachment.columns)
@@ -112,6 +113,10 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert "CUDA" in lab_row["device_policy"]
     assert "MPS" in lab_row["device_policy"]
     assert "XPU" in lab_row["device_policy"]
+    assert "Research question" in lab_row["reader_flow"]
+    assert "single-turn gap" in lab_row["reader_flow"]
+    assert "target comparison" in lab_row["reader_flow"]
+    assert "claim boundary" in lab_row["reader_flow"]
     assert "notebooks/blog/02_wsl_5090_setup.py" not in lab_row.to_string()
 
     targets = target_comparison()
@@ -205,6 +210,10 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "CUDA" in shareable_lab_md
     assert "MPS" in shareable_lab_md
     assert "XPU" in shareable_lab_md
+    assert "Research question" in shareable_lab_md
+    assert "single-turn gap" in shareable_lab_md
+    assert "target comparison" in shareable_lab_md
+    assert "claim boundary" in shareable_lab_md
     assert "notebooks/blog/" not in shareable_lab_md
 
     target_md = (tmp_path / manifest["assets"]["target_comparison_md"]).read_text()

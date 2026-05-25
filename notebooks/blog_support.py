@@ -11,6 +11,7 @@ from typing import Any
 import pandas as pd
 
 from data.metric_dsl import compile_metric_query, parse_metric_query, score_metric_query
+from notebooks.labs.local_multiturn_sql_lab_support import lab_walkthrough_sections
 
 BLOG_EVIDENCE_SOURCES = (
     "docs/claim_ledgers/cosql_dev_100.jsonl",
@@ -272,6 +273,7 @@ def metric_dsl_eval_contract() -> pd.DataFrame:
 
 
 def shareable_lab_attachment() -> pd.DataFrame:
+    reader_flow = " -> ".join(section["title"] for section in lab_walkthrough_sections())
     return pd.DataFrame(
         [
             {
@@ -284,6 +286,7 @@ def shareable_lab_attachment() -> pd.DataFrame:
                     "or XPU availability when PyTorch detects one. The SQLite lab "
                     "computation remains CPU-safe."
                 ),
+                "reader_flow": reader_flow,
                 "what_runs": (
                     "An in-memory SQLite multi-turn analysis with five candidate "
                     "fine-tuning targets: direct SQL, planner-first SQL, semantic "
