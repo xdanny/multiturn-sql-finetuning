@@ -50,9 +50,14 @@ def test_notebook_support_loads_current_artifacts() -> None:
 
     claims = claim_table()
     assert "rollout_beats_teacher_forced_history" in set(claims["claim_id"])
+    assert "metric_dsl_evaluation_manifest" in set(claims["claim_id"])
+    assert "metric_dsl_beats_direct_sql" in set(claims["claim_id"])
     rollout = claims[claims["claim_id"] == "rollout_beats_teacher_forced_history"].iloc[0]
     assert rollout["claim_status"] == "pending"
     assert "teacher-forced" in rollout["evidence"]
+    metric_comparison = claims[claims["claim_id"] == "metric_dsl_beats_direct_sql"].iloc[0]
+    assert metric_comparison["claim_status"] == "pending"
+    assert "metric-DSL" in metric_comparison["allowed_public_claim"]
 
     planner = planner_scorecard()
     assert "column_f1" in set(planner["metric"])
@@ -71,5 +76,6 @@ def test_notebook_support_loads_current_artifacts() -> None:
         "metric_dsl_compile_rate",
         "measure_preservation",
         "value_execution_accuracy",
+        "metric_dsl_value_delta_vs_direct_sql",
     }
-    assert set(metric_contract["status"]) == {"pending_manifest"}
+    assert set(metric_contract["status"]) == {"pending_manifest", "pending_comparison"}

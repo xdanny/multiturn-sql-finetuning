@@ -129,6 +129,8 @@ def claim_table() -> pd.DataFrame:
                 "multiturn_sql_100_cosql_dev_100turns",
                 "semantic_prompt_minimal_executable_cosql_dev_100turns",
                 "schema_pruned_trained100_oracle_cosql_dev_100turns",
+                "metric_dsl_evaluation_manifest",
+                "metric_dsl_beats_direct_sql",
                 "model_generated_history_rollout",
                 "rollout_beats_teacher_forced_history",
                 "hosted_sota_same_protocol",
@@ -175,7 +177,7 @@ def semantic_strategy_table() -> pd.DataFrame:
                 "strategy": "Semantic layer / MEASURE() preservation",
                 "learns": "Governed measures, dimensions, grain, and metric definitions",
                 "main_risk": "Dumping all semantic context increases latency and noise",
-                "next_gate": "Metric-DSL manifest with semantic intent and compiled-SQL scores",
+                "next_gate": "Metric-DSL manifest plus direct-SQL comparison on matching rows",
             },
             {
                 "strategy": "Behavior and recovery tuning",
@@ -241,6 +243,11 @@ def metric_dsl_eval_contract() -> pd.DataFrame:
                 "metric": "value_execution_accuracy",
                 "why_it_matters": "The compiled SQL returns the right values when reference SQL and a database are available.",
                 "status": "pending_manifest",
+            },
+            {
+                "metric": "metric_dsl_value_delta_vs_direct_sql",
+                "why_it_matters": "The DSL-first path must beat a direct-SQL baseline before it supports a superiority claim.",
+                "status": "pending_comparison",
             },
             {
                 "metric": "compiled_sql_execution_evaluated_rows",

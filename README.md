@@ -40,8 +40,8 @@ This repo is now organized around verified, runnable gates:
 - Endpoint evaluation writes a manifest that records the input hash, output hash, model, mode, command, and metrics behind each reported number.
 - The claim ledger in `docs/claim_ledgers/` verifies those manifests, marks
   non-oracle CoSQL results as proxy-only, marks oracle rows as diagnostics, and
-  keeps predicted-planner SQL, hosted baselines, and BIRD-Interact claims
-  pending until matching artifacts exist.
+  keeps predicted-planner SQL, metric-DSL-vs-direct-SQL, hosted baselines, and
+  BIRD-Interact claims pending until matching artifacts exist.
 - Generated-history rollout evaluation is now wired so behavior/recovery can be
   tested without teacher-forcing prior gold SQL into later turns.
 - Tests cover dataset formatting, training-data validation, SQL scoring, result loading, and plotting.
@@ -216,6 +216,23 @@ semantic-model hashes used by the run. Execution accuracy is computed only over
 rows with both `reference_sql` and `database_path`. A row that expands
 `SUM(orders.amount)` instead of emitting `MEASURE(revenue)` fails the metric-DSL
 parse gate, so it cannot be hidden by a compiled SQL score.
+
+Before claiming DSL-first generation is better than direct SQL, run a direct-SQL
+baseline on the same metric-heavy rows and compare manifests:
+
+```bash
+python -m eval.compare_metric_dsl_direct_sql \
+  --metric-dsl-manifest results/metric_dsl/<run-id>.manifest.json \
+  --direct-sql-manifest results/direct_sql/<run-id>.manifest.json \
+  --output results/metric_dsl/<run-id>.compared.manifest.json
+```
+
+The direct baseline must use `benchmark=metric_dsl_direct_sql` and
+`evaluation_mode=non_oracle_generation`. The metric-DSL and direct-SQL models may
+differ, but the output rows must have matching identities and no oracle markers.
+The claim ledger clears `metric_dsl_beats_direct_sql` only when the compared
+metric-DSL manifest references the direct manifest, preserves `MEASURE(...)`,
+covers every row with database-backed execution, and has a positive value delta.
 
 ## Generated-History Rollout
 

@@ -21,6 +21,112 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _write_metric_dsl_comparison_case(
+    tmp_path: Path,
+    *,
+    direct_benchmark: str = "metric_dsl_direct_sql",
+    direct_output_has_scores: bool = True,
+    metric_command: list[str] | None = None,
+    direct_output_sha256: str | None = None,
+) -> Path:
+    metric_input_path = tmp_path / "data" / "metric_dsl.jsonl"
+    metric_output_path = tmp_path / "results" / "metric_dsl.jsonl"
+    direct_input_path = tmp_path / "data" / "direct_sql.jsonl"
+    direct_output_path = tmp_path / "results" / "direct_sql.jsonl"
+    _write_jsonl(metric_input_path, [{"id": "metric-1", "predicted_dsl": "MEASURE(revenue)"}])
+    _write_jsonl(
+        metric_output_path,
+        [
+            {
+                "id": "metric-1",
+                "evaluation_mode": "metric_dsl",
+                "reference_sql": "SELECT 1",
+                "database_path": "metric.sqlite",
+                "sql_execution_attempted": True,
+                "semantic_model_oracle_derived": False,
+            }
+        ],
+    )
+    _write_jsonl(
+        direct_input_path,
+        [
+            {
+                "messages": [
+                    {"role": "user", "content": "q"},
+                    {"role": "assistant", "content": "SELECT 1"},
+                ],
+                "evaluation_mode": "non_oracle_generation",
+                "gold_plans": [{}],
+            }
+        ],
+    )
+    direct_output_row = {"id": "metric-1", "evaluation_mode": "non_oracle_generation"}
+    if direct_output_has_scores:
+        direct_output_row.update({"value_execution_score": 0.5, "strict_execution_score": 0.5})
+    _write_jsonl(direct_output_path, [direct_output_row])
+    direct_output_hash = direct_output_sha256 or _sha256(direct_output_path)
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            [
+                {
+                    "schema_version": 1,
+                    "run_id": "direct_sql",
+                    "benchmark": direct_benchmark,
+                    "model_name": "direct-sql-model",
+                    "endpoint": "local",
+                    "evaluation_mode": "non_oracle_generation",
+                    "oracle_allowed": False,
+                    "prompt_variant": None,
+                    "input_path": str(direct_input_path.relative_to(tmp_path)),
+                    "input_sha256": _sha256(direct_input_path),
+                    "output_path": str(direct_output_path.relative_to(tmp_path)),
+                    "output_sha256": _sha256(direct_output_path),
+                    "row_count": 1,
+                    "metrics": {
+                        "value_execution_accuracy": 0.5,
+                        "strict_execution_accuracy": 0.5,
+                    },
+                    "command": ["run"],
+                },
+                {
+                    "schema_version": 1,
+                    "run_id": "metric_dsl",
+                    "benchmark": "metric_dsl",
+                    "model_name": "metric-dsl-model",
+                    "endpoint": "offline",
+                    "evaluation_mode": "metric_dsl",
+                    "oracle_allowed": False,
+                    "prompt_variant": None,
+                    "input_path": str(metric_input_path.relative_to(tmp_path)),
+                    "input_sha256": _sha256(metric_input_path),
+                    "output_path": str(metric_output_path.relative_to(tmp_path)),
+                    "output_sha256": _sha256(metric_output_path),
+                    "row_count": 1,
+                    "metrics": {
+                        "metric_dsl_parse_rate": 1.0,
+                        "metric_dsl_compile_rate": 1.0,
+                        "compiled_sql_execution_evaluated_rows": 1,
+                        "measure_preservation": 1.0,
+                        "value_execution_accuracy": 0.6,
+                        "strict_execution_accuracy": 0.6,
+                        "direct_sql_comparison_run_id": "direct_sql",
+                        "direct_sql_model_name": "direct-sql-model",
+                        "direct_sql_input_sha256": _sha256(direct_input_path),
+                        "direct_sql_output_sha256": direct_output_hash,
+                        "direct_sql_value_execution_accuracy": 0.5,
+                        "metric_dsl_value_delta_vs_direct_sql": 0.1,
+                        "metric_dsl_comparable_row_count": 1,
+                    },
+                    "command": metric_command
+                    or ["run", "# compared-with-direct-sql", "direct_sql"],
+                },
+            ]
+        )
+    )
+    return manifest_path
+
+
 def test_build_claim_ledger_separates_proxy_diagnostic_and_pending_claims(tmp_path) -> None:
     input_path = tmp_path / "data" / "eval.jsonl"
     output_path = tmp_path / "results" / "rescored" / "direct.jsonl"
@@ -599,6 +705,259 @@ def test_predicted_planner_positive_delta_without_direct_manifest_stays_pending(
     assert pending["predicted_planner_sql_execution"]["blocking_reason"] == (
         "no same-model direct-SQL comparison with positive value delta"
     )
+
+
+def test_metric_dsl_manifest_clears_metric_eval_pending_but_not_direct_sql_comparison(
+    tmp_path,
+) -> None:
+    input_path = tmp_path / "data" / "metric_dsl.jsonl"
+    output_path = tmp_path / "results" / "metric_dsl.jsonl"
+    _write_jsonl(
+        input_path,
+        [
+            {
+                "id": "metric-1",
+                "predicted_dsl": "MEASURE(revenue)",
+                "gold_dsl": "MEASURE(revenue)",
+                "semantic_model": {"base_table": "orders", "measures": {"revenue": {"sql": "1"}}},
+            }
+        ],
+    )
+    _write_jsonl(
+        output_path,
+        [
+            {
+                "id": "metric-1",
+                "evaluation_mode": "metric_dsl",
+                "reference_sql": "SELECT 1",
+                "database_path": "metric.sqlite",
+                "sql_execution_attempted": True,
+                "semantic_model_oracle_derived": False,
+            }
+        ],
+    )
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            [
+                {
+                    "schema_version": 1,
+                    "run_id": "metric_dsl",
+                    "benchmark": "metric_dsl",
+                    "model_name": "metric-dsl-model",
+                    "endpoint": "offline",
+                    "evaluation_mode": "metric_dsl",
+                    "oracle_allowed": False,
+                    "prompt_variant": None,
+                    "input_path": str(input_path.relative_to(tmp_path)),
+                    "input_sha256": _sha256(input_path),
+                    "output_path": str(output_path.relative_to(tmp_path)),
+                    "output_sha256": _sha256(output_path),
+                    "row_count": 1,
+                    "metrics": {
+                        "metric_dsl_parse_rate": 1.0,
+                        "metric_dsl_compile_rate": 1.0,
+                        "compiled_sql_execution_evaluated_rows": 1,
+                        "measure_preservation": 1.0,
+                        "value_execution_accuracy": 0.6,
+                        "strict_execution_accuracy": 0.6,
+                    },
+                    "command": ["run"],
+                }
+            ]
+        )
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    metric = next(row for row in rows if row["claim_id"] == "metric_dsl")
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert metric["claim_status"] == "supported_metric_dsl_quality"
+    assert "metric_dsl_evaluation_manifest" not in pending
+    assert "metric_dsl_beats_direct_sql" in pending
+
+
+def test_metric_dsl_manifest_requires_quality_metrics_for_supported_status(tmp_path) -> None:
+    input_path = tmp_path / "data" / "metric_dsl.jsonl"
+    output_path = tmp_path / "results" / "metric_dsl.jsonl"
+    _write_jsonl(input_path, [{"id": "metric-1", "predicted_dsl": "MEASURE(revenue)"}])
+    _write_jsonl(
+        output_path,
+        [
+            {
+                "id": "metric-1",
+                "evaluation_mode": "metric_dsl",
+                "reference_sql": "SELECT 1",
+                "database_path": "metric.sqlite",
+                "sql_execution_attempted": True,
+                "semantic_model_oracle_derived": False,
+            }
+        ],
+    )
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            [
+                {
+                    "schema_version": 1,
+                    "run_id": "metric_dsl_without_quality",
+                    "benchmark": "metric_dsl",
+                    "model_name": "metric-dsl-model",
+                    "endpoint": "offline",
+                    "evaluation_mode": "metric_dsl",
+                    "oracle_allowed": False,
+                    "prompt_variant": None,
+                    "input_path": str(input_path.relative_to(tmp_path)),
+                    "input_sha256": _sha256(input_path),
+                    "output_path": str(output_path.relative_to(tmp_path)),
+                    "output_sha256": _sha256(output_path),
+                    "row_count": 1,
+                    "metrics": {
+                        "metric_dsl_parse_rate": 1.0,
+                        "metric_dsl_compile_rate": 0.0,
+                        "compiled_sql_execution_evaluated_rows": 1,
+                        "measure_preservation": 1.0,
+                        "value_execution_accuracy": 0.6,
+                    },
+                    "command": ["run"],
+                }
+            ]
+        )
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    metric = next(row for row in rows if row["claim_id"] == "metric_dsl_without_quality")
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert metric["claim_status"] == "pending"
+    assert metric["artifact_valid"] is False
+    assert metric["blocking_reason"] == "metric_dsl manifest quality metrics are incomplete"
+    assert "metric_dsl_evaluation_manifest" in pending
+
+
+def test_metric_dsl_positive_comparison_requires_matching_direct_manifest(tmp_path) -> None:
+    input_path = tmp_path / "data" / "metric_dsl.jsonl"
+    output_path = tmp_path / "results" / "metric_dsl.jsonl"
+    _write_jsonl(input_path, [{"id": "metric-1", "predicted_dsl": "MEASURE(revenue)"}])
+    _write_jsonl(
+        output_path,
+        [
+            {
+                "id": "metric-1",
+                "evaluation_mode": "metric_dsl",
+                "reference_sql": "SELECT 1",
+                "database_path": "metric.sqlite",
+                "sql_execution_attempted": True,
+                "semantic_model_oracle_derived": False,
+            }
+        ],
+    )
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            [
+                {
+                    "schema_version": 1,
+                    "run_id": "metric_dsl",
+                    "benchmark": "metric_dsl",
+                    "model_name": "metric-dsl-model",
+                    "endpoint": "offline",
+                    "evaluation_mode": "metric_dsl",
+                    "oracle_allowed": False,
+                    "prompt_variant": None,
+                    "input_path": str(input_path.relative_to(tmp_path)),
+                    "input_sha256": _sha256(input_path),
+                    "output_path": str(output_path.relative_to(tmp_path)),
+                    "output_sha256": _sha256(output_path),
+                    "row_count": 1,
+                    "metrics": {
+                        "metric_dsl_parse_rate": 1.0,
+                        "metric_dsl_compile_rate": 1.0,
+                        "compiled_sql_execution_evaluated_rows": 1,
+                        "measure_preservation": 1.0,
+                        "value_execution_accuracy": 0.6,
+                        "strict_execution_accuracy": 0.6,
+                        "direct_sql_comparison_run_id": "direct_sql",
+                        "direct_sql_model_name": "direct-sql-model",
+                        "direct_sql_input_sha256": "direct-input",
+                        "direct_sql_output_sha256": "direct-output",
+                        "direct_sql_value_execution_accuracy": 0.5,
+                        "metric_dsl_value_delta_vs_direct_sql": 0.1,
+                        "metric_dsl_comparable_row_count": 1,
+                    },
+                    "command": ["run"],
+                }
+            ]
+        )
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert "metric_dsl_beats_direct_sql" in pending
+
+
+def test_metric_dsl_positive_comparison_requires_comparer_provenance(tmp_path) -> None:
+    manifest_path = _write_metric_dsl_comparison_case(
+        tmp_path,
+        metric_command=["run"],
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert "metric_dsl_beats_direct_sql" in pending
+    assert pending["metric_dsl_beats_direct_sql"]["blocking_reason"] == (
+        "no non-oracle direct-SQL comparison with positive metric-DSL value delta"
+    )
+
+
+def test_metric_dsl_positive_comparison_requires_matching_direct_hashes(tmp_path) -> None:
+    manifest_path = _write_metric_dsl_comparison_case(
+        tmp_path,
+        direct_output_sha256="wrong-direct-output-hash",
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert "metric_dsl_beats_direct_sql" in pending
+
+
+def test_metric_dsl_positive_comparison_requires_metric_heavy_direct_benchmark(tmp_path) -> None:
+    manifest_path = _write_metric_dsl_comparison_case(
+        tmp_path,
+        direct_benchmark="prepared",
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert "metric_dsl_beats_direct_sql" in pending
+
+
+def test_metric_dsl_positive_comparison_requires_scored_direct_output_rows(tmp_path) -> None:
+    manifest_path = _write_metric_dsl_comparison_case(
+        tmp_path,
+        direct_output_has_scores=False,
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert "metric_dsl_beats_direct_sql" in pending
+
+
+def test_metric_dsl_positive_comparison_clears_direct_sql_pending(tmp_path) -> None:
+    manifest_path = _write_metric_dsl_comparison_case(
+        tmp_path,
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert "metric_dsl_evaluation_manifest" not in pending
+    assert "metric_dsl_beats_direct_sql" not in pending
 
 
 def test_hosted_pending_claim_requires_cost_and_latency_metrics(tmp_path) -> None:

@@ -99,6 +99,31 @@ failed row, but it does not count as a parsed metric DSL and it is not compiled.
 Rows whose semantic model is marked as oracle-derived make the manifest
 diagnostic through `oracle_allowed=true`.
 
+## Direct SQL Comparison Gate
+
+A metric-DSL result by itself supports only a quality claim: the model can
+produce a parseable intent representation, preserve governed measures, compile
+through the semantic model, and execute the compiled SQL on database-backed rows.
+It does not prove the DSL-first path is better than direct SQL.
+
+To make that stronger claim, run a direct-SQL baseline on the same metric-heavy
+rows and compare manifests:
+
+```bash
+python -m eval.compare_metric_dsl_direct_sql \
+  --metric-dsl-manifest results/metric_dsl/<run-id>.manifest.json \
+  --direct-sql-manifest results/direct_sql/<run-id>.manifest.json \
+  --output results/metric_dsl/<run-id>.compared.manifest.json
+```
+
+The direct manifest must use `benchmark=metric_dsl_direct_sql` and
+`evaluation_mode=non_oracle_generation`. The comparer rejects oracle manifests,
+oracle prompt markers in rows, row-count mismatches, row-identity mismatches,
+unscored direct-SQL rows, and metric-DSL rows without database-backed compiled
+SQL execution. The claim ledger then requires the compared manifest, the
+referenced direct-SQL manifest, and a positive metric-DSL value delta before it
+clears the `metric_dsl_beats_direct_sql` pending claim.
+
 This is intentionally small. It is not a full semantic-layer compiler yet. Its job is
 to create a runnable experiment surface for the next fine-tuning question:
 

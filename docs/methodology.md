@@ -97,6 +97,14 @@ return the right values. Compiled-SQL execution accuracy is reported only over
 rows with a database-backed execution attempt, and oracle-derived semantic
 models make the metric-DSL manifest diagnostic.
 
+A valid `metric_dsl` manifest supports a metric-intent quality claim, not a
+superiority claim. The repo requires `eval.compare_metric_dsl_direct_sql`, a
+`benchmark=metric_dsl_direct_sql` direct-SQL baseline, matching row identities,
+and a positive value-accuracy delta before clearing the metric-DSL-vs-direct-SQL
+claim. Unlike the predicted-planner comparison, the metric-DSL and direct-SQL
+models may differ; that is a method comparison, so the writeup must state which
+models and training targets were compared.
+
 The `weight` field in dataset configs is metadata for experiment design today;
 current preparation caps each configured source with `--limit` and does not yet
 perform weighted sampling. A larger training run should replace per-source caps
@@ -167,4 +175,5 @@ Not supported yet:
 - local 9B competes with hosted state-of-the-art systems;
 - local 9B is competitive on BIRD-Interact;
 - the predicted planner improves SQL execution;
+- metric-DSL generation beats direct SQL;
 - current dataset mixing is optimal.

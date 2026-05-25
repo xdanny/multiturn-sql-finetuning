@@ -22,6 +22,9 @@ HOSTED_ENDPOINT_PREFIXES = ("https://", "anthropic:", "google:")
 HOSTED_LATENCY_KEYS = ("mean_latency_ms", "p50_latency_ms", "latency_ms")
 HOSTED_COST_KEYS = ("total_cost_usd", "estimated_cost_usd", "cost_usd")
 MODEL_GENERATED_SQL_ROLLOUT = "model_generated_sql_rollout"
+METRIC_DSL = "metric_dsl"
+METRIC_DSL_DIRECT_SQL = "metric_dsl_direct_sql"
+NON_ORACLE_GENERATION = "non_oracle_generation"
 MANDATORY_MANIFEST_FIELDS = (
     "schema_version",
     "run_id",
@@ -88,6 +91,24 @@ PENDING_CLAIMS = (
         "blocking_reason": "no BIRD-Interact result manifest",
         "required_artifact": "BIRD-Interact local and hosted result manifests",
     },
+    {
+        "claim_id": "metric_dsl_evaluation_manifest",
+        "claim_status": "pending",
+        "artifact_type": "pending_claim",
+        "evaluation_mode": METRIC_DSL,
+        "allowed_public_claim": "no metric-DSL evaluation result yet",
+        "blocking_reason": "no valid metric_dsl result manifest",
+        "required_artifact": "metric_dsl result manifest with parse, compile, execution, and measure-preservation metrics",
+    },
+    {
+        "claim_id": "metric_dsl_beats_direct_sql",
+        "claim_status": "pending",
+        "artifact_type": "pending_claim",
+        "evaluation_mode": METRIC_DSL,
+        "allowed_public_claim": "no metric-DSL vs direct-SQL improvement claim yet",
+        "blocking_reason": "no side-by-side metric-DSL-vs-direct-SQL comparison",
+        "required_artifact": "compared metric_dsl manifest with direct-SQL baseline",
+    },
 )
 
 
@@ -151,7 +172,11 @@ def _input_contract(path: Path | None) -> dict[str, Any]:
 
 
 def _row_uses_oracle_plan(row: dict[str, Any]) -> bool:
-    if row.get("uses_oracle_planning_hints") or row.get("semantic_context_pruned_by_oracle_labels"):
+    if (
+        row.get("uses_oracle_planning_hints")
+        or row.get("semantic_context_pruned_by_oracle_labels")
+        or row.get("semantic_model_oracle_derived")
+    ):
         return True
     return any(
         marker in str(message.get("content", ""))
@@ -167,6 +192,8 @@ def _output_contract(path: Path | None) -> dict[str, Any]:
             "output_rows": 0,
             "output_evaluation_modes": {},
             "output_oracle_rows": 0,
+            "output_value_scored_rows": 0,
+            "output_strict_scored_rows": 0,
         }
     rows = _load_jsonl(path)
     modes = Counter(str(row.get("evaluation_mode") or "") for row in rows)
@@ -175,6 +202,12 @@ def _output_contract(path: Path | None) -> dict[str, Any]:
         "output_rows": len(rows),
         "output_evaluation_modes": _counter_without_empty(modes),
         "output_oracle_rows": sum(1 for row in rows if _row_uses_oracle_plan(row)),
+        "output_value_scored_rows": sum(
+            1 for row in rows if row.get("value_execution_score") is not None
+        ),
+        "output_strict_scored_rows": sum(
+            1 for row in rows if row.get("strict_execution_score") is not None
+        ),
     }
 
 
@@ -227,6 +260,8 @@ def _claim_status(manifest: dict[str, Any]) -> str:
     mode = manifest.get("evaluation_mode")
     if mode == "oracle_planner_diagnostic" or manifest.get("oracle_allowed"):
         return "diagnostic_upper_bound"
+    if mode == METRIC_DSL and manifest.get("benchmark") == METRIC_DSL:
+        return "supported_metric_dsl_quality"
     if mode in PRODUCTION_MODES:
         return "supported_proxy"
     return "pending"
@@ -235,6 +270,7 @@ def _claim_status(manifest: dict[str, Any]) -> str:
 def _allowed_public_claim(status: str) -> str:
     return {
         "diagnostic_upper_bound": "oracle planner diagnostic only",
+        "supported_metric_dsl_quality": "metric-DSL quality only, not direct SQL superiority",
         "supported_proxy": "local proxy result only",
         "pending": "pending until required artifacts are present",
     }[status]
@@ -254,6 +290,37 @@ def _missing_manifest_fields(manifest: dict[str, Any]) -> list[str]:
 def _predicted_output_has_mode(output_contract: dict[str, Any]) -> bool:
     modes = output_contract.get("output_evaluation_modes") or {}
     return bool(modes) and set(modes) == {"predicted_planner"}
+
+
+def _metric_dsl_blocking_reason(
+    manifest: dict[str, Any],
+    output_contract: dict[str, Any],
+) -> str | None:
+    if manifest.get("evaluation_mode") != METRIC_DSL and manifest.get("benchmark") != METRIC_DSL:
+        return None
+    if manifest.get("evaluation_mode") != METRIC_DSL or manifest.get("benchmark") != METRIC_DSL:
+        return "metric_dsl manifest must use benchmark=metric_dsl and evaluation_mode=metric_dsl"
+    modes = output_contract.get("output_evaluation_modes") or {}
+    if modes and set(modes) != {METRIC_DSL}:
+        return "metric_dsl output rows missing metric_dsl mode"
+    metrics = manifest.get("metrics") or {}
+    row_count = _num(manifest.get("row_count"))
+    executed_rows = _num(metrics.get("compiled_sql_execution_evaluated_rows"))
+    positive_metric_keys = (
+        "metric_dsl_parse_rate",
+        "metric_dsl_compile_rate",
+        "measure_preservation",
+    )
+    if any((_num(metrics.get(key)) or 0.0) <= 0.0 for key in positive_metric_keys):
+        return "metric_dsl manifest quality metrics are incomplete"
+    if row_count is None or executed_rows is None or executed_rows != row_count:
+        return "metric_dsl manifest quality metrics are incomplete"
+    if (
+        metrics.get("value_execution_accuracy") is None
+        or metrics.get("strict_execution_accuracy") is None
+    ):
+        return "metric_dsl manifest quality metrics are incomplete"
+    return None
 
 
 def _blocking_reason(
@@ -277,6 +344,9 @@ def _blocking_reason(
         or output_contract.get("output_oracle_rows", 0) > 0
     ):
         return "oracle planning hints found in non-oracle artifact"
+    metric_dsl_blocking_reason = _metric_dsl_blocking_reason(manifest, output_contract)
+    if metric_dsl_blocking_reason:
+        return metric_dsl_blocking_reason
     if mode == "predicted_planner" and not _predicted_output_has_mode(output_contract):
         return "predicted_planner output rows missing predicted_planner mode"
     return None
@@ -322,6 +392,7 @@ def _manifest_row(
         "prompt_variant": manifest.get("prompt_variant"),
         "evaluation_mode": manifest.get("evaluation_mode"),
         "oracle_allowed": bool(manifest.get("oracle_allowed")),
+        "command": manifest.get("command") or [],
         "row_count": manifest.get("row_count"),
         "dialog_count": metrics.get("dialog_count"),
         "metric_keys": sorted(metrics),
@@ -342,10 +413,27 @@ def _manifest_row(
         "direct_sql_value_execution_accuracy": metrics.get(
             "direct_sql_value_execution_accuracy"
         ),
+        "direct_sql_strict_execution_accuracy": metrics.get(
+            "direct_sql_strict_execution_accuracy"
+        ),
         "predicted_planner_value_delta_vs_direct_sql": metrics.get(
             "predicted_planner_value_delta_vs_direct_sql"
         ),
         "direct_sql_comparable_row_count": metrics.get("direct_sql_comparable_row_count"),
+        "metric_dsl_parse_rate": metrics.get("metric_dsl_parse_rate"),
+        "metric_dsl_compile_rate": metrics.get("metric_dsl_compile_rate"),
+        "compiled_sql_execution_evaluated_rows": metrics.get(
+            "compiled_sql_execution_evaluated_rows"
+        ),
+        "measure_preservation": metrics.get("measure_preservation"),
+        "metric_dsl_measure_preservation": metrics.get("metric_dsl_measure_preservation"),
+        "metric_dsl_value_delta_vs_direct_sql": metrics.get(
+            "metric_dsl_value_delta_vs_direct_sql"
+        ),
+        "metric_dsl_strict_delta_vs_direct_sql": metrics.get(
+            "metric_dsl_strict_delta_vs_direct_sql"
+        ),
+        "metric_dsl_comparable_row_count": metrics.get("metric_dsl_comparable_row_count"),
         "strict_execution_accuracy": metrics.get("strict_execution_accuracy"),
         "value_execution_accuracy": metrics.get("value_execution_accuracy")
         if metrics.get("value_execution_accuracy") is not None
@@ -406,6 +494,10 @@ def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any
     has_rollout_teacher_forced_comparison = any(
         _row_has_rollout_teacher_forced_comparison(row) for row in rows
     )
+    has_metric_dsl_eval = any(_row_has_metric_dsl_quality_support(row) for row in rows)
+    has_metric_dsl_direct_sql_comparison = any(
+        _row_has_metric_dsl_direct_sql_comparison(row, rows) for row in rows
+    )
     has_hosted = any(_row_has_hosted_claim_support(row) for row in rows)
     has_bird_interact = any(
         row.get("artifact_type") == "result_manifest"
@@ -418,6 +510,8 @@ def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any
         "rollout_beats_teacher_forced_history": not has_rollout_teacher_forced_comparison,
         "hosted_sota_same_protocol": not has_hosted,
         "bird_interact_local_vs_hosted": not has_bird_interact,
+        "metric_dsl_evaluation_manifest": not has_metric_dsl_eval,
+        "metric_dsl_beats_direct_sql": not has_metric_dsl_direct_sql_comparison,
     }
     pending = []
     for row in PENDING_CLAIMS:
@@ -429,6 +523,13 @@ def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any
                 )
                 row["required_artifact"] = (
                     "compared predicted_planner manifest with direct-SQL baseline"
+                )
+            if row["claim_id"] == "metric_dsl_beats_direct_sql" and has_metric_dsl_eval:
+                row["blocking_reason"] = (
+                    "no non-oracle direct-SQL comparison with positive metric-DSL value delta"
+                )
+                row["required_artifact"] = (
+                    "compared metric_dsl manifest plus matching direct-SQL manifest"
                 )
             pending.append(
                 {
@@ -448,6 +549,120 @@ def _row_is_valid_predicted_sql_manifest(row: dict[str, Any]) -> bool:
         and row.get("production_claim_allowed")
         and row.get("evaluation_mode") == "predicted_planner"
     )
+
+
+def _row_is_valid_metric_dsl_manifest(row: dict[str, Any]) -> bool:
+    return (
+        row.get("artifact_type") == "result_manifest"
+        and row.get("artifact_valid")
+        and row.get("claim_status") == "supported_metric_dsl_quality"
+        and row.get("benchmark") == METRIC_DSL
+        and row.get("evaluation_mode") == METRIC_DSL
+        and not row.get("oracle_allowed")
+    )
+
+
+def _row_has_metric_dsl_quality_support(row: dict[str, Any]) -> bool:
+    if not _row_is_valid_metric_dsl_manifest(row):
+        return False
+    row_count = _num(row.get("row_count"))
+    executed_rows = _num(row.get("compiled_sql_execution_evaluated_rows"))
+    parse_rate = _num(row.get("metric_dsl_parse_rate"))
+    compile_rate = _num(row.get("metric_dsl_compile_rate"))
+    measure_preservation = _num(row.get("measure_preservation"))
+    if row_count is None or executed_rows is None or executed_rows != row_count:
+        return False
+    return (
+        parse_rate is not None
+        and parse_rate > 0
+        and compile_rate is not None
+        and compile_rate > 0
+        and measure_preservation is not None
+        and measure_preservation > 0
+    )
+
+
+def _row_has_metric_dsl_direct_sql_comparison(
+    row: dict[str, Any],
+    rows: list[dict[str, Any]],
+) -> bool:
+    if not _row_has_metric_dsl_quality_support(row):
+        return False
+    if not row.get("direct_sql_comparison_run_id"):
+        return False
+    command = [str(item) for item in row.get("command") or []]
+    if "# compared-with-direct-sql" not in command:
+        return False
+    if str(row.get("direct_sql_comparison_run_id")) not in command:
+        return False
+    if not row.get("direct_sql_model_name"):
+        return False
+    if not row.get("direct_sql_input_sha256") or not row.get("direct_sql_output_sha256"):
+        return False
+    row_count = _num(row.get("row_count"))
+    comparable_rows = _num(row.get("metric_dsl_comparable_row_count"))
+    executed_rows = _num(row.get("compiled_sql_execution_evaluated_rows"))
+    if (
+        row_count is None
+        or comparable_rows is None
+        or executed_rows is None
+        or comparable_rows != row_count
+        or executed_rows != row_count
+    ):
+        return False
+    if not _has_matching_metric_dsl_direct_sql_row(row, rows):
+        return False
+    direct_score = _num(row.get("direct_sql_value_execution_accuracy"))
+    metric_score = _num(row.get("value_execution_accuracy"))
+    delta = _num(row.get("metric_dsl_value_delta_vs_direct_sql"))
+    measure_preservation = _num(row.get("metric_dsl_measure_preservation"))
+    if measure_preservation is None:
+        measure_preservation = _num(row.get("measure_preservation"))
+    if direct_score is None or metric_score is None or delta is None:
+        return False
+    if measure_preservation is None or measure_preservation <= 0:
+        return False
+    return delta > 0 and metric_score > direct_score
+
+
+def _has_matching_metric_dsl_direct_sql_row(
+    metric_dsl_row: dict[str, Any],
+    rows: list[dict[str, Any]],
+) -> bool:
+    direct_id = metric_dsl_row.get("direct_sql_comparison_run_id")
+    for row in rows:
+        if row.get("claim_id") != direct_id:
+            continue
+        if row.get("artifact_type") != "result_manifest" or not row.get("artifact_valid"):
+            return False
+        if not row.get("production_claim_allowed"):
+            return False
+        if row.get("evaluation_mode") != NON_ORACLE_GENERATION:
+            return False
+        if row.get("benchmark") != METRIC_DSL_DIRECT_SQL:
+            return False
+        if row.get("oracle_allowed"):
+            return False
+        if _num(row.get("row_count")) != _num(metric_dsl_row.get("metric_dsl_comparable_row_count")):
+            return False
+        if _num(row.get("output_value_scored_rows")) != _num(
+            metric_dsl_row.get("metric_dsl_comparable_row_count")
+        ):
+            return False
+        if _num(row.get("output_strict_scored_rows")) != _num(
+            metric_dsl_row.get("metric_dsl_comparable_row_count")
+        ):
+            return False
+        if row.get("model_name") != metric_dsl_row.get("direct_sql_model_name"):
+            return False
+        if row.get("input_sha256") != metric_dsl_row.get("direct_sql_input_sha256"):
+            return False
+        if row.get("output_sha256") != metric_dsl_row.get("direct_sql_output_sha256"):
+            return False
+        return _num(row.get("value_execution_accuracy")) == _num(
+            metric_dsl_row.get("direct_sql_value_execution_accuracy")
+        )
+    return False
 
 
 def _row_has_predicted_sql_claim_support(

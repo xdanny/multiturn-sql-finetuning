@@ -12,6 +12,7 @@ rules are defined in `docs/methodology.md`.
 | --- | --- | --- |
 | `non_oracle_generation` | Question, conversation history, schema, semantic context, and non-oracle prompt variants | A deployable path improved on the fixed proxy slice. |
 | `predicted_planner` | The same inputs plus a plan predicted without reference SQL | A production-style planner-to-SQL path can be evaluated. |
+| `metric_dsl` | A generated semantic metric intent, semantic model, and optional database-backed reference SQL | Metric-DSL quality, not direct-SQL superiority by itself. |
 | `oracle_planner_diagnostic` | Gold SQL-derived planning hints or schema pruning from those hints | A ceiling test for how much planning/schema linking matters. |
 
 Gold SQL-derived labels may be used as scorer targets in every mode. They may
@@ -39,12 +40,15 @@ The current ledger is intentionally conservative:
 - oracle-planner rows are `diagnostic_upper_bound`;
 - planner summaries are `supported_planner_quality`, not SQL accuracy;
 - generated-history rollout existence, rollout-vs-teacher-forced improvement,
-  predicted-planner SQL execution, hosted/SOTA comparison, and BIRD-Interact
-  comparison remain `pending` until same-protocol result manifests exist.
+  predicted-planner SQL execution, metric-DSL evaluation, metric-DSL-vs-direct-SQL
+  improvement, hosted/SOTA comparison, and BIRD-Interact comparison remain
+  `pending` until same-protocol result manifests exist.
 
 Any hash mismatch, missing manifest field, non-oracle oracle marker, or
 predicted-planner manifest whose output rows are not also marked
-`predicted_planner` is downgraded to `pending` with a blocker.
+`predicted_planner` is downgraded to `pending` with a blocker. A `metric_dsl`
+manifest is also downgraded unless it reports positive parse, compile, execution,
+and measure-preservation metrics.
 
 ## Claim Ledger Rows
 
@@ -57,6 +61,8 @@ predicted-planner manifest whose output rows are not also marked
 | Gold SQL-derived planning hints can push the best diagnostic run to `0.890` value accuracy. | `diagnostic_upper_bound` | `docs/result_manifests/cosql_dev_100_proxy.json` | `oracle_planner_diagnostic` | Yes, only as a ceiling test. |
 | The lexical planner baseline has macro score `0.571`, table F1 `0.599`, column F1 `0.117`, and skeleton F1 `0.648`. | `supported_planner_quality` | `docs/planner_baseline_cosql_dev_100_summary.json` | planner scoring | Yes, as planner quality, not SQL accuracy. |
 | A non-oracle predicted planner improves SQL execution. | Pending | `data/processed/eval_cosql_dev_predicted_planner_100.jsonl` can now be generated | `predicted_planner` | No, until same-model direct-SQL comparison metrics show a positive value-accuracy delta. |
+| A metric-DSL result exists with parse, compile, execution, and measure-preservation metrics. | Pending | `eval.metric_dsl_eval` is implemented | `metric_dsl` | No, until a valid metric-DSL manifest exists. |
+| Metric-DSL generation beats direct SQL on metric-heavy rows. | Pending | `eval.compare_metric_dsl_direct_sql` is implemented | `metric_dsl` | No, until the compared manifest has a positive value delta and references the direct-SQL manifest. |
 | A generated-history rollout result exists for the fixed CoSQL proxy. | Pending | `eval.rollout_eval` is implemented | `non_oracle_generation` | No, until a rollout result manifest exists. |
 | Generated-history rollout beats teacher-forced history for the same model/input. | Pending | none | not run | No, until side-by-side comparison metrics exist. |
 | Local 9B competes with hosted large models. | Pending | none | not run | No. |
@@ -107,6 +113,32 @@ matching row identities. The claim ledger clears
 beats the direct-SQL value accuracy and the referenced direct-SQL manifest is
 present in the same ledger input.
 
+Evaluate a `MEASURE()`-preserving metric DSL:
+
+```bash
+python -m eval.metric_dsl_eval \
+  --input results/metric_dsl/<run-id>.predictions.jsonl \
+  --output results/metric_dsl/<run-id>.jsonl \
+  --manifest-output results/metric_dsl/<run-id>.manifest.json \
+  --model-name <served-or-offline-model-name>
+```
+
+Compare it with direct SQL on the same metric-heavy rows before claiming the
+DSL-first path is better:
+
+```bash
+python -m eval.compare_metric_dsl_direct_sql \
+  --metric-dsl-manifest results/metric_dsl/<run-id>.manifest.json \
+  --direct-sql-manifest results/direct_sql/<run-id>.manifest.json \
+  --output results/metric_dsl/<run-id>.compared.manifest.json
+```
+
+The direct manifest must use `benchmark=metric_dsl_direct_sql` and
+`evaluation_mode=non_oracle_generation`. The models may differ, but row
+identities, hashes, non-oracle status, direct execution scores, and the comparer
+provenance marker must match before the ledger can clear
+`metric_dsl_beats_direct_sql`.
+
 Run generated-history rollout without teacher-forcing prior gold SQL:
 
 ```bash
@@ -141,6 +173,7 @@ A blog sentence can make a benchmark claim only if it names one of:
 
 - `non_oracle_generation` for deployable proxy results;
 - `predicted_planner` for non-oracle planner-to-SQL results;
+- `metric_dsl` for metric-intent quality and direct-SQL comparison claims;
 - `oracle_planner_diagnostic` for ceiling tests;
 - `pending` for work that has not been run.
 
