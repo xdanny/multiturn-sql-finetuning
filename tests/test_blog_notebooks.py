@@ -9,6 +9,7 @@ from notebooks.blog_support import (
     claim_table,
     endpoint_run_scorecard,
     export_blog_evidence,
+    lab_reader_flow,
     metric_dsl_demo,
     metric_dsl_eval_contract,
     planner_scorecard,
@@ -119,6 +120,25 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert "claim boundary" in lab_row["reader_flow"]
     assert "notebooks/blog/02_wsl_5090_setup.py" not in lab_row.to_string()
 
+    reader_flow = lab_reader_flow()
+    assert {
+        "step",
+        "post_section",
+        "lab_section",
+        "reader_action",
+        "evidence_to_inspect",
+        "claim_boundary",
+    } <= set(reader_flow.columns)
+    assert list(reader_flow["step"]) == list(range(1, len(reader_flow) + 1))
+    assert "Run the lab" in set(reader_flow["post_section"])
+    assert "Why one-shot SQL isn't enough" in set(reader_flow["post_section"])
+    assert "Fine-tuning loop" in set(reader_flow["post_section"])
+    assert "Preserving MEASURE()" in set(reader_flow["post_section"])
+    assert "The road ahead" in set(reader_flow["post_section"])
+    assert any("single-turn" in action for action in reader_flow["reader_action"])
+    assert any("not a benchmark result" in boundary for boundary in reader_flow["claim_boundary"])
+    assert not any("notebooks/blog/" in row for row in reader_flow.astype(str).to_numpy().ravel())
+
     targets = target_comparison()
     assert {
         "fine_tuning_target",
@@ -176,6 +196,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "claim_table_md",
         "metric_dsl_contract_md",
         "shareable_lab_md",
+        "lab_reader_flow_md",
         "target_comparison_md",
         "endpoint_run_scorecard_md",
     }
@@ -215,6 +236,14 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "target comparison" in shareable_lab_md
     assert "claim boundary" in shareable_lab_md
     assert "notebooks/blog/" not in shareable_lab_md
+
+    lab_flow_md = (tmp_path / manifest["assets"]["lab_reader_flow_md"]).read_text()
+    assert "Run the lab" in lab_flow_md
+    assert "Why one-shot SQL isn't enough" in lab_flow_md
+    assert "Fine-tuning loop" in lab_flow_md
+    assert "Preserving MEASURE()" in lab_flow_md
+    assert "The road ahead" in lab_flow_md
+    assert "notebooks/blog/" not in lab_flow_md
 
     target_md = (tmp_path / manifest["assets"]["target_comparison_md"]).read_text()
     assert "Direct SQL SFT" in target_md

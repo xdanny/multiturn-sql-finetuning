@@ -301,6 +301,90 @@ def shareable_lab_attachment() -> pd.DataFrame:
     )
 
 
+def lab_reader_flow() -> pd.DataFrame:
+    sections = {section["section_id"]: section for section in lab_walkthrough_sections()}
+    rows = [
+        {
+            "step": 1,
+            "post_section": "Run the lab",
+            "lab_section": sections["research_question"]["title"],
+            "reader_action": (
+                "Open the notebook and start with the research question before "
+                "looking at scores."
+            ),
+            "evidence_to_inspect": "Reader flow table, runtime policy, scenario hash",
+            "claim_boundary": sections["research_question"]["takeaway"],
+        },
+        {
+            "step": 2,
+            "post_section": "Why one-shot SQL isn't enough",
+            "lab_section": sections["single_turn_gap"]["title"],
+            "reader_action": (
+                "Compare the single-turn standalone request with the follow-up "
+                "turns where the metric, filter, grain, and repair state carry forward."
+            ),
+            "evidence_to_inspect": "Questions, context notes, and per-turn behavior trace",
+            "claim_boundary": sections["single_turn_gap"]["takeaway"],
+        },
+        {
+            "step": 3,
+            "post_section": "Isolating the datasets",
+            "lab_section": sections["proxy_slice"]["title"],
+            "reader_action": (
+                "Read the tiny SQLite scenario as the local analogue of the fixed "
+                "CoSQL proxy slice."
+            ),
+            "evidence_to_inspect": "Scenario hash, turn count, recovery turn",
+            "claim_boundary": sections["proxy_slice"]["takeaway"],
+        },
+        {
+            "step": 4,
+            "post_section": "Fine-tuning loop",
+            "lab_section": sections["target_comparison"]["title"],
+            "reader_action": (
+                "Use the method matrix to compare direct SQL, planner-first SQL, "
+                "semantic grounding, metric DSL, and recovery targets."
+            ),
+            "evidence_to_inspect": "Method matrix and target comparison table",
+            "claim_boundary": sections["target_comparison"]["takeaway"],
+        },
+        {
+            "step": 5,
+            "post_section": "Planning before SQL",
+            "lab_section": sections["execution_trace"]["title"],
+            "reader_action": (
+                "Inspect where each target succeeds or fails before treating a miss "
+                "as generic bad SQL."
+            ),
+            "evidence_to_inspect": "Value match, context carryover, value grounding, SQL trace",
+            "claim_boundary": sections["execution_trace"]["takeaway"],
+        },
+        {
+            "step": 6,
+            "post_section": "Preserving MEASURE()",
+            "lab_section": sections["execution_trace"]["title"],
+            "reader_action": (
+                "Check which systems keep MEASURE(revenue) in the intermediate "
+                "state before SQL expansion."
+            ),
+            "evidence_to_inspect": "measure_preserved and intermediate_plan columns",
+            "claim_boundary": (
+                "MEASURE() preservation is a training target in the lab, not yet a "
+                "production win."
+            ),
+        },
+        {
+            "step": 7,
+            "post_section": "The road ahead",
+            "lab_section": sections["next_gates"]["title"],
+            "reader_action": "Use the next gates to decide what artifact to build next.",
+            "evidence_to_inspect": sections["next_gates"]["next_artifact"],
+            "claim_boundary": sections["claim_boundary"]["takeaway"],
+        },
+    ]
+    return pd.DataFrame(rows)
+
+
 def target_comparison() -> pd.DataFrame:
     ledger = claim_ledger().set_index("claim_id")
     best_non_oracle = float(
@@ -531,6 +615,7 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     claims = claim_table()
     metric_contract = metric_dsl_eval_contract()
     shareable_lab = shareable_lab_attachment()
+    reader_flow = lab_reader_flow()
     targets = target_comparison()
     endpoint_runs = endpoint_run_scorecard()
 
@@ -563,6 +648,10 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
         "shareable_lab_md": _write_text(
             output / "shareable-lab.md",
             _markdown_table(shareable_lab),
+        ),
+        "lab_reader_flow_md": _write_text(
+            output / "lab-reader-flow.md",
+            _markdown_table(reader_flow),
         ),
         "target_comparison_md": _write_text(
             output / "target-comparison.md",
