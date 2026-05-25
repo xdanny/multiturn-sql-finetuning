@@ -70,24 +70,28 @@ Known constraints:
 - Schema-link label generation and semantic prompt pruning are available through `data.prepare --include-sql-labels --prune-semantic-model`. These flags now mark produced rows as `evaluation_mode=oracle_planner_diagnostic`. On the fixed 100-turn CoSQL slice, the best oracle prompt-only pruned-label run reaches `0.850` value accuracy, and training on that oracle-labelled format reaches `0.890`.
 - The end-to-end methodology, dataset roles, training strategy boundaries, and
   benchmark claim rules are documented in `docs/methodology.md`.
-- The draft blog series now has executable marimo companion notebooks under
-  `notebooks/blog/`; see `docs/blog/README.md` for the chapter-to-notebook map.
+- The public post now has one reader-facing marimo lab at
+  `notebooks/labs/local_multiturn_sql_lab.py`; see `docs/blog/README.md` for
+  the lab attachment and internal checkpoint notebook map.
 
-## Notebook-Driven Blog Series
+## Blog-Attached Lab
 
-The blog series should be read as a guided run through the artifacts, not as a
-static recap. Each chapter in `docs/blog/` has a matching marimo notebook, and
-the public post includes the generated walkthrough at
-`docs/blog/generated/notebook-walkthrough.md`:
+The blog post should point readers to one runnable lab, not a setup walkthrough.
+The lab creates a tiny SQLite warehouse, compares five fine-tuning targets, and
+keeps the method question executable:
 
 ```bash
-marimo edit notebooks/blog/01_problem_and_result.py
+marimo edit notebooks/labs/local_multiturn_sql_lab.py
 ```
 
-The notebooks currently load tracked manifests, result summaries, planner
-scores, and failure taxonomies. Expensive GPU training and vLLM serving stay in
-scripts; notebooks make the evidence tables and graphs reproducible during the
-writeup.
+It is CPU by default and has an `auto` runtime option that reports CUDA, MPS, or
+XPU availability when PyTorch detects one. The SQLite lab computation remains
+CPU-safe. The public site consumes the generated lab attachment at
+`docs/blog/generated/shareable-lab.md`.
+
+The notebooks under `notebooks/blog/` still exist, but they are internal
+checkpoint notebooks for maintaining the claim ledger, plots, and generated
+assets. Expensive GPU training and vLLM serving stay in scripts.
 
 ## Leakage Policy
 

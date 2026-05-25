@@ -1,0 +1,3 @@
+| artifact | notebook | repo_url | run_command | device_policy | what_runs | claim_boundary |
+| --- | --- | --- | --- | --- | --- | --- |
+| reader-facing lab notebook | notebooks/labs/local_multiturn_sql_lab.py | https://github.com/xdanny/multiturn-sql-finetuning | marimo edit notebooks/labs/local_multiturn_sql_lab.py | CPU by default; choose auto in the notebook to report CUDA, MPS, or XPU availability when PyTorch detects one. The SQLite lab computation remains CPU-safe. | An in-memory SQLite multi-turn analysis with five candidate fine-tuning targets: direct SQL, planner-first SQL, semantic value grounding, MEASURE()-preserving DSL, and behavior/recovery. | This is a shareable lab for reasoning about method targets, not a benchmark result or hosted-SOTA comparison. |

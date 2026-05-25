@@ -51,31 +51,32 @@ The current repo has a useful local loop, but it is still mostly a proxy:
 - DSPy has been used for prompt variants; it still needs to optimize planner and semantic
   programs, not just final SQL wording.
 
-## Notebook-Driven Blog Contract
+## Blog-Attached Lab Contract
 
-Every blog chapter in `docs/blog/` should have a matching marimo notebook in
-`notebooks/blog/`. The post explains the narrative. The notebook reruns the relevant
-tables, plots, and claim checks from tracked artifacts.
+The public post should have one reader-facing marimo lab:
+`notebooks/labs/local_multiturn_sql_lab.py`. The post explains the narrative. The lab
+runs the central method comparison in code, with CPU as the default and an `auto`
+runtime option that reports CUDA, MPS, or XPU availability when PyTorch can see an
+accelerator. The SQLite lab computation remains CPU-safe.
 
 This matters because the blog should not be a static story written after the fact. It
-should be a guided run through the evidence:
+should point to a runnable artifact:
 
-1. Load the artifact.
-2. Compute the table or graph.
-3. State what the evidence supports.
-4. State what it does not support.
-5. Point to the next experiment.
+1. Create the tiny SQLite warehouse.
+2. Run the same four-turn analysis across candidate training targets.
+3. Show the generated plan, SQL, execution result, and failure class.
+4. State what the lab supports.
+5. State what would require full endpoint, hosted-model, or BIRD-Interact evidence.
 
-Every public claim should name the notebook checkpoint or generated evidence artifact
+Every public claim should name the reader-facing lab or generated evidence artifact
 that produced it. The public post should be readable on its own, but it should also
-behave like a lab manual: readers can open the companion notebook, rerun the table or
-graph, and see the boundary between current proxy evidence, oracle diagnostics, and
-future BIRD-Interact or hosted-model claims.
+behave like a lab handoff: readers can open the companion notebook, rerun the method
+comparison, and see the boundary between current proxy evidence, oracle diagnostics,
+and future BIRD-Interact or hosted-model claims.
 
-The notebooks are intentionally lightweight at first. Expensive model serving and GPU
-training stay in scripts, while notebooks read tracked manifests, summaries, results,
-and failure taxonomies. As the project matures, each notebook can grow from analysis
-artifact into a reproducible evaluation app.
+The notebooks under `notebooks/blog/` are internal checkpoint notebooks for maintaining
+the claim ledger, generated tables, and plots. Expensive model serving and GPU training
+stay in scripts.
 
 ## First DSL Experiment Surface
 

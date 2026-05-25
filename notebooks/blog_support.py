@@ -271,58 +271,29 @@ def metric_dsl_eval_contract() -> pd.DataFrame:
     )
 
 
-def notebook_walkthrough() -> pd.DataFrame:
+def shareable_lab_attachment() -> pd.DataFrame:
     return pd.DataFrame(
         [
             {
-                "checkpoint": "00 runnable lab",
-                "reader_question": "Can a tiny multi-turn warehouse expose why single-turn SQL skill is not enough?",
+                "artifact": "reader-facing lab notebook",
                 "notebook": "notebooks/labs/local_multiturn_sql_lab.py",
-                "evidence_output": "Method matrix, subtask scores, behavior trace, generated plans and SQL",
-                "claim_boundary": "Explains candidate fine-tuning targets; not a benchmark result.",
-            },
-            {
-                "checkpoint": "01 problem and result",
-                "reader_question": "Why does single-turn BIRD-style progress leave the multi-turn data-analysis claim unresolved?",
-                "notebook": "notebooks/blog/01_problem_and_result.py",
-                "evidence_output": "Accuracy ladder, claim ledger, planner baseline",
-                "claim_boundary": "Separates non-oracle proxy results from oracle diagnostics and future hosted/BIRD-Interact claims.",
-            },
-            {
-                "checkpoint": "02 local loop",
-                "reader_question": "What local serving and evaluation contract makes adapter comparisons repeatable?",
-                "notebook": "notebooks/blog/02_wsl_5090_setup.py",
-                "evidence_output": "Training, serving, and evaluation environment contract",
-                "claim_boundary": "Documents reproducibility constraints; does not make a model-quality claim.",
-            },
-            {
-                "checkpoint": "03 data and eval",
-                "reader_question": "What do CoSQL, SParC, BIRD-style rows, and synthetic schema-rich SQL contribute?",
-                "notebook": "notebooks/blog/03_data_and_eval.py",
-                "evidence_output": "Dataset role table and fixed CoSQL proxy manifest",
-                "claim_boundary": "Treats CoSQL as a proxy slice, not as the final interactive benchmark.",
-            },
-            {
-                "checkpoint": "04 fine-tuning targets",
-                "reader_question": "Which target should the small model learn: direct SQL, planner-first SQL, semantic state, DSL first, or behavior/recovery?",
-                "notebook": "notebooks/blog/04_training_iterations.py",
-                "evidence_output": "runnable target lab, strategy table, metric DSL demo, strict runs, value-aware rescoring",
-                "claim_boundary": "Shows current proxy movement and pending method comparisons; no DSL-first win is claimed yet.",
-            },
-            {
-                "checkpoint": "05 serving tradeoffs",
-                "reader_question": "How do endpoint latency, prompt length, and LoRA serving constraints affect the comparison?",
-                "notebook": "notebooks/blog/05_vllm_blackwell_deep_dive.py",
-                "evidence_output": "Latency and value-accuracy scatter from tracked summaries",
-                "claim_boundary": "Keeps environment and latency effects visible before interpreting model quality.",
-            },
-            {
-                "checkpoint": "06 data engineering agenda",
-                "reader_question": "What data artifacts must exist before a multi-turn local model can credibly beat hosted SOTA?",
-                "notebook": "notebooks/blog/06_data_engineering_for_multiturn_sql_eval.py",
-                "evidence_output": "Planner metrics, semantic artifact backlog, MEASURE() contract, failure taxonomy",
-                "claim_boundary": "Defines the next evidence gates: value index, entity resolution, fanout fixtures, MEASURE() preservation, rollout recovery.",
-            },
+                "repo_url": "https://github.com/xdanny/multiturn-sql-finetuning",
+                "run_command": "marimo edit notebooks/labs/local_multiturn_sql_lab.py",
+                "device_policy": (
+                    "CPU by default; choose auto in the notebook to report CUDA, MPS, "
+                    "or XPU availability when PyTorch detects one. The SQLite lab "
+                    "computation remains CPU-safe."
+                ),
+                "what_runs": (
+                    "An in-memory SQLite multi-turn analysis with five candidate "
+                    "fine-tuning targets: direct SQL, planner-first SQL, semantic "
+                    "value grounding, MEASURE()-preserving DSL, and behavior/recovery."
+                ),
+                "claim_boundary": (
+                    "This is a shareable lab for reasoning about method targets, "
+                    "not a benchmark result or hosted-SOTA comparison."
+                ),
+            }
         ]
     )
 
@@ -556,7 +527,7 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     planner = planner_scorecard()
     claims = claim_table()
     metric_contract = metric_dsl_eval_contract()
-    walkthrough = notebook_walkthrough()
+    shareable_lab = shareable_lab_attachment()
     targets = target_comparison()
     endpoint_runs = endpoint_run_scorecard()
 
@@ -586,9 +557,9 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
             output / "metric-dsl-contract.md",
             _markdown_table(metric_contract),
         ),
-        "notebook_walkthrough_md": _write_text(
-            output / "notebook-walkthrough.md",
-            _markdown_table(walkthrough),
+        "shareable_lab_md": _write_text(
+            output / "shareable-lab.md",
+            _markdown_table(shareable_lab),
         ),
         "target_comparison_md": _write_text(
             output / "target-comparison.md",

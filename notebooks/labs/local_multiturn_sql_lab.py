@@ -14,8 +14,28 @@ def _():
 
 
 @app.cell
-def _(run_multiturn_lab):
-    report = run_multiturn_lab()
+def _(mo):
+    runtime_choice = mo.ui.dropdown(
+        options=["cpu", "auto"],
+        value="cpu",
+        label="Runtime",
+    )
+    mo.vstack(
+        [
+            mo.md(
+                "Choose `cpu` for the portable default. Choose `auto` to report "
+                "CUDA, MPS, or XPU availability when PyTorch detects one. The "
+                "SQLite lab computation remains CPU-safe."
+            ),
+            runtime_choice,
+        ]
+    )
+    return (runtime_choice,)
+
+
+@app.cell
+def _(run_multiturn_lab, runtime_choice):
+    report = run_multiturn_lab(device_preference=runtime_choice.value)
     return (report,)
 
 
@@ -29,8 +49,9 @@ def _(mo, report):
         # Local multi-turn SQL lab
 
         This lab is the runnable companion to the post. It uses a tiny in-memory
-        SQLite warehouse so the experiment defaults to CPU while reporting CUDA,
-        MPS, or XPU when PyTorch can see an accelerator.
+        SQLite warehouse so the experiment is CPU-safe by default. The runtime
+        selector reports CUDA, MPS, or XPU availability when PyTorch can see an
+        accelerator, but this lab does not require or use GPU compute.
 
         Lab runtime: `{device.label}`. Detected accelerator: `{detected.label}`.
         Shared scenario hash: `{contract["shared_input_sha256"]}`.
@@ -60,7 +81,7 @@ def _(mo, report):
     mo.vstack(
         [
             mo.md("## Value and subtask scores"),
-            mo.ui.table(summary, label="Value accuracy on the three-turn lab"),
+            mo.ui.table(summary, label="Value accuracy on the four-turn lab"),
         ]
     )
     return

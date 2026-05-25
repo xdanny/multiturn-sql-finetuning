@@ -11,9 +11,9 @@ from notebooks.blog_support import (
     export_blog_evidence,
     metric_dsl_demo,
     metric_dsl_eval_contract,
-    notebook_walkthrough,
     planner_scorecard,
     semantic_strategy_table,
+    shareable_lab_attachment,
     target_comparison,
 )
 
@@ -93,25 +93,26 @@ def test_notebook_support_loads_current_artifacts() -> None:
     }
     assert set(metric_contract["status"]) == {"pending_manifest", "pending_comparison"}
 
-    walkthrough = notebook_walkthrough()
+    lab_attachment = shareable_lab_attachment()
     assert {
-        "checkpoint",
-        "reader_question",
+        "artifact",
         "notebook",
-        "evidence_output",
+        "repo_url",
+        "run_command",
+        "device_policy",
+        "what_runs",
         "claim_boundary",
-    } <= set(walkthrough.columns)
-    assert "notebooks/labs/local_multiturn_sql_lab.py" in set(walkthrough["notebook"])
-    for notebook_path in BLOG_NOTEBOOKS.values():
-        assert notebook_path in set(walkthrough["notebook"])
-    assert any(
-        "single-turn" in question and "multi-turn" in question
-        for question in walkthrough["reader_question"]
-    )
-    assert any("MEASURE()" in boundary for boundary in walkthrough["claim_boundary"])
-    training_checkpoint = walkthrough[walkthrough["checkpoint"] == "04 fine-tuning targets"].iloc[0]
-    assert "behavior/recovery" in training_checkpoint["reader_question"]
-    assert "runnable target lab" in training_checkpoint["evidence_output"]
+    } <= set(lab_attachment.columns)
+    lab_row = lab_attachment.iloc[0]
+    assert lab_row["artifact"] == "reader-facing lab notebook"
+    assert lab_row["notebook"] == "notebooks/labs/local_multiturn_sql_lab.py"
+    assert "github.com/xdanny/multiturn-sql-finetuning" in lab_row["repo_url"]
+    assert "marimo edit notebooks/labs/local_multiturn_sql_lab.py" in lab_row["run_command"]
+    assert "CPU by default" in lab_row["device_policy"]
+    assert "CUDA" in lab_row["device_policy"]
+    assert "MPS" in lab_row["device_policy"]
+    assert "XPU" in lab_row["device_policy"]
+    assert "notebooks/blog/02_wsl_5090_setup.py" not in lab_row.to_string()
 
     targets = target_comparison()
     assert {
@@ -169,7 +170,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "planner_baseline_svg",
         "claim_table_md",
         "metric_dsl_contract_md",
-        "notebook_walkthrough_md",
+        "shareable_lab_md",
         "target_comparison_md",
         "endpoint_run_scorecard_md",
     }
@@ -196,13 +197,15 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "metric_dsl_value_delta_vs_direct_sql" in metric_table_md
     assert "pending_comparison" in metric_table_md
 
-    walkthrough_md = (tmp_path / manifest["assets"]["notebook_walkthrough_md"]).read_text()
-    assert "notebooks/labs/local_multiturn_sql_lab.py" in walkthrough_md
-    assert "notebooks/blog/01_problem_and_result.py" in walkthrough_md
-    assert "notebooks/blog/06_data_engineering_for_multiturn_sql_eval.py" in walkthrough_md
-    assert "MEASURE()" in walkthrough_md
-    assert "behavior/recovery" in walkthrough_md
-    assert "runnable target lab" in walkthrough_md
+    shareable_lab_md = (tmp_path / manifest["assets"]["shareable_lab_md"]).read_text()
+    assert "reader-facing lab notebook" in shareable_lab_md
+    assert "notebooks/labs/local_multiturn_sql_lab.py" in shareable_lab_md
+    assert "marimo edit notebooks/labs/local_multiturn_sql_lab.py" in shareable_lab_md
+    assert "CPU by default" in shareable_lab_md
+    assert "CUDA" in shareable_lab_md
+    assert "MPS" in shareable_lab_md
+    assert "XPU" in shareable_lab_md
+    assert "notebooks/blog/" not in shareable_lab_md
 
     target_md = (tmp_path / manifest["assets"]["target_comparison_md"]).read_text()
     assert "Direct SQL SFT" in target_md
@@ -223,6 +226,7 @@ def test_checked_in_blog_evidence_assets_are_current(tmp_path) -> None:
     checked_in_dir = REPO_ROOT / "docs" / "blog" / "generated"
 
     assert (checked_in_dir / "manifest.json").exists()
+    assert not (checked_in_dir / "notebook-walkthrough.md").exists()
     checked_in_manifest = json.loads((checked_in_dir / "manifest.json").read_text())
     assert checked_in_manifest == manifest
 
@@ -246,6 +250,6 @@ def test_research_goal_states_notebook_led_method_comparison() -> None:
     ]:
         assert phrase in goal
 
-    assert "Every public claim should name the notebook checkpoint" in goal
-    assert "notebook-walkthrough.md" in blog_readme
-    assert "notebooks/blog/06_data_engineering_for_multiturn_sql_eval.py" in blog_readme
+    assert "Every public claim should name the reader-facing lab or generated evidence artifact" in goal
+    assert "shareable-lab.md" in blog_readme
+    assert "reader-facing lab" in blog_readme

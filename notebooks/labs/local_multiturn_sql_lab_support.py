@@ -61,6 +61,36 @@ def available_accelerator() -> Accelerator:
     return Accelerator(kind="cpu", label="cpu", torch_available=True)
 
 
+def select_lab_device(device_preference: str = "cpu") -> tuple[Accelerator, Accelerator, dict[str, Any]]:
+    """Select the CPU-safe lab runtime and report available accelerators."""
+
+    if device_preference not in {"cpu", "auto"}:
+        raise ValueError("device_preference must be 'cpu' or 'auto'")
+
+    detected_accelerator = available_accelerator()
+    fallback = (
+        "cpu"
+        if device_preference == "auto" and detected_accelerator.kind == "cpu"
+        else None
+    )
+    device = Accelerator(
+        kind="cpu",
+        label="cpu",
+        torch_available=detected_accelerator.torch_available,
+    )
+
+    return (
+        device,
+        detected_accelerator,
+        {
+            "device_preference": device_preference,
+            "fallback": fallback,
+            "accelerator_usage": "reported_only",
+            "supported_accelerators": "CUDA, MPS, XPU, CPU",
+        },
+    )
+
+
 def lab_turns() -> list[LabTurn]:
     return [
         LabTurn(
@@ -458,10 +488,10 @@ def scenario_contract(turns: list[LabTurn]) -> dict[str, Any]:
     }
 
 
-def run_multiturn_lab() -> dict[str, Any]:
+def run_multiturn_lab(device_preference: str = "cpu") -> dict[str, Any]:
     """Run a small executable multi-turn SQL lab with no external model download."""
 
-    detected_accelerator = available_accelerator()
+    device, detected_accelerator, runtime_policy = select_lab_device(device_preference)
     conn = _connect_demo_db()
     turns = lab_turns()
     systems = {
@@ -524,12 +554,9 @@ def run_multiturn_lab() -> dict[str, Any]:
         }
 
     return {
-        "device": Accelerator(
-            kind="cpu",
-            label="cpu",
-            torch_available=detected_accelerator.torch_available,
-        ),
+        "device": device,
         "detected_accelerator": detected_accelerator,
+        "runtime_policy": runtime_policy,
         "turns": turns,
         "rows": rows,
         "systems": summaries,

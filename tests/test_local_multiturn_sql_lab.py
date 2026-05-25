@@ -3,6 +3,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
+import pytest
+
 import notebooks.labs.local_multiturn_sql_lab_support as lab_support
 from notebooks.labs.local_multiturn_sql_lab_support import Accelerator
 
@@ -46,6 +48,50 @@ def test_multiturn_lab_defaults_to_cpu_even_when_accelerator_is_detected(monkeyp
     assert report["device"].kind == "cpu"
     assert report["device"].label == "cpu"
     assert report["detected_accelerator"].kind == "cuda"
+    assert report["runtime_policy"]["device_preference"] == "cpu"
+
+
+@pytest.mark.parametrize("accelerator_kind", ["cuda", "mps", "xpu"])
+def test_multiturn_lab_auto_reports_detected_accelerator_without_using_it(
+    monkeypatch, accelerator_kind: str
+) -> None:
+    monkeypatch.setattr(
+        lab_support,
+        "available_accelerator",
+        lambda: Accelerator(
+            kind=accelerator_kind,
+            label=f"{accelerator_kind} test device",
+            torch_available=True,
+        ),
+    )
+
+    report = lab_support.run_multiturn_lab(device_preference="auto")
+
+    assert report["device"].kind == "cpu"
+    assert report["device"].label == "cpu"
+    assert report["detected_accelerator"].kind == accelerator_kind
+    assert report["runtime_policy"]["device_preference"] == "auto"
+    assert report["runtime_policy"]["fallback"] is None
+    assert report["runtime_policy"]["accelerator_usage"] == "reported_only"
+
+
+def test_multiturn_lab_auto_device_falls_back_to_cpu(monkeypatch) -> None:
+    monkeypatch.setattr(
+        lab_support,
+        "available_accelerator",
+        lambda: Accelerator(kind="cpu", label="cpu (torch not installed)", torch_available=False),
+    )
+
+    report = lab_support.run_multiturn_lab(device_preference="auto")
+
+    assert report["device"].kind == "cpu"
+    assert report["runtime_policy"]["device_preference"] == "auto"
+    assert report["runtime_policy"]["fallback"] == "cpu"
+
+
+def test_multiturn_lab_rejects_unknown_device_preference() -> None:
+    with pytest.raises(ValueError, match="device_preference"):
+        lab_support.run_multiturn_lab(device_preference="gpu")
 
 
 def test_multiturn_lab_exposes_behavior_failures_not_just_scores() -> None:
@@ -145,6 +191,9 @@ def test_shareable_lab_notebook_is_plain_python_marimo_app() -> None:
     assert "import marimo" in source
     assert "app = marimo.App" in source
     assert "run_multiturn_lab" in source
+    assert "mo.ui.dropdown" in source
+    assert 'value="cpu"' in source
+    assert "device_preference=runtime_choice.value" in source
     assert 'if __name__ == "__main__":' in source
     assert "app.run()" in source
 
