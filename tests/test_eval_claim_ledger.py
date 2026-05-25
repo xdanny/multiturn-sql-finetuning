@@ -1200,6 +1200,120 @@ def test_rollout_comparison_must_improve_before_clearing_behavior_pending_claim(
     assert "rollout_beats_teacher_forced_history" in pending
 
 
+def test_rollout_comparison_requires_referenced_teacher_forced_manifest(
+    tmp_path,
+) -> None:
+    input_path = tmp_path / "data" / "eval.jsonl"
+    rollout_output_path = tmp_path / "results" / "rollout.jsonl"
+    teacher_output_path = tmp_path / "results" / "teacher.jsonl"
+    _write_jsonl(
+        input_path,
+        [
+            {
+                "messages": [
+                    {"role": "user", "content": "q"},
+                    {"role": "assistant", "content": "SELECT 1"},
+                ],
+                "evaluation_mode": "non_oracle_generation",
+                "gold_plans": [{}],
+            }
+        ],
+    )
+    _write_jsonl(
+        rollout_output_path,
+        [
+            {
+                "id": "dialog-a:0",
+                "evaluation_mode": "non_oracle_generation",
+                "history_policy": "model_generated_sql_rollout",
+                "value_execution_score": 0.8,
+                "strict_execution_score": 0.8,
+            }
+        ],
+    )
+    _write_jsonl(
+        teacher_output_path,
+        [
+            {
+                "id": "dialog-a:0",
+                "evaluation_mode": "non_oracle_generation",
+                "history_policy": "gold_sql_teacher_forced",
+                "value_execution_score": 0.5,
+                "strict_execution_score": 0.5,
+            }
+        ],
+    )
+    rollout_manifest = {
+        "schema_version": 1,
+        "run_id": "rollout_gain",
+        "benchmark": "prepared_rollout",
+        "model_name": "local-9b",
+        "endpoint": "local",
+        "evaluation_mode": "non_oracle_generation",
+        "oracle_allowed": False,
+        "prompt_variant": None,
+        "input_path": str(input_path.relative_to(tmp_path)),
+        "input_sha256": _sha256(input_path),
+        "output_path": str(rollout_output_path.relative_to(tmp_path)),
+        "output_sha256": _sha256(rollout_output_path),
+        "row_count": 1,
+        "metrics": {
+            "value_execution_accuracy": 0.8,
+            "strict_execution_accuracy": 0.8,
+            "history_policy": "model_generated_sql_rollout",
+            "teacher_forced_comparison_run_id": "teacher_forced",
+            "teacher_forced_input_sha256": _sha256(input_path),
+            "teacher_forced_model_name": "local-9b",
+            "teacher_forced_value_execution_accuracy": 0.5,
+            "rollout_value_delta_vs_teacher_forced": 0.3,
+            "teacher_forced_comparable_row_count": 1,
+        },
+        "command": ["run", "# compared-with", "teacher_forced"],
+    }
+    teacher_manifest = {
+        "schema_version": 1,
+        "run_id": "teacher_forced",
+        "benchmark": "prepared",
+        "model_name": "local-9b",
+        "endpoint": "local",
+        "evaluation_mode": "non_oracle_generation",
+        "oracle_allowed": False,
+        "prompt_variant": None,
+        "input_path": str(input_path.relative_to(tmp_path)),
+        "input_sha256": _sha256(input_path),
+        "output_path": str(teacher_output_path.relative_to(tmp_path)),
+        "output_sha256": _sha256(teacher_output_path),
+        "row_count": 1,
+        "metrics": {
+            "value_execution_accuracy": 0.5,
+            "strict_execution_accuracy": 0.5,
+            "history_policy": "gold_sql_teacher_forced",
+        },
+        "command": ["run"],
+    }
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps([rollout_manifest]) + "\n")
+
+    rows_without_teacher = build_claim_ledger(
+        manifest_path=manifest_path,
+        repo_root=tmp_path,
+    )
+    pending_without_teacher = {
+        row["claim_id"] for row in rows_without_teacher if row["claim_status"] == "pending"
+    }
+    assert "rollout_beats_teacher_forced_history" in pending_without_teacher
+
+    manifest_path.write_text(json.dumps([teacher_manifest, rollout_manifest]) + "\n")
+    rows_with_teacher = build_claim_ledger(
+        manifest_path=manifest_path,
+        repo_root=tmp_path,
+    )
+    pending_with_teacher = {
+        row["claim_id"] for row in rows_with_teacher if row["claim_status"] == "pending"
+    }
+    assert "rollout_beats_teacher_forced_history" not in pending_with_teacher
+
+
 def test_planner_summary_with_oracle_prompt_rows_is_pending(tmp_path) -> None:
     planner_summary_path = tmp_path / "planner.json"
     planner_summary_path.write_text(
@@ -1264,6 +1378,7 @@ def test_write_claim_ledger_and_summary(tmp_path) -> None:
 
     written_rows = [json.loads(line) for line in jsonl_path.read_text().splitlines()]
     assert written_rows == rows
+    assert b"\r\n" not in summary_path.read_bytes()
 
     with summary_path.open() as f:
         summary = list(csv.DictReader(f))

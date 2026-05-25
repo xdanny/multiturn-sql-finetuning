@@ -22,6 +22,7 @@ HOSTED_ENDPOINT_PREFIXES = ("https://", "anthropic:", "google:")
 HOSTED_LATENCY_KEYS = ("mean_latency_ms", "p50_latency_ms", "latency_ms")
 HOSTED_COST_KEYS = ("total_cost_usd", "estimated_cost_usd", "cost_usd")
 MODEL_GENERATED_SQL_ROLLOUT = "model_generated_sql_rollout"
+GOLD_SQL_TEACHER_FORCED = "gold_sql_teacher_forced"
 METRIC_DSL = "metric_dsl"
 METRIC_DSL_DIRECT_SQL = "metric_dsl_direct_sql"
 NON_ORACLE_GENERATION = "non_oracle_generation"
@@ -403,6 +404,9 @@ def _manifest_row(
         "teacher_forced_value_execution_accuracy": metrics.get(
             "teacher_forced_value_execution_accuracy"
         ),
+        "teacher_forced_comparable_row_count": metrics.get(
+            "teacher_forced_comparable_row_count"
+        ),
         "rollout_value_delta_vs_teacher_forced": metrics.get(
             "rollout_value_delta_vs_teacher_forced"
         ),
@@ -492,7 +496,7 @@ def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any
     has_valid_predicted_manifest = any(_row_is_valid_predicted_sql_manifest(row) for row in rows)
     has_rollout = any(_row_has_rollout_claim_support(row) for row in rows)
     has_rollout_teacher_forced_comparison = any(
-        _row_has_rollout_teacher_forced_comparison(row) for row in rows
+        _row_has_rollout_teacher_forced_comparison(row, rows) for row in rows
     )
     has_metric_dsl_eval = any(_row_has_metric_dsl_quality_support(row) for row in rows)
     has_metric_dsl_direct_sql_comparison = any(
@@ -744,7 +748,10 @@ def _row_has_rollout_claim_support(row: dict[str, Any]) -> bool:
     )
 
 
-def _row_has_rollout_teacher_forced_comparison(row: dict[str, Any]) -> bool:
+def _row_has_rollout_teacher_forced_comparison(
+    row: dict[str, Any],
+    rows: list[dict[str, Any]],
+) -> bool:
     if not _row_has_rollout_claim_support(row):
         return False
     if row.get("teacher_forced_model_name") != row.get("model_name"):
@@ -753,12 +760,58 @@ def _row_has_rollout_teacher_forced_comparison(row: dict[str, Any]) -> bool:
         return False
     if not row.get("teacher_forced_comparison_run_id"):
         return False
+    comparable_rows = _num(row.get("teacher_forced_comparable_row_count"))
+    row_count = _num(row.get("row_count"))
+    if comparable_rows is None or row_count is None or comparable_rows != row_count:
+        return False
+    command = [str(item) for item in row.get("command") or []]
+    if "# compared-with" not in command:
+        return False
+    if str(row.get("teacher_forced_comparison_run_id")) not in command:
+        return False
+    if not _has_matching_teacher_forced_row(row, rows):
+        return False
     teacher_forced_score = _num(row.get("teacher_forced_value_execution_accuracy"))
     rollout_score = _num(row.get("value_execution_accuracy"))
     delta = _num(row.get("rollout_value_delta_vs_teacher_forced"))
     if teacher_forced_score is None or rollout_score is None or delta is None:
         return False
     return delta > 0 and rollout_score > teacher_forced_score
+
+
+def _has_matching_teacher_forced_row(
+    rollout_row: dict[str, Any],
+    rows: list[dict[str, Any]],
+) -> bool:
+    teacher_id = rollout_row.get("teacher_forced_comparison_run_id")
+    comparable_rows = _num(rollout_row.get("teacher_forced_comparable_row_count"))
+    for row in rows:
+        if row.get("claim_id") != teacher_id:
+            continue
+        if row.get("artifact_type") != "result_manifest" or not row.get("artifact_valid"):
+            return False
+        if not row.get("production_claim_allowed"):
+            return False
+        if row.get("evaluation_mode") != NON_ORACLE_GENERATION:
+            return False
+        if row.get("benchmark") != "prepared":
+            return False
+        if row.get("oracle_allowed"):
+            return False
+        if row.get("history_policy") != GOLD_SQL_TEACHER_FORCED:
+            return False
+        if row.get("model_name") != rollout_row.get("teacher_forced_model_name"):
+            return False
+        if row.get("input_sha256") != rollout_row.get("teacher_forced_input_sha256"):
+            return False
+        if _num(row.get("row_count")) != comparable_rows:
+            return False
+        if _num(row.get("output_value_scored_rows")) != comparable_rows:
+            return False
+        return _num(row.get("value_execution_accuracy")) == _num(
+            rollout_row.get("teacher_forced_value_execution_accuracy")
+        )
+    return False
 
 
 def build_claim_ledger(
@@ -823,7 +876,7 @@ def write_claim_summary(rows: Iterable[dict[str, Any]], output_path: Path) -> No
             "row_count",
             "dialog_count",
         ]
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(f, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         for row in sorted(rows, key=lambda item: str(item.get("claim_id") or "")):
             writer.writerow(

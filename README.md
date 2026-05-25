@@ -95,7 +95,7 @@ This repo separates three different claims that are easy to blur:
 | --- | --- | --- |
 | `non_oracle_generation` | Question, conversation history, schema, semantic context, and any non-oracle retrieval artifacts | A deployable text-to-SQL path can work under those inputs. |
 | `oracle_planner_diagnostic` | The same inputs plus planning hints extracted from reference SQL, or semantic context pruned by those hints | An upper bound: SQL generation becomes easier when schema linking, join choice, projection shape, and duplicate policy are already solved. |
-| `predicted_planner` | Planner output predicted from question, history, schema, and optional value indexes | The real production claim: a system can create its own plan before generating SQL. |
+| `predicted_planner` | Planner output predicted from question, history, schema, and optional value indexes | A production-style planner-to-SQL proxy: the system creates its own plan before generating SQL. |
 
 Any row prepared with `--include-sql-labels` or `--prune-semantic-model` is
 teacher-forced by gold SQL. The code writes `uses_oracle_planning_hints`,

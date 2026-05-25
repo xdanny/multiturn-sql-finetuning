@@ -58,10 +58,36 @@ def _rollout_manifest() -> dict:
     }
 
 
+def _rows(history_policy: str) -> list[dict]:
+    evaluation_mode = "non_oracle_generation"
+    return [
+        {
+            "id": "dialog-a:0",
+            "dialog_id": "dialog-a",
+            "turn_index": 0,
+            "database_id": "store",
+            "reference_sql": "SELECT COUNT(*) FROM orders;",
+            "evaluation_mode": evaluation_mode,
+            "history_policy": history_policy,
+        },
+        {
+            "id": "dialog-a:1",
+            "dialog_id": "dialog-a",
+            "turn_index": 1,
+            "database_id": "store",
+            "reference_sql": "SELECT SUM(amount) FROM orders;",
+            "evaluation_mode": evaluation_mode,
+            "history_policy": history_policy,
+        },
+    ]
+
+
 def test_compare_rollout_manifests_adds_same_model_same_input_delta() -> None:
     compared = compare_rollout_manifests(
         rollout_manifest=_rollout_manifest(),
         teacher_forced_manifest=_teacher_manifest(),
+        rollout_rows=_rows("model_generated_sql_rollout"),
+        teacher_forced_rows=_rows("gold_sql_teacher_forced"),
     )
 
     assert compared["run_id"] == "rollout"
@@ -72,6 +98,15 @@ def test_compare_rollout_manifests_adds_same_model_same_input_delta() -> None:
     assert compared["metrics"]["teacher_forced_strict_execution_accuracy"] == 0.25
     assert compared["metrics"]["rollout_value_delta_vs_teacher_forced"] == pytest.approx(0.25)
     assert compared["metrics"]["rollout_strict_delta_vs_teacher_forced"] == pytest.approx(0.25)
+    assert compared["metrics"]["teacher_forced_comparable_row_count"] == 2
+
+
+def test_compare_rollout_manifests_requires_output_rows() -> None:
+    with pytest.raises(ValueError, match="output rows"):
+        compare_rollout_manifests(
+            rollout_manifest=_rollout_manifest(),
+            teacher_forced_manifest=_teacher_manifest(),
+        )
 
 
 def test_compare_rollout_manifests_rejects_model_mismatch() -> None:
@@ -92,6 +127,18 @@ def test_compare_rollout_manifests_rejects_input_mismatch() -> None:
     teacher["input_sha256"] = "different"
 
     with pytest.raises(ValueError, match="same input"):
+        compare_rollout_manifests(
+            rollout_manifest=rollout,
+            teacher_forced_manifest=teacher,
+        )
+
+
+def test_compare_rollout_manifests_rejects_row_count_mismatch() -> None:
+    rollout = _rollout_manifest()
+    teacher = _teacher_manifest()
+    teacher["row_count"] = 100
+
+    with pytest.raises(ValueError, match="row_count"):
         compare_rollout_manifests(
             rollout_manifest=rollout,
             teacher_forced_manifest=teacher,
@@ -137,15 +184,65 @@ def test_compare_rollout_manifest_files_writes_augmented_manifest(tmp_path) -> N
     rollout_path = tmp_path / "rollout.manifest.json"
     teacher_path = tmp_path / "teacher.manifest.json"
     output_path = tmp_path / "comparison.manifest.json"
-    rollout_path.write_text(json.dumps(_rollout_manifest()) + "\n")
-    teacher_path.write_text(json.dumps(_teacher_manifest()) + "\n")
+    rollout_output = tmp_path / "results" / "rollout.jsonl"
+    teacher_output = tmp_path / "results" / "teacher.jsonl"
+    rollout_output.parent.mkdir(parents=True)
+    rollout_output.write_text(
+        "\n".join(
+            json.dumps(row) for row in _rows("model_generated_sql_rollout")
+        )
+        + "\n"
+    )
+    teacher_output.write_text(
+        "\n".join(json.dumps(row) for row in _rows("gold_sql_teacher_forced")) + "\n"
+    )
+    rollout_manifest = _rollout_manifest()
+    teacher_manifest = _teacher_manifest()
+    rollout_manifest["output_path"] = str(rollout_output.relative_to(tmp_path))
+    teacher_manifest["output_path"] = str(teacher_output.relative_to(tmp_path))
+    rollout_path.write_text(json.dumps(rollout_manifest) + "\n")
+    teacher_path.write_text(json.dumps(teacher_manifest) + "\n")
 
     compared = compare_rollout_manifest_files(
         rollout_manifest_path=rollout_path,
         teacher_forced_manifest_path=teacher_path,
         output_path=output_path,
+        repo_root=tmp_path,
     )
 
     written = json.loads(output_path.read_text())
     assert written == compared
     assert written["metrics"]["teacher_forced_comparison_run_id"] == "teacher"
+    assert written["metrics"]["teacher_forced_comparable_row_count"] == 2
+
+
+def test_compare_rollout_manifest_files_rejects_row_identity_mismatch(tmp_path) -> None:
+    rollout_path = tmp_path / "rollout.manifest.json"
+    teacher_path = tmp_path / "teacher.manifest.json"
+    output_path = tmp_path / "comparison.manifest.json"
+    rollout_output = tmp_path / "results" / "rollout.jsonl"
+    teacher_output = tmp_path / "results" / "teacher.jsonl"
+    rollout_output.parent.mkdir(parents=True)
+    rollout_output.write_text(
+        "\n".join(
+            json.dumps(row) for row in _rows("model_generated_sql_rollout")
+        )
+        + "\n"
+    )
+    teacher_rows = _rows("gold_sql_teacher_forced")
+    teacher_rows[1]["reference_sql"] = "SELECT MAX(amount) FROM orders;"
+    teacher_output.write_text("\n".join(json.dumps(row) for row in teacher_rows) + "\n")
+    rollout_manifest = _rollout_manifest()
+    teacher_manifest = _teacher_manifest()
+    rollout_manifest["output_path"] = str(rollout_output.relative_to(tmp_path))
+    teacher_manifest["output_path"] = str(teacher_output.relative_to(tmp_path))
+    rollout_path.write_text(json.dumps(rollout_manifest) + "\n")
+    teacher_path.write_text(json.dumps(teacher_manifest) + "\n")
+
+    with pytest.raises(ValueError, match="row identity"):
+        compare_rollout_manifest_files(
+            rollout_manifest_path=rollout_path,
+            teacher_forced_manifest_path=teacher_path,
+            output_path=output_path,
+            repo_root=tmp_path,
+        )

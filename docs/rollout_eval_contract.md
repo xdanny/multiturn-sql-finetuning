@@ -53,7 +53,9 @@ python -m eval.compare_rollout_history \
 ```
 
 The comparison command refuses mismatched models, mismatched input hashes,
-oracle diagnostics, and non-rollout manifests. The output is an augmented rollout
+mismatched row counts, mismatched output row identities, oracle diagnostics,
+non-rollout manifests, and teacher-forced artifacts that do not use
+`history_policy=gold_sql_teacher_forced`. The output is an augmented rollout
 manifest with:
 
 - `teacher_forced_comparison_run_id`
@@ -61,6 +63,7 @@ manifest with:
 - `teacher_forced_input_sha256`
 - `teacher_forced_value_execution_accuracy`
 - `teacher_forced_strict_execution_accuracy`
+- `teacher_forced_comparable_row_count`
 - `rollout_value_delta_vs_teacher_forced`
 - `rollout_strict_delta_vs_teacher_forced`
 
@@ -73,8 +76,8 @@ teacher-forced history. The claim ledger tracks these separately:
 - `model_generated_history_rollout`: pending until a valid rollout manifest
   exists.
 - `rollout_beats_teacher_forced_history`: pending until comparison metrics show
-  a same-model, same-input rollout result beating the matching teacher-forced
-  result with a positive value-accuracy delta.
+  a same-model, same-input, same-row rollout result beating the referenced
+  teacher-forced manifest with a positive value-accuracy delta.
 
 Oracle inputs are rejected by default. `--allow-oracle-plan` is diagnostic only
 and sets `oracle_allowed=true` in the manifest, so those rows cannot become a
