@@ -39,13 +39,25 @@ def _(mo, report):
 
 @app.cell
 def _(mo, report):
+    matrix = report["method_matrix"]
+    mo.vstack(
+        [
+            mo.md("## Method matrix"),
+            mo.ui.table(matrix, label="Fine-tuning targets compared by the lab"),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(mo, report):
     summary = [
         {"system": system, **metrics}
         for system, metrics in report["systems"].items()
     ]
     mo.vstack(
         [
-            mo.md("## Direct SQL versus semantic plan"),
+            mo.md("## Value and subtask scores"),
             mo.ui.table(summary, label="Value accuracy on the three-turn lab"),
         ]
     )
@@ -60,6 +72,9 @@ def _(mo, report):
             "question": row["question"],
             "system": row["system"],
             "value_match": row["value_match"],
+            "context_carryover": row["context_carryover"],
+            "value_grounded": row["value_grounded"],
+            "measure_preserved": row["measure_preserved"],
             "failure_type": row["failure_type"] or "",
             "actual_rows": row["actual_rows"],
             "expected_rows": row["expected_rows"],

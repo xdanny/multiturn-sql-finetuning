@@ -20,6 +20,16 @@ class LabTurn:
     context_note: str
 
 
+@dataclass(frozen=True)
+class MethodOutput:
+    intermediate_plan: str
+    sql: str
+    expected_failure: str | None
+    context_carryover: bool
+    value_grounded: bool
+    measure_preserved: bool
+
+
 def available_accelerator() -> Accelerator:
     """Return the best local accelerator without requiring torch or a GPU."""
 
@@ -119,30 +129,141 @@ def _rows_for_sql(conn: sqlite3.Connection, sql: str) -> list[tuple[Any, ...]]:
     return [tuple(row) for row in conn.execute(sql).fetchall()]
 
 
-def _direct_sql_baseline(turn: LabTurn) -> tuple[str, str, str | None]:
+def _direct_sql_baseline(turn: LabTurn) -> MethodOutput:
     if turn.turn_id == "turn_1":
         sql = (
             "SELECT customers.country, SUM(orders.amount) AS revenue "
             "FROM orders JOIN customers ON orders.customer_id = customers.id "
             "GROUP BY customers.country ORDER BY revenue DESC"
         )
-        return "direct SQL from the standalone question", sql, None
+        return MethodOutput(
+            intermediate_plan="direct SQL from the standalone question",
+            sql=sql,
+            expected_failure=None,
+            context_carryover=True,
+            value_grounded=True,
+            measure_preserved=False,
+        )
     if turn.turn_id == "turn_2":
         sql = (
             "SELECT customers.country, SUM(orders.amount) AS revenue "
             "FROM orders JOIN customers ON orders.customer_id = customers.id "
             "WHERE customers.country = 'France' GROUP BY customers.country"
         )
-        return "carry metric, but copy display value France into storage SQL", sql, "value_grounding"
+        return MethodOutput(
+            intermediate_plan="carry metric, but copy display value France into storage SQL",
+            sql=sql,
+            expected_failure="value_grounding",
+            context_carryover=True,
+            value_grounded=False,
+            measure_preserved=False,
+        )
     sql = (
         "SELECT customers.name, SUM(orders.amount) AS revenue "
         "FROM orders JOIN customers ON orders.customer_id = customers.id "
         "GROUP BY customers.name ORDER BY revenue DESC LIMIT 1"
     )
-    return "change grain, but forget the France filter", sql, "context_carryover"
+    return MethodOutput(
+        intermediate_plan="change grain, but forget the France filter",
+        sql=sql,
+        expected_failure="context_carryover",
+        context_carryover=False,
+        value_grounded=True,
+        measure_preserved=False,
+    )
 
 
-def _semantic_dsl_planner(turn: LabTurn) -> tuple[str, str, str | None]:
+def _planner_first_sql(turn: LabTurn) -> MethodOutput:
+    if turn.turn_id == "turn_1":
+        sql = (
+            "SELECT customers.country, SUM(orders.amount) AS revenue "
+            "FROM orders JOIN customers ON orders.customer_id = customers.id "
+            "GROUP BY customers.country ORDER BY revenue DESC"
+        )
+        return MethodOutput(
+            intermediate_plan="plan: metric=revenue, grain=country",
+            sql=sql,
+            expected_failure=None,
+            context_carryover=True,
+            value_grounded=True,
+            measure_preserved=False,
+        )
+    if turn.turn_id == "turn_2":
+        sql = (
+            "SELECT customers.country, SUM(orders.amount) AS revenue "
+            "FROM orders JOIN customers ON orders.customer_id = customers.id "
+            "WHERE customers.country = 'France' GROUP BY customers.country"
+        )
+        return MethodOutput(
+            intermediate_plan="plan: keep revenue by country; filter country=France",
+            sql=sql,
+            expected_failure="value_grounding",
+            context_carryover=True,
+            value_grounded=False,
+            measure_preserved=False,
+        )
+    sql = (
+        "SELECT customers.name, SUM(orders.amount) AS revenue "
+        "FROM orders JOIN customers ON orders.customer_id = customers.id "
+        "WHERE customers.country = 'France' GROUP BY customers.name "
+        "ORDER BY revenue DESC LIMIT 1"
+    )
+    return MethodOutput(
+        intermediate_plan="plan: keep country=France; change grain to customer",
+        sql=sql,
+        expected_failure="value_grounding",
+        context_carryover=True,
+        value_grounded=False,
+        measure_preserved=False,
+    )
+
+
+def _semantic_value_sql(turn: LabTurn) -> MethodOutput:
+    if turn.turn_id == "turn_1":
+        sql = (
+            "SELECT customers.country, SUM(orders.amount) AS revenue "
+            "FROM orders JOIN customers ON orders.customer_id = customers.id "
+            "GROUP BY customers.country ORDER BY revenue DESC"
+        )
+        return MethodOutput(
+            intermediate_plan="semantic state: metric revenue maps to SUM(orders.amount)",
+            sql=sql,
+            expected_failure=None,
+            context_carryover=True,
+            value_grounded=True,
+            measure_preserved=False,
+        )
+    if turn.turn_id == "turn_2":
+        sql = (
+            "SELECT customers.country, SUM(orders.amount) AS revenue "
+            "FROM orders JOIN customers ON orders.customer_id = customers.id "
+            "WHERE customers.country = 'FR' GROUP BY customers.country"
+        )
+        return MethodOutput(
+            intermediate_plan="semantic state: France normalized to country code FR",
+            sql=sql,
+            expected_failure=None,
+            context_carryover=True,
+            value_grounded=True,
+            measure_preserved=False,
+        )
+    sql = (
+        "SELECT customers.name, SUM(orders.amount) AS revenue "
+        "FROM orders JOIN customers ON orders.customer_id = customers.id "
+        "WHERE customers.country = 'FR' GROUP BY customers.name "
+        "ORDER BY revenue DESC LIMIT 1"
+    )
+    return MethodOutput(
+        intermediate_plan="semantic state: keep country=FR; grain changes to customer",
+        sql=sql,
+        expected_failure=None,
+        context_carryover=True,
+        value_grounded=True,
+        measure_preserved=False,
+    )
+
+
+def _semantic_dsl_planner(turn: LabTurn) -> MethodOutput:
     if turn.turn_id == "turn_1":
         plan = "MEASURE(revenue) BY customer_country ORDER BY MEASURE(revenue) DESC"
         sql = (
@@ -150,7 +271,14 @@ def _semantic_dsl_planner(turn: LabTurn) -> tuple[str, str, str | None]:
             "FROM orders JOIN customers ON orders.customer_id = customers.id "
             "GROUP BY customers.country ORDER BY revenue DESC"
         )
-        return plan, sql, None
+        return MethodOutput(
+            intermediate_plan=plan,
+            sql=sql,
+            expected_failure=None,
+            context_carryover=True,
+            value_grounded=True,
+            measure_preserved=True,
+        )
     if turn.turn_id == "turn_2":
         plan = "MEASURE(revenue) BY customer_country WHERE customer_country = 'FR'"
         sql = (
@@ -158,7 +286,14 @@ def _semantic_dsl_planner(turn: LabTurn) -> tuple[str, str, str | None]:
             "FROM orders JOIN customers ON orders.customer_id = customers.id "
             "WHERE customers.country = 'FR' GROUP BY customers.country"
         )
-        return plan, sql, None
+        return MethodOutput(
+            intermediate_plan=plan,
+            sql=sql,
+            expected_failure=None,
+            context_carryover=True,
+            value_grounded=True,
+            measure_preserved=True,
+        )
     plan = (
         "MEASURE(revenue) BY customer_name WHERE customer_country = 'FR' "
         "ORDER BY MEASURE(revenue) DESC LIMIT 1"
@@ -169,7 +304,14 @@ def _semantic_dsl_planner(turn: LabTurn) -> tuple[str, str, str | None]:
         "WHERE customers.country = 'FR' GROUP BY customers.name "
         "ORDER BY revenue DESC LIMIT 1"
     )
-    return plan, sql, None
+    return MethodOutput(
+        intermediate_plan=plan,
+        sql=sql,
+        expected_failure=None,
+        context_carryover=True,
+        value_grounded=True,
+        measure_preserved=True,
+    )
 
 
 def _normalize_rows(rows: list[tuple[Any, ...]]) -> list[tuple[Any, ...]]:
@@ -189,6 +331,8 @@ def run_multiturn_lab() -> dict[str, Any]:
     turns = lab_turns()
     systems = {
         "direct_sql_baseline": _direct_sql_baseline,
+        "planner_first_sql": _planner_first_sql,
+        "semantic_value_sql": _semantic_value_sql,
         "semantic_dsl_planner": _semantic_dsl_planner,
     }
     rows: list[dict[str, Any]] = []
@@ -197,8 +341,8 @@ def run_multiturn_lab() -> dict[str, Any]:
         for turn in turns:
             expected_rows = _normalize_rows(_rows_for_sql(conn, turn.reference_sql))
             for system_name, planner in systems.items():
-                plan, sql, expected_failure = planner(turn)
-                actual_rows = _normalize_rows(_rows_for_sql(conn, sql))
+                output = planner(turn)
+                actual_rows = _normalize_rows(_rows_for_sql(conn, output.sql))
                 value_match = actual_rows == expected_rows
                 rows.append(
                     {
@@ -206,12 +350,15 @@ def run_multiturn_lab() -> dict[str, Any]:
                         "question": turn.question,
                         "context_note": turn.context_note,
                         "system": system_name,
-                        "intermediate_plan": plan,
-                        "sql": sql,
+                        "intermediate_plan": output.intermediate_plan,
+                        "sql": output.sql,
                         "actual_rows": actual_rows,
                         "expected_rows": expected_rows,
                         "value_match": value_match,
-                        "failure_type": None if value_match else expected_failure,
+                        "context_carryover": output.context_carryover,
+                        "value_grounded": output.value_grounded,
+                        "measure_preserved": output.measure_preserved,
+                        "failure_type": None if value_match else output.expected_failure,
                     }
                 )
     finally:
@@ -221,10 +368,16 @@ def run_multiturn_lab() -> dict[str, Any]:
     for system_name in systems:
         system_rows = [row for row in rows if row["system"] == system_name]
         correct = sum(1 for row in system_rows if row["value_match"])
+        context_correct = sum(1 for row in system_rows if row["context_carryover"])
+        value_grounded = sum(1 for row in system_rows if row["value_grounded"])
+        measure_preserved = sum(1 for row in system_rows if row["measure_preserved"])
         summaries[system_name] = {
             "correct": correct,
             "turns": len(system_rows),
             "value_accuracy": correct / len(system_rows),
+            "context_carryover_accuracy": context_correct / len(system_rows),
+            "value_grounding_accuracy": value_grounded / len(system_rows),
+            "measure_preservation_rate": measure_preserved / len(system_rows),
         }
 
     return {
@@ -237,4 +390,34 @@ def run_multiturn_lab() -> dict[str, Any]:
         "turns": turns,
         "rows": rows,
         "systems": summaries,
+        "method_matrix": method_matrix(),
     }
+
+
+def method_matrix() -> list[dict[str, str]]:
+    return [
+        {
+            "system": "direct_sql_baseline",
+            "fine_tuning_target": "assistant SQL",
+            "training_signal": "question/history/schema to SQL",
+            "what_it_isolates": "raw SQL behavior without explicit intermediate state",
+        },
+        {
+            "system": "planner_first_sql",
+            "fine_tuning_target": "query plan then SQL",
+            "training_signal": "metric, grain, filters, and follow-up state before SQL",
+            "what_it_isolates": "whether planning fixes context before value grounding",
+        },
+        {
+            "system": "semantic_value_sql",
+            "fine_tuning_target": "semantic state then SQL",
+            "training_signal": "semantic values, entity normalization, grain, and joins",
+            "what_it_isolates": "whether semantic grounding fixes execution values",
+        },
+        {
+            "system": "semantic_dsl_planner",
+            "fine_tuning_target": "MEASURE-preserving DSL then SQL",
+            "training_signal": "governed metrics and dimensions before SQL compilation",
+            "what_it_isolates": "whether metric intent survives before SQL expansion",
+        },
+    ]

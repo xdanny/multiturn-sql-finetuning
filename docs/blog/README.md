@@ -7,9 +7,10 @@ marimo edit notebooks/labs/local_multiturn_sql_lab.py
 ```
 
 That notebook is intentionally small. It runs an in-memory SQLite multi-turn SQL
-experiment, compares direct SQL generation with a semantic DSL/planner path, and
-defaults to CPU while detecting CUDA, MPS, or XPU when PyTorch can see them. It
-does not require the full GPU training setup or a model download.
+experiment and compares four training targets: direct SQL, planner-first SQL,
+semantic value grounding before SQL, and a `MEASURE()`-preserving DSL before SQL.
+It defaults to CPU while detecting CUDA, MPS, or XPU when PyTorch can see them.
+It does not require the full GPU training setup or a model download.
 
 Each blog chapter has a matching marimo notebook. Run a notebook from the repository
 root with:

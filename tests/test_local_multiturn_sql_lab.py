@@ -20,7 +20,12 @@ def test_multiturn_lab_runs_without_requiring_gpu() -> None:
 
     assert report["device"].kind == "cpu"
     assert report["detected_accelerator"].kind in {"cuda", "mps", "xpu", "cpu"}
-    assert set(report["systems"]) == {"direct_sql_baseline", "semantic_dsl_planner"}
+    assert set(report["systems"]) == {
+        "direct_sql_baseline",
+        "planner_first_sql",
+        "semantic_value_sql",
+        "semantic_dsl_planner",
+    }
     assert report["systems"]["semantic_dsl_planner"]["value_accuracy"] == 1.0
     assert (
         report["systems"]["semantic_dsl_planner"]["value_accuracy"]
@@ -60,6 +65,42 @@ def test_multiturn_lab_exposes_behavior_failures_not_just_scores() -> None:
     assert any("MEASURE(revenue)" in row["intermediate_plan"] for row in semantic_rows)
 
 
+def test_multiturn_lab_compares_training_targets_explicitly() -> None:
+    report = lab_support.run_multiturn_lab()
+    systems = report["systems"]
+
+    assert systems["direct_sql_baseline"]["value_accuracy"] == 1 / 3
+    assert systems["planner_first_sql"]["context_carryover_accuracy"] == 1.0
+    assert systems["planner_first_sql"]["value_grounding_accuracy"] < 1.0
+    assert systems["semantic_value_sql"]["value_accuracy"] == 1.0
+    assert systems["semantic_value_sql"]["measure_preservation_rate"] == 0.0
+    assert systems["semantic_dsl_planner"]["measure_preservation_rate"] == 1.0
+
+    matrix = {row["system"]: row for row in report["method_matrix"]}
+    assert matrix["direct_sql_baseline"]["fine_tuning_target"] == "assistant SQL"
+    assert matrix["planner_first_sql"]["fine_tuning_target"] == "query plan then SQL"
+    assert matrix["semantic_value_sql"]["fine_tuning_target"] == "semantic state then SQL"
+    assert (
+        matrix["semantic_dsl_planner"]["fine_tuning_target"]
+        == "MEASURE-preserving DSL then SQL"
+    )
+
+
+def test_multiturn_lab_rows_score_semantic_subtasks() -> None:
+    report = lab_support.run_multiturn_lab()
+    semantic_sql_rows = [
+        row for row in report["rows"] if row["system"] == "semantic_value_sql"
+    ]
+    dsl_rows = [
+        row for row in report["rows"] if row["system"] == "semantic_dsl_planner"
+    ]
+
+    assert all(row["context_carryover"] for row in semantic_sql_rows)
+    assert all(row["value_grounded"] for row in semantic_sql_rows)
+    assert not any(row["measure_preserved"] for row in semantic_sql_rows)
+    assert all(row["measure_preserved"] for row in dsl_rows)
+
+
 def test_shareable_lab_notebook_is_plain_python_marimo_app() -> None:
     notebook_path = REPO_ROOT / "notebooks" / "labs" / "local_multiturn_sql_lab.py"
     source = notebook_path.read_text()
@@ -77,3 +118,6 @@ def test_blog_readme_points_to_shareable_lab_notebook() -> None:
 
     assert "notebooks/labs/local_multiturn_sql_lab.py" in readme
     assert "defaults to CPU" in readme
+    assert "planner-first" in readme
+    assert "semantic value grounding" in readme
+    assert "MEASURE()" in readme
