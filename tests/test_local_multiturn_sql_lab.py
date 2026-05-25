@@ -25,6 +25,7 @@ def test_multiturn_lab_runs_without_requiring_gpu() -> None:
         "planner_first_sql",
         "semantic_value_sql",
         "semantic_dsl_planner",
+        "behavior_recovery_sql",
     }
     assert report["systems"]["semantic_dsl_planner"]["value_accuracy"] == 1.0
     assert (
@@ -56,8 +57,8 @@ def test_multiturn_lab_exposes_behavior_failures_not_just_scores() -> None:
         row for row in report["rows"] if row["system"] == "semantic_dsl_planner"
     ]
 
-    assert {row["turn_id"] for row in direct_rows} == {"turn_1", "turn_2", "turn_3"}
-    assert {row["turn_id"] for row in semantic_rows} == {"turn_1", "turn_2", "turn_3"}
+    assert {row["turn_id"] for row in direct_rows} == {"turn_1", "turn_2", "turn_3", "turn_4"}
+    assert {row["turn_id"] for row in semantic_rows} == {"turn_1", "turn_2", "turn_3", "turn_4"}
     assert {
         row["failure_type"] for row in direct_rows if row["failure_type"]
     } >= {"value_grounding", "context_carryover"}
@@ -69,12 +70,13 @@ def test_multiturn_lab_compares_training_targets_explicitly() -> None:
     report = lab_support.run_multiturn_lab()
     systems = report["systems"]
 
-    assert systems["direct_sql_baseline"]["value_accuracy"] == 1 / 3
+    assert systems["direct_sql_baseline"]["value_accuracy"] == 1 / 4
     assert systems["planner_first_sql"]["context_carryover_accuracy"] == 1.0
     assert systems["planner_first_sql"]["value_grounding_accuracy"] < 1.0
     assert systems["semantic_value_sql"]["value_accuracy"] == 1.0
     assert systems["semantic_value_sql"]["measure_preservation_rate"] == 0.0
     assert systems["semantic_dsl_planner"]["measure_preservation_rate"] == 1.0
+    assert systems["behavior_recovery_sql"]["recovery_success_rate"] == 1.0
 
     matrix = {row["system"]: row for row in report["method_matrix"]}
     assert matrix["direct_sql_baseline"]["fine_tuning_target"] == "assistant SQL"
@@ -83,6 +85,10 @@ def test_multiturn_lab_compares_training_targets_explicitly() -> None:
     assert (
         matrix["semantic_dsl_planner"]["fine_tuning_target"]
         == "MEASURE-preserving DSL then SQL"
+    )
+    assert (
+        matrix["behavior_recovery_sql"]["fine_tuning_target"]
+        == "execution feedback then repair"
     )
 
 
@@ -99,6 +105,36 @@ def test_multiturn_lab_rows_score_semantic_subtasks() -> None:
     assert all(row["value_grounded"] for row in semantic_sql_rows)
     assert not any(row["measure_preserved"] for row in semantic_sql_rows)
     assert all(row["measure_preserved"] for row in dsl_rows)
+
+
+def test_multiturn_lab_scores_recovery_as_a_separate_behavior() -> None:
+    report = lab_support.run_multiturn_lab()
+    recovery_rows = [
+        row for row in report["rows"] if row["turn_id"] == "turn_4"
+    ]
+    behavior_row = [
+        row for row in recovery_rows if row["system"] == "behavior_recovery_sql"
+    ][0]
+    prior_behavior_row = [
+        row
+        for row in report["rows"]
+        if row["turn_id"] == "turn_3" and row["system"] == "behavior_recovery_sql"
+    ][0]
+    semantic_row = [
+        row for row in recovery_rows if row["system"] == "semantic_value_sql"
+    ][0]
+
+    assert report["scenario_contract"]["shared_input_sha256"]
+    assert report["scenario_contract"]["turn_count"] == 4
+    assert report["scenario_contract"]["recovery_turn_id"] == "turn_4"
+    assert prior_behavior_row["value_match"] is False
+    assert prior_behavior_row["actual_rows"] == []
+    assert prior_behavior_row["failure_type"] == "value_grounding"
+    assert behavior_row["value_match"] is True
+    assert behavior_row["recovery_success"] is True
+    assert "repairs empty result" in behavior_row["intermediate_plan"]
+    assert semantic_row["value_match"] is True
+    assert semantic_row["recovery_success"] is False
 
 
 def test_shareable_lab_notebook_is_plain_python_marimo_app() -> None:
@@ -121,3 +157,4 @@ def test_blog_readme_points_to_shareable_lab_notebook() -> None:
     assert "planner-first" in readme
     assert "semantic value grounding" in readme
     assert "MEASURE()" in readme
+    assert "behavior/recovery" in readme

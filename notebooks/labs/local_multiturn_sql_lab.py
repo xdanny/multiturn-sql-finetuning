@@ -23,6 +23,7 @@ def _(run_multiturn_lab):
 def _(mo, report):
     device = report["device"]
     detected = report["detected_accelerator"]
+    contract = report["scenario_contract"]
     mo.md(
         f"""
         # Local multi-turn SQL lab
@@ -32,6 +33,7 @@ def _(mo, report):
         MPS, or XPU when PyTorch can see an accelerator.
 
         Lab runtime: `{device.label}`. Detected accelerator: `{detected.label}`.
+        Shared scenario hash: `{contract["shared_input_sha256"]}`.
         """
     )
     return
@@ -75,6 +77,7 @@ def _(mo, report):
             "context_carryover": row["context_carryover"],
             "value_grounded": row["value_grounded"],
             "measure_preserved": row["measure_preserved"],
+            "recovery_success": row["recovery_success"],
             "failure_type": row["failure_type"] or "",
             "actual_rows": row["actual_rows"],
             "expected_rows": row["expected_rows"],

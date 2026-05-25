@@ -46,6 +46,14 @@ def test_blog_notebooks_are_plain_python_marimo_apps() -> None:
         assert "app.run()" in source
 
 
+def test_training_iteration_notebook_runs_the_finetuning_target_lab() -> None:
+    source = (REPO_ROOT / "notebooks/blog/04_training_iterations.py").read_text()
+
+    assert "run_multiturn_lab" in source
+    assert "behavior_recovery_sql" in source
+    assert "recovery_success_rate" in source
+
+
 def test_notebook_support_loads_current_artifacts() -> None:
     scores = accuracy_scorecard()
     assert set(scores["mode"]) == {"non_oracle_generation", "oracle_planner_diagnostic"}
@@ -101,6 +109,9 @@ def test_notebook_support_loads_current_artifacts() -> None:
         for question in walkthrough["reader_question"]
     )
     assert any("MEASURE()" in boundary for boundary in walkthrough["claim_boundary"])
+    training_checkpoint = walkthrough[walkthrough["checkpoint"] == "04 fine-tuning targets"].iloc[0]
+    assert "behavior/recovery" in training_checkpoint["reader_question"]
+    assert "runnable target lab" in training_checkpoint["evidence_output"]
 
     targets = target_comparison()
     assert {
@@ -125,6 +136,9 @@ def test_notebook_support_loads_current_artifacts() -> None:
     ].iloc[0]
     assert measure["claim_status"] == "pending"
     assert "direct-SQL baseline" in measure["next_gate"]
+    recovery = targets[targets["fine_tuning_target"] == "Behavior/recovery tuning"].iloc[0]
+    assert "shareable lab" in recovery["current_evidence"]
+    assert recovery["claim_status"] == "pending"
 
     endpoint_runs = endpoint_run_scorecard()
     assert {
@@ -187,12 +201,15 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "notebooks/blog/01_problem_and_result.py" in walkthrough_md
     assert "notebooks/blog/06_data_engineering_for_multiturn_sql_eval.py" in walkthrough_md
     assert "MEASURE()" in walkthrough_md
+    assert "behavior/recovery" in walkthrough_md
+    assert "runnable target lab" in walkthrough_md
 
     target_md = (tmp_path / manifest["assets"]["target_comparison_md"]).read_text()
     assert "Direct SQL SFT" in target_md
     assert "0.640" in target_md
     assert "MEASURE()-preserving metric DSL" in target_md
     assert "Behavior/recovery tuning" in target_md
+    assert "shareable lab" in target_md
 
     endpoint_md = (tmp_path / manifest["assets"]["endpoint_run_scorecard_md"]).read_text()
     assert "Base Qwen 3.5 9B" in endpoint_md

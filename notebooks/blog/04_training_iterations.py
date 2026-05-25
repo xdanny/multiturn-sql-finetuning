@@ -15,8 +15,17 @@ def _():
         read_csv_artifact,
         semantic_strategy_table,
     )
+    from notebooks.labs.local_multiturn_sql_lab_support import run_multiturn_lab
 
-    return metric_dsl_demo, metric_dsl_eval_contract, mo, plt, read_csv_artifact, semantic_strategy_table
+    return (
+        metric_dsl_demo,
+        metric_dsl_eval_contract,
+        mo,
+        plt,
+        read_csv_artifact,
+        run_multiturn_lab,
+        semantic_strategy_table,
+    )
 
 
 @app.cell
@@ -36,6 +45,39 @@ def _(mo):
 @app.cell
 def _(mo, semantic_strategy_table):
     mo.ui.table(semantic_strategy_table(), label="Candidate fine-tuning strategies")
+    return
+
+
+@app.cell
+def _(mo, run_multiturn_lab):
+    target_lab = run_multiturn_lab()
+    method_matrix = target_lab["method_matrix"]
+    system_scores = [
+        {"system": system, **metrics}
+        for system, metrics in target_lab["systems"].items()
+    ]
+    recovery_rows = [
+        {
+            "system": row["system"],
+            "value_match": row["value_match"],
+            "recovery_success": row["recovery_success"],
+            "intermediate_plan": row["intermediate_plan"],
+        }
+        for row in target_lab["rows"]
+        if row["turn_id"] == "turn_4"
+    ]
+    mo.vstack(
+        [
+            mo.md("## Runnable target comparison lab"),
+            mo.md(
+                "The shareable lab runs all candidate targets on the same four-turn "
+                f"scenario hash: `{target_lab['scenario_contract']['shared_input_sha256']}`."
+            ),
+            mo.ui.table(method_matrix, label="Fine-tuning targets"),
+            mo.ui.table(system_scores, label="Target scores including recovery_success_rate"),
+            mo.ui.table(recovery_rows, label="Recovery turn: behavior_recovery_sql versus others"),
+        ]
+    )
     return
 
 

@@ -304,9 +304,9 @@ def notebook_walkthrough() -> pd.DataFrame:
             },
             {
                 "checkpoint": "04 fine-tuning targets",
-                "reader_question": "Which target should the small model learn: direct SQL, planner-first SQL, semantic state, or DSL first?",
+                "reader_question": "Which target should the small model learn: direct SQL, planner-first SQL, semantic state, DSL first, or behavior/recovery?",
                 "notebook": "notebooks/blog/04_training_iterations.py",
-                "evidence_output": "Strategy table, metric DSL demo, strict runs, value-aware rescoring",
+                "evidence_output": "runnable target lab, strategy table, metric DSL demo, strict runs, value-aware rescoring",
                 "claim_boundary": "Shows current proxy movement and pending method comparisons; no DSL-first win is claimed yet.",
             },
             {
@@ -393,7 +393,11 @@ def target_comparison() -> pd.DataFrame:
             {
                 "fine_tuning_target": "Behavior/recovery tuning",
                 "hypothesis": "A useful agent must clarify, inspect values, repair failures, and recover after its own earlier mistakes.",
-                "current_evidence": "Teacher-forced CoSQL history is supported; generated-history rollout improvement is still pending.",
+                "current_evidence": (
+                    "The shareable lab isolates empty-result repair as a separate "
+                    "behavior; teacher-forced CoSQL history is supported, but "
+                    "generated-history rollout improvement is still pending."
+                ),
                 "claim_status": rollout_status,
                 "next_gate": "Run model-generated-history rollout and compare it with teacher-forced history for the same model.",
             },

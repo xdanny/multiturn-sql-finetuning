@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import sqlite3
 from dataclasses import dataclass
 from typing import Any
@@ -18,6 +20,7 @@ class LabTurn:
     question: str
     reference_sql: str
     context_note: str
+    requires_recovery: bool = False
 
 
 @dataclass(frozen=True)
@@ -28,6 +31,7 @@ class MethodOutput:
     context_carryover: bool
     value_grounded: bool
     measure_preserved: bool
+    recovery_success: bool = False
 
 
 def available_accelerator() -> Accelerator:
@@ -89,6 +93,21 @@ def lab_turns() -> list[LabTurn]:
                 "ORDER BY revenue DESC LIMIT 1"
             ),
             context_note="Follow-up changes grain and carries the France filter forward.",
+        ),
+        LabTurn(
+            turn_id="turn_4",
+            question="That returned no rows. Repair it and show the top customer there.",
+            reference_sql=(
+                "SELECT customers.name, SUM(orders.amount) AS revenue "
+                "FROM orders JOIN customers ON orders.customer_id = customers.id "
+                "WHERE customers.country = 'FR' GROUP BY customers.name "
+                "ORDER BY revenue DESC LIMIT 1"
+            ),
+            context_note=(
+                "Recovery turn: previous SQL used the display value France, returned no "
+                "rows, and needs a value-grounding repair."
+            ),
+            requires_recovery=True,
         ),
     ]
 
@@ -158,17 +177,32 @@ def _direct_sql_baseline(turn: LabTurn) -> MethodOutput:
             value_grounded=False,
             measure_preserved=False,
         )
+    if turn.turn_id == "turn_3":
+        sql = (
+            "SELECT customers.name, SUM(orders.amount) AS revenue "
+            "FROM orders JOIN customers ON orders.customer_id = customers.id "
+            "GROUP BY customers.name ORDER BY revenue DESC LIMIT 1"
+        )
+        return MethodOutput(
+            intermediate_plan="change grain, but forget the France filter",
+            sql=sql,
+            expected_failure="context_carryover",
+            context_carryover=False,
+            value_grounded=True,
+            measure_preserved=False,
+        )
     sql = (
         "SELECT customers.name, SUM(orders.amount) AS revenue "
         "FROM orders JOIN customers ON orders.customer_id = customers.id "
-        "GROUP BY customers.name ORDER BY revenue DESC LIMIT 1"
+        "WHERE customers.country = 'France' GROUP BY customers.name "
+        "ORDER BY revenue DESC LIMIT 1"
     )
     return MethodOutput(
-        intermediate_plan="change grain, but forget the France filter",
+        intermediate_plan="retry failed SQL without reading the empty-result feedback",
         sql=sql,
-        expected_failure="context_carryover",
-        context_carryover=False,
-        value_grounded=True,
+        expected_failure="recovery",
+        context_carryover=True,
+        value_grounded=False,
         measure_preserved=False,
     )
 
@@ -202,6 +236,21 @@ def _planner_first_sql(turn: LabTurn) -> MethodOutput:
             value_grounded=False,
             measure_preserved=False,
         )
+    if turn.turn_id == "turn_3":
+        sql = (
+            "SELECT customers.name, SUM(orders.amount) AS revenue "
+            "FROM orders JOIN customers ON orders.customer_id = customers.id "
+            "WHERE customers.country = 'France' GROUP BY customers.name "
+            "ORDER BY revenue DESC LIMIT 1"
+        )
+        return MethodOutput(
+            intermediate_plan="plan: keep country=France; change grain to customer",
+            sql=sql,
+            expected_failure="value_grounding",
+            context_carryover=True,
+            value_grounded=False,
+            measure_preserved=False,
+        )
     sql = (
         "SELECT customers.name, SUM(orders.amount) AS revenue "
         "FROM orders JOIN customers ON orders.customer_id = customers.id "
@@ -209,9 +258,9 @@ def _planner_first_sql(turn: LabTurn) -> MethodOutput:
         "ORDER BY revenue DESC LIMIT 1"
     )
     return MethodOutput(
-        intermediate_plan="plan: keep country=France; change grain to customer",
+        intermediate_plan="plan: retry customer grain with country=France despite empty result",
         sql=sql,
-        expected_failure="value_grounding",
+        expected_failure="recovery",
         context_carryover=True,
         value_grounded=False,
         measure_preserved=False,
@@ -254,7 +303,11 @@ def _semantic_value_sql(turn: LabTurn) -> MethodOutput:
         "ORDER BY revenue DESC LIMIT 1"
     )
     return MethodOutput(
-        intermediate_plan="semantic state: keep country=FR; grain changes to customer",
+        intermediate_plan=(
+            "semantic state: keep country=FR; grain changes to customer"
+            if turn.turn_id == "turn_3"
+            else "semantic state: recompute with country=FR, but no explicit repair action"
+        ),
         sql=sql,
         expected_failure=None,
         context_carryover=True,
@@ -305,12 +358,74 @@ def _semantic_dsl_planner(turn: LabTurn) -> MethodOutput:
         "ORDER BY revenue DESC LIMIT 1"
     )
     return MethodOutput(
-        intermediate_plan=plan,
+        intermediate_plan=plan
+        if turn.turn_id == "turn_3"
+        else f"{plan}; no explicit empty-result repair step",
         sql=sql,
         expected_failure=None,
         context_carryover=True,
         value_grounded=True,
         measure_preserved=True,
+    )
+
+
+def _behavior_recovery_sql(turn: LabTurn) -> MethodOutput:
+    if turn.turn_id == "turn_1":
+        output = _semantic_dsl_planner(turn)
+        return MethodOutput(
+            intermediate_plan="behavior policy: answer initial metric request with governed metric state",
+            sql=output.sql,
+            expected_failure=None,
+            context_carryover=True,
+            value_grounded=True,
+            measure_preserved=True,
+        )
+    if turn.turn_id == "turn_2":
+        output = _semantic_dsl_planner(turn)
+        return MethodOutput(
+            intermediate_plan="behavior policy: carry state and normalize France to FR before SQL",
+            sql=output.sql,
+            expected_failure=None,
+            context_carryover=True,
+            value_grounded=True,
+            measure_preserved=True,
+        )
+    if turn.turn_id == "turn_3":
+        sql = (
+            "SELECT customers.name, SUM(orders.amount) AS revenue "
+            "FROM orders JOIN customers ON orders.customer_id = customers.id "
+            "WHERE customers.country = 'France' GROUP BY customers.name "
+            "ORDER BY revenue DESC LIMIT 1"
+        )
+        return MethodOutput(
+            intermediate_plan=(
+                "behavior policy before recovery: carries the follow-up state but "
+                "uses display value France, producing an empty result"
+            ),
+            sql=sql,
+            expected_failure="value_grounding",
+            context_carryover=True,
+            value_grounded=False,
+            measure_preserved=True,
+        )
+
+    sql = (
+        "SELECT customers.name, SUM(orders.amount) AS revenue "
+        "FROM orders JOIN customers ON orders.customer_id = customers.id "
+        "WHERE customers.country = 'FR' GROUP BY customers.name "
+        "ORDER BY revenue DESC LIMIT 1"
+    )
+    return MethodOutput(
+        intermediate_plan=(
+            "behavior policy: inspects previous empty result, identifies France/FR "
+            "value mismatch, repairs empty result with country=FR"
+        ),
+        sql=sql,
+        expected_failure=None,
+        context_carryover=True,
+        value_grounded=True,
+        measure_preserved=True,
+        recovery_success=True,
     )
 
 
@@ -321,6 +436,26 @@ def _normalize_rows(rows: list[tuple[Any, ...]]) -> list[tuple[Any, ...]]:
             tuple(round(value, 8) if isinstance(value, float) else value for value in row)
         )
     return normalized
+
+
+def scenario_contract(turns: list[LabTurn]) -> dict[str, Any]:
+    payload = [
+        {
+            "turn_id": turn.turn_id,
+            "question": turn.question,
+            "reference_sql": turn.reference_sql,
+            "context_note": turn.context_note,
+            "requires_recovery": turn.requires_recovery,
+        }
+        for turn in turns
+    ]
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    recovery_turns = [turn.turn_id for turn in turns if turn.requires_recovery]
+    return {
+        "turn_count": len(turns),
+        "recovery_turn_id": recovery_turns[0] if recovery_turns else None,
+        "shared_input_sha256": hashlib.sha256(encoded).hexdigest(),
+    }
 
 
 def run_multiturn_lab() -> dict[str, Any]:
@@ -334,6 +469,7 @@ def run_multiturn_lab() -> dict[str, Any]:
         "planner_first_sql": _planner_first_sql,
         "semantic_value_sql": _semantic_value_sql,
         "semantic_dsl_planner": _semantic_dsl_planner,
+        "behavior_recovery_sql": _behavior_recovery_sql,
     }
     rows: list[dict[str, Any]] = []
 
@@ -349,6 +485,7 @@ def run_multiturn_lab() -> dict[str, Any]:
                         "turn_id": turn.turn_id,
                         "question": turn.question,
                         "context_note": turn.context_note,
+                        "requires_recovery": turn.requires_recovery,
                         "system": system_name,
                         "intermediate_plan": output.intermediate_plan,
                         "sql": output.sql,
@@ -358,6 +495,7 @@ def run_multiturn_lab() -> dict[str, Any]:
                         "context_carryover": output.context_carryover,
                         "value_grounded": output.value_grounded,
                         "measure_preserved": output.measure_preserved,
+                        "recovery_success": output.recovery_success,
                         "failure_type": None if value_match else output.expected_failure,
                     }
                 )
@@ -371,6 +509,8 @@ def run_multiturn_lab() -> dict[str, Any]:
         context_correct = sum(1 for row in system_rows if row["context_carryover"])
         value_grounded = sum(1 for row in system_rows if row["value_grounded"])
         measure_preserved = sum(1 for row in system_rows if row["measure_preserved"])
+        recovery_rows = [row for row in system_rows if row["requires_recovery"]]
+        recovery_success = sum(1 for row in recovery_rows if row["recovery_success"])
         summaries[system_name] = {
             "correct": correct,
             "turns": len(system_rows),
@@ -378,6 +518,9 @@ def run_multiturn_lab() -> dict[str, Any]:
             "context_carryover_accuracy": context_correct / len(system_rows),
             "value_grounding_accuracy": value_grounded / len(system_rows),
             "measure_preservation_rate": measure_preserved / len(system_rows),
+            "recovery_success_rate": (
+                recovery_success / len(recovery_rows) if recovery_rows else 0.0
+            ),
         }
 
     return {
@@ -391,6 +534,7 @@ def run_multiturn_lab() -> dict[str, Any]:
         "rows": rows,
         "systems": summaries,
         "method_matrix": method_matrix(),
+        "scenario_contract": scenario_contract(turns),
     }
 
 
@@ -419,5 +563,11 @@ def method_matrix() -> list[dict[str, str]]:
             "fine_tuning_target": "MEASURE-preserving DSL then SQL",
             "training_signal": "governed metrics and dimensions before SQL compilation",
             "what_it_isolates": "whether metric intent survives before SQL expansion",
+        },
+        {
+            "system": "behavior_recovery_sql",
+            "fine_tuning_target": "execution feedback then repair",
+            "training_signal": "failed result, error class, repair action, and corrected SQL",
+            "what_it_isolates": "whether the model learns to recover after its own failed turn",
         },
     ]
