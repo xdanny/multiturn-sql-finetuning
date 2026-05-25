@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import argparse
+import html
 import json
 from pathlib import Path
 from typing import Any
@@ -9,6 +11,12 @@ from typing import Any
 import pandas as pd
 
 from data.metric_dsl import compile_metric_query, parse_metric_query, score_metric_query
+
+BLOG_EVIDENCE_SOURCES = (
+    "docs/claim_ledgers/cosql_dev_100.jsonl",
+    "docs/planner_baseline_cosql_dev_100_summary.json",
+    "plots/rescored_vllm_semantic_prompt_iteration_100turns/summary.csv",
+)
 
 
 def repo_root() -> Path:
@@ -261,3 +269,165 @@ def metric_dsl_eval_contract() -> pd.DataFrame:
             },
         ]
     )
+
+
+def _write_text(path: Path, text: str) -> str:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+    return str(path.name)
+
+
+def _fmt(value: Any) -> str:
+    if isinstance(value, float):
+        return f"{value:.3f}"
+    if pd.isna(value):
+        return ""
+    return str(value)
+
+
+def _markdown_table(frame: pd.DataFrame) -> str:
+    headers = [str(column) for column in frame.columns]
+    lines = [
+        "| " + " | ".join(headers) + " |",
+        "| " + " | ".join("---" for _ in headers) + " |",
+    ]
+    for _, row in frame.iterrows():
+        cells = [_fmt(row[column]).replace("\n", " ") for column in frame.columns]
+        lines.append("| " + " | ".join(cells) + " |")
+    return "\n".join(lines) + "\n"
+
+
+def _bar_svg(
+    frame: pd.DataFrame,
+    *,
+    title: str,
+    subtitle: str,
+    label_column: str,
+    value_column: str,
+    width: int = 900,
+    height: int = 420,
+) -> str:
+    chart_left = 78
+    chart_top = 94
+    chart_bottom = height - 88
+    chart_width = width - chart_left - 52
+    chart_height = chart_bottom - chart_top
+    bar_gap = 26
+    bar_width = max(34, int((chart_width - bar_gap * (len(frame) - 1)) / len(frame)))
+    max_value = max(1.0, float(frame[value_column].max()))
+    parts = [
+        '<svg xmlns="http://www.w3.org/2000/svg" '
+        f'viewBox="0 0 {width} {height}" role="img">',
+        f"<title>{html.escape(title)}</title>",
+        '<rect width="100%" height="100%" fill="#fff"/>',
+        (
+            f'<text x="34" y="38" font-family="Arial, sans-serif" '
+            f'font-size="24" font-weight="700" fill="#111">{html.escape(title)}</text>'
+        ),
+        (
+            f'<text x="34" y="64" font-family="Arial, sans-serif" '
+            f'font-size="14" fill="#555">{html.escape(subtitle)}</text>'
+        ),
+        (
+            f'<line x1="{chart_left}" y1="{chart_bottom}" '
+            f'x2="{width - 36}" y2="{chart_bottom}" stroke="#222"/>'
+        ),
+        (
+            f'<line x1="{chart_left}" y1="{chart_top}" '
+            f'x2="{chart_left}" y2="{chart_bottom}" stroke="#222"/>'
+        ),
+    ]
+    for tick in (0.25, 0.5, 0.75, 1.0):
+        y = chart_bottom - int(chart_height * tick / max_value)
+        parts.append(
+            f'<line x1="{chart_left}" y1="{y}" x2="{width - 36}" y2="{y}" '
+            'stroke="#e8e8e8"/>'
+        )
+        parts.append(
+            f'<text x="34" y="{y + 4}" font-family="Arial, sans-serif" '
+            f'font-size="12" fill="#777">{tick:.2f}</text>'
+        )
+
+    for index, row in frame.reset_index(drop=True).iterrows():
+        value = float(row[value_column])
+        x = chart_left + 34 + index * (bar_width + bar_gap)
+        bar_height = int(chart_height * value / max_value)
+        y = chart_bottom - bar_height
+        label = str(row[label_column])
+        fill = "#222" if index < 3 else "#bdbdbd"
+        parts.extend(
+            [
+                f'<rect x="{x}" y="{y}" width="{bar_width}" height="{bar_height}" fill="{fill}"/>',
+                (
+                    f'<text x="{x}" y="{y - 8}" font-family="Arial, sans-serif" '
+                    f'font-size="13" font-weight="700" fill="#111">{value:.3f}</text>'
+                ),
+                (
+                    f'<text x="{x}" y="{chart_bottom + 24}" font-family="Arial, sans-serif" '
+                    f'font-size="12" fill="#222">{html.escape(label[:24])}</text>'
+                ),
+            ]
+        )
+    parts.append("</svg>")
+    return "\n".join(parts) + "\n"
+
+
+def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -> dict[str, Any]:
+    """Write publishable notebook-backed evidence assets for the blog post."""
+
+    output = Path(output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+
+    scores = accuracy_scorecard()
+    planner = planner_scorecard()
+    claims = claim_table()
+    metric_contract = metric_dsl_eval_contract()
+
+    assets = {
+        "accuracy_ladder_svg": _write_text(
+            output / "accuracy-ladder.svg",
+            _bar_svg(
+                scores,
+                title="Proxy SQL accuracy ladder",
+                subtitle="Fixed 100-turn CoSQL slice. Grey bars are oracle diagnostics.",
+                label_column="run",
+                value_column="score",
+            ),
+        ),
+        "planner_baseline_svg": _write_text(
+            output / "planner-baseline.svg",
+            _bar_svg(
+                planner,
+                title="Planner baseline scores",
+                subtitle="Lexical non-oracle planner on the same CoSQL proxy slice.",
+                label_column="metric",
+                value_column="score",
+            ),
+        ),
+        "claim_table_md": _write_text(output / "claim-table.md", _markdown_table(claims)),
+        "metric_dsl_contract_md": _write_text(
+            output / "metric-dsl-contract.md",
+            _markdown_table(metric_contract),
+        ),
+    }
+    manifest = {
+        "schema_version": 1,
+        "source_repo": "multiturn-sql-finetuning",
+        "source_artifacts": list(BLOG_EVIDENCE_SOURCES),
+        "assets": assets,
+    }
+    (output / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    return manifest
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--output-dir", type=Path, default=Path("docs/blog/generated"))
+    args = parser.parse_args()
+    manifest = export_blog_evidence(args.output_dir)
+    print(f"Wrote {len(manifest['assets'])} blog evidence assets to {args.output_dir}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,15 @@
+{
+  "assets": {
+    "accuracy_ladder_svg": "accuracy-ladder.svg",
+    "claim_table_md": "claim-table.md",
+    "metric_dsl_contract_md": "metric-dsl-contract.md",
+    "planner_baseline_svg": "planner-baseline.svg"
+  },
+  "schema_version": 1,
+  "source_artifacts": [
+    "docs/claim_ledgers/cosql_dev_100.jsonl",
+    "docs/planner_baseline_cosql_dev_100_summary.json",
+    "plots/rescored_vllm_semantic_prompt_iteration_100turns/summary.csv"
+  ],
+  "source_repo": "multiturn-sql-finetuning"
+}

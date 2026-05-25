@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import ast
+import json
 from pathlib import Path
 
 from notebooks.blog_support import (
     accuracy_scorecard,
     claim_table,
+    export_blog_evidence,
     metric_dsl_demo,
     metric_dsl_eval_contract,
     planner_scorecard,
@@ -79,3 +81,50 @@ def test_notebook_support_loads_current_artifacts() -> None:
         "metric_dsl_value_delta_vs_direct_sql",
     }
     assert set(metric_contract["status"]) == {"pending_manifest", "pending_comparison"}
+
+
+def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
+    manifest = export_blog_evidence(tmp_path)
+
+    assert manifest["schema_version"] == 1
+    assert manifest["source_repo"] == "multiturn-sql-finetuning"
+    assert set(manifest["assets"]) == {
+        "accuracy_ladder_svg",
+        "planner_baseline_svg",
+        "claim_table_md",
+        "metric_dsl_contract_md",
+    }
+    assert set(manifest["source_artifacts"]) >= {
+        "docs/claim_ledgers/cosql_dev_100.jsonl",
+        "docs/planner_baseline_cosql_dev_100_summary.json",
+    }
+
+    accuracy_svg = (tmp_path / manifest["assets"]["accuracy_ladder_svg"]).read_text()
+    assert "Best non-oracle prompt" in accuracy_svg
+    assert "0.640" in accuracy_svg
+    assert "Oracle-trained ceiling" in accuracy_svg
+
+    planner_svg = (tmp_path / manifest["assets"]["planner_baseline_svg"]).read_text()
+    assert "Planner baseline" in planner_svg
+    assert "column_f1" in planner_svg
+    assert "0.117" in planner_svg
+
+    claim_table_md = (tmp_path / manifest["assets"]["claim_table_md"]).read_text()
+    assert "metric_dsl_beats_direct_sql" in claim_table_md
+    assert "pending" in claim_table_md
+
+    metric_table_md = (tmp_path / manifest["assets"]["metric_dsl_contract_md"]).read_text()
+    assert "metric_dsl_value_delta_vs_direct_sql" in metric_table_md
+    assert "pending_comparison" in metric_table_md
+
+
+def test_checked_in_blog_evidence_assets_are_current(tmp_path) -> None:
+    manifest = export_blog_evidence(tmp_path)
+    checked_in_dir = REPO_ROOT / "docs" / "blog" / "generated"
+
+    assert (checked_in_dir / "manifest.json").exists()
+    checked_in_manifest = json.loads((checked_in_dir / "manifest.json").read_text())
+    assert checked_in_manifest == manifest
+
+    for asset_path in manifest["assets"].values():
+        assert (checked_in_dir / asset_path).read_text() == (tmp_path / asset_path).read_text()

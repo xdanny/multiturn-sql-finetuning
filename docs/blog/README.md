@@ -14,6 +14,24 @@ compiled with:
 python -m py_compile notebooks/blog/01_problem_and_result.py
 ```
 
+Publishable evidence assets are generated from the same notebook support loaders:
+
+```bash
+python -m notebooks.blog_support --output-dir docs/blog/generated
+```
+
+Tracked outputs:
+
+- `docs/blog/generated/accuracy-ladder.svg`
+- `docs/blog/generated/planner-baseline.svg`
+- `docs/blog/generated/claim-table.md`
+- `docs/blog/generated/metric-dsl-contract.md`
+- `docs/blog/generated/manifest.json`
+
+`tests/test_blog_notebooks.py` compares the checked-in generated files against a
+fresh export, so the public blog cannot silently drift away from the current
+claim ledger and planner artifacts.
+
 | Chapter | Markdown | Notebook |
 | --- | --- | --- |
 | 01 | `docs/blog/01_problem_and_result.md` | `notebooks/blog/01_problem_and_result.py` |
