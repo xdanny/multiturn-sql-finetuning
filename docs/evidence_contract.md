@@ -19,14 +19,42 @@ enter the prompt only in `oracle_planner_diagnostic`.
 
 ## Claim Ledger
 
+The claim ledger turns this contract into a checked artifact. It reads result
+manifests, verifies referenced hashes, scans input/output rows for oracle
+planning leakage, joins classified failure counts, and writes one row per
+claimable artifact plus explicit pending rows for missing evidence:
+
+```bash
+python -m eval.claim_ledger
+```
+
+Tracked outputs:
+
+- `docs/claim_ledgers/cosql_dev_100.jsonl`
+- `docs/claim_ledgers/cosql_dev_100_summary.csv`
+
+The current ledger is intentionally conservative:
+
+- non-oracle CoSQL results are `supported_proxy`;
+- oracle-planner rows are `diagnostic_upper_bound`;
+- planner summaries are `supported_planner_quality`, not SQL accuracy;
+- predicted-planner SQL execution, hosted/SOTA comparison, and BIRD-Interact
+  comparison remain `pending` until same-protocol result manifests exist.
+
+Any hash mismatch, missing manifest field, non-oracle oracle marker, or
+predicted-planner manifest whose output rows are not also marked
+`predicted_planner` is downgraded to `pending` with a blocker.
+
+## Claim Ledger Rows
+
 | Claim | Status | Artifact | Mode | Allowed in blog |
 | --- | --- | --- | --- | --- |
-| Base local Qwen 3.5 9B reaches `0.370` strict and `0.590` value accuracy on the fixed CoSQL proxy turns. | Supported | `docs/result_manifests/cosql_dev_100_proxy.json` | `non_oracle_generation` | Yes, as a proxy result. |
-| The 100-step LoRA reaches `0.530` strict and `0.630` value accuracy on the same proxy turns. | Supported | `docs/result_manifests/cosql_dev_100_proxy.json` | `non_oracle_generation` | Yes, as a proxy result. |
-| The best non-oracle prompt/result currently reaches `0.640` value accuracy. | Supported | `docs/result_manifests/cosql_dev_100_proxy.json` | `non_oracle_generation` | Yes, if labeled value-only. |
-| A prompt-only oracle diagnostic reaches `0.850` value accuracy. | Supported | `docs/result_manifests/cosql_dev_100_proxy.json` | `oracle_planner_diagnostic` | Yes, only as a ceiling test. |
-| Gold SQL-derived planning hints can push the best diagnostic run to `0.890` value accuracy. | Supported | `docs/result_manifests/cosql_dev_100_proxy.json` | `oracle_planner_diagnostic` | Yes, only as a ceiling test. |
-| The lexical planner baseline has macro score `0.571`, table F1 `0.599`, column F1 `0.117`, and skeleton F1 `0.648`. | Supported | `docs/planner_baseline_cosql_dev_100_summary.json` | planner scoring | Yes, as planner quality, not SQL accuracy. |
+| Base local Qwen 3.5 9B reaches `0.370` strict and `0.590` value accuracy on the fixed CoSQL proxy turns. | `supported_proxy` | `docs/result_manifests/cosql_dev_100_proxy.json` | `non_oracle_generation` | Yes, as a proxy result. |
+| The 100-step LoRA reaches `0.530` strict and `0.630` value accuracy on the same proxy turns. | `supported_proxy` | `docs/result_manifests/cosql_dev_100_proxy.json` | `non_oracle_generation` | Yes, as a proxy result. |
+| The best non-oracle prompt/result currently reaches `0.640` value accuracy. | `supported_proxy` | `docs/result_manifests/cosql_dev_100_proxy.json` | `non_oracle_generation` | Yes, if labeled value-only. |
+| A prompt-only oracle diagnostic reaches `0.850` value accuracy. | `diagnostic_upper_bound` | `docs/result_manifests/cosql_dev_100_proxy.json` | `oracle_planner_diagnostic` | Yes, only as a ceiling test. |
+| Gold SQL-derived planning hints can push the best diagnostic run to `0.890` value accuracy. | `diagnostic_upper_bound` | `docs/result_manifests/cosql_dev_100_proxy.json` | `oracle_planner_diagnostic` | Yes, only as a ceiling test. |
+| The lexical planner baseline has macro score `0.571`, table F1 `0.599`, column F1 `0.117`, and skeleton F1 `0.648`. | `supported_planner_quality` | `docs/planner_baseline_cosql_dev_100_summary.json` | planner scoring | Yes, as planner quality, not SQL accuracy. |
 | A non-oracle predicted planner improves SQL execution. | Pending | `data/processed/eval_cosql_dev_predicted_planner_100.jsonl` can now be generated | `predicted_planner` | No, until endpoint SQL results exist. |
 | Local 9B competes with hosted large models. | Pending | none | not run | No. |
 | Local 9B competes on real BIRD-Interact/Multi-BIRD. | Pending | none | not run | No. |

@@ -35,6 +35,10 @@ This repo is now organized around verified, runnable gates:
 - Training consumes prepared JSONL and supports bounded smoke tests with `--max-steps`.
 - Evaluation compares base and fine-tuned models through either a local Transformers runner or an OpenAI-compatible endpoint.
 - Endpoint evaluation writes a manifest that records the input hash, output hash, model, mode, command, and metrics behind each reported number.
+- The claim ledger in `docs/claim_ledgers/` verifies those manifests, marks
+  non-oracle CoSQL results as proxy-only, marks oracle rows as diagnostics, and
+  keeps predicted-planner SQL, hosted baselines, and BIRD-Interact claims
+  pending until matching artifacts exist.
 - Tests cover dataset formatting, training-data validation, SQL scoring, result loading, and plotting.
 - vLLM serving is verified in a separate `.venv-vllm` environment on WSL2 + RTX 5090.
 - The best oracle-conditioned endpoint run is the schema-pruned 100-step LoRA adapter at `0.890` value accuracy, `0.820` strict accuracy, and `1.000` syntax accuracy on the fixed 100-turn CoSQL dev slice. That run is a diagnostic upper bound because the planning hints are derived from gold/reference SQL.
