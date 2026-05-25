@@ -175,6 +175,32 @@ def test_compare_predicted_planner_manifests_rejects_mismatched_rows() -> None:
         )
 
 
+def test_compare_predicted_planner_manifests_rejects_duplicate_predicted_identities() -> None:
+    predicted_rows = _rows("predicted_planner")
+    predicted_rows[1] = dict(predicted_rows[0])
+
+    with pytest.raises(ValueError, match="duplicate predicted-planner row identity"):
+        compare_predicted_planner_manifests(
+            predicted_manifest=_predicted_manifest(),
+            direct_manifest=_direct_manifest(),
+            predicted_rows=predicted_rows,
+            direct_rows=_rows("non_oracle_generation"),
+        )
+
+
+def test_compare_predicted_planner_manifests_rejects_duplicate_direct_identities() -> None:
+    direct_rows = _rows("non_oracle_generation")
+    direct_rows[1] = dict(direct_rows[0])
+
+    with pytest.raises(ValueError, match="duplicate direct SQL row identity"):
+        compare_predicted_planner_manifests(
+            predicted_manifest=_predicted_manifest(),
+            direct_manifest=_direct_manifest(),
+            predicted_rows=_rows("predicted_planner"),
+            direct_rows=direct_rows,
+        )
+
+
 def test_compare_predicted_planner_manifests_requires_database_id_identity() -> None:
     predicted_rows = _rows("predicted_planner")
     predicted_rows[0].pop("database_id")

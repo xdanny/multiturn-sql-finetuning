@@ -89,6 +89,18 @@ def _validate_manifest_row_count(
         raise ValueError(f"{label} manifest row_count does not match output rows")
 
 
+def _reject_duplicate_identities(
+    identities: list[tuple[str, str, str, str]],
+    *,
+    label: str,
+) -> None:
+    seen = set()
+    for identity in identities:
+        if identity in seen:
+            raise ValueError(f"duplicate {label} row identity")
+        seen.add(identity)
+
+
 def _validate_rows(
     *,
     predicted_manifest: dict[str, Any],
@@ -111,6 +123,8 @@ def _validate_rows(
 
     predicted_identities = [_row_identity(row) for row in predicted_rows]
     direct_identities = [_row_identity(row) for row in direct_rows]
+    _reject_duplicate_identities(predicted_identities, label="predicted-planner")
+    _reject_duplicate_identities(direct_identities, label="direct SQL")
     if predicted_identities != direct_identities:
         raise ValueError("predicted-planner and direct SQL row identity mismatch")
 

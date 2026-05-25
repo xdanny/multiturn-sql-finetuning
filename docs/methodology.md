@@ -153,6 +153,13 @@ The first implemented planner is a lexical baseline. It is intentionally weak
 and inspectable. Its purpose is to create a scoring surface before building a
 stronger planner, not to claim the planner problem is solved.
 
+Stronger planners should enter through the same contract rather than through
+ad hoc prompt edits. `eval.planner_eval` can read JSON planner predictions keyed
+by expanded turn id, score them against gold SQL-derived labels, and write a
+`predicted_planner` prepared artifact for endpoint SQL evaluation. The loader
+checks raw planner output for oracle provenance before any normalized plan can
+enter the SQL prompt.
+
 Predicted-planner SQL execution is compared against direct SQL, not judged in
 isolation. A raw `predicted_planner` manifest proves only that the planner path
 ran. The repo requires a comparison artifact from `eval.compare_predicted_planner`

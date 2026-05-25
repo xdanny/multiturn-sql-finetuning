@@ -8,6 +8,8 @@ from data.plan_contract import (
     PREDICTED_PLANNER,
     evaluation_mode_from_flags,
     normalize_plan,
+    predicted_planning_hint_from_plan,
+    validate_predicted_plan_for_prompt,
     validate_prepared_record_contract,
 )
 
@@ -99,3 +101,55 @@ def test_validate_prepared_record_contract_rejects_predicted_mode_without_predic
 
     with pytest.raises(ValueError, match="predicted planner"):
         validate_prepared_record_contract(record)
+
+
+def test_validate_predicted_plan_for_prompt_rejects_empty_plan() -> None:
+    with pytest.raises(ValueError, match="relevant table or column"):
+        validate_predicted_plan_for_prompt({"query_skeleton": {"select": True}})
+
+
+def test_validate_predicted_plan_for_prompt_rejects_oracle_markers() -> None:
+    with pytest.raises(ValueError, match="oracle"):
+        validate_predicted_plan_for_prompt(
+            {
+                "prediction_source": "gold_reference_sql_planner",
+                "relevant_tables": ["airlines"],
+                "query_skeleton": {"select": True},
+                "projection_shape": {"selected_count": 1},
+            }
+        )
+
+
+def test_predicted_planning_hint_validates_plan_before_prompt_injection() -> None:
+    hint = predicted_planning_hint_from_plan(
+        {
+            "prediction_source": "json_planner_predictions",
+            "relevant_tables": ["Airlines"],
+            "relevant_columns": ["Airlines.Name"],
+            "query_skeleton": {"select": True},
+            "projection_shape": {
+                "selected_count": 1,
+                "selected_expressions": ["Airlines.Name"],
+                "preserve_duplicates": True,
+            },
+        }
+    )
+
+    assert "Predicted SQL plan" in hint
+    assert "Relevant tables: airlines" in hint
+    assert "Relevant columns: airlines.name" in hint
+
+    with pytest.raises(ValueError, match="relevant table or column"):
+        predicted_planning_hint_from_plan({})
+
+
+def test_predicted_planning_hint_accepts_legacy_minimal_predicted_plan() -> None:
+    hint = predicted_planning_hint_from_plan(
+        {
+            "relevant_tables": ["Orders"],
+            "projection_shape": {"selected_count": 1},
+        }
+    )
+
+    assert "Relevant tables: orders" in hint
+    assert "Query skeleton: select" in hint

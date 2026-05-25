@@ -115,6 +115,9 @@ def expand_prepared_record(record: dict[str, Any], *, index: int) -> list[dict[s
     turn_count = len(assistant_indices)
     expanded = []
     for turn_index, assistant_index in enumerate(assistant_indices):
+        predicted_plan = (
+            predicted_plans[turn_index] if turn_index < len(predicted_plans) else None
+        )
         expanded.append(
             {
                 "id": f"{dialog_id}:{turn_index}",
@@ -132,9 +135,12 @@ def expand_prepared_record(record: dict[str, Any], *, index: int) -> list[dict[s
                 "semantic_context_pruned_by_oracle_labels": semantic_context_pruned_by_oracle_labels,
                 "oracle_diagnostic_warning": record.get("oracle_diagnostic_warning"),
                 "gold_plan": gold_plans[turn_index] if turn_index < len(gold_plans) else None,
-                "predicted_plan": predicted_plans[turn_index]
-                if turn_index < len(predicted_plans)
-                else None,
+                "predicted_plan": predicted_plan,
+                "predicted_plan_source": (
+                    predicted_plan.get("prediction_source")
+                    if isinstance(predicted_plan, dict) and predicted_plan.get("prediction_source")
+                    else record.get("predicted_plan_source")
+                ),
                 "schema_link_labels": schema_link_labels[turn_index]
                 if turn_index < len(schema_link_labels)
                 else None,

@@ -147,6 +147,26 @@ python -m eval.planner_eval \
   --summary-output results/planner_eval_cosql_dev_100_summary.json
 ```
 
+The same command can consume externally generated JSON planner predictions once
+an endpoint or DSPy program writes one JSONL row per expanded turn id
+(`dialog_id:turn_index`):
+
+```bash
+python -m eval.planner_eval \
+  --input data/processed/eval_cosql_dev_100.jsonl \
+  --limit 100 \
+  --planner-source json_planner_predictions \
+  --planner-predictions results/planner_predictions/<run-id>.jsonl \
+  --predicted-prepared-output data/processed/eval_cosql_dev_predicted_planner_100.jsonl \
+  --output results/planner_eval_cosql_dev_100.jsonl \
+  --summary-output results/planner_eval_cosql_dev_100_summary.json
+```
+
+JSON planner predictions are normalized into the same plan contract, but raw
+unknown fields are still scanned before prompt injection so oracle provenance
+such as `gold_reference_sql` or `derived from reference sql` cannot be hidden by
+normalization.
+
 This produces:
 
 - `gold_plan`: normalized labels extracted from reference SQL, used only for

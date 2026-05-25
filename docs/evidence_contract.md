@@ -113,6 +113,12 @@ matching row identities. The claim ledger clears
 beats the direct-SQL value accuracy and the referenced direct-SQL manifest is
 present in the same ledger input.
 
+For non-lexical planners, write JSONL predictions keyed by expanded turn id and
+run `eval.planner_eval --planner-source json_planner_predictions
+--planner-predictions <path>`. The planner loader preserves raw unknown fields
+long enough to reject oracle provenance markers before writing a predicted
+prepared artifact.
+
 Evaluate a `MEASURE()`-preserving metric DSL:
 
 ```bash

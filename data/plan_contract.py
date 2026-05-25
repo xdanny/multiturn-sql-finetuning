@@ -31,6 +31,13 @@ SKELETON_FIELDS = (
     "nested",
     "distinct",
 )
+ORACLE_PLAN_MARKERS = (
+    "oracle sql planning hints",
+    "sql planning hints:",
+    "gold_reference_sql",
+    "derived from reference sql",
+    "pruned by oracle labels",
+)
 
 
 def _normalize_identifier(value: Any) -> str:
@@ -66,6 +73,49 @@ def normalize_plan(plan: dict[str, Any] | None) -> dict[str, Any]:
             "preserve_duplicates": bool(projection.get("preserve_duplicates", True)),
         },
     }
+
+
+def _iter_string_values(value: Any) -> Iterable[str]:
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from _iter_string_values(item)
+    elif isinstance(value, list | tuple | set):
+        for item in value:
+            yield from _iter_string_values(item)
+
+
+def predicted_plan_uses_oracle_markers(plan: dict[str, Any]) -> bool:
+    """Return true when a predicted plan carries answer-key provenance markers."""
+
+    if plan.get("uses_oracle_planning_hints") or plan.get(
+        "semantic_context_pruned_by_oracle_labels"
+    ):
+        return True
+    for value in _iter_string_values(plan):
+        lowered = " ".join(value.lower().split())
+        if any(marker in lowered for marker in ORACLE_PLAN_MARKERS):
+            return True
+    return False
+
+
+def validate_predicted_plan_for_prompt(plan: dict[str, Any]) -> dict[str, Any]:
+    """Validate a non-oracle predicted plan before it can enter a SQL prompt."""
+
+    if not isinstance(plan, dict):
+        raise ValueError("predicted planner output must be a JSON object")
+    if predicted_plan_uses_oracle_markers(plan):
+        raise ValueError("predicted planner output contains oracle provenance markers")
+
+    normalized = normalize_plan(plan)
+    if not normalized["parseable"]:
+        raise ValueError("predicted planner output must be parseable before prompt injection")
+    if not (normalized["relevant_tables"] or normalized["relevant_columns"]):
+        raise ValueError("predicted planner output must include a relevant table or column")
+    if normalized["projection_shape"]["selected_count"] < 1:
+        raise ValueError("predicted planner output must include projection selected_count")
+    return normalized
 
 
 def evaluation_mode_from_flags(
@@ -123,7 +173,7 @@ def validate_prepared_record_contract(record: dict[str, Any]) -> None:
 def predicted_planning_hint_from_plan(plan: dict[str, Any]) -> str:
     """Format non-oracle planner output as prompt context."""
 
-    normalized = normalize_plan(plan)
+    normalized = validate_predicted_plan_for_prompt(plan)
     skeleton = normalized["query_skeleton"]
     projection = normalized["projection_shape"]
     skeleton_flags = [name for name, enabled in skeleton.items() if enabled]

@@ -77,9 +77,10 @@ def test_load_prepared_records_expands_multi_turn_dialogs(tmp_path) -> None:
                     {"relevant_tables": ["two"], "projection_shape": {"selected_count": 1}},
                 ],
                 "predicted_plans": [
-                    {"relevant_tables": ["one"]},
-                    {"relevant_tables": ["wrong"]},
+                    {"prediction_source": "json_planner_predictions", "relevant_tables": ["one"]},
+                    {"prediction_source": "json_planner_predictions", "relevant_tables": ["wrong"]},
                 ],
+                "predicted_plan_source": "json_planner_predictions",
                 "messages": [
                     {"role": "system", "content": "sys"},
                     {"role": "user", "content": "q1"},
@@ -114,6 +115,8 @@ def test_load_prepared_records_expands_multi_turn_dialogs(tmp_path) -> None:
     assert records[1]["gold_plan"]["relevant_tables"] == ["two"]
     assert records[0]["predicted_plan"]["relevant_tables"] == ["one"]
     assert records[1]["predicted_plan"]["relevant_tables"] == ["wrong"]
+    assert records[0]["predicted_plan_source"] == "json_planner_predictions"
+    assert records[1]["predicted_plan_source"] == "json_planner_predictions"
 
 
 def test_load_prepared_records_rejects_legacy_oracle_hint_marker(tmp_path) -> None:
@@ -222,6 +225,20 @@ def test_expand_prepared_record_uses_stable_fallback_dialog_id() -> None:
 
     assert records[0]["dialog_id"] == "prepared-7"
     assert records[0]["id"] == "prepared-7:0"
+
+
+def test_messages_for_generation_rejects_empty_predicted_plan() -> None:
+    record = {
+        "messages": [
+            {"role": "system", "content": "sys"},
+            {"role": "user", "content": "List airline names."},
+        ],
+        "evaluation_mode": "predicted_planner",
+        "predicted_plan": {"query_skeleton": {"select": True}},
+    }
+
+    with pytest.raises(ValueError, match="relevant table or column"):
+        messages_for_generation(record)
 
 
 def test_write_results_writes_jsonl(tmp_path) -> None:
