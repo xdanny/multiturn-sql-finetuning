@@ -3,7 +3,12 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from notebooks.blog_support import accuracy_scorecard, planner_scorecard, semantic_strategy_table
+from notebooks.blog_support import (
+    accuracy_scorecard,
+    metric_dsl_demo,
+    planner_scorecard,
+    semantic_strategy_table,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -46,3 +51,7 @@ def test_notebook_support_loads_current_artifacts() -> None:
 
     strategies = semantic_strategy_table()
     assert "Semantic layer / MEASURE() preservation" in set(strategies["strategy"])
+
+    demo = metric_dsl_demo()
+    assert "SUM(orders.amount) AS revenue" in demo["compiled_sql"]
+    assert demo["raw_sql_like_score"]["measure_preservation"] == 0.0

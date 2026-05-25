@@ -9,9 +9,9 @@ def _():
     import marimo as mo
     import pandas as pd
 
-    from notebooks.blog_support import planner_scorecard, read_csv_artifact
+    from notebooks.blog_support import metric_dsl_demo, planner_scorecard, read_csv_artifact
 
-    return mo, pd, planner_scorecard, read_csv_artifact
+    return metric_dsl_demo, mo, pd, planner_scorecard, read_csv_artifact
 
 
 @app.cell
@@ -66,6 +66,22 @@ def _(mo, pd):
         ]
     )
     mo.ui.table(artifacts, label="Next data artifacts")
+    return
+
+
+@app.cell
+def _(metric_dsl_demo, mo):
+    demo = metric_dsl_demo()
+    mo.vstack(
+        [
+            mo.md("## MEASURE() preservation as an eval target"),
+            mo.md(
+                "The model should be able to emit `MEASURE(revenue)` as semantic intent, "
+                "then let the semantic model expand that metric at the SQL boundary."
+            ),
+            mo.md(f"```sql\n{demo['compiled_sql']}\n```"),
+        ]
+    )
     return
 
 

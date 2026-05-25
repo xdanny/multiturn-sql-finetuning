@@ -15,6 +15,9 @@ fine-tuning methods this repo should compare: direct SQL SFT, planner/DSL first
 then SQL, semantic-layer tuning, `MEASURE()`-preserving metric DSLs, and
 behavior/recovery tuning.
 
+The first metric-DSL experiment surface is documented in
+`docs/metric_dsl_contract.md` and implemented in `data.metric_dsl`.
+
 > Oracle diagnostic: the `0.890` schema-pruned result uses gold SQL-derived
 > planning hints in the eval prompt. It is an upper bound for the
 > schema-linking/planning layer, not a production evaluation. Production-style

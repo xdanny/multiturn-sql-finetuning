@@ -70,3 +70,16 @@ The notebooks are intentionally lightweight at first. Expensive model serving an
 training stay in scripts, while notebooks read tracked manifests, summaries, results,
 and failure taxonomies. As the project matures, each notebook can grow from analysis
 artifact into a reproducible evaluation app.
+
+## First DSL Experiment Surface
+
+The first implementation slice is the metric DSL in `data.metric_dsl`. It is small on
+purpose: parse `MEASURE(...)` intent, compile it through a semantic model, and score
+whether a model preserved the governed metric rather than expanding raw SQL too early.
+
+This gives the next fine-tuning run a concrete target:
+
+1. Train direct SQL.
+2. Train metric DSL first.
+3. Compile DSL to SQL through the same semantic model.
+4. Compare both execution accuracy and semantic-intent scores.

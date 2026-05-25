@@ -8,6 +8,8 @@ from typing import Any
 
 import pandas as pd
 
+from data.metric_dsl import compile_metric_query, parse_metric_query, score_metric_query
+
 
 def repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
@@ -161,3 +163,35 @@ def semantic_strategy_table() -> pd.DataFrame:
             },
         ]
     )
+
+
+def metric_dsl_demo() -> dict[str, Any]:
+    semantic_model = {
+        "base_table": "orders",
+        "measures": {
+            "revenue": {"sql": "SUM(orders.amount)"},
+            "orders_count": {"sql": "COUNT(DISTINCT orders.id)"},
+        },
+        "dimensions": {
+            "customer_country": {"sql": "customers.country"},
+            "order_month": {"sql": "strftime('%Y-%m', orders.created_at)"},
+        },
+        "joins": [
+            {
+                "table": "customers",
+                "sql_on": "orders.customer_id = customers.id",
+                "required_by": ["customer_country"],
+            }
+        ],
+    }
+    gold = parse_metric_query(
+        "MEASURE(revenue) BY customer_country WHERE customer_country = 'FR' "
+        "ORDER BY MEASURE(revenue) DESC LIMIT 5"
+    )
+    raw_sql_like = parse_metric_query("SUM(orders.amount) BY customer_country")
+    return {
+        "semantic_model": semantic_model,
+        "gold_query": gold,
+        "compiled_sql": compile_metric_query(gold, semantic_model),
+        "raw_sql_like_score": score_metric_query(raw_sql_like, gold),
+    }

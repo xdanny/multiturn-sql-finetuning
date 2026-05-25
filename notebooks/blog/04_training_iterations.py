@@ -9,9 +9,9 @@ def _():
     import marimo as mo
     import matplotlib.pyplot as plt
 
-    from notebooks.blog_support import read_csv_artifact, semantic_strategy_table
+    from notebooks.blog_support import metric_dsl_demo, read_csv_artifact, semantic_strategy_table
 
-    return mo, plt, read_csv_artifact, semantic_strategy_table
+    return metric_dsl_demo, mo, plt, read_csv_artifact, semantic_strategy_table
 
 
 @app.cell
@@ -31,6 +31,25 @@ def _(mo):
 @app.cell
 def _(mo, semantic_strategy_table):
     mo.ui.table(semantic_strategy_table(), label="Candidate fine-tuning strategies")
+    return
+
+
+@app.cell
+def _(metric_dsl_demo, mo):
+    demo = metric_dsl_demo()
+    mo.vstack(
+        [
+            mo.md("## DSL-first metric example"),
+            mo.md(f"`{demo['gold_query']}`"),
+            mo.md("Compiled SQL after semantic validation:"),
+            mo.md(f"```sql\n{demo['compiled_sql']}\n```"),
+            mo.md(
+                "A raw `SUM(orders.amount)` prediction gets "
+                f"`measure_preservation={demo['raw_sql_like_score']['measure_preservation']}` "
+                "because it skipped the governed `MEASURE(revenue)` token."
+            ),
+        ]
+    )
     return
 
 

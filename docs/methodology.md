@@ -81,6 +81,10 @@ The next strategy table should be more ambitious than these early runs:
 | `MEASURE()`-preserving metric DSL | Should the model preserve governed metrics until a compiler expands them to SQL? |
 | Behavior/recovery tuning | Can the model learn when to clarify, inspect values, repair SQL, and recover after its own previous mistakes? |
 
+The first `MEASURE()` experiment surface is implemented in `data.metric_dsl` and
+documented in `docs/metric_dsl_contract.md`. It scores semantic intent before SQL
+execution so metric preservation can be compared against direct SQL generation.
+
 The `weight` field in dataset configs is metadata for experiment design today;
 current preparation caps each configured source with `--limit` and does not yet
 perform weighted sampling. A larger training run should replace per-source caps
