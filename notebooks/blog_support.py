@@ -20,6 +20,8 @@ BLOG_EVIDENCE_SOURCES = (
     "docs/claim_ledgers/cosql_dev_100.jsonl",
     "docs/planner_baseline_cosql_dev_100_summary.json",
     "plots/rescored_vllm_semantic_prompt_iteration_100turns/summary.csv",
+    "results/prompt_search_semantic50_limit30/summary.csv",
+    "results/prompt_search_schema_pruned_projection_schemafix_100/summary.csv",
 )
 
 
@@ -653,6 +655,81 @@ def data_engineering_gates() -> pd.DataFrame:
     )
 
 
+def _prompt_summary_row(relative_path: str) -> dict[str, Any]:
+    summary = read_csv_artifact(relative_path)
+    if summary.empty:
+        raise ValueError(f"Prompt summary is empty: {relative_path}")
+    best = summary.sort_values(
+        by=["accuracy", "syntax_accuracy"],
+        ascending=[False, False],
+    ).iloc[0]
+    dspy_rows = summary[summary["prompt_variant_source"] == "dspy"]
+    best_dspy_accuracy = None
+    if not dspy_rows.empty:
+        best_dspy_accuracy = float(dspy_rows["accuracy"].max())
+    return {
+        "best_variant": str(best["prompt_variant"]),
+        "best_source": str(best["prompt_variant_source"]),
+        "best_accuracy": float(best["accuracy"]),
+        "best_dspy_accuracy": best_dspy_accuracy,
+        "samples": int(best["samples"]),
+    }
+
+
+def prompt_optimization_findings() -> pd.DataFrame:
+    smoke_path = "results/prompt_search_semantic50_limit30/summary.csv"
+    oracle_path = "results/prompt_search_schema_pruned_projection_schemafix_100/summary.csv"
+    smoke = _prompt_summary_row(smoke_path)
+    oracle = _prompt_summary_row(oracle_path)
+    rows = [
+        {
+            "optimization_scope": "non_oracle_sql_prompt_smoke",
+            "source_artifact": smoke_path,
+            **smoke,
+            "promoted_decision": (
+                "tie: DSPy matched the best static prompt on a 30-row smoke run, "
+                "so it is useful as a harness but not a promotion by itself."
+            ),
+            "next_program_target": (
+                "Run prompt search on a held-out proxy slice and score failure-taxonomy deltas."
+            ),
+            "claim_boundary": "Prompt search smoke evidence only; not a SOTA claim.",
+        },
+        {
+            "optimization_scope": "oracle_schema_pruned_prompt_search",
+            "source_artifact": oracle_path,
+            **oracle,
+            "promoted_decision": (
+                "static: the concise schema_pruned_minimal contract beat the best "
+                "DSPy wording, so longer final-SQL prompts are not the next bet."
+            ),
+            "next_program_target": (
+                "Use DSPy to optimize the planner contract, not only final SQL wording."
+            ),
+            "claim_boundary": "Oracle diagnostic evidence only; not a SOTA claim.",
+        },
+        {
+            "optimization_scope": "planner_program_optimization_gate",
+            "source_artifact": "docs/planner_baseline_cosql_dev_100_summary.json",
+            "best_variant": "not_run",
+            "best_source": "pending",
+            "best_accuracy": None,
+            "best_dspy_accuracy": None,
+            "samples": 0,
+            "promoted_decision": (
+                "pending: optimize a two-stage planner-to-SQL program before "
+                "using DSPy as evidence for a method claim."
+            ),
+            "next_program_target": (
+                "Optimize planner label F1, value accuracy, and failure-taxonomy "
+                "deltas on a development split before endpoint promotion."
+            ),
+            "claim_boundary": "Planner program gate is not run yet; not a SOTA claim.",
+        },
+    ]
+    return pd.DataFrame(rows, dtype=object)
+
+
 def target_comparison() -> pd.DataFrame:
     ledger = claim_ledger().set_index("claim_id")
     best_non_oracle = float(
@@ -893,6 +970,7 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     lab_scores = lab_method_scorecard()
     lab_trace = lab_failure_trace()
     data_gates = data_engineering_gates()
+    prompt_findings = prompt_optimization_findings()
     targets = target_comparison()
     endpoint_runs = endpoint_run_scorecard()
 
@@ -941,6 +1019,10 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
         "data_engineering_gates_md": _write_text(
             output / "data-engineering-gates.md",
             _markdown_table(data_gates),
+        ),
+        "prompt_optimization_findings_md": _write_text(
+            output / "prompt-optimization-findings.md",
+            _markdown_table(prompt_findings),
         ),
         "target_comparison_md": _write_text(
             output / "target-comparison.md",

@@ -38,6 +38,7 @@ Tracked outputs:
 - `docs/blog/generated/lab-method-scores.md`
 - `docs/blog/generated/lab-failure-trace.md`
 - `docs/blog/generated/data-engineering-gates.md`
+- `docs/blog/generated/prompt-optimization-findings.md`
 - `docs/blog/generated/target-comparison.md`
 - `docs/blog/generated/endpoint-run-scorecard.md`
 - `docs/blog/generated/manifest.json`

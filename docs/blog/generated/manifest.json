@@ -9,6 +9,7 @@
     "lab_reader_flow_md": "lab-reader-flow.md",
     "metric_dsl_contract_md": "metric-dsl-contract.md",
     "planner_baseline_svg": "planner-baseline.svg",
+    "prompt_optimization_findings_md": "prompt-optimization-findings.md",
     "shareable_lab_md": "shareable-lab.md",
     "target_comparison_md": "target-comparison.md"
   },
@@ -16,7 +17,9 @@
   "source_artifacts": [
     "docs/claim_ledgers/cosql_dev_100.jsonl",
     "docs/planner_baseline_cosql_dev_100_summary.json",
-    "plots/rescored_vllm_semantic_prompt_iteration_100turns/summary.csv"
+    "plots/rescored_vllm_semantic_prompt_iteration_100turns/summary.csv",
+    "results/prompt_search_semantic50_limit30/summary.csv",
+    "results/prompt_search_schema_pruned_projection_schemafix_100/summary.csv"
   ],
   "source_repo": "multiturn-sql-finetuning"
 }

@@ -17,6 +17,7 @@ from notebooks.blog_support import (
     metric_dsl_demo,
     metric_dsl_eval_contract,
     planner_scorecard,
+    prompt_optimization_findings,
     semantic_strategy_table,
     shareable_lab_attachment,
     target_comparison,
@@ -287,6 +288,43 @@ def test_notebook_support_loads_current_artifacts() -> None:
         "bird_interact_local_vs_hosted",
     } <= gate_claim_ids
 
+    prompt_findings = prompt_optimization_findings()
+    assert {
+        "optimization_scope",
+        "source_artifact",
+        "best_variant",
+        "best_source",
+        "best_accuracy",
+        "best_dspy_accuracy",
+        "promoted_decision",
+        "next_program_target",
+        "claim_boundary",
+    } <= set(prompt_findings.columns)
+    assert set(prompt_findings["optimization_scope"]) == {
+        "non_oracle_sql_prompt_smoke",
+        "oracle_schema_pruned_prompt_search",
+        "planner_program_optimization_gate",
+    }
+    smoke = prompt_findings[
+        prompt_findings["optimization_scope"] == "non_oracle_sql_prompt_smoke"
+    ].iloc[0]
+    oracle = prompt_findings[
+        prompt_findings["optimization_scope"] == "oracle_schema_pruned_prompt_search"
+    ].iloc[0]
+    planner_gate = prompt_findings[
+        prompt_findings["optimization_scope"] == "planner_program_optimization_gate"
+    ].iloc[0]
+    assert smoke["best_accuracy"] == 0.4
+    assert smoke["best_dspy_accuracy"] == 0.4
+    assert "tie" in smoke["promoted_decision"]
+    assert oracle["best_accuracy"] == 0.85
+    assert oracle["best_dspy_accuracy"] == 0.83
+    assert oracle["best_variant"] == "schema_pruned_minimal"
+    assert "static" in oracle["promoted_decision"]
+    assert planner_gate["best_accuracy"] is None
+    assert "planner label F1" in planner_gate["next_program_target"]
+    assert all("not a SOTA claim" in boundary for boundary in prompt_findings["claim_boundary"])
+
 
 def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     manifest = export_blog_evidence(tmp_path)
@@ -303,6 +341,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "lab_method_scores_md",
         "lab_failure_trace_md",
         "data_engineering_gates_md",
+        "prompt_optimization_findings_md",
         "target_comparison_md",
         "endpoint_run_scorecard_md",
     }
@@ -387,6 +426,18 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "rollout_beats_teacher_forced_history" in data_gates_md
     assert "hosted_sota_same_protocol" in data_gates_md
     assert "notebooks/blog/" not in data_gates_md
+
+    prompt_findings_md = (
+        tmp_path / manifest["assets"]["prompt_optimization_findings_md"]
+    ).read_text()
+    assert "non_oracle_sql_prompt_smoke" in prompt_findings_md
+    assert "oracle_schema_pruned_prompt_search" in prompt_findings_md
+    assert "planner_program_optimization_gate" in prompt_findings_md
+    assert "schema_pruned_minimal" in prompt_findings_md
+    assert "0.850" in prompt_findings_md
+    assert "0.830" in prompt_findings_md
+    assert "planner label F1" in prompt_findings_md
+    assert "notebooks/blog/" not in prompt_findings_md
 
     target_md = (tmp_path / manifest["assets"]["target_comparison_md"]).read_text()
     assert "Direct SQL SFT" in target_md
