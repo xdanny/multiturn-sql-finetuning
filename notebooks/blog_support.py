@@ -11,7 +11,10 @@ from typing import Any
 import pandas as pd
 
 from data.metric_dsl import compile_metric_query, parse_metric_query, score_metric_query
-from notebooks.labs.local_multiturn_sql_lab_support import lab_walkthrough_sections
+from notebooks.labs.local_multiturn_sql_lab_support import (
+    lab_walkthrough_sections,
+    run_multiturn_lab,
+)
 
 BLOG_EVIDENCE_SOURCES = (
     "docs/claim_ledgers/cosql_dev_100.jsonl",
@@ -385,6 +388,75 @@ def lab_reader_flow() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def lab_method_scorecard() -> pd.DataFrame:
+    report = run_multiturn_lab()
+    target_by_system = {
+        row["system"]: row["fine_tuning_target"] for row in report["method_matrix"]
+    }
+    rows = []
+    for system, metrics in report["systems"].items():
+        rows.append(
+            {
+                "system": system,
+                "fine_tuning_target": target_by_system[system],
+                "value_accuracy": float(metrics["value_accuracy"]),
+                "context_carryover_accuracy": float(metrics["context_carryover_accuracy"]),
+                "value_grounding_accuracy": float(metrics["value_grounding_accuracy"]),
+                "measure_preservation_rate": float(metrics["measure_preservation_rate"]),
+                "recovery_success_rate": float(metrics["recovery_success_rate"]),
+                "lab_takeaway": (
+                    "This is not a benchmark result; it shows which intermediate "
+                    "behavior the target isolates in the shareable lab."
+                ),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def lab_failure_trace() -> pd.DataFrame:
+    report = run_multiturn_lab()
+    selected = {
+        ("turn_2", "direct_sql_baseline"),
+        ("turn_3", "direct_sql_baseline"),
+        ("turn_4", "direct_sql_baseline"),
+        ("turn_4", "behavior_recovery_sql"),
+    }
+    why_by_key = {
+        ("turn_2", "direct_sql_baseline"): (
+            "The direct SQL target copies the display value instead of learning "
+            "the value map France -> FR."
+        ),
+        ("turn_3", "direct_sql_baseline"): (
+            "The direct SQL target changes grain but drops the carried country filter."
+        ),
+        ("turn_4", "direct_sql_baseline"): (
+            "Retrying the same value-grounding mistake does not use execution feedback."
+        ),
+        ("turn_4", "behavior_recovery_sql"): (
+            "The recovery target uses the empty-result signal to repair the previous turn."
+        ),
+    }
+    rows = []
+    for row in report["rows"]:
+        key = (row["turn_id"], row["system"])
+        if key not in selected:
+            continue
+        rows.append(
+            {
+                "turn_id": row["turn_id"],
+                "question": row["question"],
+                "system": row["system"],
+                "failure_type": row["failure_type"] or "recovery_success",
+                "value_match": row["value_match"],
+                "actual_rows": row["actual_rows"],
+                "expected_rows": row["expected_rows"],
+                "intermediate_plan": row["intermediate_plan"],
+                "why_it_matters": why_by_key[key],
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 def data_engineering_gates() -> pd.DataFrame:
     return pd.DataFrame(
         [
@@ -708,6 +780,8 @@ def _write_text(path: Path, text: str) -> str:
 def _fmt(value: Any) -> str:
     if isinstance(value, float):
         return f"{value:.3f}"
+    if isinstance(value, list | tuple | dict):
+        return json.dumps(value, sort_keys=True)
     if pd.isna(value):
         return ""
     return str(value)
@@ -816,6 +890,8 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     metric_contract = metric_dsl_eval_contract()
     shareable_lab = shareable_lab_attachment()
     reader_flow = lab_reader_flow()
+    lab_scores = lab_method_scorecard()
+    lab_trace = lab_failure_trace()
     data_gates = data_engineering_gates()
     targets = target_comparison()
     endpoint_runs = endpoint_run_scorecard()
@@ -853,6 +929,14 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
         "lab_reader_flow_md": _write_text(
             output / "lab-reader-flow.md",
             _markdown_table(reader_flow),
+        ),
+        "lab_method_scores_md": _write_text(
+            output / "lab-method-scores.md",
+            _markdown_table(lab_scores),
+        ),
+        "lab_failure_trace_md": _write_text(
+            output / "lab-failure-trace.md",
+            _markdown_table(lab_trace),
         ),
         "data_engineering_gates_md": _write_text(
             output / "data-engineering-gates.md",

@@ -1,0 +1,6 @@
+| turn_id | question | system | failure_type | value_match | actual_rows | expected_rows | intermediate_plan | why_it_matters |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| turn_2 | Only France. | direct_sql_baseline | value_grounding | False | [] | [["FR", 125.0]] | carry metric, but copy display value France into storage SQL | The direct SQL target copies the display value instead of learning the value map France -> FR. |
+| turn_3 | Which customer there spent the most? | direct_sql_baseline | context_carryover | False | [["Cara", 200.0]] | [["Alice", 100.0]] | change grain, but forget the France filter | The direct SQL target changes grain but drops the carried country filter. |
+| turn_4 | That returned no rows. Repair it and show the top customer there. | direct_sql_baseline | recovery | False | [] | [["Alice", 100.0]] | retry failed SQL without reading the empty-result feedback | Retrying the same value-grounding mistake does not use execution feedback. |
+| turn_4 | That returned no rows. Repair it and show the top customer there. | behavior_recovery_sql | recovery_success | True | [["Alice", 100.0]] | [["Alice", 100.0]] | behavior policy: inspects previous empty result, identifies France/FR value mismatch, repairs empty result with country=FR | The recovery target uses the empty-result signal to repair the previous turn. |

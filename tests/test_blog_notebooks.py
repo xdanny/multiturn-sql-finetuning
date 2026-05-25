@@ -11,6 +11,8 @@ from notebooks.blog_support import (
     data_engineering_gates,
     endpoint_run_scorecard,
     export_blog_evidence,
+    lab_failure_trace,
+    lab_method_scorecard,
     lab_reader_flow,
     metric_dsl_demo,
     metric_dsl_eval_contract,
@@ -141,6 +143,60 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert any("not a benchmark result" in boundary for boundary in reader_flow["claim_boundary"])
     assert not any("notebooks/blog/" in row for row in reader_flow.astype(str).to_numpy().ravel())
 
+    lab_scores = lab_method_scorecard()
+    assert {
+        "system",
+        "fine_tuning_target",
+        "value_accuracy",
+        "context_carryover_accuracy",
+        "value_grounding_accuracy",
+        "measure_preservation_rate",
+        "recovery_success_rate",
+        "lab_takeaway",
+    } <= set(lab_scores.columns)
+    assert set(lab_scores["system"]) == {
+        "direct_sql_baseline",
+        "planner_first_sql",
+        "semantic_value_sql",
+        "semantic_dsl_planner",
+        "behavior_recovery_sql",
+    }
+    direct_lab_score = lab_scores[
+        lab_scores["system"] == "direct_sql_baseline"
+    ].iloc[0]
+    dsl_lab_score = lab_scores[
+        lab_scores["system"] == "semantic_dsl_planner"
+    ].iloc[0]
+    recovery_lab_score = lab_scores[
+        lab_scores["system"] == "behavior_recovery_sql"
+    ].iloc[0]
+    assert direct_lab_score["value_accuracy"] == 0.25
+    assert dsl_lab_score["value_accuracy"] == 1.0
+    assert dsl_lab_score["measure_preservation_rate"] == 1.0
+    assert recovery_lab_score["recovery_success_rate"] == 1.0
+    assert all("not a benchmark result" in takeaway for takeaway in lab_scores["lab_takeaway"])
+
+    lab_trace = lab_failure_trace()
+    assert {
+        "turn_id",
+        "question",
+        "system",
+        "failure_type",
+        "value_match",
+        "actual_rows",
+        "expected_rows",
+        "intermediate_plan",
+        "why_it_matters",
+    } <= set(lab_trace.columns)
+    trace_keys = {(row["turn_id"], row["system"]) for _, row in lab_trace.iterrows()}
+    assert ("turn_2", "direct_sql_baseline") in trace_keys
+    assert ("turn_3", "direct_sql_baseline") in trace_keys
+    assert ("turn_4", "behavior_recovery_sql") in trace_keys
+    assert "value_grounding" in set(lab_trace["failure_type"])
+    assert "context_carryover" in set(lab_trace["failure_type"])
+    assert any("France -> FR" in note for note in lab_trace["why_it_matters"])
+    assert any("repairs empty result" in plan for plan in lab_trace["intermediate_plan"])
+
     targets = target_comparison()
     assert {
         "fine_tuning_target",
@@ -244,6 +300,8 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "metric_dsl_contract_md",
         "shareable_lab_md",
         "lab_reader_flow_md",
+        "lab_method_scores_md",
+        "lab_failure_trace_md",
         "data_engineering_gates_md",
         "target_comparison_md",
         "endpoint_run_scorecard_md",
@@ -292,6 +350,24 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "Preserving MEASURE()" in lab_flow_md
     assert "The road ahead" in lab_flow_md
     assert "notebooks/blog/" not in lab_flow_md
+
+    lab_scores_md = (tmp_path / manifest["assets"]["lab_method_scores_md"]).read_text()
+    assert "direct_sql_baseline" in lab_scores_md
+    assert "semantic_dsl_planner" in lab_scores_md
+    assert "behavior_recovery_sql" in lab_scores_md
+    assert "0.250" in lab_scores_md
+    assert "1.000" in lab_scores_md
+    assert "not a benchmark result" in lab_scores_md
+
+    lab_trace_md = (tmp_path / manifest["assets"]["lab_failure_trace_md"]).read_text()
+    assert "turn_2" in lab_trace_md
+    assert "turn_3" in lab_trace_md
+    assert "turn_4" in lab_trace_md
+    assert "value_grounding" in lab_trace_md
+    assert "context_carryover" in lab_trace_md
+    assert "France -> FR" in lab_trace_md
+    assert "repairs empty result" in lab_trace_md
+    assert "notebooks/blog/" not in lab_trace_md
 
     data_gates_md = (
         tmp_path / manifest["assets"]["data_engineering_gates_md"]
