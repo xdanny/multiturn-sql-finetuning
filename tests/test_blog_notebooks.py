@@ -12,6 +12,7 @@ from notebooks.blog_support import (
     lab_reader_flow,
     metric_dsl_demo,
     metric_dsl_eval_contract,
+    notebook_contracts,
     planner_scorecard,
     semantic_strategy_table,
     shareable_lab_attachment,
@@ -139,6 +140,30 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert any("not a benchmark result" in boundary for boundary in reader_flow["claim_boundary"])
     assert not any("notebooks/blog/" in row for row in reader_flow.astype(str).to_numpy().ravel())
 
+    contracts = notebook_contracts()
+    assert {
+        "notebook",
+        "audience",
+        "backs_post_section",
+        "evidence_role",
+        "must_not_claim",
+        "run_command",
+    } <= set(contracts.columns)
+    assert "notebooks/labs/local_multiturn_sql_lab.py" in set(contracts["notebook"])
+    for notebook_path in BLOG_NOTEBOOKS.values():
+        assert notebook_path in set(contracts["notebook"])
+    lab_contract = contracts[
+        contracts["notebook"] == "notebooks/labs/local_multiturn_sql_lab.py"
+    ].iloc[0]
+    assert lab_contract["audience"] == "reader-facing"
+    assert "Can a small specialized model" in lab_contract["evidence_role"]
+    assert "benchmark result" in lab_contract["must_not_claim"]
+    assert all(
+        row["audience"] == "internal checkpoint"
+        for _, row in contracts[contracts["notebook"].str.startswith("notebooks/blog/")].iterrows()
+    )
+    assert not any("hosted SOTA win" in claim for claim in contracts["must_not_claim"])
+
     targets = target_comparison()
     assert {
         "fine_tuning_target",
@@ -197,6 +222,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "metric_dsl_contract_md",
         "shareable_lab_md",
         "lab_reader_flow_md",
+        "notebook_contracts_md",
         "target_comparison_md",
         "endpoint_run_scorecard_md",
     }
@@ -244,6 +270,15 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "Preserving MEASURE()" in lab_flow_md
     assert "The road ahead" in lab_flow_md
     assert "notebooks/blog/" not in lab_flow_md
+
+    notebook_contracts_md = (
+        tmp_path / manifest["assets"]["notebook_contracts_md"]
+    ).read_text()
+    assert "notebooks/labs/local_multiturn_sql_lab.py" in notebook_contracts_md
+    assert "reader-facing" in notebook_contracts_md
+    assert "internal checkpoint" in notebook_contracts_md
+    assert "notebooks/blog/06_data_engineering_for_multiturn_sql_eval.py" in notebook_contracts_md
+    assert "benchmark result" in notebook_contracts_md
 
     target_md = (tmp_path / manifest["assets"]["target_comparison_md"]).read_text()
     assert "Direct SQL SFT" in target_md

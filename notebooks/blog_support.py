@@ -385,6 +385,80 @@ def lab_reader_flow() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def notebook_contracts() -> pd.DataFrame:
+    rows = [
+        {
+            "notebook": "notebooks/labs/local_multiturn_sql_lab.py",
+            "audience": "reader-facing",
+            "backs_post_section": "Run the lab",
+            "evidence_role": (
+                "Can a small specialized model target behavior and semantic "
+                "concepts before scaling endpoint fine-tuning?"
+            ),
+            "must_not_claim": (
+                "This lab is not a benchmark result and does not prove hosted "
+                "model parity."
+            ),
+            "run_command": "marimo edit notebooks/labs/local_multiturn_sql_lab.py",
+        },
+        {
+            "notebook": "notebooks/blog/01_problem_and_result.py",
+            "audience": "internal checkpoint",
+            "backs_post_section": "Research question and score ladder",
+            "evidence_role": "Loads the claim ledger, score ladder, and planner baseline.",
+            "must_not_claim": "Does not prove local 9B beats hosted systems.",
+            "run_command": "marimo edit notebooks/blog/01_problem_and_result.py",
+        },
+        {
+            "notebook": "notebooks/blog/02_wsl_5090_setup.py",
+            "audience": "internal checkpoint",
+            "backs_post_section": "Local evaluation loop",
+            "evidence_role": "Documents local training, serving, and evaluation constraints.",
+            "must_not_claim": "Does not make a model-quality claim.",
+            "run_command": "marimo edit notebooks/blog/02_wsl_5090_setup.py",
+        },
+        {
+            "notebook": "notebooks/blog/03_data_and_eval.py",
+            "audience": "internal checkpoint",
+            "backs_post_section": "Dataset roles",
+            "evidence_role": "Separates CoSQL, SParC, BIRD-style, and synthetic SQL roles.",
+            "must_not_claim": "Does not treat CoSQL as the final interactive benchmark.",
+            "run_command": "marimo edit notebooks/blog/03_data_and_eval.py",
+        },
+        {
+            "notebook": "notebooks/blog/04_training_iterations.py",
+            "audience": "internal checkpoint",
+            "backs_post_section": "Fine-tuning methods",
+            "evidence_role": (
+                "Compares direct SQL, planner-first, semantic grounding, "
+                "MEASURE()-preserving DSL, and recovery targets."
+            ),
+            "must_not_claim": "Does not claim the DSL path has beaten direct SQL yet.",
+            "run_command": "marimo edit notebooks/blog/04_training_iterations.py",
+        },
+        {
+            "notebook": "notebooks/blog/05_vllm_blackwell_deep_dive.py",
+            "audience": "internal checkpoint",
+            "backs_post_section": "Serving and latency constraints",
+            "evidence_role": "Shows endpoint latency and serving tradeoffs for tracked runs.",
+            "must_not_claim": "Does not explain away accuracy failures as serving-only issues.",
+            "run_command": "marimo edit notebooks/blog/05_vllm_blackwell_deep_dive.py",
+        },
+        {
+            "notebook": "notebooks/blog/06_data_engineering_for_multiturn_sql_eval.py",
+            "audience": "internal checkpoint",
+            "backs_post_section": "Data engineering next gates",
+            "evidence_role": (
+                "Tracks planner metrics, semantic artifact gaps, MEASURE() "
+                "contracts, and failure taxonomy."
+            ),
+            "must_not_claim": "Does not replace the need for BIRD-Interact transfer.",
+            "run_command": "marimo edit notebooks/blog/06_data_engineering_for_multiturn_sql_eval.py",
+        },
+    ]
+    return pd.DataFrame(rows)
+
+
 def target_comparison() -> pd.DataFrame:
     ledger = claim_ledger().set_index("claim_id")
     best_non_oracle = float(
@@ -616,6 +690,7 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     metric_contract = metric_dsl_eval_contract()
     shareable_lab = shareable_lab_attachment()
     reader_flow = lab_reader_flow()
+    contracts = notebook_contracts()
     targets = target_comparison()
     endpoint_runs = endpoint_run_scorecard()
 
@@ -652,6 +727,10 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
         "lab_reader_flow_md": _write_text(
             output / "lab-reader-flow.md",
             _markdown_table(reader_flow),
+        ),
+        "notebook_contracts_md": _write_text(
+            output / "notebook-contracts.md",
+            _markdown_table(contracts),
         ),
         "target_comparison_md": _write_text(
             output / "target-comparison.md",

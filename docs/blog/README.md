@@ -42,6 +42,8 @@ Tracked outputs:
 - `docs/blog/generated/claim-table.md`
 - `docs/blog/generated/metric-dsl-contract.md`
 - `docs/blog/generated/shareable-lab.md`
+- `docs/blog/generated/lab-reader-flow.md`
+- `docs/blog/generated/notebook-contracts.md`
 - `docs/blog/generated/target-comparison.md`
 - `docs/blog/generated/endpoint-run-scorecard.md`
 - `docs/blog/generated/manifest.json`
