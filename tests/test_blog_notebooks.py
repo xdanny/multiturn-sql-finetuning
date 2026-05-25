@@ -7,6 +7,7 @@ from notebooks.blog_support import (
     accuracy_scorecard,
     claim_table,
     metric_dsl_demo,
+    metric_dsl_eval_contract,
     planner_scorecard,
     semantic_strategy_table,
 )
@@ -63,3 +64,12 @@ def test_notebook_support_loads_current_artifacts() -> None:
     demo = metric_dsl_demo()
     assert "SUM(orders.amount) AS revenue" in demo["compiled_sql"]
     assert demo["raw_sql_like_score"]["measure_preservation"] == 0.0
+
+    metric_contract = metric_dsl_eval_contract()
+    assert set(metric_contract["metric"]) >= {
+        "metric_dsl_parse_rate",
+        "metric_dsl_compile_rate",
+        "measure_preservation",
+        "value_execution_accuracy",
+    }
+    assert set(metric_contract["status"]) == {"pending_manifest"}

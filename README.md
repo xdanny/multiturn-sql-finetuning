@@ -16,7 +16,8 @@ then SQL, semantic-layer tuning, `MEASURE()`-preserving metric DSLs, and
 behavior/recovery tuning.
 
 The first metric-DSL experiment surface is documented in
-`docs/metric_dsl_contract.md` and implemented in `data.metric_dsl`.
+`docs/metric_dsl_contract.md`, implemented in `data.metric_dsl`, and evaluated
+offline through `eval.metric_dsl_eval`.
 Generated-history rollout evaluation is documented in
 `docs/rollout_eval_contract.md` and implemented in `eval.rollout_eval`.
 
@@ -61,6 +62,9 @@ Known constraints:
 - Semantic model context increases prompt length. The current semantic endpoint run shows this cost directly, so future semantic prompts need retrieval and pruning.
 - DSPy-backed prompt search is available through `eval.prompt_optimize`; it can propose and score prompt variants against execution accuracy.
 - A non-oracle `predicted_planner` path is now wired: lexical planner output can be written back into prepared JSONL and injected into the SQL-generation prompt without reference SQL.
+- A `MEASURE()`-preserving metric-DSL evaluator is now wired for offline
+  JSONL predictions; it scores semantic intent, compiles through a semantic
+  model, optionally executes compiled SQL, and writes result manifests.
 - Local execution scoring reports both strict label-aware accuracy and value-only accuracy. Treat older single `accuracy` numbers as strict-era results unless they come from `results/rescored/`.
 - Failure analysis now classifies every wrong rescored turn into actionable labels and compares adapters or prompt variants against a baseline under `plots/failure_taxonomy/`.
 - Schema-link label generation and semantic prompt pruning are available through `data.prepare --include-sql-labels --prune-semantic-model`. These flags now mark produced rows as `evaluation_mode=oracle_planner_diagnostic`. On the fixed 100-turn CoSQL slice, the best oracle prompt-only pruned-label run reaches `0.850` value accuracy, and training on that oracle-labelled format reaches `0.890`.
@@ -178,6 +182,40 @@ model mismatches, wrong output modes, and row-identity mismatches. The claim
 ledger only clears the predicted-planner SQL execution claim when the compared
 predicted-planner run beats direct SQL on value accuracy and the referenced
 direct-SQL manifest is included in the ledger input.
+
+## Metric DSL Evaluation
+
+Metric-DSL evaluation is the first runnable gate for testing whether a model
+should produce semantic intent before SQL. Input rows contain a predicted DSL, a
+reference DSL, a semantic model, and optional reference SQL/database path:
+
+```json
+{
+  "id": "metric-1",
+  "generated_metric_dsl": "MEASURE(revenue) BY customer_country",
+  "reference_metric_dsl": "MEASURE(revenue) BY customer_country",
+  "semantic_model": {"base_table": "orders", "measures": {}, "dimensions": {}},
+  "reference_sql": "SELECT ...",
+  "database_path": "data/raw/metric_fixtures/store.sqlite"
+}
+```
+
+Run the offline evaluator:
+
+```bash
+python -m eval.metric_dsl_eval \
+  --input results/metric_dsl/<run-id>.predictions.jsonl \
+  --output results/metric_dsl/<run-id>.jsonl \
+  --manifest-output results/metric_dsl/<run-id>.manifest.json \
+  --model-name <served-or-offline-model-name>
+```
+
+The manifest reports parse rate, compile rate, measure preservation, measure F1,
+dimension F1, filter F1, database-backed compiled-SQL value accuracy, and the
+semantic-model hashes used by the run. Execution accuracy is computed only over
+rows with both `reference_sql` and `database_path`. A row that expands
+`SUM(orders.amount)` instead of emitting `MEASURE(revenue)` fails the metric-DSL
+parse gate, so it cannot be hidden by a compiled SQL score.
 
 ## Generated-History Rollout
 

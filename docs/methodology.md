@@ -89,9 +89,13 @@ The next strategy table should be more ambitious than these early runs:
 | `MEASURE()`-preserving metric DSL | Should the model preserve governed metrics until a compiler expands them to SQL? |
 | Behavior/recovery tuning | Can the model learn when to clarify, inspect values, repair SQL, and recover after its own previous mistakes under generated-history rollout? |
 
-The first `MEASURE()` experiment surface is implemented in `data.metric_dsl` and
-documented in `docs/metric_dsl_contract.md`. It scores semantic intent before SQL
-execution so metric preservation can be compared against direct SQL generation.
+The first `MEASURE()` experiment surface is implemented in `data.metric_dsl`,
+documented in `docs/metric_dsl_contract.md`, and evaluated by
+`eval.metric_dsl_eval`. It scores semantic intent before SQL execution so metric
+preservation can be measured separately from whether the compiled SQL happens to
+return the right values. Compiled-SQL execution accuracy is reported only over
+rows with a database-backed execution attempt, and oracle-derived semantic
+models make the metric-DSL manifest diagnostic.
 
 The `weight` field in dataset configs is metadata for experiment design today;
 current preparation caps each configured source with `--limit` and does not yet

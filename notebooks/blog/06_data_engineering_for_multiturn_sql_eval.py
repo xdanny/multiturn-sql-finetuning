@@ -9,9 +9,14 @@ def _():
     import marimo as mo
     import pandas as pd
 
-    from notebooks.blog_support import metric_dsl_demo, planner_scorecard, read_csv_artifact
+    from notebooks.blog_support import (
+        metric_dsl_demo,
+        metric_dsl_eval_contract,
+        planner_scorecard,
+        read_csv_artifact,
+    )
 
-    return metric_dsl_demo, mo, pd, planner_scorecard, read_csv_artifact
+    return metric_dsl_demo, metric_dsl_eval_contract, mo, pd, planner_scorecard, read_csv_artifact
 
 
 @app.cell
@@ -82,6 +87,12 @@ def _(metric_dsl_demo, mo):
             mo.md(f"```sql\n{demo['compiled_sql']}\n```"),
         ]
     )
+    return
+
+
+@app.cell
+def _(metric_dsl_eval_contract, mo):
+    mo.ui.table(metric_dsl_eval_contract(), label="Metric-DSL evaluator outputs")
     return
 
 

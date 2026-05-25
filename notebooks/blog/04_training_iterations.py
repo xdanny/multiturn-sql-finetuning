@@ -9,9 +9,14 @@ def _():
     import marimo as mo
     import matplotlib.pyplot as plt
 
-    from notebooks.blog_support import metric_dsl_demo, read_csv_artifact, semantic_strategy_table
+    from notebooks.blog_support import (
+        metric_dsl_demo,
+        metric_dsl_eval_contract,
+        read_csv_artifact,
+        semantic_strategy_table,
+    )
 
-    return metric_dsl_demo, mo, plt, read_csv_artifact, semantic_strategy_table
+    return metric_dsl_demo, metric_dsl_eval_contract, mo, plt, read_csv_artifact, semantic_strategy_table
 
 
 @app.cell
@@ -50,6 +55,12 @@ def _(metric_dsl_demo, mo):
             ),
         ]
     )
+    return
+
+
+@app.cell
+def _(metric_dsl_eval_contract, mo):
+    mo.ui.table(metric_dsl_eval_contract(), label="Metric-DSL manifest gate")
     return
 
 

@@ -73,9 +73,11 @@ artifact into a reproducible evaluation app.
 
 ## First DSL Experiment Surface
 
-The first implementation slice is the metric DSL in `data.metric_dsl`. It is small on
-purpose: parse `MEASURE(...)` intent, compile it through a semantic model, and score
-whether a model preserved the governed metric rather than expanding raw SQL too early.
+The first implementation slice is the metric DSL in `data.metric_dsl` plus the
+offline evaluator in `eval.metric_dsl_eval`. It is small on purpose: parse
+`MEASURE(...)` intent, compile it through a semantic model, score whether a
+model preserved the governed metric rather than expanding raw SQL too early, and
+write a manifest that can later be compared against direct SQL.
 
 This gives the next fine-tuning run a concrete target:
 

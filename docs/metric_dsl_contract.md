@@ -61,6 +61,44 @@ The implementation lives in `data.metric_dsl`:
 - `score_metric_query(...)` scores measure preservation, measure F1, dimension F1,
   and filter F1.
 
+The evaluation runner lives in `eval.metric_dsl_eval`. It reads JSONL rows with
+`generated_metric_dsl` or `predicted_dsl`, `reference_metric_dsl` or `gold_dsl`,
+an inline `semantic_model`, and optional `reference_sql`/`database_path`.
+
+```bash
+python -m eval.metric_dsl_eval \
+  --input results/metric_dsl/<run-id>.predictions.jsonl \
+  --output results/metric_dsl/<run-id>.jsonl \
+  --manifest-output results/metric_dsl/<run-id>.manifest.json \
+  --model-name <served-or-offline-model-name>
+```
+
+The output rows record parsed DSL, semantic intent scores, compiled SQL or
+compile error, database-backed SQL execution scores when both `reference_sql`
+and `database_path` are available, and semantic-model provenance. The manifest
+aggregates:
+
+- `metric_dsl_parse_rate`
+- `metric_dsl_compile_rate`
+- `compiled_sql_execution_attempt_rate`
+- `compiled_sql_execution_evaluated_rows`
+- `measure_f1`
+- `dimension_f1`
+- `filter_f1`
+- `measure_preservation`
+- `value_execution_accuracy`
+- `strict_execution_accuracy`
+- `semantic_model_sha256s`
+- `semantic_model_sources`
+- `semantic_model_oracle_derived_rows`
+
+The parse gate requires the prediction to preserve at least one
+`MEASURE(...)` token when the reference DSL uses a governed measure. A raw SQL
+fragment such as `SUM(orders.amount) BY customer_country` can be reported as a
+failed row, but it does not count as a parsed metric DSL and it is not compiled.
+Rows whose semantic model is marked as oracle-derived make the manifest
+diagnostic through `oracle_allowed=true`.
+
 This is intentionally small. It is not a full semantic-layer compiler yet. Its job is
 to create a runnable experiment surface for the next fine-tuning question:
 

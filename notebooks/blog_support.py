@@ -175,7 +175,7 @@ def semantic_strategy_table() -> pd.DataFrame:
                 "strategy": "Semantic layer / MEASURE() preservation",
                 "learns": "Governed measures, dimensions, grain, and metric definitions",
                 "main_risk": "Dumping all semantic context increases latency and noise",
-                "next_gate": "Metric-preserving DSL accuracy before SQL compilation",
+                "next_gate": "Metric-DSL manifest with semantic intent and compiled-SQL scores",
             },
             {
                 "strategy": "Behavior and recovery tuning",
@@ -217,3 +217,40 @@ def metric_dsl_demo() -> dict[str, Any]:
         "compiled_sql": compile_metric_query(gold, semantic_model),
         "raw_sql_like_score": score_metric_query(raw_sql_like, gold),
     }
+
+
+def metric_dsl_eval_contract() -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "metric": "metric_dsl_parse_rate",
+                "why_it_matters": "The generated artifact can be parsed as the DSL target.",
+                "status": "pending_manifest",
+            },
+            {
+                "metric": "metric_dsl_compile_rate",
+                "why_it_matters": "The parsed DSL can compile through a governed semantic model.",
+                "status": "pending_manifest",
+            },
+            {
+                "metric": "measure_preservation",
+                "why_it_matters": "The model kept MEASURE(name) instead of expanding metric SQL early.",
+                "status": "pending_manifest",
+            },
+            {
+                "metric": "value_execution_accuracy",
+                "why_it_matters": "The compiled SQL returns the right values when reference SQL and a database are available.",
+                "status": "pending_manifest",
+            },
+            {
+                "metric": "compiled_sql_execution_evaluated_rows",
+                "why_it_matters": "Execution accuracy is meaningful only over database-backed attempts.",
+                "status": "pending_manifest",
+            },
+            {
+                "metric": "semantic_model_sha256s",
+                "why_it_matters": "Metric results must identify the semantic model used for compilation.",
+                "status": "pending_manifest",
+            },
+        ]
+    )
