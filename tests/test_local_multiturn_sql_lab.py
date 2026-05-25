@@ -14,14 +14,15 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 def test_multiturn_lab_runs_without_requiring_gpu() -> None:
     device = lab_support.available_accelerator()
 
-    assert device.kind in {"cuda", "mps", "xpu", "cpu"}
+    assert device.kind in {"cuda", "mps", "xpu", "none"}
     assert isinstance(device.label, str)
     assert device.label
 
     report = lab_support.run_multiturn_lab()
 
     assert report["device"].kind == "cpu"
-    assert report["detected_accelerator"].kind in {"cuda", "mps", "xpu", "cpu"}
+    assert report["detected_accelerator"].kind in {"cuda", "mps", "xpu", "none"}
+    assert report["runtime_policy"]["reported_accelerators"] == "CUDA, MPS, XPU"
     assert set(report["systems"]) == {
         "direct_sql_baseline",
         "planner_first_sql",
@@ -104,7 +105,11 @@ def test_multiturn_lab_auto_device_falls_back_to_cpu(monkeypatch) -> None:
     monkeypatch.setattr(
         lab_support,
         "available_accelerator",
-        lambda: Accelerator(kind="cpu", label="cpu (torch not installed)", torch_available=False),
+        lambda: Accelerator(
+            kind="none",
+            label="no accelerator detected (torch not installed)",
+            torch_available=False,
+        ),
     )
 
     report = lab_support.run_multiturn_lab(device_preference="auto")
@@ -112,6 +117,7 @@ def test_multiturn_lab_auto_device_falls_back_to_cpu(monkeypatch) -> None:
     assert report["device"].kind == "cpu"
     assert report["runtime_policy"]["device_preference"] == "auto"
     assert report["runtime_policy"]["fallback"] == "cpu"
+    assert report["runtime_policy"]["accelerator_usage"] == "reported_only"
 
 
 def test_multiturn_lab_rejects_unknown_device_preference() -> None:

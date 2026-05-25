@@ -5,7 +5,6 @@
     "endpoint_run_scorecard_md": "endpoint-run-scorecard.md",
     "lab_reader_flow_md": "lab-reader-flow.md",
     "metric_dsl_contract_md": "metric-dsl-contract.md",
-    "notebook_contracts_md": "notebook-contracts.md",
     "planner_baseline_svg": "planner-baseline.svg",
     "shareable_lab_md": "shareable-lab.md",
     "target_comparison_md": "target-comparison.md"

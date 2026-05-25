@@ -40,7 +40,11 @@ def available_accelerator() -> Accelerator:
     try:
         import torch  # type: ignore[import-not-found]
     except Exception:
-        return Accelerator(kind="cpu", label="cpu (torch not installed)", torch_available=False)
+        return Accelerator(
+            kind="none",
+            label="no accelerator detected (torch not installed)",
+            torch_available=False,
+        )
 
     try:
         if torch.cuda.is_available():
@@ -56,9 +60,13 @@ def available_accelerator() -> Accelerator:
         if hasattr(torch, "xpu") and torch.xpu.is_available():
             return Accelerator(kind="xpu", label="xpu", torch_available=True)
     except Exception as exc:
-        return Accelerator(kind="cpu", label=f"cpu (accelerator probe failed: {exc})", torch_available=True)
+        return Accelerator(
+            kind="none",
+            label=f"no accelerator detected (probe failed: {exc})",
+            torch_available=True,
+        )
 
-    return Accelerator(kind="cpu", label="cpu", torch_available=True)
+    return Accelerator(kind="none", label="no accelerator detected", torch_available=True)
 
 
 def lab_walkthrough_sections() -> list[dict[str, str]]:
@@ -151,11 +159,7 @@ def select_lab_device(device_preference: str = "cpu") -> tuple[Accelerator, Acce
         raise ValueError("device_preference must be 'cpu' or 'auto'")
 
     detected_accelerator = available_accelerator()
-    fallback = (
-        "cpu"
-        if device_preference == "auto" and detected_accelerator.kind == "cpu"
-        else None
-    )
+    fallback = "cpu" if device_preference == "auto" and detected_accelerator.kind == "none" else None
     device = Accelerator(
         kind="cpu",
         label="cpu",
@@ -169,7 +173,7 @@ def select_lab_device(device_preference: str = "cpu") -> tuple[Accelerator, Acce
             "device_preference": device_preference,
             "fallback": fallback,
             "accelerator_usage": "reported_only",
-            "supported_accelerators": "CUDA, MPS, XPU, CPU",
+            "reported_accelerators": "CUDA, MPS, XPU",
         },
     )
 

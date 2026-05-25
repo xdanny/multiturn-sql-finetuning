@@ -12,7 +12,6 @@ from notebooks.blog_support import (
     lab_reader_flow,
     metric_dsl_demo,
     metric_dsl_eval_contract,
-    notebook_contracts,
     planner_scorecard,
     semantic_strategy_table,
     shareable_lab_attachment,
@@ -140,30 +139,6 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert any("not a benchmark result" in boundary for boundary in reader_flow["claim_boundary"])
     assert not any("notebooks/blog/" in row for row in reader_flow.astype(str).to_numpy().ravel())
 
-    contracts = notebook_contracts()
-    assert {
-        "notebook",
-        "audience",
-        "backs_post_section",
-        "evidence_role",
-        "must_not_claim",
-        "run_command",
-    } <= set(contracts.columns)
-    assert "notebooks/labs/local_multiturn_sql_lab.py" in set(contracts["notebook"])
-    for notebook_path in BLOG_NOTEBOOKS.values():
-        assert notebook_path in set(contracts["notebook"])
-    lab_contract = contracts[
-        contracts["notebook"] == "notebooks/labs/local_multiturn_sql_lab.py"
-    ].iloc[0]
-    assert lab_contract["audience"] == "reader-facing"
-    assert "Can a small specialized model" in lab_contract["evidence_role"]
-    assert "benchmark result" in lab_contract["must_not_claim"]
-    assert all(
-        row["audience"] == "internal checkpoint"
-        for _, row in contracts[contracts["notebook"].str.startswith("notebooks/blog/")].iterrows()
-    )
-    assert not any("hosted SOTA win" in claim for claim in contracts["must_not_claim"])
-
     targets = target_comparison()
     assert {
         "fine_tuning_target",
@@ -222,7 +197,6 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "metric_dsl_contract_md",
         "shareable_lab_md",
         "lab_reader_flow_md",
-        "notebook_contracts_md",
         "target_comparison_md",
         "endpoint_run_scorecard_md",
     }
@@ -271,15 +245,6 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "The road ahead" in lab_flow_md
     assert "notebooks/blog/" not in lab_flow_md
 
-    notebook_contracts_md = (
-        tmp_path / manifest["assets"]["notebook_contracts_md"]
-    ).read_text()
-    assert "notebooks/labs/local_multiturn_sql_lab.py" in notebook_contracts_md
-    assert "reader-facing" in notebook_contracts_md
-    assert "internal checkpoint" in notebook_contracts_md
-    assert "notebooks/blog/06_data_engineering_for_multiturn_sql_eval.py" in notebook_contracts_md
-    assert "benchmark result" in notebook_contracts_md
-
     target_md = (tmp_path / manifest["assets"]["target_comparison_md"]).read_text()
     assert "Direct SQL SFT" in target_md
     assert "0.640" in target_md
@@ -300,6 +265,7 @@ def test_checked_in_blog_evidence_assets_are_current(tmp_path) -> None:
 
     assert (checked_in_dir / "manifest.json").exists()
     assert not (checked_in_dir / "notebook-walkthrough.md").exists()
+    assert not (checked_in_dir / "notebook-contracts.md").exists()
     checked_in_manifest = json.loads((checked_in_dir / "manifest.json").read_text())
     assert checked_in_manifest == manifest
 
@@ -310,6 +276,7 @@ def test_checked_in_blog_evidence_assets_are_current(tmp_path) -> None:
 def test_research_goal_states_notebook_led_method_comparison() -> None:
     goal = (REPO_ROOT / "docs" / "research_goal.md").read_text()
     blog_readme = (REPO_ROOT / "docs" / "blog" / "README.md").read_text()
+    root_readme = (REPO_ROOT / "README.md").read_text()
 
     for phrase in [
         "single-turn",
@@ -326,3 +293,20 @@ def test_research_goal_states_notebook_led_method_comparison() -> None:
     assert "Every public claim should name the reader-facing lab or generated evidence artifact" in goal
     assert "shareable-lab.md" in blog_readme
     assert "reader-facing lab" in blog_readme
+    assert "notebooks/blog/02_wsl_5090_setup.py" not in blog_readme
+    assert "internal checkpoint" not in blog_readme
+    assert "chapter notebooks" not in blog_readme
+    assert "notebooks/blog/" not in root_readme
+
+
+def test_publishable_blog_evidence_exposes_only_the_shareable_lab(tmp_path) -> None:
+    manifest = export_blog_evidence(tmp_path)
+
+    assert "notebook_contracts_md" not in manifest["assets"]
+    for asset_path in manifest["assets"].values():
+        if not asset_path.endswith(".md"):
+            continue
+        content = (tmp_path / asset_path).read_text()
+        assert "notebooks/blog/" not in content
+        assert "internal checkpoint" not in content
+        assert "setup notebook" not in content

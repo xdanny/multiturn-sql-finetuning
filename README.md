@@ -72,7 +72,7 @@ Known constraints:
   benchmark claim rules are documented in `docs/methodology.md`.
 - The public post now has one reader-facing marimo lab at
   `notebooks/labs/local_multiturn_sql_lab.py`; see `docs/blog/README.md` for
-  the lab attachment and internal checkpoint notebook map.
+  the lab attachment and generated evidence assets.
 
 ## Blog-Attached Lab
 
@@ -89,9 +89,8 @@ XPU availability when PyTorch detects one. The SQLite lab computation remains
 CPU-safe. The public site consumes the generated lab attachment at
 `docs/blog/generated/shareable-lab.md`.
 
-The notebooks under `notebooks/blog/` still exist, but they are internal
-checkpoint notebooks for maintaining the claim ledger, plots, and generated
-assets. Expensive GPU training and vLLM serving stay in scripts.
+Deeper evidence maintenance stays separate from the public reader path. Expensive
+GPU training and vLLM serving stay in scripts.
 
 ## Leakage Policy
 

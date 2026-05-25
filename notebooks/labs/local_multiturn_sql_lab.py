@@ -53,7 +53,7 @@ def _(mo, report):
         selector reports CUDA, MPS, or XPU availability when PyTorch can see an
         accelerator, but this lab does not require or use GPU compute.
 
-        Lab runtime: `{device.label}`. Detected accelerator: `{detected.label}`.
+        Lab runtime: `{device.label}`. Accelerator availability: `{detected.label}`.
         Shared scenario hash: `{contract["shared_input_sha256"]}`.
         """
     )

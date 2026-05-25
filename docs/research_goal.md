@@ -74,9 +74,8 @@ behave like a lab handoff: readers can open the companion notebook, rerun the me
 comparison, and see the boundary between current proxy evidence, oracle diagnostics,
 and future BIRD-Interact or hosted-model claims.
 
-The notebooks under `notebooks/blog/` are internal checkpoint notebooks for maintaining
-the claim ledger, generated tables, and plots. Expensive model serving and GPU training
-stay in scripts.
+Expensive model serving and GPU training stay in scripts. The public reader path stays
+focused on the companion lab and generated evidence assets.
 
 ## First DSL Experiment Surface
 
