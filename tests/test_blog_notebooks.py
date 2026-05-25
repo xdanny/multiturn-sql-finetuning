@@ -105,6 +105,7 @@ def test_notebook_support_loads_current_artifacts() -> None:
         "notebook",
         "repo_url",
         "run_command",
+        "alternate_command",
         "device_policy",
         "reader_flow",
         "what_runs",
@@ -112,9 +113,10 @@ def test_notebook_support_loads_current_artifacts() -> None:
     } <= set(lab_attachment.columns)
     lab_row = lab_attachment.iloc[0]
     assert lab_row["artifact"] == "reader-facing lab notebook"
-    assert lab_row["notebook"] == "notebooks/labs/local_multiturn_sql_lab.py"
+    assert lab_row["notebook"] == "notebooks/labs/local_multiturn_sql_lab.ipynb"
     assert "github.com/xdanny/multiturn-sql-finetuning" in lab_row["repo_url"]
-    assert "marimo edit notebooks/labs/local_multiturn_sql_lab.py" in lab_row["run_command"]
+    assert "jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb" in lab_row["run_command"]
+    assert "marimo edit notebooks/labs/local_multiturn_sql_lab.py" in lab_row["alternate_command"]
     assert "CPU by default" in lab_row["device_policy"]
     assert "CUDA" in lab_row["device_policy"]
     assert "MPS" in lab_row["device_policy"]
@@ -370,7 +372,8 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
 
     shareable_lab_md = (tmp_path / manifest["assets"]["shareable_lab_md"]).read_text()
     assert "reader-facing lab notebook" in shareable_lab_md
-    assert "notebooks/labs/local_multiturn_sql_lab.py" in shareable_lab_md
+    assert "notebooks/labs/local_multiturn_sql_lab.ipynb" in shareable_lab_md
+    assert "jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb" in shareable_lab_md
     assert "marimo edit notebooks/labs/local_multiturn_sql_lab.py" in shareable_lab_md
     assert "CPU by default" in shareable_lab_md
     assert "CUDA" in shareable_lab_md

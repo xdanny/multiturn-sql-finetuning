@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import ast
+import json
+import subprocess
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -22,6 +25,12 @@ def test_multiturn_lab_runs_without_requiring_gpu() -> None:
 
     assert report["device"].kind == "cpu"
     assert report["detected_accelerator"].kind in {"cuda", "mps", "xpu", "none"}
+    assert {status["kind"] for status in report["accelerator_report"]} == {
+        "cuda",
+        "mps",
+        "xpu",
+    }
+    assert all("available" in status for status in report["accelerator_report"])
     assert report["runtime_policy"]["reported_accelerators"] == "CUDA, MPS, XPU"
     assert set(report["systems"]) == {
         "direct_sql_baseline",
@@ -123,6 +132,18 @@ def test_multiturn_lab_auto_device_falls_back_to_cpu(monkeypatch) -> None:
 def test_multiturn_lab_rejects_unknown_device_preference() -> None:
     with pytest.raises(ValueError, match="device_preference"):
         lab_support.run_multiturn_lab(device_preference="gpu")
+
+
+def test_multiturn_lab_reports_each_accelerator_backend_without_using_gpu() -> None:
+    report = lab_support.run_multiturn_lab()
+
+    statuses = {status["kind"]: status for status in report["accelerator_report"]}
+
+    assert set(statuses) == {"cuda", "mps", "xpu"}
+    assert all(isinstance(status["available"], bool) for status in statuses.values())
+    assert all(status["usage"] == "reported_only" for status in statuses.values())
+    assert all(status["label"] for status in statuses.values())
+    assert report["device"].kind == "cpu"
 
 
 def test_multiturn_lab_exposes_behavior_failures_not_just_scores() -> None:
@@ -240,10 +261,80 @@ def test_shareable_lab_notebook_is_plain_python_marimo_app() -> None:
     assert "app.run()" in source
 
 
+def test_shareable_lab_has_portable_jupyter_notebook_entrypoint() -> None:
+    notebook_path = REPO_ROOT / "notebooks" / "labs" / "local_multiturn_sql_lab.ipynb"
+
+    notebook = json.loads(notebook_path.read_text())
+    assert notebook["nbformat"] == 4
+    assert notebook["metadata"]["kernelspec"]["language"] == "python"
+
+    text = "\n".join(
+        "".join(cell.get("source", ""))
+        for cell in notebook["cells"]
+    )
+    assert "run_multiturn_lab" in text
+    assert "device_preference=\"cpu\"" in text
+    assert "accelerator_report" in text
+    assert "CUDA" in text
+    assert "MPS" in text
+    assert "XPU" in text
+    assert "pip install" not in text
+    assert "apt install" not in text
+    assert "notebooks/blog/" not in text
+
+    code = "\n".join(
+        "".join(cell.get("source", ""))
+        for cell in notebook["cells"]
+        if cell.get("cell_type") == "code"
+    )
+    assert "report = run_multiturn_lab(device_preference=\"cpu\")" in code
+    assert "report[\"device\"].kind" in code
+    assert "report[\"accelerator_report\"]" in code
+
+    namespace: dict[str, object] = {}
+    for cell in notebook["cells"]:
+        if cell.get("cell_type") != "code":
+            continue
+        exec("".join(cell.get("source", "")), namespace)
+
+    report = namespace["report"]
+    assert report["device"].kind == "cpu"
+    assert report["runtime_policy"]["accelerator_usage"] == "reported_only"
+    assert {status["kind"] for status in report["accelerator_report"]} == {
+        "cuda",
+        "mps",
+        "xpu",
+    }
+
+
+def test_shareable_lab_jupyter_notebook_is_tracked_by_git() -> None:
+    result = subprocess.run(
+        [
+            "git",
+            "ls-files",
+            "--error-unmatch",
+            "notebooks/labs/local_multiturn_sql_lab.ipynb",
+        ],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_jupyter_lab_command_is_backed_by_dev_dependency() -> None:
+    pyproject = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())
+    dev_deps = pyproject["project"]["optional-dependencies"]["dev"]
+
+    assert any(dep.startswith("jupyterlab") for dep in dev_deps)
+
+
 def test_blog_readme_points_to_shareable_lab_notebook() -> None:
     readme = (REPO_ROOT / "docs" / "blog" / "README.md").read_text()
 
-    assert "notebooks/labs/local_multiturn_sql_lab.py" in readme
+    assert "notebooks/labs/local_multiturn_sql_lab.ipynb" in readme
     assert "defaults to CPU" in readme
     assert "planner-first" in readme
     assert "semantic value grounding" in readme

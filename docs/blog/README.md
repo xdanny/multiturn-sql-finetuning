@@ -3,19 +3,25 @@
 The public post has one reader-facing lab notebook:
 
 ```bash
-marimo edit notebooks/labs/local_multiturn_sql_lab.py
+jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb
 ```
 
 That notebook is intentionally small. It runs an in-memory SQLite multi-turn SQL
 experiment and compares five training targets: direct SQL, planner-first SQL,
 semantic value grounding before SQL, a `MEASURE()`-preserving DSL before SQL,
 and behavior/recovery tuning from failed execution feedback. It defaults to CPU
-and has an `auto` runtime option that reports CUDA, MPS, or XPU availability when
-PyTorch can see one. The SQLite lab computation remains CPU-safe. It does not
-require the full GPU training setup or a model download.
+and reports CUDA, MPS, or XPU availability when PyTorch can see one. The SQLite
+lab computation remains CPU-safe. It does not require the full GPU training setup
+or a model download.
 
-For non-interactive verification, the marimo lab is a plain Python file and can be
-compiled with:
+The marimo source notebook is still available for editing:
+
+```bash
+marimo edit notebooks/labs/local_multiturn_sql_lab.py
+```
+
+For non-interactive verification, the marimo source is a plain Python file and can
+be compiled with:
 
 ```bash
 python -m py_compile notebooks/labs/local_multiturn_sql_lab.py

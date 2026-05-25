@@ -45,18 +45,26 @@ def _(mo, report):
     device = report["device"]
     detected = report["detected_accelerator"]
     contract = report["scenario_contract"]
-    mo.md(
-        f"""
-        # Local multi-turn SQL lab
+    mo.vstack(
+        [
+            mo.md(
+                f"""
+                # Local multi-turn SQL lab
 
-        This lab is the runnable companion to the post. It uses a tiny in-memory
-        SQLite warehouse so the experiment is CPU-safe by default. The runtime
-        selector reports CUDA, MPS, or XPU availability when PyTorch can see an
-        accelerator, but this lab does not require or use GPU compute.
+                This lab is the runnable companion to the post. It uses a tiny in-memory
+                SQLite warehouse so the experiment is CPU-safe by default. The runtime
+                selector reports CUDA, MPS, or XPU availability when PyTorch can see an
+                accelerator, but this lab does not require or use GPU compute.
 
-        Lab runtime: `{device.label}`. Accelerator availability: `{detected.label}`.
-        Shared scenario hash: `{contract["shared_input_sha256"]}`.
-        """
+                Lab runtime: `{device.label}`. Accelerator availability: `{detected.label}`.
+                Shared scenario hash: `{contract["shared_input_sha256"]}`.
+                """
+            ),
+            mo.ui.table(
+                report["accelerator_report"],
+                label="CUDA/MPS/XPU status reported only",
+            ),
+        ]
     )
     return
 

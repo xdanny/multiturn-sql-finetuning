@@ -12,6 +12,7 @@ class Accelerator:
     kind: str
     label: str
     torch_available: bool
+    available: bool = False
 
 
 @dataclass(frozen=True)
@@ -34,39 +35,114 @@ class MethodOutput:
     recovery_success: bool = False
 
 
-def available_accelerator() -> Accelerator:
-    """Return the best local accelerator without requiring torch or a GPU."""
+def _accelerator_status(
+    *,
+    kind: str,
+    label: str,
+    torch_available: bool,
+    available: bool,
+) -> dict[str, Any]:
+    return {
+        "kind": kind,
+        "label": label,
+        "torch_available": torch_available,
+        "available": available,
+        "usage": "reported_only",
+    }
+
+
+def accelerator_statuses() -> list[dict[str, Any]]:
+    """Report CUDA/MPS/XPU visibility without selecting an accelerator."""
 
     try:
         import torch  # type: ignore[import-not-found]
     except Exception:
-        return Accelerator(
-            kind="none",
-            label="no accelerator detected (torch not installed)",
-            torch_available=False,
-        )
+        return [
+            _accelerator_status(
+                kind=kind,
+                label=f"{kind.upper()} unavailable (torch not installed)",
+                torch_available=False,
+                available=False,
+            )
+            for kind in ("cuda", "mps", "xpu")
+        ]
+
+    statuses: list[dict[str, Any]] = []
 
     try:
-        if torch.cuda.is_available():
+        cuda_available = bool(torch.cuda.is_available())
+        if cuda_available:
             count = torch.cuda.device_count()
             names = [torch.cuda.get_device_name(index) for index in range(count)]
-            return Accelerator(
-                kind="cuda",
-                label=f"cuda ({count} device{'s' if count != 1 else ''}: {', '.join(names)})",
-                torch_available=True,
+            cuda_label = (
+                f"CUDA available ({count} device{'s' if count != 1 else ''}: "
+                f"{', '.join(names)})"
             )
-        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-            return Accelerator(kind="mps", label="mps", torch_available=True)
-        if hasattr(torch, "xpu") and torch.xpu.is_available():
-            return Accelerator(kind="xpu", label="xpu", torch_available=True)
+        else:
+            cuda_label = "CUDA unavailable"
     except Exception as exc:
-        return Accelerator(
-            kind="none",
-            label=f"no accelerator detected (probe failed: {exc})",
+        cuda_available = False
+        cuda_label = f"CUDA probe failed: {exc}"
+    statuses.append(
+        _accelerator_status(
+            kind="cuda",
+            label=cuda_label,
             torch_available=True,
+            available=cuda_available,
         )
+    )
 
-    return Accelerator(kind="none", label="no accelerator detected", torch_available=True)
+    try:
+        mps_available = bool(
+            hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+        )
+        mps_label = "MPS available" if mps_available else "MPS unavailable"
+    except Exception as exc:
+        mps_available = False
+        mps_label = f"MPS probe failed: {exc}"
+    statuses.append(
+        _accelerator_status(
+            kind="mps",
+            label=mps_label,
+            torch_available=True,
+            available=mps_available,
+        )
+    )
+
+    try:
+        xpu_available = bool(hasattr(torch, "xpu") and torch.xpu.is_available())
+        xpu_label = "XPU available" if xpu_available else "XPU unavailable"
+    except Exception as exc:
+        xpu_available = False
+        xpu_label = f"XPU probe failed: {exc}"
+    statuses.append(
+        _accelerator_status(
+            kind="xpu",
+            label=xpu_label,
+            torch_available=True,
+            available=xpu_available,
+        )
+    )
+
+    return statuses
+
+
+def available_accelerator() -> Accelerator:
+    """Return the best visible accelerator without requiring torch or GPU compute."""
+
+    statuses = accelerator_statuses()
+    for status in statuses:
+        if status["available"]:
+            return Accelerator(
+                kind=str(status["kind"]),
+                label=str(status["label"]),
+                torch_available=bool(status["torch_available"]),
+                available=True,
+            )
+
+    torch_available = any(bool(status["torch_available"]) for status in statuses)
+    label = "no accelerator detected" if torch_available else "no accelerator detected (torch not installed)"
+    return Accelerator(kind="none", label=label, torch_available=torch_available)
 
 
 def lab_walkthrough_sections() -> list[dict[str, str]]:
@@ -152,18 +228,22 @@ def lab_walkthrough_sections() -> list[dict[str, str]]:
     ]
 
 
-def select_lab_device(device_preference: str = "cpu") -> tuple[Accelerator, Accelerator, dict[str, Any]]:
+def select_lab_device(
+    device_preference: str = "cpu",
+) -> tuple[Accelerator, Accelerator, dict[str, Any], list[dict[str, Any]]]:
     """Select the CPU-safe lab runtime and report available accelerators."""
 
     if device_preference not in {"cpu", "auto"}:
         raise ValueError("device_preference must be 'cpu' or 'auto'")
 
     detected_accelerator = available_accelerator()
+    accelerator_report = accelerator_statuses()
     fallback = "cpu" if device_preference == "auto" and detected_accelerator.kind == "none" else None
     device = Accelerator(
         kind="cpu",
         label="cpu",
         torch_available=detected_accelerator.torch_available,
+        available=True,
     )
 
     return (
@@ -175,6 +255,7 @@ def select_lab_device(device_preference: str = "cpu") -> tuple[Accelerator, Acce
             "accelerator_usage": "reported_only",
             "reported_accelerators": "CUDA, MPS, XPU",
         },
+        accelerator_report,
     )
 
 
@@ -578,7 +659,9 @@ def scenario_contract(turns: list[LabTurn]) -> dict[str, Any]:
 def run_multiturn_lab(device_preference: str = "cpu") -> dict[str, Any]:
     """Run a small executable multi-turn SQL lab with no external model download."""
 
-    device, detected_accelerator, runtime_policy = select_lab_device(device_preference)
+    device, detected_accelerator, runtime_policy, accelerator_report = select_lab_device(
+        device_preference
+    )
     conn = _connect_demo_db()
     turns = lab_turns()
     systems = {
@@ -643,6 +726,7 @@ def run_multiturn_lab(device_preference: str = "cpu") -> dict[str, Any]:
     return {
         "device": device,
         "detected_accelerator": detected_accelerator,
+        "accelerator_report": accelerator_report,
         "runtime_policy": runtime_policy,
         "turns": turns,
         "rows": rows,

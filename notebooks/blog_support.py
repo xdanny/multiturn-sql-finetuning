@@ -1,4 +1,4 @@
-"""Shared data loaders for the blog companion marimo notebooks."""
+"""Shared data loaders for the blog companion lab and generated evidence."""
 
 from __future__ import annotations
 
@@ -283,13 +283,14 @@ def shareable_lab_attachment() -> pd.DataFrame:
         [
             {
                 "artifact": "reader-facing lab notebook",
-                "notebook": "notebooks/labs/local_multiturn_sql_lab.py",
+                "notebook": "notebooks/labs/local_multiturn_sql_lab.ipynb",
                 "repo_url": "https://github.com/xdanny/multiturn-sql-finetuning",
-                "run_command": "marimo edit notebooks/labs/local_multiturn_sql_lab.py",
+                "run_command": "jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb",
+                "alternate_command": "marimo edit notebooks/labs/local_multiturn_sql_lab.py",
                 "device_policy": (
-                    "CPU by default; choose auto in the notebook to report CUDA, MPS, "
-                    "or XPU availability when PyTorch detects one. The SQLite lab "
-                    "computation remains CPU-safe."
+                    "CPU by default; the notebook reports CUDA, MPS, or XPU "
+                    "availability when PyTorch detects one. The SQLite lab "
+                    "computation remains CPU-safe and does not require GPU compute."
                 ),
                 "reader_flow": reader_flow,
                 "what_runs": (

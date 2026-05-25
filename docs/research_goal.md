@@ -53,11 +53,13 @@ The current repo has a useful local loop, but it is still mostly a proxy:
 
 ## Blog-Attached Lab Contract
 
-The public post should have one reader-facing marimo lab:
-`notebooks/labs/local_multiturn_sql_lab.py`. The post explains the narrative. The lab
-runs the central method comparison in code, with CPU as the default and an `auto`
-runtime option that reports CUDA, MPS, or XPU availability when PyTorch can see an
-accelerator. The SQLite lab computation remains CPU-safe.
+The public post should have one reader-facing Jupyter lab:
+`notebooks/labs/local_multiturn_sql_lab.ipynb`. The marimo source remains available
+at `notebooks/labs/local_multiturn_sql_lab.py`, but the `.ipynb` is the shareable
+artifact readers should open first. The post explains the narrative. The lab runs
+the central method comparison in code, with CPU as the default and accelerator
+availability reported for CUDA, MPS, or XPU when PyTorch can see one. The SQLite lab
+computation remains CPU-safe.
 
 This matters because the blog should not be a static story written after the fact. It
 should point to a runnable artifact:
