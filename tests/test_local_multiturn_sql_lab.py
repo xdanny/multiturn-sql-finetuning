@@ -414,8 +414,9 @@ def test_blog_readme_points_to_shareable_lab_notebook() -> None:
 
     assert "attached codebase" in readme
     assert "notebooks/labs/local_multiturn_sql_lab.ipynb" in readme
-    assert "notebooks/blog/" not in readme
-    assert "chapter notebook" not in readme
+    assert "notebooks/blog/01_benchmark_gap.py" in readme
+    assert "notebooks/blog/05_next_experiments.py" in readme
+    assert "section notebooks" in readme
     assert "marimo edit notebooks/labs/local_multiturn_sql_lab.py" in readme
     assert "CPU-safe" in readme
     assert "auto-selects CUDA, MPS, or XPU" in readme

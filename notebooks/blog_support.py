@@ -21,6 +21,92 @@ BLOG_EVIDENCE_SOURCES = (
     "results/prompt_search_schema_pruned_projection_schemafix_100/summary.csv",
 )
 
+
+BLOG_NOTEBOOKS: tuple[dict[str, str], ...] = (
+    {
+        "post_section": "Benchmark gap",
+        "notebook": "notebooks/blog/01_benchmark_gap.py",
+        "reader_action": (
+            "Research question: run the opening marimo notebook to reproduce the failure: "
+            "single-turn SQL can look solved while a follow-up loses state."
+        ),
+        "evidence_to_inspect": "lab-failure-trace.md",
+        "purpose": (
+            "Turns the BIRD-style zero-shot premise into a concrete multi-turn "
+            "failure before introducing any fine-tuning result."
+        ),
+        "claim_boundary": (
+            "Notebook demonstration only; it is not a benchmark result and "
+            "does not compare model leaderboard scores."
+        ),
+    },
+    {
+        "post_section": "Evaluation protocol",
+        "notebook": "notebooks/blog/02_eval_protocol.py",
+        "reader_action": (
+            "Inspect the protocol before reading scores: CoSQL/SParC/synthetic/"
+            "BIRD roles, teacher-forced history, oracle boundaries, and hosted "
+            "baseline gates."
+        ),
+        "evidence_to_inspect": "claim-table.md and data-engineering-gates.md",
+        "purpose": "Defines what a claim can mean before the post shows accuracy numbers.",
+        "claim_boundary": (
+            "CoSQL is the current proxy; hosted SOTA and BIRD-Interact claims stay "
+            "pending until same-protocol manifests exist."
+        ),
+    },
+    {
+        "post_section": "Fine-tuning targets",
+        "notebook": "notebooks/blog/03_method_targets.py",
+        "reader_action": (
+            "Compare direct SQL, planner-first SQL, semantic-layer grounding, "
+            "MEASURE()-preserving DSL, and recovery as separate training hypotheses."
+        ),
+        "evidence_to_inspect": "lab-method-scores.md and target-evidence-matrix.md",
+        "purpose": (
+            "Keeps the post from treating LoRA movement as the whole result; each "
+            "target has a falsifiable next gate."
+        ),
+        "claim_boundary": (
+            "The lab isolates behaviors; the target matrix says which rows are "
+            "manifest-backed, pending, or only diagnostic."
+        ),
+    },
+    {
+        "post_section": "Results and diagnostics",
+        "notebook": "notebooks/blog/04_results_diagnostics.py",
+        "reader_action": (
+            "Inspect strict vs value scoring, direct-SQL control results, oracle "
+            "ceiling, and the non-oracle planner baseline."
+        ),
+        "evidence_to_inspect": "endpoint-run-scorecard.md, accuracy-ladder.svg, and planner-baseline.svg",
+        "purpose": (
+            "Shows why the direct-SQL control moved, why the scorer changed, and "
+            "why oracle planning is a ceiling rather than a production result."
+        ),
+        "claim_boundary": (
+            "The best current number is a non-oracle CoSQL proxy with "
+            "teacher-forced history, not a hosted-SOTA result."
+        ),
+    },
+    {
+        "post_section": "Next experiments",
+        "notebook": "notebooks/blog/05_next_experiments.py",
+        "reader_action": (
+            "Turn the remaining misses into artifacts: predicted planner execution, "
+            "metric-DSL comparison, rollout history, hosted baselines, and "
+            "BIRD-Interact transfer."
+        ),
+        "evidence_to_inspect": "target-comparison.md, prompt-optimization-findings.md, and data-engineering-gates.md",
+        "purpose": "Turns the post ending into a decision table instead of a generic roadmap.",
+        "claim_boundary": (
+            "A target becomes best only after it beats direct SQL on identical rows "
+            "under the same scorer and protocol."
+        ),
+    },
+)
+
+
 def repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
@@ -273,11 +359,31 @@ def metric_dsl_eval_contract() -> pd.DataFrame:
     )
 
 
+def blog_notebook_series() -> pd.DataFrame:
+    rows = []
+    for step, notebook in enumerate(BLOG_NOTEBOOKS, start=1):
+        rows.append(
+            {
+                "step": step,
+                "post_section": notebook["post_section"],
+                "notebook": notebook["notebook"],
+                "run_command": f"marimo edit {notebook['notebook']}",
+                "reader_action": notebook["reader_action"],
+                "evidence_to_inspect": notebook["evidence_to_inspect"],
+                "purpose": notebook["purpose"],
+                "claim_boundary": notebook["claim_boundary"],
+                "attached_lab": "notebooks/labs/local_multiturn_sql_lab.ipynb",
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 def shareable_lab_attachment() -> pd.DataFrame:
     reader_flow = " -> ".join(
         [
             "Research question",
             "open the lab notebook",
+            "run the section notebooks",
             "inspect the failure trace",
             "compare fine-tuning targets",
             "read the evidence gates",
@@ -312,29 +418,18 @@ def shareable_lab_attachment() -> pd.DataFrame:
 
 
 def lab_reader_flow() -> pd.DataFrame:
-    evidence_by_section = {
-        "research_question": "shareable-lab.md",
-        "single_turn_gap": "lab-failure-trace.md",
-        "proxy_slice": "claim-table.md and data-engineering-gates.md",
-        "target_comparison": "lab-method-scores.md and target-evidence-matrix.md",
-        "execution_trace": "lab-failure-trace.md",
-        "claim_boundary": "claim-table.md and endpoint-run-scorecard.md",
-        "next_gates": "data-engineering-gates.md and prompt-optimization-findings.md",
-    }
-    rows = []
-    for step, section in enumerate(run_multiturn_lab()["walkthrough_sections"], start=1):
-        rows.append(
-            {
-                "step": step,
-                "lab_section": section["title"],
-                "notebook": "notebooks/labs/local_multiturn_sql_lab.ipynb",
-                "run_command": "jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb",
-                "reader_action": section["reader_question"],
-                "evidence_to_inspect": evidence_by_section[section["section_id"]],
-                "claim_boundary": section["takeaway"],
-            }
-        )
-    return pd.DataFrame(rows)
+    return blog_notebook_series()[
+        [
+            "step",
+            "post_section",
+            "notebook",
+            "run_command",
+            "reader_action",
+            "evidence_to_inspect",
+            "claim_boundary",
+            "attached_lab",
+        ]
+    ].copy()
 
 
 def lab_method_scorecard() -> pd.DataFrame:
@@ -1001,7 +1096,6 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     output.mkdir(parents=True, exist_ok=True)
     for retired_asset in (
         "notebook-contracts.md",
-        "notebook-series.md",
         "notebook-walkthrough.md",
     ):
         retired_path = output / retired_asset
@@ -1013,6 +1107,7 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     claims = claim_table()
     metric_contract = metric_dsl_eval_contract()
     shareable_lab = shareable_lab_attachment()
+    notebook_series = blog_notebook_series()
     reader_flow = lab_reader_flow()
     lab_scores = lab_method_scorecard()
     lab_trace = lab_failure_trace()
@@ -1051,6 +1146,10 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
         "shareable_lab_md": _write_text(
             output / "shareable-lab.md",
             _markdown_table(shareable_lab),
+        ),
+        "notebook_series_md": _write_text(
+            output / "notebook-series.md",
+            _markdown_table(notebook_series),
         ),
         "lab_reader_flow_md": _write_text(
             output / "lab-reader-flow.md",

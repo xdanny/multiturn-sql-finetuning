@@ -70,13 +70,13 @@ Known constraints:
 - Schema-link label generation and semantic prompt pruning are available through `data.prepare --include-sql-labels --prune-semantic-model`. These flags now mark produced rows as `evaluation_mode=oracle_planner_diagnostic`. On the fixed 100-turn CoSQL slice, the best oracle prompt-only pruned-label run reaches `0.850` value accuracy, and training on that oracle-labelled format reaches `0.890`.
 - The end-to-end methodology, dataset roles, training strategy boundaries, and
   benchmark claim rules are documented in `docs/methodology.md`.
-- The public post now has one attached lab notebook and codebase; see
-  `docs/blog/README.md` for the reader path and generated evidence assets.
+- The public post now has one attached lab notebook, a section-level marimo
+  walkthrough series, and generated evidence assets; see `docs/blog/README.md`.
 
-## Blog-Attached Lab
+## Blog-Attached Lab And Section Notebooks
 
-The blog post should point readers to one shareable lab notebook, not a setup
-appendix or a notebook series:
+The blog post should point readers to one shareable lab notebook and a set of
+small marimo section notebooks. The lab is the attached codebase artifact:
 
 ```bash
 jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb
@@ -88,18 +88,29 @@ The same lab remains available as a marimo app for local iteration:
 marimo edit notebooks/labs/local_multiturn_sql_lab.py
 ```
 
+The post walkthrough is split into section notebooks:
+
+```bash
+marimo edit notebooks/blog/01_benchmark_gap.py
+marimo edit notebooks/blog/02_eval_protocol.py
+marimo edit notebooks/blog/03_method_targets.py
+marimo edit notebooks/blog/04_results_diagnostics.py
+marimo edit notebooks/blog/05_next_experiments.py
+```
+
 The lab compares five fine-tuning targets: direct SQL, planner-first SQL,
 semantic-layer state, `MEASURE()`-preserving DSL, and behavior/recovery tuning.
 It auto-selects CUDA, MPS, or XPU when PyTorch can see an accelerator and falls
 back to CPU. The public site consumes generated evidence such as
 `docs/blog/generated/shareable-lab.md`,
+`docs/blog/generated/notebook-series.md`,
 `docs/blog/generated/lab-method-scores.md`,
 `docs/blog/generated/target-evidence-matrix.md`, and
 `docs/blog/generated/lab-failure-trace.md`.
 
 Deeper evidence maintenance stays separate from the public reader path. Expensive
 GPU training, vLLM serving, and local setup notes stay in scripts and docs outside
-the public lab flow.
+the public lab and section-notebook flow.
 
 ## Leakage Policy
 

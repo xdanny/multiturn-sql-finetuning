@@ -1,7 +1,7 @@
-# Blog Companion Lab
+# Blog Companion Lab And Section Notebooks
 
 The public post links to this repository as an attached codebase. Its primary
-reader path is one shareable lab notebook:
+code attachment is one shareable lab notebook:
 
 ```bash
 jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb
@@ -13,14 +13,25 @@ The same lab is also available as a marimo app for local iteration:
 marimo edit notebooks/labs/local_multiturn_sql_lab.py
 ```
 
+The post itself is walked section by section through marimo notebooks:
+
+```bash
+marimo edit notebooks/blog/01_benchmark_gap.py
+marimo edit notebooks/blog/02_eval_protocol.py
+marimo edit notebooks/blog/03_method_targets.py
+marimo edit notebooks/blog/04_results_diagnostics.py
+marimo edit notebooks/blog/05_next_experiments.py
+```
+
 The lab is CPU-safe and auto-selects CUDA, MPS, or XPU when PyTorch can detect
 an accelerator, then falls back to CPU. It compares direct SQL, planner-first
 SQL, semantic-layer state, `MEASURE()`-preserving DSL, and behavior/recovery
 tuning on a small four-turn scenario.
 
-The post should use the lab as the code attachment and use generated evidence
-assets for larger endpoint, planner, and claim-ledger results. It should not
-turn local setup, vLLM serving, or environment notes into the public reader path.
+The post should use the lab as the code attachment, the section notebooks as the
+reader walkthrough, and generated evidence assets for larger endpoint, planner,
+and claim-ledger results. It should not turn local setup, vLLM serving, or
+environment notes into the public reader path.
 
 Publishable evidence assets are generated from the same support loaders:
 
@@ -35,6 +46,7 @@ Tracked outputs:
 - `docs/blog/generated/claim-table.md`
 - `docs/blog/generated/metric-dsl-contract.md`
 - `docs/blog/generated/shareable-lab.md`
+- `docs/blog/generated/notebook-series.md`
 - `docs/blog/generated/lab-reader-flow.md`
 - `docs/blog/generated/lab-method-scores.md`
 - `docs/blog/generated/lab-failure-trace.md`
@@ -48,6 +60,7 @@ Tracked outputs:
 The intended pattern is:
 
 1. The post frames a claim.
-2. The lab notebook runs the smallest executable version of the claim or diagnostic.
+2. The matching marimo section notebook runs the smallest executable version of
+   the claim or diagnostic.
 3. Generated evidence assets render the larger endpoint and planner results.
 4. The post states what the artifact proves and what it does not prove.
