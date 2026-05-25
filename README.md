@@ -1,14 +1,19 @@
 # Multi-Turn SQL Fine-Tuning
 
-Fine-tune Qwen 3.5 9B on SQL interaction data, serve it locally on an RTX 5090,
-and test whether a small local model can become useful enough on
-BIRD-Interact-style multi-turn SQL tasks to compete with much larger hosted
-models.
+Fine-tune and evaluate a small specialized local model for multi-turn analytical
+SQL. The research question is whether a 9B-class local model can learn the
+behavior and semantic concepts needed to outperform much larger state-of-the-art
+general models on multi-turn data-analysis tasks.
 
 The project target is not "make CoSQL go up" in isolation. CoSQL is the first
 small, reproducible multi-turn proxy slice. The longer benchmark direction is a
 BIRD-Interact-style comparison with the same interaction protocol, SQL execution
 checks, cost accounting, and larger-model baselines.
+
+See `docs/research_goal.md` for the explicit research program, including the
+fine-tuning methods this repo should compare: direct SQL SFT, planner/DSL first
+then SQL, semantic-layer tuning, `MEASURE()`-preserving metric DSLs, and
+behavior/recovery tuning.
 
 > Oracle diagnostic: the `0.890` schema-pruned result uses gold SQL-derived
 > planning hints in the eval prompt. It is an upper bound for the
@@ -50,6 +55,22 @@ Known constraints:
 - Schema-link label generation and semantic prompt pruning are available through `data.prepare --include-sql-labels --prune-semantic-model`. These flags now mark produced rows as `evaluation_mode=oracle_planner_diagnostic`. On the fixed 100-turn CoSQL slice, the best oracle prompt-only pruned-label run reaches `0.850` value accuracy, and training on that oracle-labelled format reaches `0.890`.
 - The end-to-end methodology, dataset roles, training strategy boundaries, and
   benchmark claim rules are documented in `docs/methodology.md`.
+- The draft blog series now has executable marimo companion notebooks under
+  `notebooks/blog/`; see `docs/blog/README.md` for the chapter-to-notebook map.
+
+## Notebook-Driven Blog Series
+
+The blog series should be read as a guided run through the artifacts, not as a
+static recap. Each chapter in `docs/blog/` has a matching marimo notebook:
+
+```bash
+marimo edit notebooks/blog/01_problem_and_result.py
+```
+
+The notebooks currently load tracked manifests, result summaries, planner
+scores, and failure taxonomies. Expensive GPU training and vLLM serving stay in
+scripts; notebooks make the evidence tables and graphs reproducible during the
+writeup.
 
 ## Leakage Policy
 

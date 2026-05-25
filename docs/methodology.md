@@ -1,9 +1,13 @@
 # Methodology
 
-This project asks whether a local Qwen 3.5 9B model can become competitive on
-data-analysis work that requires database reasoning, not just one-shot SQL
-completion. The current evidence is a CoSQL proxy loop. It is not yet a
-BIRD-Interact score and not yet a hosted-model comparison.
+This project asks whether a local Qwen 3.5 9B model can become competitive with
+state-of-the-art general models on data-analysis work that requires database
+reasoning, not just one-shot SQL completion. The sharper research question is
+whether a small specialized model can learn behavior and semantic concepts that
+matter specifically for multi-turn analytical SQL.
+
+The current evidence is a CoSQL proxy loop. It is not yet a BIRD-Interact score
+and not yet a hosted-model comparison.
 
 ## Experiment Taxonomy
 
@@ -66,6 +70,16 @@ The repo currently distinguishes these training strategies:
 | Semantic-context LoRA | Non-oracle rows with schema/semantic model context. | Production-style proxy if no gold pruning is used. |
 | Oracle-labelled LoRA | Rows with gold SQL-derived planning hints or semantic pruning by gold tables. | Diagnostic only; useful for testing whether the SQL generator can consume a correct plan. |
 | Predicted-planner-to-SQL LoRA | Rows or prompts where the plan is produced without reference SQL. | Target production path; SQL execution results are still pending. |
+
+The next strategy table should be more ambitious than these early runs:
+
+| Strategy | Question it answers |
+| --- | --- |
+| Direct SQL SFT | Can small-model SQL behavior be improved with ordinary supervised fine-tuning? |
+| Planner/DSL first, SQL second | Is it easier to learn a typed intermediate representation than raw SQL directly? |
+| Semantic-layer tuning | Does a governed model of entities, dimensions, measures, grain, and joins reduce errors that raw schema text cannot? |
+| `MEASURE()`-preserving metric DSL | Should the model preserve governed metrics until a compiler expands them to SQL? |
+| Behavior/recovery tuning | Can the model learn when to clarify, inspect values, repair SQL, and recover after its own previous mistakes? |
 
 The `weight` field in dataset configs is metadata for experiment design today;
 current preparation caps each configured source with `--limit` and does not yet

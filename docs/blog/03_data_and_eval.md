@@ -1,5 +1,7 @@
 # Data and Evaluation Are the Product
 
+Notebook: `notebooks/blog/03_data_and_eval.py`
+
 The model is not the hardest part of this project. The hard part is building a
 data and evaluation loop that tells the truth.
 

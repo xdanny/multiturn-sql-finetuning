@@ -1,5 +1,7 @@
 # Training Iterations: What Changed, What Did Not
 
+Notebook: `notebooks/blog/04_training_iterations.py`
+
 The training loop is intentionally small. This is not because small data is
 ideal, but because small controlled runs make it easier to see whether the
 plumbing is honest.

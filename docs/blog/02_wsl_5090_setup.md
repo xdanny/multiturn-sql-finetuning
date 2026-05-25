@@ -1,5 +1,7 @@
 # WSL2, RTX 5090, and the Boring Parts That Made the Loop Work
 
+Notebook: `notebooks/blog/02_wsl_5090_setup.py`
+
 The useful outcome of the environment work is not that a particular command ran
 once. It is that the repo now has a repeatable split between training, serving,
 and evaluation on a local RTX 5090 under WSL2.

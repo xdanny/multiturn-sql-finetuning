@@ -1,5 +1,7 @@
 # Can a Local 9B Model Compete on Multi-Turn SQL?
 
+Notebook: `notebooks/blog/01_problem_and_result.py`
+
 The project starts from a concrete benchmark question:
 
 > Can a locally fine-tuned Qwen 3.5 9B model become useful enough on

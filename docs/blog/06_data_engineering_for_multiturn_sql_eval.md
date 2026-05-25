@@ -1,5 +1,7 @@
 # Data Engineering Problems Behind Multi-Turn SQL Evals
 
+Notebook: `notebooks/blog/06_data_engineering_for_multiturn_sql_eval.py`
+
 The easy version of a text-to-SQL benchmark is a JSON file of questions, a
 database, and a scoring script. The hard version is everything required to make
 the score mean something.

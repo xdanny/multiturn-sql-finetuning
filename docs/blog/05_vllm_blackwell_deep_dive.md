@@ -1,5 +1,7 @@
 # Serving LoRA Adapters Locally with vLLM on Blackwell WSL
 
+Notebook: `notebooks/blog/05_vllm_blackwell_deep_dive.py`
+
 Serving was the point where model work became an engineering loop instead of a
 notebook experiment. Once adapters can be exposed through an OpenAI-compatible
 endpoint, the evaluator no longer needs to know whether it is talking to the

@@ -1,0 +1,33 @@
+# Blog Notebook Map
+
+Each blog chapter has a matching marimo notebook. Run a notebook from the repository
+root with:
+
+```bash
+marimo edit notebooks/blog/01_problem_and_result.py
+```
+
+For non-interactive verification, marimo notebooks are plain Python files and can be
+compiled with:
+
+```bash
+python -m py_compile notebooks/blog/01_problem_and_result.py
+```
+
+| Chapter | Markdown | Notebook |
+| --- | --- | --- |
+| 01 | `docs/blog/01_problem_and_result.md` | `notebooks/blog/01_problem_and_result.py` |
+| 02 | `docs/blog/02_wsl_5090_setup.md` | `notebooks/blog/02_wsl_5090_setup.py` |
+| 03 | `docs/blog/03_data_and_eval.md` | `notebooks/blog/03_data_and_eval.py` |
+| 04 | `docs/blog/04_training_iterations.md` | `notebooks/blog/04_training_iterations.py` |
+| 05 | `docs/blog/05_vllm_blackwell_deep_dive.md` | `notebooks/blog/05_vllm_blackwell_deep_dive.py` |
+| 06 | `docs/blog/06_data_engineering_for_multiturn_sql_eval.md` | `notebooks/blog/06_data_engineering_for_multiturn_sql_eval.py` |
+
+The intended pattern is:
+
+1. The post frames the question.
+2. The notebook loads the current artifact.
+3. The notebook renders the table or graph used in the post.
+4. The post interprets what the artifact does and does not prove.
+
+This keeps the series tied to evidence instead of disconnected prose.
