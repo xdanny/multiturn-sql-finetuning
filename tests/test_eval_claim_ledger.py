@@ -960,6 +960,161 @@ def test_metric_dsl_positive_comparison_clears_direct_sql_pending(tmp_path) -> N
     assert "metric_dsl_beats_direct_sql" not in pending
 
 
+def _write_hosted_manifest_case(
+    tmp_path: Path,
+    *,
+    metrics: dict,
+    oracle_allowed: bool = False,
+    evaluation_mode: str = "non_oracle_generation",
+    include_matching_local: bool = True,
+) -> Path:
+    input_path = tmp_path / "data" / "eval.jsonl"
+    output_path = tmp_path / "results" / "hosted.jsonl"
+    local_output_path = tmp_path / "results" / "local.jsonl"
+    _write_jsonl(
+        input_path,
+        [
+            {
+                "messages": [
+                    {"role": "user", "content": "q"},
+                    {"role": "assistant", "content": "SELECT 1"},
+                ],
+                "evaluation_mode": evaluation_mode,
+                "gold_plans": [{}],
+            }
+        ],
+    )
+    output_rows = [
+        {
+            "id": "a",
+            "evaluation_mode": evaluation_mode,
+            "value_execution_score": 1.0,
+            "strict_execution_score": 1.0,
+        }
+    ]
+    _write_jsonl(output_path, output_rows)
+    _write_jsonl(local_output_path, output_rows)
+    manifests = []
+    if include_matching_local:
+        manifests.append(
+            {
+                "schema_version": 1,
+                "run_id": "local_baseline",
+                "benchmark": "prepared",
+                "model_name": "local-9b",
+                "endpoint": "http://127.0.0.1:8000/v1",
+                "evaluation_mode": evaluation_mode,
+                "oracle_allowed": False,
+                "prompt_variant": None,
+                "input_path": str(input_path.relative_to(tmp_path)),
+                "input_sha256": _sha256(input_path),
+                "output_path": str(local_output_path.relative_to(tmp_path)),
+                "output_sha256": _sha256(local_output_path),
+                "row_count": 1,
+                "metrics": {"value_execution_accuracy": 1.0},
+                "command": ["run-local"],
+            }
+        )
+    manifests.append(
+        {
+            "schema_version": 1,
+            "run_id": "hosted_baseline",
+            "benchmark": "prepared",
+            "model_name": "frontier-model",
+            "endpoint": "https://api.example.test/v1",
+            "evaluation_mode": evaluation_mode,
+            "oracle_allowed": oracle_allowed,
+            "prompt_variant": None,
+            "input_path": str(input_path.relative_to(tmp_path)),
+            "input_sha256": _sha256(input_path),
+            "output_path": str(output_path.relative_to(tmp_path)),
+            "output_sha256": _sha256(output_path),
+            "row_count": 1,
+            "metrics": metrics,
+            "command": ["run"],
+        }
+    )
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps(manifests))
+    return manifest_path
+
+
+def test_hosted_non_oracle_manifest_clears_pending_claim_and_marks_sota_support(
+    tmp_path,
+) -> None:
+    manifest_path = _write_hosted_manifest_case(
+        tmp_path,
+        metrics={
+            "value_execution_accuracy": 1.0,
+            "mean_latency_ms": 500.0,
+            "total_cost_usd": 0.25,
+        },
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    hosted = next(row for row in rows if row["claim_id"] == "hosted_baseline")
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert hosted["artifact_valid"] is True
+    assert hosted["production_claim_allowed"] is True
+    assert hosted["can_support_sota_claim"] is True
+    assert "hosted_sota_same_protocol" not in pending
+
+
+def test_hosted_non_oracle_manifest_requires_matching_local_protocol(tmp_path) -> None:
+    manifest_path = _write_hosted_manifest_case(
+        tmp_path,
+        metrics={
+            "value_execution_accuracy": 1.0,
+            "mean_latency_ms": 500.0,
+            "total_cost_usd": 0.25,
+        },
+        include_matching_local=False,
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    hosted = next(row for row in rows if row["claim_id"] == "hosted_baseline")
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert hosted["artifact_valid"] is True
+    assert hosted["can_support_sota_claim"] is False
+    assert "hosted_sota_same_protocol" in pending
+
+
+def test_hosted_non_oracle_manifest_requires_execution_metric(tmp_path) -> None:
+    manifest_path = _write_hosted_manifest_case(
+        tmp_path,
+        metrics={
+            "mean_latency_ms": 500.0,
+            "total_cost_usd": 0.25,
+        },
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    hosted = next(row for row in rows if row["claim_id"] == "hosted_baseline")
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert hosted["artifact_valid"] is True
+    assert hosted["can_support_sota_claim"] is False
+    assert "hosted_sota_same_protocol" in pending
+
+
+def test_hosted_manifest_accepts_generation_latency_metric_alias(tmp_path) -> None:
+    manifest_path = _write_hosted_manifest_case(
+        tmp_path,
+        metrics={
+            "value_execution_accuracy": 1.0,
+            "mean_generation_latency_ms": 500.0,
+            "total_cost_usd": 0.25,
+        },
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert "hosted_sota_same_protocol" not in pending
+
+
 def test_hosted_pending_claim_requires_cost_and_latency_metrics(tmp_path) -> None:
     input_path = tmp_path / "data" / "eval.jsonl"
     output_path = tmp_path / "results" / "hosted.jsonl"

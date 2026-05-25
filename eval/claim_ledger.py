@@ -19,8 +19,18 @@ from eval.result_manifest import sha256_file
 
 PRODUCTION_MODES = {"non_oracle_generation", "predicted_planner"}
 HOSTED_ENDPOINT_PREFIXES = ("https://", "anthropic:", "google:")
-HOSTED_LATENCY_KEYS = ("mean_latency_ms", "p50_latency_ms", "latency_ms")
+HOSTED_LATENCY_KEYS = (
+    "mean_latency_ms",
+    "mean_generation_latency_ms",
+    "p50_latency_ms",
+    "latency_ms",
+)
 HOSTED_COST_KEYS = ("total_cost_usd", "estimated_cost_usd", "cost_usd")
+COMPARISON_ACCURACY_KEYS = (
+    "value_execution_accuracy",
+    "strict_execution_accuracy",
+    "execution_accuracy",
+)
 MODEL_GENERATED_SQL_ROLLOUT = "model_generated_sql_rollout"
 GOLD_SQL_TEACHER_FORCED = "gold_sql_teacher_forced"
 METRIC_DSL = "metric_dsl"
@@ -502,7 +512,7 @@ def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any
     has_metric_dsl_direct_sql_comparison = any(
         _row_has_metric_dsl_direct_sql_comparison(row, rows) for row in rows
     )
-    has_hosted = any(_row_has_hosted_claim_support(row) for row in rows)
+    has_hosted = any(_row_has_hosted_claim_support(row, rows) for row in rows)
     has_bird_interact = any(
         row.get("artifact_type") == "result_manifest"
         and "bird_interact" in str(row.get("benchmark") or "").lower()
@@ -725,17 +735,50 @@ def _has_matching_direct_sql_row(
     return False
 
 
-def _row_has_hosted_claim_support(row: dict[str, Any]) -> bool:
+def _row_has_hosted_claim_support(row: dict[str, Any], rows: list[dict[str, Any]]) -> bool:
     if row.get("artifact_type") != "result_manifest" or not row.get("artifact_valid"):
         return False
     if not row.get("production_claim_allowed") or row.get("evaluation_mode") not in PRODUCTION_MODES:
         return False
     if row.get("oracle_allowed"):
         return False
-    if not str(row.get("endpoint") or "").startswith(HOSTED_ENDPOINT_PREFIXES):
+    if not _is_hosted_endpoint(row.get("endpoint")):
         return False
     metric_keys = set(row.get("metric_keys") or [])
-    return bool(metric_keys & set(HOSTED_LATENCY_KEYS)) and bool(metric_keys & set(HOSTED_COST_KEYS))
+    if not (metric_keys & set(HOSTED_LATENCY_KEYS)) or not (metric_keys & set(HOSTED_COST_KEYS)):
+        return False
+    if not _row_accuracy_keys(row):
+        return False
+    return any(_row_matches_local_protocol(row, candidate) for candidate in rows)
+
+
+def _is_hosted_endpoint(endpoint: Any) -> bool:
+    return str(endpoint or "").startswith(HOSTED_ENDPOINT_PREFIXES)
+
+
+def _row_accuracy_keys(row: dict[str, Any]) -> set[str]:
+    return {key for key in COMPARISON_ACCURACY_KEYS if row.get(key) is not None}
+
+
+def _row_matches_local_protocol(hosted: dict[str, Any], candidate: dict[str, Any]) -> bool:
+    if candidate.get("claim_id") == hosted.get("claim_id"):
+        return False
+    if candidate.get("artifact_type") != "result_manifest" or not candidate.get("artifact_valid"):
+        return False
+    if not candidate.get("production_claim_allowed"):
+        return False
+    if candidate.get("oracle_allowed"):
+        return False
+    if _is_hosted_endpoint(candidate.get("endpoint")):
+        return False
+    if not (_row_accuracy_keys(hosted) & _row_accuracy_keys(candidate)):
+        return False
+    return (
+        candidate.get("benchmark") == hosted.get("benchmark")
+        and candidate.get("evaluation_mode") == hosted.get("evaluation_mode")
+        and candidate.get("input_sha256") == hosted.get("input_sha256")
+        and _num(candidate.get("row_count")) == _num(hosted.get("row_count"))
+    )
 
 
 def _row_has_rollout_claim_support(row: dict[str, Any]) -> bool:
@@ -835,6 +878,9 @@ def build_claim_ledger(
     planner = _planner_row(_repo_path(repo_root, str(planner_summary_path)) if planner_summary_path else None)
     if planner:
         rows.append(planner)
+    for row in rows:
+        if row.get("artifact_type") == "result_manifest":
+            row["can_support_sota_claim"] = _row_has_hosted_claim_support(row, rows)
     rows.extend(_pending_rows(rows))
     return rows
 

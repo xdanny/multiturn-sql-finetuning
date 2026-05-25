@@ -248,6 +248,30 @@ def test_write_results_writes_jsonl(tmp_path) -> None:
     assert json.loads(output.read_text()) == {"id": 1, "score": 1.0}
 
 
+def test_summarize_eval_metrics_records_ledger_compatible_latency_alias() -> None:
+    metrics = summarize_eval_metrics(
+        [
+            {
+                "execution_score": 1.0,
+                "strict_execution_score": 1.0,
+                "value_execution_score": 1.0,
+                "syntax_valid": True,
+                "generation_latency_ms": 10.0,
+            },
+            {
+                "execution_score": 0.0,
+                "strict_execution_score": 0.0,
+                "value_execution_score": 0.0,
+                "syntax_valid": True,
+                "generation_latency_ms": 20.0,
+            },
+        ]
+    )
+
+    assert metrics["mean_generation_latency_ms"] == 15.0
+    assert metrics["mean_latency_ms"] == 15.0
+
+
 def test_summarize_eval_metrics_records_teacher_forced_history_policy() -> None:
     metrics = summarize_eval_metrics(
         [
