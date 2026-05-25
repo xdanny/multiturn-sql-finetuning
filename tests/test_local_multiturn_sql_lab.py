@@ -222,6 +222,7 @@ def test_shareable_lab_notebook_is_plain_python_marimo_app() -> None:
     assert "import marimo" in source
     assert "app = marimo.App" in source
     assert "run_multiturn_lab" in source
+    assert "data_engineering_gates" in source
     assert "mo.ui.dropdown" in source
     assert 'value="cpu"' in source
     assert "device_preference=runtime_choice.value" in source
@@ -231,6 +232,7 @@ def test_shareable_lab_notebook_is_plain_python_marimo_app() -> None:
         "## 3. The proxy slice",
         "## 4. Candidate fine-tuning targets",
         "## 5. Execution trace",
+        "## Data engineering gates",
         "## 6. Boundary and next gates",
     ]:
         assert heading in source

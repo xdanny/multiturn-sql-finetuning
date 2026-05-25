@@ -8,9 +8,10 @@ app = marimo.App(width="wide")
 def _():
     import marimo as mo
 
+    from notebooks.blog_support import data_engineering_gates
     from notebooks.labs.local_multiturn_sql_lab_support import run_multiturn_lab
 
-    return mo, run_multiturn_lab
+    return data_engineering_gates, mo, run_multiturn_lab
 
 
 @app.cell
@@ -207,6 +208,27 @@ def _(mo, report):
         [
             mo.md("## Plans and SQL"),
             mo.ui.table(plans, label="Generated intermediate plans and SQL"),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(data_engineering_gates, mo):
+    mo.vstack(
+        [
+            mo.md(
+                """
+                ## Data engineering gates
+
+                These are the repo artifacts that have to exist before the lab's
+                method comparison can support a stronger multi-turn SQL claim.
+                """
+            ),
+            mo.ui.table(
+                data_engineering_gates(),
+                label="Data engineering gates for multi-turn SQL evaluation",
+            ),
         ]
     )
     return

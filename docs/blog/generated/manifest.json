@@ -2,6 +2,7 @@
   "assets": {
     "accuracy_ladder_svg": "accuracy-ladder.svg",
     "claim_table_md": "claim-table.md",
+    "data_engineering_gates_md": "data-engineering-gates.md",
     "endpoint_run_scorecard_md": "endpoint-run-scorecard.md",
     "lab_reader_flow_md": "lab-reader-flow.md",
     "metric_dsl_contract_md": "metric-dsl-contract.md",

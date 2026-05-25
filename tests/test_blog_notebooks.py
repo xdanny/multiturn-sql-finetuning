@@ -6,7 +6,9 @@ from pathlib import Path
 
 from notebooks.blog_support import (
     accuracy_scorecard,
+    claim_ledger,
     claim_table,
+    data_engineering_gates,
     endpoint_run_scorecard,
     export_blog_evidence,
     lab_reader_flow,
@@ -184,6 +186,51 @@ def test_notebook_support_loads_current_artifacts() -> None:
         == "0.530"
     )
 
+    gates = data_engineering_gates()
+    assert {
+        "gate",
+        "artifact",
+        "problem_exposed",
+        "why_it_matters",
+        "current_status",
+        "next_repo_action",
+        "blocks_claim",
+        "source_artifacts",
+        "claim_ids",
+    } <= set(gates.columns)
+    assert set(gates["gate"]) >= {
+        "fixed_proxy_slice",
+        "generated_history_rollout",
+        "value_entity_normalization",
+        "join_fanout_fixtures",
+        "alias_schema_validation",
+        "semantic_metric_manifest",
+        "hosted_same_protocol_baseline",
+        "bird_interact_transfer",
+    }
+    assert any("teacher-forced" in status for status in gates["current_status"])
+    assert any("France -> FR" in problem for problem in gates["problem_exposed"])
+    assert any("bridge tables" in problem for problem in gates["problem_exposed"])
+    assert any("BIRD-Interact" in action for action in gates["next_repo_action"])
+    assert all(gates["blocks_claim"].str.len() > 0)
+    assert all(gates["source_artifacts"].str.len() > 0)
+    assert all(gates["claim_ids"].str.len() > 0)
+
+    known_claim_ids = set(claim_ledger()["claim_id"])
+    gate_claim_ids = {
+        claim_id.strip()
+        for claim_ids in gates["claim_ids"]
+        for claim_id in claim_ids.split(",")
+        if claim_id.strip()
+    }
+    assert gate_claim_ids <= known_claim_ids
+    assert {
+        "rollout_beats_teacher_forced_history",
+        "metric_dsl_evaluation_manifest",
+        "hosted_sota_same_protocol",
+        "bird_interact_local_vs_hosted",
+    } <= gate_claim_ids
+
 
 def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     manifest = export_blog_evidence(tmp_path)
@@ -197,6 +244,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "metric_dsl_contract_md",
         "shareable_lab_md",
         "lab_reader_flow_md",
+        "data_engineering_gates_md",
         "target_comparison_md",
         "endpoint_run_scorecard_md",
     }
@@ -244,6 +292,25 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "Preserving MEASURE()" in lab_flow_md
     assert "The road ahead" in lab_flow_md
     assert "notebooks/blog/" not in lab_flow_md
+
+    data_gates_md = (
+        tmp_path / manifest["assets"]["data_engineering_gates_md"]
+    ).read_text()
+    assert "fixed_proxy_slice" in data_gates_md
+    assert "generated_history_rollout" in data_gates_md
+    assert "value_entity_normalization" in data_gates_md
+    assert "join_fanout_fixtures" in data_gates_md
+    assert "alias_schema_validation" in data_gates_md
+    assert "semantic_metric_manifest" in data_gates_md
+    assert "hosted_same_protocol_baseline" in data_gates_md
+    assert "bird_interact_transfer" in data_gates_md
+    assert "teacher-forced" in data_gates_md
+    assert "France -> FR" in data_gates_md
+    assert "source_artifacts" in data_gates_md
+    assert "claim_ids" in data_gates_md
+    assert "rollout_beats_teacher_forced_history" in data_gates_md
+    assert "hosted_sota_same_protocol" in data_gates_md
+    assert "notebooks/blog/" not in data_gates_md
 
     target_md = (tmp_path / manifest["assets"]["target_comparison_md"]).read_text()
     assert "Direct SQL SFT" in target_md

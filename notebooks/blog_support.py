@@ -385,6 +385,202 @@ def lab_reader_flow() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def data_engineering_gates() -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "gate": "fixed_proxy_slice",
+                "artifact": "CoSQL dev 100-turn manifest",
+                "problem_exposed": (
+                    "Small fixed proxy slice: 100 turns across 32 dialogs, held "
+                    "constant while prompts, adapters, planners, and evaluators change."
+                ),
+                "why_it_matters": (
+                    "Without a fixed slice, every model or prompt change can hide "
+                    "whether the method improved or the task changed."
+                ),
+                "current_status": "in_use: fixed CoSQL proxy with teacher-forced history",
+                "next_repo_action": (
+                    "Keep the proxy manifest immutable and add matching generated-history runs."
+                ),
+                "blocks_claim": "Blocks broad benchmark claims beyond the proxy slice.",
+                "source_artifacts": (
+                    "data/processed/eval_100_each.jsonl; "
+                    "docs/claim_ledgers/cosql_dev_100.jsonl"
+                ),
+                "claim_ids": (
+                    "qwen35_9b_base_cosql_dev_100turns, "
+                    "multiturn_sql_100_cosql_dev_100turns, "
+                    "semantic_prompt_minimal_executable_cosql_dev_100turns"
+                ),
+            },
+            {
+                "gate": "generated_history_rollout",
+                "artifact": "model-generated history manifest",
+                "problem_exposed": (
+                    "Teacher-forced evaluation gives the model clean prior turns; "
+                    "real agents must live with their own earlier SQL and result state."
+                ),
+                "why_it_matters": (
+                    "A multi-turn model can look good when prior context is clean "
+                    "and still fail after its first wrong turn."
+                ),
+                "current_status": "pending: rollout claim is tracked but not yet supported",
+                "next_repo_action": (
+                    "Run the same model with generated prior turns and compare "
+                    "against teacher-forced history."
+                ),
+                "blocks_claim": "Blocks recovery and interactive-agent claims.",
+                "source_artifacts": "docs/claim_ledgers/cosql_dev_100.jsonl",
+                "claim_ids": (
+                    "model_generated_history_rollout, "
+                    "rollout_beats_teacher_forced_history"
+                ),
+            },
+            {
+                "gate": "value_entity_normalization",
+                "artifact": "value index and entity-resolution labels",
+                "problem_exposed": (
+                    "Display values and stored values diverge, e.g. France -> FR, "
+                    "aliases, casing, abbreviations, dates, people, teams, and venues."
+                ),
+                "why_it_matters": (
+                    "The SQL can be syntactically right and still return zero rows "
+                    "because the value grounding is wrong."
+                ),
+                "current_status": "pending: isolated in the lab, not yet a dataset artifact",
+                "next_repo_action": (
+                    "Build per-database value indexes and label entity resolutions "
+                    "for CoSQL/SParC rows before training."
+                ),
+                "blocks_claim": "Blocks semantic grounding and recovery claims.",
+                "source_artifacts": (
+                    "docs/claim_ledgers/cosql_dev_100.jsonl; "
+                    "results/classified/minimal_executable.jsonl"
+                ),
+                "claim_ids": (
+                    "qwen35_9b_base_cosql_dev_100turns, "
+                    "semantic_prompt_minimal_executable_cosql_dev_100turns"
+                ),
+            },
+            {
+                "gate": "join_fanout_fixtures",
+                "artifact": "grain, bridge-table, and fanout fixtures",
+                "problem_exposed": (
+                    "bridge tables and duplicated child rows can multiply facts, "
+                    "changing metric values while the query still executes."
+                ),
+                "why_it_matters": (
+                    "Execution success is not enough if the join path changes the "
+                    "grain or duplicates rows."
+                ),
+                "current_status": "pending: listed as a failure class, not yet fixture-backed",
+                "next_repo_action": (
+                    "Add duplicated-child and bridge-table cases with expected "
+                    "duplicate-row policy labels."
+                ),
+                "blocks_claim": "Blocks trustworthy analytical metric claims.",
+                "source_artifacts": (
+                    "docs/claim_ledgers/cosql_dev_100.jsonl; "
+                    "results/classified/vllm_qwen35_9b_base_cosql_dev_100turns.jsonl"
+                ),
+                "claim_ids": (
+                    "qwen35_9b_base_cosql_dev_100turns, "
+                    "multiturn_sql_100_cosql_dev_100turns"
+                ),
+            },
+            {
+                "gate": "alias_schema_validation",
+                "artifact": "pre-execution schema and alias validator",
+                "problem_exposed": (
+                    "Wrong-table column references and alias-role mistakes collapse "
+                    "into generic bad-SQL failures."
+                ),
+                "why_it_matters": (
+                    "A repair loop needs to know whether the miss was planning, "
+                    "aliasing, dialect, value grounding, or execution."
+                ),
+                "current_status": "pending: planner metrics exist, validator is not complete",
+                "next_repo_action": (
+                    "Validate predicted columns against table roles and emit a "
+                    "repairable failure label before execution scoring."
+                ),
+                "blocks_claim": "Blocks precise planner-versus-generator attribution.",
+                "source_artifacts": (
+                    "docs/planner_baseline_cosql_dev_100_summary.json; "
+                    "docs/claim_ledgers/cosql_dev_100.jsonl"
+                ),
+                "claim_ids": (
+                    "planner_lexical_schema_baseline, "
+                    "predicted_planner_sql_execution"
+                ),
+            },
+            {
+                "gate": "semantic_metric_manifest",
+                "artifact": "versioned semantic model and MEASURE() prediction manifest",
+                "problem_exposed": (
+                    "A raw SQL target can expand governed metrics too early and "
+                    "hide whether the model preserved metric intent."
+                ),
+                "why_it_matters": (
+                    "Business analysis needs stable measures, dimensions, grain, "
+                    "allowed joins, and semantic-model versions."
+                ),
+                "current_status": "partial: metric-DSL parser/evaluator exists; model predictions pending",
+                "next_repo_action": (
+                    "Generate metric-DSL predictions, compile them through the same "
+                    "semantic model, and compare against direct SQL."
+                ),
+                "blocks_claim": "Blocks MEASURE()-first or semantic-layer superiority claims.",
+                "source_artifacts": "docs/claim_ledgers/cosql_dev_100.jsonl",
+                "claim_ids": (
+                    "metric_dsl_evaluation_manifest, "
+                    "metric_dsl_beats_direct_sql"
+                ),
+            },
+            {
+                "gate": "hosted_same_protocol_baseline",
+                "artifact": "hosted-model baseline manifest",
+                "problem_exposed": (
+                    "Local-model gains are not meaningful unless hosted models run "
+                    "the same inputs, scorer, prompt boundary, and latency/cost accounting."
+                ),
+                "why_it_matters": (
+                    "A SOTA comparison is otherwise a story about different protocols."
+                ),
+                "current_status": "pending: claim ledger tracks the missing hosted baseline",
+                "next_repo_action": (
+                    "Run hosted baselines through the fixed CoSQL proxy and publish "
+                    "the same execution manifest fields."
+                ),
+                "blocks_claim": "Blocks hosted-SOTA comparison claims.",
+                "source_artifacts": "docs/claim_ledgers/cosql_dev_100.jsonl",
+                "claim_ids": "hosted_sota_same_protocol",
+            },
+            {
+                "gate": "bird_interact_transfer",
+                "artifact": "BIRD-Interact transfer manifest",
+                "problem_exposed": (
+                    "CoSQL and SParC are useful proxy datasets, but BIRD-Interact "
+                    "is closer to the final multi-turn data-analysis claim."
+                ),
+                "why_it_matters": (
+                    "A method that only works on the proxy may not survive richer "
+                    "schemas, values, and interaction patterns."
+                ),
+                "current_status": "pending: proxy loop only",
+                "next_repo_action": (
+                    "Port the planner, value, metric-DSL, and rollout contracts to "
+                    "BIRD-Interact before claiming transfer."
+                ),
+                "blocks_claim": "Blocks final interactive benchmark claims.",
+                "source_artifacts": "docs/claim_ledgers/cosql_dev_100.jsonl",
+                "claim_ids": "bird_interact_local_vs_hosted",
+            },
+        ]
+    )
+
+
 def target_comparison() -> pd.DataFrame:
     ledger = claim_ledger().set_index("claim_id")
     best_non_oracle = float(
@@ -620,6 +816,7 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     metric_contract = metric_dsl_eval_contract()
     shareable_lab = shareable_lab_attachment()
     reader_flow = lab_reader_flow()
+    data_gates = data_engineering_gates()
     targets = target_comparison()
     endpoint_runs = endpoint_run_scorecard()
 
@@ -656,6 +853,10 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
         "lab_reader_flow_md": _write_text(
             output / "lab-reader-flow.md",
             _markdown_table(reader_flow),
+        ),
+        "data_engineering_gates_md": _write_text(
+            output / "data-engineering-gates.md",
+            _markdown_table(data_gates),
         ),
         "target_comparison_md": _write_text(
             output / "target-comparison.md",

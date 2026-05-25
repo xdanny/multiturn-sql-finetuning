@@ -35,6 +35,7 @@ Tracked outputs:
 - `docs/blog/generated/metric-dsl-contract.md`
 - `docs/blog/generated/shareable-lab.md`
 - `docs/blog/generated/lab-reader-flow.md`
+- `docs/blog/generated/data-engineering-gates.md`
 - `docs/blog/generated/target-comparison.md`
 - `docs/blog/generated/endpoint-run-scorecard.md`
 - `docs/blog/generated/manifest.json`
