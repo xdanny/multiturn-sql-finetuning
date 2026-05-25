@@ -11,10 +11,7 @@ from typing import Any
 import pandas as pd
 
 from data.metric_dsl import compile_metric_query, parse_metric_query, score_metric_query
-from notebooks.labs.local_multiturn_sql_lab_support import (
-    lab_walkthrough_sections,
-    run_multiturn_lab,
-)
+from notebooks.labs.local_multiturn_sql_lab_support import run_multiturn_lab
 
 BLOG_EVIDENCE_SOURCES = (
     "docs/claim_ledgers/cosql_dev_100.jsonl",
@@ -278,25 +275,34 @@ def metric_dsl_eval_contract() -> pd.DataFrame:
 
 
 def shareable_lab_attachment() -> pd.DataFrame:
-    reader_flow = " -> ".join(section["title"] for section in lab_walkthrough_sections())
+    reader_flow = " -> ".join(
+        [
+            "Research question",
+            "run the shared lab",
+            "inspect the failure trace",
+            "compare fine-tuning targets",
+            "read the evidence gates",
+        ]
+    )
     return pd.DataFrame(
         [
             {
-                "artifact": "reader-facing lab notebook",
+                "artifact": "shareable lab notebook and attached codebase",
                 "notebook": "notebooks/labs/local_multiturn_sql_lab.ipynb",
                 "repo_url": "https://github.com/xdanny/multiturn-sql-finetuning",
                 "run_command": "jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb",
                 "alternate_command": "marimo edit notebooks/labs/local_multiturn_sql_lab.py",
                 "device_policy": (
-                    "CPU by default; the notebook reports CUDA, MPS, or XPU "
-                    "availability when PyTorch detects one. The SQLite lab "
-                    "computation remains CPU-safe and does not require GPU compute."
+                    "CPU by default; the lab reports CUDA, MPS, or XPU availability "
+                    "when PyTorch detects an accelerator. The SQLite experiment "
+                    "stays CPU-safe and does not require GPU compute."
                 ),
                 "reader_flow": reader_flow,
                 "what_runs": (
-                    "An in-memory SQLite multi-turn analysis with five candidate "
-                    "fine-tuning targets: direct SQL, planner-first SQL, semantic "
-                    "value grounding, MEASURE()-preserving DSL, and behavior/recovery."
+                    "One notebook-backed code lab that runs a four-turn SQLite "
+                    "scenario, compares direct SQL, planner-first, semantic-layer, "
+                    "MEASURE()-preserving DSL, and behavior/recovery targets, then "
+                    "connects the trace to the repo evidence gates."
                 ),
                 "claim_boundary": (
                     "This is a shareable lab for reasoning about method targets, "
@@ -308,86 +314,32 @@ def shareable_lab_attachment() -> pd.DataFrame:
 
 
 def lab_reader_flow() -> pd.DataFrame:
-    sections = {section["section_id"]: section for section in lab_walkthrough_sections()}
-    rows = [
-        {
-            "step": 1,
-            "post_section": "Run the lab",
-            "lab_section": sections["research_question"]["title"],
-            "reader_action": (
-                "Open the notebook and start with the research question before "
-                "looking at scores."
-            ),
-            "evidence_to_inspect": "Reader flow table, runtime policy, scenario hash",
-            "claim_boundary": sections["research_question"]["takeaway"],
-        },
-        {
-            "step": 2,
-            "post_section": "Why one-shot SQL isn't enough",
-            "lab_section": sections["single_turn_gap"]["title"],
-            "reader_action": (
-                "Compare the single-turn standalone request with the follow-up "
-                "turns where the metric, filter, grain, and repair state carry forward."
-            ),
-            "evidence_to_inspect": "Questions, context notes, and per-turn behavior trace",
-            "claim_boundary": sections["single_turn_gap"]["takeaway"],
-        },
-        {
-            "step": 3,
-            "post_section": "Isolating the datasets",
-            "lab_section": sections["proxy_slice"]["title"],
-            "reader_action": (
-                "Read the tiny SQLite scenario as the local analogue of the fixed "
-                "CoSQL proxy slice."
-            ),
-            "evidence_to_inspect": "Scenario hash, turn count, recovery turn",
-            "claim_boundary": sections["proxy_slice"]["takeaway"],
-        },
-        {
-            "step": 4,
-            "post_section": "Fine-tuning loop",
-            "lab_section": sections["target_comparison"]["title"],
-            "reader_action": (
-                "Use the method matrix to compare direct SQL, planner-first SQL, "
-                "semantic grounding, metric DSL, and recovery targets."
-            ),
-            "evidence_to_inspect": "Method matrix and target comparison table",
-            "claim_boundary": sections["target_comparison"]["takeaway"],
-        },
-        {
-            "step": 5,
-            "post_section": "Planning before SQL",
-            "lab_section": sections["execution_trace"]["title"],
-            "reader_action": (
-                "Inspect where each target succeeds or fails before treating a miss "
-                "as generic bad SQL."
-            ),
-            "evidence_to_inspect": "Value match, context carryover, value grounding, SQL trace",
-            "claim_boundary": sections["execution_trace"]["takeaway"],
-        },
-        {
-            "step": 6,
-            "post_section": "Preserving MEASURE()",
-            "lab_section": sections["execution_trace"]["title"],
-            "reader_action": (
-                "Check which systems keep MEASURE(revenue) in the intermediate "
-                "state before SQL expansion."
-            ),
-            "evidence_to_inspect": "measure_preserved and intermediate_plan columns",
-            "claim_boundary": (
-                "MEASURE() preservation is a training target in the lab, not yet a "
-                "production win."
-            ),
-        },
-        {
-            "step": 7,
-            "post_section": "The road ahead",
-            "lab_section": sections["next_gates"]["title"],
-            "reader_action": "Use the next gates to decide what artifact to build next.",
-            "evidence_to_inspect": sections["next_gates"]["next_artifact"],
-            "claim_boundary": sections["claim_boundary"]["takeaway"],
-        },
-    ]
+    sections = run_multiturn_lab()["walkthrough_sections"]
+    evidence_by_section = {
+        "research_question": "shareable-lab.md",
+        "single_turn_gap": "lab-failure-trace.md",
+        "proxy_slice": "claim-table.md and data-engineering-gates.md",
+        "target_comparison": "lab-method-scores.md and metric-dsl-contract.md",
+        "execution_trace": "lab-failure-trace.md",
+        "claim_boundary": "claim-table.md",
+        "next_gates": "data-engineering-gates.md and target-comparison.md",
+    }
+    rows = []
+    for index, section in enumerate(sections, start=1):
+        section_id = section["section_id"]
+        rows.append(
+            {
+                "step": index,
+                "post_section": section["title"],
+                "lab_section": f"notebooks/labs/local_multiturn_sql_lab.ipynb#{section_id}",
+                "reader_action": (
+                    "Open `notebooks/labs/local_multiturn_sql_lab.ipynb`, run the "
+                    f"`{section['title']}` cells, and inspect {evidence_by_section[section_id]}."
+                ),
+                "evidence_to_inspect": evidence_by_section[section_id],
+                "claim_boundary": section["takeaway"],
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -481,7 +433,8 @@ def data_engineering_gates() -> pd.DataFrame:
                 "blocks_claim": "Blocks broad benchmark claims beyond the proxy slice.",
                 "source_artifacts": (
                     "data/processed/eval_100_each.jsonl; "
-                    "docs/claim_ledgers/cosql_dev_100.jsonl"
+                    "docs/claim_ledgers/cosql_dev_100.jsonl; "
+                    "notebooks/labs/local_multiturn_sql_lab.ipynb"
                 ),
                 "claim_ids": (
                     "qwen35_9b_base_cosql_dev_100turns, "
@@ -723,7 +676,8 @@ def prompt_optimization_findings() -> pd.DataFrame:
             ),
             "next_program_target": (
                 "Optimize planner label F1, value accuracy, and failure-taxonomy "
-                "deltas on a development split before endpoint promotion."
+                "deltas on a development split before endpoint promotion; see "
+                "the shareable lab notebook and planner evaluation docs."
             ),
             "claim_boundary": "Planner program gate is not run yet; not a SOTA claim.",
         },
@@ -957,7 +911,11 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
 
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
-    for retired_asset in ("notebook-contracts.md", "notebook-walkthrough.md"):
+    for retired_asset in (
+        "notebook-contracts.md",
+        "notebook-series.md",
+        "notebook-walkthrough.md",
+    ):
         retired_path = output / retired_asset
         if retired_path.exists():
             retired_path.unlink()

@@ -25,39 +25,75 @@ from notebooks.blog_support import (
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-BLOG_NOTEBOOKS = {
-    "docs/blog/01_problem_and_result.md": "notebooks/blog/01_problem_and_result.py",
-    "docs/blog/02_wsl_5090_setup.md": "notebooks/blog/02_wsl_5090_setup.py",
-    "docs/blog/03_data_and_eval.md": "notebooks/blog/03_data_and_eval.py",
-    "docs/blog/04_training_iterations.md": "notebooks/blog/04_training_iterations.py",
-    "docs/blog/05_vllm_blackwell_deep_dive.md": "notebooks/blog/05_vllm_blackwell_deep_dive.py",
-    "docs/blog/06_data_engineering_for_multiturn_sql_eval.md": "notebooks/blog/06_data_engineering_for_multiturn_sql_eval.py",
+PUBLIC_LAB_NOTEBOOK = "notebooks/labs/local_multiturn_sql_lab.ipynb"
+PUBLIC_LAB_APP = "notebooks/labs/local_multiturn_sql_lab.py"
+
+FORBIDDEN_PUBLIC_NOTEBOOKS = {
+    "notebooks/blog/01_benchmark_gap.py",
+    "notebooks/blog/02_eval_protocol.py",
+    "notebooks/blog/03_method_targets.py",
+    "notebooks/blog/04_results_diagnostics.py",
+    "notebooks/blog/05_next_experiments.py",
+    "notebooks/blog/02_wsl_5090_setup.py",
+    "notebooks/blog/05_vllm_blackwell_deep_dive.py",
+}
+
+FORBIDDEN_BLOG_CHAPTER_DOCS = {
+    "docs/blog/01_benchmark_gap.md",
+    "docs/blog/02_eval_protocol.md",
+    "docs/blog/03_method_targets.md",
+    "docs/blog/04_results_diagnostics.md",
+    "docs/blog/05_next_experiments.md",
 }
 
 
-def test_blog_chapters_link_to_matching_marimo_notebooks() -> None:
-    for blog_path, notebook_path in BLOG_NOTEBOOKS.items():
-        blog_source = (REPO_ROOT / blog_path).read_text()
-        assert f"Notebook: `{notebook_path}`" in blog_source
-        assert (REPO_ROOT / notebook_path).exists()
+def test_public_blog_artifact_is_one_shareable_lab_notebook() -> None:
+    lab_app = REPO_ROOT / PUBLIC_LAB_APP
+    lab_ipynb = REPO_ROOT / PUBLIC_LAB_NOTEBOOK
+
+    app_source = lab_app.read_text()
+    ast.parse(app_source, filename=PUBLIC_LAB_APP)
+    assert "import marimo" in app_source
+    assert "app = marimo.App" in app_source
+    assert "run_multiturn_lab" in app_source
+    assert "device_preference=runtime_choice.value" in app_source
+    assert 'value="cpu"' in app_source
+    assert 'if __name__ == "__main__":' in app_source
+    assert "app.run()" in app_source
+
+    notebook = json.loads(lab_ipynb.read_text())
+    assert notebook["nbformat"] == 4
+    text = "\n".join("".join(cell.get("source", "")) for cell in notebook["cells"])
+    assert "run_multiturn_lab" in text
+    assert 'device_preference="cpu"' in text
+    assert "CUDA" in text
+    assert "MPS" in text
+    assert "XPU" in text
+    assert "pip install" not in text
+    assert "apt install" not in text
+    assert "notebooks/blog/" not in text
 
 
-def test_blog_notebooks_are_plain_python_marimo_apps() -> None:
-    for notebook_path in BLOG_NOTEBOOKS.values():
-        source = (REPO_ROOT / notebook_path).read_text()
-        ast.parse(source, filename=notebook_path)
-        assert "import marimo" in source
-        assert "app = marimo.App" in source
-        assert 'if __name__ == "__main__":' in source
-        assert "app.run()" in source
+def test_blog_section_notebooks_are_not_public_artifacts() -> None:
+    for notebook_path in FORBIDDEN_PUBLIC_NOTEBOOKS:
+        assert not (REPO_ROOT / notebook_path).exists()
+    for chapter_path in FORBIDDEN_BLOG_CHAPTER_DOCS:
+        assert not (REPO_ROOT / chapter_path).exists()
 
 
-def test_training_iteration_notebook_runs_the_finetuning_target_lab() -> None:
-    source = (REPO_ROOT / "notebooks/blog/04_training_iterations.py").read_text()
+def test_shareable_lab_runs_the_finetuning_target_lab() -> None:
+    source = (REPO_ROOT / PUBLIC_LAB_APP).read_text()
+    scores = lab_method_scorecard()
 
     assert "run_multiturn_lab" in source
-    assert "behavior_recovery_sql" in source
-    assert "recovery_success_rate" in source
+    assert set(scores["system"]) == {
+        "direct_sql_baseline",
+        "planner_first_sql",
+        "semantic_value_sql",
+        "semantic_dsl_planner",
+        "behavior_recovery_sql",
+    }
+    assert "recovery_success_rate" in set(scores.columns)
 
 
 def test_notebook_support_loads_current_artifacts() -> None:
@@ -112,20 +148,20 @@ def test_notebook_support_loads_current_artifacts() -> None:
         "claim_boundary",
     } <= set(lab_attachment.columns)
     lab_row = lab_attachment.iloc[0]
-    assert lab_row["artifact"] == "reader-facing lab notebook"
-    assert lab_row["notebook"] == "notebooks/labs/local_multiturn_sql_lab.ipynb"
+    assert lab_row["artifact"] == "shareable lab notebook and attached codebase"
+    assert lab_row["notebook"] == PUBLIC_LAB_NOTEBOOK
     assert "github.com/xdanny/multiturn-sql-finetuning" in lab_row["repo_url"]
-    assert "jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb" in lab_row["run_command"]
-    assert "marimo edit notebooks/labs/local_multiturn_sql_lab.py" in lab_row["alternate_command"]
+    assert f"jupyter lab {PUBLIC_LAB_NOTEBOOK}" in lab_row["run_command"]
+    assert f"marimo edit {PUBLIC_LAB_APP}" in lab_row["alternate_command"]
     assert "CPU by default" in lab_row["device_policy"]
     assert "CUDA" in lab_row["device_policy"]
     assert "MPS" in lab_row["device_policy"]
     assert "XPU" in lab_row["device_policy"]
     assert "Research question" in lab_row["reader_flow"]
-    assert "single-turn gap" in lab_row["reader_flow"]
-    assert "target comparison" in lab_row["reader_flow"]
-    assert "claim boundary" in lab_row["reader_flow"]
-    assert "notebooks/blog/02_wsl_5090_setup.py" not in lab_row.to_string()
+    assert "run the shared lab" in lab_row["reader_flow"]
+    assert "compare fine-tuning targets" in lab_row["reader_flow"]
+    assert "read the evidence gates" in lab_row["reader_flow"]
+    assert "notebooks/blog/" not in lab_row.to_string()
 
     reader_flow = lab_reader_flow()
     assert {
@@ -137,13 +173,14 @@ def test_notebook_support_loads_current_artifacts() -> None:
         "claim_boundary",
     } <= set(reader_flow.columns)
     assert list(reader_flow["step"]) == list(range(1, len(reader_flow) + 1))
-    assert "Run the lab" in set(reader_flow["post_section"])
-    assert "Why one-shot SQL isn't enough" in set(reader_flow["post_section"])
-    assert "Fine-tuning loop" in set(reader_flow["post_section"])
-    assert "Preserving MEASURE()" in set(reader_flow["post_section"])
-    assert "The road ahead" in set(reader_flow["post_section"])
+    assert "Research question" in set(reader_flow["post_section"])
+    assert "single-turn gap" in set(reader_flow["post_section"])
+    assert "target comparison" in set(reader_flow["post_section"])
+    assert "execution trace" in set(reader_flow["post_section"])
+    assert "next gates" in set(reader_flow["post_section"])
     assert any("single-turn" in action for action in reader_flow["reader_action"])
     assert any("not a benchmark result" in boundary for boundary in reader_flow["claim_boundary"])
+    assert any(PUBLIC_LAB_NOTEBOOK in row for row in reader_flow.astype(str).to_numpy().ravel())
     assert not any("notebooks/blog/" in row for row in reader_flow.astype(str).to_numpy().ravel())
 
     lab_scores = lab_method_scorecard()
@@ -371,26 +408,26 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "pending_comparison" in metric_table_md
 
     shareable_lab_md = (tmp_path / manifest["assets"]["shareable_lab_md"]).read_text()
-    assert "reader-facing lab notebook" in shareable_lab_md
-    assert "notebooks/labs/local_multiturn_sql_lab.ipynb" in shareable_lab_md
-    assert "jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb" in shareable_lab_md
-    assert "marimo edit notebooks/labs/local_multiturn_sql_lab.py" in shareable_lab_md
+    assert "shareable lab notebook and attached codebase" in shareable_lab_md
+    assert PUBLIC_LAB_NOTEBOOK in shareable_lab_md
+    assert PUBLIC_LAB_APP in shareable_lab_md
+    assert f"jupyter lab {PUBLIC_LAB_NOTEBOOK}" in shareable_lab_md
     assert "CPU by default" in shareable_lab_md
     assert "CUDA" in shareable_lab_md
     assert "MPS" in shareable_lab_md
     assert "XPU" in shareable_lab_md
     assert "Research question" in shareable_lab_md
-    assert "single-turn gap" in shareable_lab_md
-    assert "target comparison" in shareable_lab_md
-    assert "claim boundary" in shareable_lab_md
+    assert "run the shared lab" in shareable_lab_md
+    assert "compare fine-tuning targets" in shareable_lab_md
+    assert "read the evidence gates" in shareable_lab_md
     assert "notebooks/blog/" not in shareable_lab_md
 
     lab_flow_md = (tmp_path / manifest["assets"]["lab_reader_flow_md"]).read_text()
-    assert "Run the lab" in lab_flow_md
-    assert "Why one-shot SQL isn't enough" in lab_flow_md
-    assert "Fine-tuning loop" in lab_flow_md
-    assert "Preserving MEASURE()" in lab_flow_md
-    assert "The road ahead" in lab_flow_md
+    assert "Research question" in lab_flow_md
+    assert "single-turn gap" in lab_flow_md
+    assert "target comparison" in lab_flow_md
+    assert "next gates" in lab_flow_md
+    assert PUBLIC_LAB_NOTEBOOK in lab_flow_md
     assert "notebooks/blog/" not in lab_flow_md
 
     lab_scores_md = (tmp_path / manifest["assets"]["lab_method_scores_md"]).read_text()
@@ -428,7 +465,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "claim_ids" in data_gates_md
     assert "rollout_beats_teacher_forced_history" in data_gates_md
     assert "hosted_sota_same_protocol" in data_gates_md
-    assert "notebooks/blog/" not in data_gates_md
+    assert PUBLIC_LAB_NOTEBOOK in data_gates_md
 
     prompt_findings_md = (
         tmp_path / manifest["assets"]["prompt_optimization_findings_md"]
@@ -440,7 +477,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "0.850" in prompt_findings_md
     assert "0.830" in prompt_findings_md
     assert "planner label F1" in prompt_findings_md
-    assert "notebooks/blog/" not in prompt_findings_md
+    assert "shareable lab notebook" in prompt_findings_md
 
     target_md = (tmp_path / manifest["assets"]["target_comparison_md"]).read_text()
     assert "Direct SQL SFT" in target_md
@@ -487,19 +524,24 @@ def test_research_goal_states_notebook_led_method_comparison() -> None:
     ]:
         assert phrase in goal
 
-    assert "Every public claim should name the reader-facing lab or generated evidence artifact" in goal
+    assert "Every public claim should name the attached lab notebook or generated evidence artifact" in goal
+    assert PUBLIC_LAB_NOTEBOOK in goal
+    assert PUBLIC_LAB_APP in goal
     assert "shareable-lab.md" in blog_readme
-    assert "reader-facing lab" in blog_readme
-    assert "notebooks/blog/02_wsl_5090_setup.py" not in blog_readme
+    assert "attached codebase" in blog_readme
+    assert PUBLIC_LAB_NOTEBOOK in blog_readme
+    assert PUBLIC_LAB_APP in blog_readme
+    assert "notebooks/blog/" not in blog_readme
     assert "internal checkpoint" not in blog_readme
-    assert "chapter notebooks" not in blog_readme
+    assert "setup notebook" not in blog_readme
     assert "notebooks/blog/" not in root_readme
 
 
-def test_publishable_blog_evidence_exposes_only_the_shareable_lab(tmp_path) -> None:
+def test_publishable_blog_evidence_exposes_only_the_public_lab(tmp_path) -> None:
     manifest = export_blog_evidence(tmp_path)
 
     assert "notebook_contracts_md" not in manifest["assets"]
+    assert "notebook_series_md" not in manifest["assets"]
     for asset_path in manifest["assets"].values():
         if not asset_path.endswith(".md"):
             continue

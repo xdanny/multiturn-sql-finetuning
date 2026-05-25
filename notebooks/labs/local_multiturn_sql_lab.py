@@ -51,10 +51,11 @@ def _(mo, report):
                 f"""
                 # Local multi-turn SQL lab
 
-                This lab is the runnable companion to the post. It uses a tiny in-memory
-                SQLite warehouse so the experiment is CPU-safe by default. The runtime
-                selector reports CUDA, MPS, or XPU availability when PyTorch can see an
-                accelerator, but this lab does not require or use GPU compute.
+                This lab is the runnable notebook attached to the post's codebase. It
+                uses a tiny in-memory SQLite warehouse so the experiment is CPU-safe by
+                default. The runtime selector reports CUDA, MPS, or XPU availability
+                when PyTorch can see an accelerator, but this lab does not require or
+                use GPU compute.
 
                 Lab runtime: `{device.label}`. Accelerator availability: `{detected.label}`.
                 Shared scenario hash: `{contract["shared_input_sha256"]}`.

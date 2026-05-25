@@ -70,24 +70,26 @@ Known constraints:
 - Schema-link label generation and semantic prompt pruning are available through `data.prepare --include-sql-labels --prune-semantic-model`. These flags now mark produced rows as `evaluation_mode=oracle_planner_diagnostic`. On the fixed 100-turn CoSQL slice, the best oracle prompt-only pruned-label run reaches `0.850` value accuracy, and training on that oracle-labelled format reaches `0.890`.
 - The end-to-end methodology, dataset roles, training strategy boundaries, and
   benchmark claim rules are documented in `docs/methodology.md`.
-- The public post now has one reader-facing Jupyter lab at
-  `notebooks/labs/local_multiturn_sql_lab.ipynb`; the marimo source remains at
-  `notebooks/labs/local_multiturn_sql_lab.py`. See `docs/blog/README.md` for
-  the lab attachment and generated evidence assets.
+- The public post now has an attached codebase and one shareable lab notebook;
+  see `docs/blog/README.md` for the lab entry point and generated evidence assets.
 
-## Blog-Attached Lab
+## Blog-Attached Lab Notebook
 
-The blog post should point readers to one runnable lab, not a setup walkthrough.
-The lab creates a tiny SQLite warehouse, compares five fine-tuning targets, and
-keeps the method question executable:
+The blog post should point readers to the attached codebase and one runnable lab,
+not a setup walkthrough or a set of chapter notebooks. The public entry points are:
 
 ```bash
 jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb
+marimo edit notebooks/labs/local_multiturn_sql_lab.py
 ```
 
-It is CPU by default and reports CUDA, MPS, or XPU availability without relying
-on GPU compute. The SQLite lab computation remains CPU-safe. The public site
-consumes the generated lab attachment at `docs/blog/generated/shareable-lab.md`.
+The lab compares five fine-tuning targets: direct SQL, planner-first SQL,
+semantic-layer state, `MEASURE()`-preserving DSL, and behavior/recovery tuning.
+It defaults to CPU, reports CUDA/MPS/XPU visibility when PyTorch can see an
+accelerator, and does not require GPU compute or a model download. The public
+site consumes generated evidence such as `docs/blog/generated/shareable-lab.md`,
+`docs/blog/generated/lab-method-scores.md`, and
+`docs/blog/generated/lab-failure-trace.md`.
 
 Deeper evidence maintenance stays separate from the public reader path. Expensive
 GPU training and vLLM serving stay in scripts.

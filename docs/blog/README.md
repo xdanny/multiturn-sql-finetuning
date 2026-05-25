@@ -1,33 +1,29 @@
 # Blog Companion Lab
 
-The public post has one reader-facing lab notebook:
+The public post links to this repository as an attached codebase. Its primary
+reader artifact is one shareable lab notebook:
 
 ```bash
 jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb
 ```
 
-That notebook is intentionally small. It runs an in-memory SQLite multi-turn SQL
-experiment and compares five training targets: direct SQL, planner-first SQL,
-semantic value grounding before SQL, a `MEASURE()`-preserving DSL before SQL,
-and behavior/recovery tuning from failed execution feedback. It defaults to CPU
-and reports CUDA, MPS, or XPU availability when PyTorch can see one. The SQLite
-lab computation remains CPU-safe. It does not require the full GPU training setup
-or a model download.
-
-The marimo source notebook is still available for editing:
+The same lab is also available as a marimo app for readers who prefer marimo:
 
 ```bash
 marimo edit notebooks/labs/local_multiturn_sql_lab.py
 ```
 
-For non-interactive verification, the marimo source is a plain Python file and can
-be compiled with:
+The lab is CPU-safe by default. It reports CUDA, MPS, and XPU visibility when
+PyTorch can detect an accelerator, but the SQLite experiment does not require or
+use GPU compute. It compares direct SQL, planner-first SQL, semantic-layer
+state, `MEASURE()`-preserving DSL, and behavior/recovery tuning on a small
+four-turn scenario.
 
-```bash
-python -m py_compile notebooks/labs/local_multiturn_sql_lab.py
-```
+The post should use this notebook as the runnable lab and use generated evidence
+assets for larger endpoint, planner, and claim-ledger results. It should not
+turn local setup, vLLM serving, or environment notes into the public reader path.
 
-Publishable evidence assets are generated from the same notebook support loaders:
+Publishable evidence assets are generated from the same support loaders:
 
 ```bash
 python -m notebooks.blog_support --output-dir docs/blog/generated
@@ -49,17 +45,10 @@ Tracked outputs:
 - `docs/blog/generated/endpoint-run-scorecard.md`
 - `docs/blog/generated/manifest.json`
 
-`tests/test_blog_notebooks.py` compares the checked-in generated files against a
-fresh export, so the public blog cannot silently drift away from the current
-claim ledger and planner artifacts.
-
 The intended pattern is:
 
-1. The post frames the question.
-2. The companion lab runs the smallest executable version of the method comparison.
+1. The post frames a claim.
+2. The attached lab notebook runs the smallest executable version of the claim
+   or diagnostic.
 3. Generated evidence assets render the larger endpoint and planner results.
-4. The post interprets what each artifact does and does not prove.
-
-This keeps the series tied to evidence instead of disconnected prose.
-The public site includes `shareable-lab.md` so readers can start with the lab
-instead of reconstructing the experiment from prose.
+4. The post states what the artifact proves and what it does not prove.

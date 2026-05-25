@@ -334,9 +334,12 @@ def test_jupyter_lab_command_is_backed_by_dev_dependency() -> None:
 def test_blog_readme_points_to_shareable_lab_notebook() -> None:
     readme = (REPO_ROOT / "docs" / "blog" / "README.md").read_text()
 
+    assert "attached codebase" in readme
     assert "notebooks/labs/local_multiturn_sql_lab.ipynb" in readme
-    assert "defaults to CPU" in readme
+    assert "marimo edit notebooks/labs/local_multiturn_sql_lab.py" in readme
+    assert "CPU-safe" in readme
     assert "planner-first" in readme
-    assert "semantic value grounding" in readme
+    assert "semantic-layer" in readme
     assert "MEASURE()" in readme
     assert "behavior/recovery" in readme
+    assert "notebooks/blog/" not in readme

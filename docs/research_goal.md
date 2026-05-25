@@ -53,31 +53,35 @@ The current repo has a useful local loop, but it is still mostly a proxy:
 
 ## Blog-Attached Lab Contract
 
-The public post should have one reader-facing Jupyter lab:
-`notebooks/labs/local_multiturn_sql_lab.ipynb`. The marimo source remains available
-at `notebooks/labs/local_multiturn_sql_lab.py`, but the `.ipynb` is the shareable
-artifact readers should open first. The post explains the narrative. The lab runs
-the central method comparison in code, with CPU as the default and accelerator
-availability reported for CUDA, MPS, or XPU when PyTorch can see one. The SQLite lab
-computation remains CPU-safe.
+The public post should link to the attached codebase and one shareable lab
+notebook:
+
+1. `notebooks/labs/local_multiturn_sql_lab.ipynb`
+2. `notebooks/labs/local_multiturn_sql_lab.py`
+
+The post explains the narrative, but every major claim should point to the lab
+notebook or a generated evidence artifact. The lab runs CPU-safe local
+experiments and evidence loaders. It may report CUDA, MPS, or XPU visibility,
+but it should not require the full GPU training setup or vLLM serving path.
 
 This matters because the blog should not be a static story written after the fact. It
-should point to a runnable artifact:
+should behave like a lab walkthrough:
 
-1. Create the tiny SQLite warehouse.
-2. Run the same four-turn analysis across candidate training targets.
-3. Show the generated plan, SQL, execution result, and failure class.
-4. State what the lab supports.
-5. State what would require full endpoint, hosted-model, or BIRD-Interact evidence.
+1. Start with the benchmark gap: zero-shot BIRD-style SQL strength does not imply
+   robust multi-turn analysis.
+2. Define the evaluation protocol and dataset roles before making model claims.
+3. Compare fine-tuning targets directly: direct SQL, planner-first, semantic-layer,
+   `MEASURE()` DSL, and behavior/recovery.
+4. Separate production-style proxy results from oracle diagnostics.
+5. Turn the remaining failures into next repo artifacts.
 
-Every public claim should name the reader-facing lab or generated evidence artifact
+Every public claim should name the attached lab notebook or generated evidence artifact
 that produced it. The public post should be readable on its own, but it should also
-behave like a lab handoff: readers can open the companion notebook, rerun the method
-comparison, and see the boundary between current proxy evidence, oracle diagnostics,
-and future BIRD-Interact or hosted-model claims.
+let readers rerun the companion lab and see the boundary between current proxy
+evidence, oracle diagnostics, and future BIRD-Interact or hosted-model claims.
 
 Expensive model serving and GPU training stay in scripts. The public reader path stays
-focused on the companion lab and generated evidence assets.
+focused on the shareable lab notebook and generated evidence assets.
 
 ## First DSL Experiment Surface
 
