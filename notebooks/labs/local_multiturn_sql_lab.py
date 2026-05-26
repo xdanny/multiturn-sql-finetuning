@@ -17,6 +17,7 @@ def _():
         lab_failure_trace,
         lab_method_scorecard,
         method_decision_rules,
+        method_priority_backlog,
         metric_dsl_demo,
         metric_dsl_eval_contract,
         planner_scorecard,
@@ -35,6 +36,7 @@ def _():
         lab_failure_trace,
         lab_method_scorecard,
         method_decision_rules,
+        method_priority_backlog,
         metric_dsl_demo,
         metric_dsl_eval_contract,
         mo,
@@ -203,6 +205,7 @@ def _(mo, report):
 def _(
     lab_method_scorecard,
     method_decision_rules,
+    method_priority_backlog,
     mo,
     target_comparison,
     target_evidence_matrix,
@@ -228,6 +231,28 @@ def _(
             mo.ui.table(
                 method_decision_rules(),
                 label="Decision rules before spending GPU time",
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(method_priority_backlog, mo):
+    mo.vstack(
+        [
+            mo.md(
+                """
+                ## Method priority backlog
+
+                This is not a leaderboard. It is the order in which the repo should
+                spend implementation and GPU time, based on the current evidence,
+                missing gates, and what would falsify each method.
+                """
+            ),
+            mo.ui.table(
+                method_priority_backlog(),
+                label="Provisional method ranking and next experiments",
             ),
         ]
     )

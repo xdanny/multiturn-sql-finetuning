@@ -1131,6 +1131,136 @@ def method_decision_rules() -> pd.DataFrame:
     )
 
 
+def method_priority_backlog() -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "priority": 1,
+                "fine_tuning_target": "Planner/DSL first, SQL second",
+                "why_now": (
+                    "It attacks the oracle gap directly: the best diagnostic result "
+                    "gets much easier when schema linking, joins, projection, and "
+                    "grain are already planned."
+                ),
+                "dataset_focus": "CoSQL fixed proxy first, then BIRD-Interact transfer",
+                "success_metric": (
+                    "predicted planner label F1 plus generated SQL value accuracy "
+                    "beating direct SQL on the same rows"
+                ),
+                "build_next": (
+                    "DSPy planner program that predicts tables, columns, joins, "
+                    "projection shape, duplicate policy, and value candidates without "
+                    "gold SQL labels."
+                ),
+                "falsifies_if": (
+                    "planner F1 improves but final SQL does not beat direct SQL on "
+                    "the same scorer and oracle policy"
+                ),
+                "claim_ids": "planner_lexical_schema_baseline, predicted_planner_sql_execution",
+            },
+            {
+                "priority": 2,
+                "fine_tuning_target": "Semantic-layer tuning",
+                "why_now": (
+                    "The current lab and proxy failures show value/entity grounding "
+                    "and grain errors that raw DDL does not explain."
+                ),
+                "dataset_focus": "CoSQL plus synthetic value/entity fixtures",
+                "success_metric": (
+                    "value execution accuracy, entity-resolution accuracy, and "
+                    "fanout-safe grain labels on the same rows"
+                ),
+                "build_next": (
+                    "versioned semantic artifacts, value/entity indexes, and retrieval "
+                    "or pruning manifests before another broad semantic prompt run"
+                ),
+                "falsifies_if": (
+                    "semantic context increases prompt size or latency without reducing "
+                    "value grounding and grain errors"
+                ),
+                "claim_ids": (
+                    "semantic_prompt_minimal_executable_cosql_dev_100turns, "
+                    "hosted_sota_same_protocol"
+                ),
+            },
+            {
+                "priority": 3,
+                "fine_tuning_target": "MEASURE()-preserving metric DSL",
+                "why_now": (
+                    "It is the cleanest way to test whether governed metric intent "
+                    "should be learned before SQL expansion."
+                ),
+                "dataset_focus": "synthetic schema-rich SQL and metric-heavy CoSQL/SParC rows",
+                "success_metric": (
+                    "metric_dsl_parse_rate, compile_rate, measure_preservation, and "
+                    "compiled SQL value accuracy versus direct SQL"
+                ),
+                "build_next": (
+                    "metric-DSL prediction manifest with the same semantic model "
+                    "version and a row-matched direct-SQL baseline"
+                ),
+                "falsifies_if": (
+                    "MEASURE() preservation is high but compiled execution does not "
+                    "match or beat direct SQL"
+                ),
+                "claim_ids": "metric_dsl_evaluation_manifest, metric_dsl_beats_direct_sql",
+            },
+            {
+                "priority": 4,
+                "fine_tuning_target": "Behavior/recovery tuning",
+                "why_now": (
+                    "A real multi-turn analyst must live with its own earlier SQL and "
+                    "result state, but the current proxy still uses teacher-forced history."
+                ),
+                "dataset_focus": "CoSQL generated-history rollout, then BIRD-Interact",
+                "success_metric": (
+                    "model-generated-history value accuracy and recovery-success delta "
+                    "over teacher-forced evaluation"
+                ),
+                "build_next": (
+                    "generated-history rollout manifest with empty-result repair, "
+                    "clarification, and retry labels"
+                ),
+                "falsifies_if": (
+                    "the model only works with clean teacher-forced history and collapses "
+                    "after its own first wrong turn"
+                ),
+                "claim_ids": (
+                    "model_generated_history_rollout, "
+                    "rollout_beats_teacher_forced_history"
+                ),
+            },
+            {
+                "priority": 5,
+                "fine_tuning_target": "Direct SQL SFT",
+                "why_now": (
+                    "It remains the control arm, not the most interesting next bet; "
+                    "every structured method must beat it before claiming improvement."
+                ),
+                "dataset_focus": "fixed CoSQL proxy, hosted baselines, and BIRD-Interact",
+                "success_metric": (
+                    "strict and value execution accuracy under the same scorer, rows, "
+                    "prompt boundary, and oracle policy"
+                ),
+                "build_next": (
+                    "same-protocol hosted baseline and BIRD-Interact transfer so the "
+                    "direct-SQL control is not just a local proxy number"
+                ),
+                "falsifies_if": (
+                    "a more structured target cannot beat the direct-SQL control on "
+                    "identical rows"
+                ),
+                "claim_ids": (
+                    "qwen35_9b_base_cosql_dev_100turns, "
+                    "multiturn_sql_100_cosql_dev_100turns, "
+                    "hosted_sota_same_protocol, "
+                    "bird_interact_local_vs_hosted"
+                ),
+            },
+        ]
+    )
+
+
 def endpoint_run_scorecard() -> pd.DataFrame:
     summary = read_csv_artifact(
         "plots/rescored_vllm_semantic_prompt_iteration_100turns/summary.csv"
@@ -1296,6 +1426,7 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     shareable_lab = shareable_lab_attachment()
     reader_flow = lab_reader_flow()
     decision_rules = method_decision_rules()
+    method_priority = method_priority_backlog()
     lab_scores = lab_method_scorecard()
     lab_trace = lab_failure_trace()
     data_gates = data_engineering_gates()
@@ -1345,6 +1476,10 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
         "method_decision_rules_md": _write_text(
             output / "method-decision-rules.md",
             _markdown_table(decision_rules),
+        ),
+        "method_priority_backlog_md": _write_text(
+            output / "method-priority-backlog.md",
+            _markdown_table(method_priority),
         ),
         "lab_method_scores_md": _write_text(
             output / "lab-method-scores.md",

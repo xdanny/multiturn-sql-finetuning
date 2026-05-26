@@ -39,6 +39,7 @@ Tracked outputs:
 - `docs/blog/generated/shareable-lab.md`
 - `docs/blog/generated/lab-reader-flow.md`
 - `docs/blog/generated/method-decision-rules.md`
+- `docs/blog/generated/method-priority-backlog.md`
 - `docs/blog/generated/lab-method-scores.md`
 - `docs/blog/generated/lab-failure-trace.md`
 - `docs/blog/generated/data-engineering-gates.md`

@@ -16,6 +16,7 @@ from notebooks.blog_support import (
     lab_method_scorecard,
     lab_reader_flow,
     method_decision_rules,
+    method_priority_backlog,
     metric_dsl_demo,
     metric_dsl_eval_contract,
     planner_scorecard,
@@ -73,6 +74,7 @@ def test_public_blog_artifacts_are_one_shareable_lab_notebook() -> None:
     assert "planner_scorecard" in text
     assert "target_evidence_matrix" in text
     assert "method_decision_rules" in text
+    assert "method_priority_backlog" in text
     assert "metric_dsl_eval_contract" in text
     assert "prompt_optimization_findings" in text
     assert "pip install" not in text
@@ -273,6 +275,45 @@ def test_notebook_support_loads_current_artifacts() -> None:
         if claim_id.strip()
     }
     assert decision_claim_ids <= known_claim_ids
+
+    priority = method_priority_backlog()
+    assert {
+        "priority",
+        "fine_tuning_target",
+        "why_now",
+        "dataset_focus",
+        "success_metric",
+        "build_next",
+        "falsifies_if",
+        "claim_ids",
+    } <= set(priority.columns)
+    assert list(priority["priority"]) == [1, 2, 3, 4, 5]
+    assert priority.iloc[0]["fine_tuning_target"] == "Planner/DSL first, SQL second"
+    assert "oracle gap" in priority.iloc[0]["why_now"]
+    assert "CoSQL" in priority.iloc[0]["dataset_focus"]
+    assert any(
+        row["fine_tuning_target"] == "MEASURE()-preserving metric DSL"
+        and "metric-heavy" in row["dataset_focus"]
+        and "measure_preservation" in row["success_metric"]
+        for _, row in priority.iterrows()
+    )
+    assert any(
+        row["fine_tuning_target"] == "Behavior/recovery tuning"
+        and "generated-history" in row["build_next"]
+        for _, row in priority.iterrows()
+    )
+    assert any(
+        row["fine_tuning_target"] == "Semantic-layer tuning"
+        and "value/entity" in row["build_next"]
+        for _, row in priority.iterrows()
+    )
+    priority_claim_ids = {
+        claim_id.strip()
+        for claim_ids in priority["claim_ids"]
+        for claim_id in claim_ids.split(",")
+        if claim_id.strip()
+    }
+    assert priority_claim_ids <= known_claim_ids
 
     lab_scores = lab_method_scorecard()
     assert {
@@ -503,6 +544,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "shareable_lab_md",
         "lab_reader_flow_md",
         "method_decision_rules_md",
+        "method_priority_backlog_md",
         "lab_method_scores_md",
         "lab_failure_trace_md",
         "data_engineering_gates_md",
@@ -584,6 +626,16 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "same scorer" in decision_rules_md
     assert "hosted_sota_same_protocol" in decision_rules_md
     assert "generated-history" in decision_rules_md
+
+    priority_md = (
+        tmp_path / manifest["assets"]["method_priority_backlog_md"]
+    ).read_text()
+    assert "Planner/DSL first, SQL second" in priority_md
+    assert "oracle gap" in priority_md
+    assert "MEASURE()-preserving metric DSL" in priority_md
+    assert "metric-heavy" in priority_md
+    assert "Behavior/recovery tuning" in priority_md
+    assert "generated-history" in priority_md
 
     lab_scores_md = (tmp_path / manifest["assets"]["lab_method_scores_md"]).read_text()
     assert "direct_sql_baseline" in lab_scores_md

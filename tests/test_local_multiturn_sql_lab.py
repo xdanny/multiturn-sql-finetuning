@@ -310,6 +310,7 @@ def test_shareable_lab_notebook_is_plain_python_marimo_app() -> None:
     assert "planner_scorecard" in source
     assert "target_evidence_matrix" in source
     assert "method_decision_rules" in source
+    assert "method_priority_backlog" in source
     assert "metric_dsl_eval_contract" in source
     assert "prompt_optimization_findings" in source
     assert "mo.ui.dropdown" in source
@@ -322,6 +323,7 @@ def test_shareable_lab_notebook_is_plain_python_marimo_app() -> None:
         "## Dataset roles",
         "## 4. Candidate fine-tuning targets",
         "## Target scorecard",
+        "## Method priority backlog",
         "## 5. Execution trace",
         "## Failure slice",
         "## Endpoint and planner evidence",
@@ -357,6 +359,7 @@ def test_shareable_lab_has_portable_jupyter_notebook_entrypoint() -> None:
     assert "planner_scorecard" in text
     assert "target_evidence_matrix" in text
     assert "method_decision_rules" in text
+    assert "method_priority_backlog" in text
     assert "metric_dsl_eval_contract" in text
     assert "prompt_optimization_findings" in text
     assert "pip install" not in text
@@ -373,6 +376,7 @@ def test_shareable_lab_has_portable_jupyter_notebook_entrypoint() -> None:
     assert "report[\"accelerator_report\"]" in code
     assert "dataset_role_matrix()" in code
     assert "target_evidence_matrix()" in code
+    assert "method_priority_backlog()" in code
     assert "endpoint_run_scorecard()" in code
 
     namespace: dict[str, object] = {}
