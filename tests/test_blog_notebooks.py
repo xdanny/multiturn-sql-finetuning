@@ -9,6 +9,7 @@ from notebooks.blog_support import (
     claim_ledger,
     claim_table,
     data_engineering_gates,
+    dataset_role_matrix,
     endpoint_run_scorecard,
     export_blog_evidence,
     lab_failure_trace,
@@ -68,6 +69,7 @@ def test_public_blog_artifacts_are_one_shareable_lab_notebook() -> None:
     assert "MPS" in text
     assert "XPU" in text
     assert "endpoint_run_scorecard" in text
+    assert "dataset_role_matrix" in text
     assert "planner_scorecard" in text
     assert "target_evidence_matrix" in text
     assert "method_decision_rules" in text
@@ -142,6 +144,44 @@ def test_notebook_support_loads_current_artifacts() -> None:
         "metric_dsl_value_delta_vs_direct_sql",
     }
     assert set(metric_contract["status"]) == {"pending_manifest", "pending_comparison"}
+
+    dataset_roles = dataset_role_matrix()
+    assert {
+        "data_source",
+        "project_role",
+        "what_it_tests",
+        "why_single_turn_is_not_enough",
+        "current_status",
+        "next_artifact",
+    } <= set(dataset_roles.columns)
+    assert set(dataset_roles["data_source"]) == {
+        "BIRD-Interact",
+        "BIRD mini-dev",
+        "CoSQL",
+        "SParC",
+        "Synthetic schema-rich SQL",
+        "Tiny SQLite lab",
+    }
+    cosql = dataset_roles[dataset_roles["data_source"] == "CoSQL"].iloc[0]
+    sparc = dataset_roles[dataset_roles["data_source"] == "SParC"].iloc[0]
+    synthetic = dataset_roles[
+        dataset_roles["data_source"] == "Synthetic schema-rich SQL"
+    ].iloc[0]
+    bird_interact = dataset_roles[
+        dataset_roles["data_source"] == "BIRD-Interact"
+    ].iloc[0]
+    assert "current fixed proxy" in cosql["project_role"]
+    assert "context-dependent" in sparc["what_it_tests"]
+    assert "schema-rich" in synthetic["project_role"]
+    assert "north-star" in bird_interact["project_role"]
+    assert any(
+        "value grounding" in reason
+        for reason in dataset_roles["why_single_turn_is_not_enough"]
+    )
+    assert any(
+        "BIRD-Interact transfer" in artifact
+        for artifact in dataset_roles["next_artifact"]
+    )
 
     lab_attachment = shareable_lab_attachment()
     assert {
@@ -458,6 +498,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "accuracy_ladder_svg",
         "planner_baseline_svg",
         "claim_table_md",
+        "dataset_role_matrix_md",
         "metric_dsl_contract_md",
         "shareable_lab_md",
         "lab_reader_flow_md",
@@ -488,6 +529,18 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     claim_table_md = (tmp_path / manifest["assets"]["claim_table_md"]).read_text()
     assert "metric_dsl_beats_direct_sql" in claim_table_md
     assert "pending" in claim_table_md
+
+    dataset_roles_md = (
+        tmp_path / manifest["assets"]["dataset_role_matrix_md"]
+    ).read_text()
+    assert "BIRD-Interact" in dataset_roles_md
+    assert "BIRD mini-dev" in dataset_roles_md
+    assert "CoSQL" in dataset_roles_md
+    assert "SParC" in dataset_roles_md
+    assert "Synthetic schema-rich SQL" in dataset_roles_md
+    assert "Tiny SQLite lab" in dataset_roles_md
+    assert "value grounding" in dataset_roles_md
+    assert "schema-rich" in dataset_roles_md
 
     metric_table_md = (tmp_path / manifest["assets"]["metric_dsl_contract_md"]).read_text()
     assert "metric_dsl_value_delta_vs_direct_sql" in metric_table_md
@@ -634,6 +687,10 @@ def test_research_goal_states_notebook_led_method_comparison() -> None:
         "Semantic-layer tuning",
         "MEASURE()-preserving metric DSL",
         "Behavior/recovery tuning",
+        "CoSQL",
+        "SParC",
+        "Synthetic schema-rich SQL",
+        "BIRD-Interact",
     ]:
         assert phrase in goal
 

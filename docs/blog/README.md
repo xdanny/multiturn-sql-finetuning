@@ -34,6 +34,7 @@ Tracked outputs:
 - `docs/blog/generated/accuracy-ladder.svg`
 - `docs/blog/generated/planner-baseline.svg`
 - `docs/blog/generated/claim-table.md`
+- `docs/blog/generated/dataset-role-matrix.md`
 - `docs/blog/generated/metric-dsl-contract.md`
 - `docs/blog/generated/shareable-lab.md`
 - `docs/blog/generated/lab-reader-flow.md`

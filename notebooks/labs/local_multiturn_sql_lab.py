@@ -12,6 +12,7 @@ def _():
         accuracy_scorecard,
         claim_table,
         data_engineering_gates,
+        dataset_role_matrix,
         endpoint_run_scorecard,
         lab_failure_trace,
         lab_method_scorecard,
@@ -29,6 +30,7 @@ def _():
         accuracy_scorecard,
         claim_table,
         data_engineering_gates,
+        dataset_role_matrix,
         endpoint_run_scorecard,
         lab_failure_trace,
         lab_method_scorecard,
@@ -157,6 +159,29 @@ def _(mo, report):
                 Shared scenario hash: `{contract["shared_input_sha256"]}`.
                 """
             )
+        ]
+    )
+    return
+
+
+@app.cell
+def _(dataset_role_matrix, mo):
+    mo.vstack(
+        [
+            mo.md(
+                """
+                ## Dataset roles
+
+                The repo should not treat every SQL dataset as the same training
+                pile. BIRD-Interact, BIRD mini-dev, CoSQL, SParC, synthetic
+                schema-rich SQL, and the tiny lab each test a different part of
+                the final claim.
+                """
+            ),
+            mo.ui.table(
+                dataset_role_matrix(),
+                label="Dataset roles for multi-turn SQL evaluation",
+            ),
         ]
     )
     return

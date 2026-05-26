@@ -305,6 +305,7 @@ def test_shareable_lab_notebook_is_plain_python_marimo_app() -> None:
     assert "app = marimo.App" in source
     assert "run_multiturn_lab" in source
     assert "data_engineering_gates" in source
+    assert "dataset_role_matrix" in source
     assert "endpoint_run_scorecard" in source
     assert "planner_scorecard" in source
     assert "target_evidence_matrix" in source
@@ -318,6 +319,7 @@ def test_shareable_lab_notebook_is_plain_python_marimo_app() -> None:
         "## 1. Research question",
         "## 2. Why single-turn SQL fails here",
         "## 3. The proxy slice",
+        "## Dataset roles",
         "## 4. Candidate fine-tuning targets",
         "## Target scorecard",
         "## 5. Execution trace",
@@ -351,6 +353,7 @@ def test_shareable_lab_has_portable_jupyter_notebook_entrypoint() -> None:
     assert "MPS" in text
     assert "XPU" in text
     assert "endpoint_run_scorecard" in text
+    assert "dataset_role_matrix" in text
     assert "planner_scorecard" in text
     assert "target_evidence_matrix" in text
     assert "method_decision_rules" in text
@@ -368,6 +371,7 @@ def test_shareable_lab_has_portable_jupyter_notebook_entrypoint() -> None:
     assert "report = run_multiturn_lab(device_preference=\"auto\")" in code
     assert 'report["device"].kind in {"cpu", "cuda", "mps", "xpu"}' in code
     assert "report[\"accelerator_report\"]" in code
+    assert "dataset_role_matrix()" in code
     assert "target_evidence_matrix()" in code
     assert "endpoint_run_scorecard()" in code
 

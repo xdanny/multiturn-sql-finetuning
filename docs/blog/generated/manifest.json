@@ -3,6 +3,7 @@
     "accuracy_ladder_svg": "accuracy-ladder.svg",
     "claim_table_md": "claim-table.md",
     "data_engineering_gates_md": "data-engineering-gates.md",
+    "dataset_role_matrix_md": "dataset-role-matrix.md",
     "endpoint_run_scorecard_md": "endpoint-run-scorecard.md",
     "lab_failure_trace_md": "lab-failure-trace.md",
     "lab_method_scores_md": "lab-method-scores.md",

@@ -357,6 +357,100 @@ def metric_dsl_eval_contract() -> pd.DataFrame:
     )
 
 
+def dataset_role_matrix() -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "data_source": "BIRD-Interact",
+                "project_role": "north-star interactive benchmark for the final hosted-SOTA comparison",
+                "what_it_tests": (
+                    "multi-turn data analysis over richer schemas, values, and "
+                    "interaction state"
+                ),
+                "why_single_turn_is_not_enough": (
+                    "The agent must carry intent, inspect results, and recover across "
+                    "turns rather than solve one isolated SQL request."
+                ),
+                "current_status": "pending transfer target; no local-vs-hosted manifest yet",
+                "next_artifact": (
+                    "BIRD-Interact transfer manifest with local model, hosted baselines, "
+                    "cost, latency, and identical scorer settings"
+                ),
+            },
+            {
+                "data_source": "BIRD mini-dev",
+                "project_role": "single-turn execution-harness check, not a dialogue claim",
+                "what_it_tests": "schema linking and SQL execution on BIRD-style databases",
+                "why_single_turn_is_not_enough": (
+                    "It can validate the SQL runner, but it cannot expose follow-up "
+                    "state, generated-history drift, or recovery behavior."
+                ),
+                "current_status": "useful harness input; not promoted as multi-turn evidence",
+                "next_artifact": "same-runner bridge into BIRD-Interact-style turns",
+            },
+            {
+                "data_source": "CoSQL",
+                "project_role": "current fixed proxy slice for fast multi-turn iteration",
+                "what_it_tests": (
+                    "dialogue-context SQL over Spider-style SQLite databases with "
+                    "teacher-forced history"
+                ),
+                "why_single_turn_is_not_enough": (
+                    "The same schema can require filter carryover, value grounding, "
+                    "projection stability, and history alignment across turns."
+                ),
+                "current_status": "fixed 100-turn proxy used by the claim ledger",
+                "next_artifact": (
+                    "generated-history rollout plus predicted-planner SQL comparison "
+                    "on the same CoSQL rows"
+                ),
+            },
+            {
+                "data_source": "SParC",
+                "project_role": "context-dependent SQL training/evaluation support",
+                "what_it_tests": (
+                    "context-dependent follow-up SQL without full conversational "
+                    "interaction pressure"
+                ),
+                "why_single_turn_is_not_enough": (
+                    "It helps teach follow-up resolution, but still needs explicit "
+                    "value grounding, semantic metric, and recovery labels."
+                ),
+                "current_status": "available as a related dataset role, not yet a public result",
+                "next_artifact": "row-compatible SParC manifest with the same scorer and claim ledger",
+            },
+            {
+                "data_source": "Synthetic schema-rich SQL",
+                "project_role": "schema-rich stress data for joins, grain, fanout, and metrics",
+                "what_it_tests": (
+                    "long DDL, bridge tables, duplicated children, metric definitions, "
+                    "and awkward value/entity mappings"
+                ),
+                "why_single_turn_is_not_enough": (
+                    "Synthetic rows can isolate value grounding, join fanout, and "
+                    "metric preservation failures before expensive endpoint runs."
+                ),
+                "current_status": "design target for the next data-artifact buildout",
+                "next_artifact": "fixture pack with value indexes, fanout cases, and MEASURE() labels",
+            },
+            {
+                "data_source": "Tiny SQLite lab",
+                "project_role": "portable notebook demonstration attached to the post",
+                "what_it_tests": (
+                    "five candidate targets on one four-turn scenario: direct SQL, "
+                    "planner-first, semantic state, metric DSL, and recovery"
+                ),
+                "why_single_turn_is_not_enough": (
+                    "The tiny lab makes context carryover, value grounding, metric "
+                    "intent, and recovery visible without model serving."
+                ),
+                "current_status": "runnable local artifact; not a benchmark result",
+                "next_artifact": "promote each isolated behavior into a dataset-backed manifest",
+            },
+        ]
+    )
+
+
 def shareable_lab_attachment() -> pd.DataFrame:
     reader_flow = " -> ".join(
         [
@@ -1197,6 +1291,7 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     scores = accuracy_scorecard()
     planner = planner_scorecard()
     claims = claim_table()
+    dataset_roles = dataset_role_matrix()
     metric_contract = metric_dsl_eval_contract()
     shareable_lab = shareable_lab_attachment()
     reader_flow = lab_reader_flow()
@@ -1231,6 +1326,10 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
             ),
         ),
         "claim_table_md": _write_text(output / "claim-table.md", _markdown_table(claims)),
+        "dataset_role_matrix_md": _write_text(
+            output / "dataset-role-matrix.md",
+            _markdown_table(dataset_roles),
+        ),
         "metric_dsl_contract_md": _write_text(
             output / "metric-dsl-contract.md",
             _markdown_table(metric_contract),

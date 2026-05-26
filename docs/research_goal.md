@@ -42,6 +42,13 @@ The repo should compare training methods as first-class hypotheses:
 The current repo has a useful local loop, but it is still mostly a proxy:
 
 - CoSQL gives a reproducible multi-turn slice, but not the final BIRD-Interact claim.
+- SParC adds related context-dependent SQL signal, but it is not the same as an
+  interactive generated-history evaluation.
+- BIRD mini-dev is useful for single-turn execution-harness checks, but it cannot
+  prove multi-turn data-analysis behavior by itself.
+- Synthetic schema-rich SQL should be used for controlled value-grounding, grain,
+  join-fanout, and `MEASURE()` preservation fixtures, not blended into one
+  anonymous fine-tuning pile.
 - Teacher-forced history tests whether the model can use clean prior SQL, not whether it
   can recover from its own mistakes.
 - Oracle planner diagnostics show that planning is valuable, but they do not prove the

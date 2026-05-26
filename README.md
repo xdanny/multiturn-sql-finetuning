@@ -90,9 +90,13 @@ marimo edit notebooks/labs/local_multiturn_sql_lab.py
 
 The lab compares five fine-tuning targets: direct SQL, planner-first SQL,
 semantic-layer state, `MEASURE()`-preserving DSL, and behavior/recovery tuning.
+It also separates dataset roles for BIRD-Interact, BIRD mini-dev, CoSQL, SParC,
+synthetic schema-rich SQL, and the tiny SQLite lab so the repo does not treat
+every SQL row as interchangeable training data.
 It auto-selects CUDA, MPS, or XPU when PyTorch can see an accelerator and falls
 back to CPU. The public site consumes generated evidence such as
 `docs/blog/generated/shareable-lab.md`,
+`docs/blog/generated/dataset-role-matrix.md`,
 `docs/blog/generated/lab-method-scores.md`,
 `docs/blog/generated/target-evidence-matrix.md`, and
 `docs/blog/generated/lab-failure-trace.md`.
