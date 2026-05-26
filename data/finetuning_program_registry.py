@@ -52,6 +52,8 @@ def _stages() -> list[dict[str, Any]]:
                     "docs/result_manifests/cosql_dev_100_proxy.json",
                 ],
                 "mode": "best_value_accuracy",
+                "next_required_artifact": None,
+                "next_command": None,
             },
             "trainer_contract": {
                 "expected_training_target": "direct_sql_control",
@@ -92,6 +94,8 @@ def _stages() -> list[dict[str, Any]]:
                     "docs/planner_baseline_cosql_dev_100_summary.json",
                 ],
                 "mode": "planner_macro",
+                "next_required_artifact": None,
+                "next_command": None,
             },
             "trainer_contract": {
                 "expected_training_target": "planner_supervision",
@@ -130,6 +134,8 @@ def _stages() -> list[dict[str, Any]]:
                     "data/processed/eval_cosql_dev_predicted_planner_100.jsonl",
                 ],
                 "mode": "pending_claim",
+                "next_required_artifact": "same-protocol endpoint SQL result manifest",
+                "next_command": "uv run python -m eval.run_predicted_planner_comparison",
             },
             "trainer_contract": {
                 "expected_training_target": "predicted_planner",
@@ -171,6 +177,8 @@ def _stages() -> list[dict[str, Any]]:
                 ],
                 "mode": "artifacts_only",
                 "artifacts_ready_summary": "prepared semantic artifacts exist, but no checked-in same-row semantic comparison result manifest yet.",
+                "next_required_artifact": "same-row semantic comparison result manifest",
+                "next_command": "uv run python -m eval.run_local_semantic_layer_comparison",
             },
             "trainer_contract": {
                 "expected_training_target": "semantic_layer",
@@ -219,6 +227,8 @@ def _stages() -> list[dict[str, Any]]:
                     "docs/data_artifacts/metric_dsl_direct_sql_training_rows.manifest.json",
                 ],
                 "mode": "pending_claim",
+                "next_required_artifact": "compared metric_dsl manifest with direct-SQL baseline",
+                "next_command": "uv run python -m eval.run_local_metric_dsl_comparison",
             },
             "trainer_contract": {
                 "expected_training_target": "metric_dsl",
@@ -264,6 +274,8 @@ def _stages() -> list[dict[str, Any]]:
                     "docs/data_artifacts/behavior_recovery_proxy.manifest.json",
                 ],
                 "mode": "pending_claim",
+                "next_required_artifact": "same-model rollout and teacher-forced comparison manifests",
+                "next_command": "uv run python -m eval.run_local_rollout_comparison",
             },
             "trainer_contract": {
                 "expected_training_target": "behavior_recovery",
@@ -308,6 +320,8 @@ def _stages() -> list[dict[str, Any]]:
                     "docs/data_artifacts/bird_interact_transfer.manifest.json",
                 ],
                 "mode": "pending_claim",
+                "next_required_artifact": "hosted-model and BIRD-Interact result manifests on frozen contracts",
+                "next_command": "uv run python -m eval.run_hosted_baseline_comparison",
             },
             "trainer_contract": None,
             "leakage_boundaries": [
@@ -360,6 +374,8 @@ def _summarize_current_evidence(stage: dict[str, Any], claim_rows: dict[str, dic
             "summary": f"measured proxy results exist; best checked-in direct-SQL proxy value accuracy is {_format_metric(best)}.",
             "claim_ids": claim_ids,
             "artifact_paths": existing_artifacts,
+            "next_required_artifact": contract.get("next_required_artifact"),
+            "next_command": contract.get("next_command"),
         }
     if mode == "planner_macro" and rows:
         row = rows[0]
@@ -369,6 +385,8 @@ def _summarize_current_evidence(stage: dict[str, Any], claim_rows: dict[str, dic
             "summary": f"planner-quality evidence exists; current checked-in macro planner score is {_format_metric(score)}.",
             "claim_ids": claim_ids,
             "artifact_paths": existing_artifacts,
+            "next_required_artifact": contract.get("next_required_artifact"),
+            "next_command": contract.get("next_command"),
         }
     if mode == "pending_claim" and rows:
         blocking_reason = next(
@@ -381,6 +399,8 @@ def _summarize_current_evidence(stage: dict[str, Any], claim_rows: dict[str, dic
             "summary": f"{prefix}pending claim because {blocking_reason}.",
             "claim_ids": claim_ids,
             "artifact_paths": existing_artifacts,
+            "next_required_artifact": contract.get("next_required_artifact"),
+            "next_command": contract.get("next_command"),
         }
     if mode == "artifacts_only" and existing_artifacts:
         return {
@@ -388,12 +408,16 @@ def _summarize_current_evidence(stage: dict[str, Any], claim_rows: dict[str, dic
             "summary": str(contract.get("artifacts_ready_summary") or "prepared artifacts exist, but no checked-in result manifest yet."),
             "claim_ids": claim_ids,
             "artifact_paths": existing_artifacts,
+            "next_required_artifact": contract.get("next_required_artifact"),
+            "next_command": contract.get("next_command"),
         }
     return {
         "status": "missing",
         "summary": "no checked-in evidence artifact found for this stage yet.",
         "claim_ids": claim_ids,
         "artifact_paths": existing_artifacts,
+        "next_required_artifact": contract.get("next_required_artifact"),
+        "next_command": contract.get("next_command"),
     }
 
 
@@ -463,6 +487,14 @@ def build_finetuning_stage_scorecard(registry: dict[str, Any] | None = None) -> 
                 f"- Win condition: {stage['win_condition']}.",
                 f"- Leakage to forbid: {', '.join(stage['leakage_boundaries'])}.",
                 f"- Current evidence: {stage['current_evidence']['summary']}",
+                *(
+                    [
+                        f"- Next evidence: {stage['current_evidence']['next_required_artifact']} via `{stage['current_evidence']['next_command']}`."
+                    ]
+                    if stage["current_evidence"].get("next_required_artifact")
+                    and stage["current_evidence"].get("next_command")
+                    else []
+                ),
                 f"- Claim boundary: {stage['claim_boundary']}",
                 "",
             ]

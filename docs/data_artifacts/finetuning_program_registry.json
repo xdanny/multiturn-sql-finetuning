@@ -40,6 +40,8 @@
           "qwen35_9b_base_cosql_dev_100turns",
           "multiturn_sql_100_cosql_dev_100turns"
         ],
+        "next_command": null,
+        "next_required_artifact": null,
         "status": "measured",
         "summary": "measured proxy results exist; best checked-in direct-SQL proxy value accuracy is 0.63."
       },
@@ -51,7 +53,9 @@
           "qwen35_9b_base_cosql_dev_100turns",
           "multiturn_sql_100_cosql_dev_100turns"
         ],
-        "mode": "best_value_accuracy"
+        "mode": "best_value_accuracy",
+        "next_command": null,
+        "next_required_artifact": null
       },
       "leakage_boundaries": [
         "no_future_turn_content",
@@ -94,6 +98,8 @@
         "claim_ids": [
           "planner_lexical_schema_baseline"
         ],
+        "next_command": null,
+        "next_required_artifact": null,
         "status": "measured",
         "summary": "planner-quality evidence exists; current checked-in macro planner score is 0.571."
       },
@@ -104,7 +110,9 @@
         "claim_ids": [
           "planner_lexical_schema_baseline"
         ],
-        "mode": "planner_macro"
+        "mode": "planner_macro",
+        "next_command": null,
+        "next_required_artifact": null
       },
       "leakage_boundaries": [
         "no_future_turn_content",
@@ -147,6 +155,8 @@
         "claim_ids": [
           "predicted_planner_sql_execution"
         ],
+        "next_command": "uv run python -m eval.run_predicted_planner_comparison",
+        "next_required_artifact": "same-protocol endpoint SQL result manifest",
         "status": "pending",
         "summary": "prepared artifacts exist, but pending claim because no predicted_planner result manifest."
       },
@@ -157,7 +167,9 @@
         "claim_ids": [
           "predicted_planner_sql_execution"
         ],
-        "mode": "pending_claim"
+        "mode": "pending_claim",
+        "next_command": "uv run python -m eval.run_predicted_planner_comparison",
+        "next_required_artifact": "same-protocol endpoint SQL result manifest"
       },
       "leakage_boundaries": [
         "no_future_turn_content",
@@ -199,6 +211,8 @@
           "docs/data_artifacts/semantic_proxy_direct_sql.manifest.json"
         ],
         "claim_ids": [],
+        "next_command": "uv run python -m eval.run_local_semantic_layer_comparison",
+        "next_required_artifact": "same-row semantic comparison result manifest",
         "status": "artifacts_ready",
         "summary": "prepared semantic artifacts exist, but no checked-in same-row semantic comparison result manifest yet."
       },
@@ -209,7 +223,9 @@
           "docs/data_artifacts/semantic_proxy_direct_sql.manifest.json"
         ],
         "artifacts_ready_summary": "prepared semantic artifacts exist, but no checked-in same-row semantic comparison result manifest yet.",
-        "mode": "artifacts_only"
+        "mode": "artifacts_only",
+        "next_command": "uv run python -m eval.run_local_semantic_layer_comparison",
+        "next_required_artifact": "same-row semantic comparison result manifest"
       },
       "leakage_boundaries": [
         "no_future_turn_content",
@@ -257,6 +273,8 @@
           "metric_dsl_evaluation_manifest",
           "metric_dsl_beats_direct_sql"
         ],
+        "next_command": "uv run python -m eval.run_local_metric_dsl_comparison",
+        "next_required_artifact": "compared metric_dsl manifest with direct-SQL baseline",
         "status": "pending",
         "summary": "prepared artifacts exist, but pending claim because no valid metric_dsl result manifest."
       },
@@ -269,7 +287,9 @@
           "metric_dsl_evaluation_manifest",
           "metric_dsl_beats_direct_sql"
         ],
-        "mode": "pending_claim"
+        "mode": "pending_claim",
+        "next_command": "uv run python -m eval.run_local_metric_dsl_comparison",
+        "next_required_artifact": "compared metric_dsl manifest with direct-SQL baseline"
       },
       "leakage_boundaries": [
         "no_future_turn_content",
@@ -317,6 +337,8 @@
           "model_generated_history_rollout",
           "rollout_beats_teacher_forced_history"
         ],
+        "next_command": "uv run python -m eval.run_local_rollout_comparison",
+        "next_required_artifact": "same-model rollout and teacher-forced comparison manifests",
         "status": "pending",
         "summary": "prepared artifacts exist, but pending claim because no model-generated-history rollout manifest."
       },
@@ -329,7 +351,9 @@
           "model_generated_history_rollout",
           "rollout_beats_teacher_forced_history"
         ],
-        "mode": "pending_claim"
+        "mode": "pending_claim",
+        "next_command": "uv run python -m eval.run_local_rollout_comparison",
+        "next_required_artifact": "same-model rollout and teacher-forced comparison manifests"
       },
       "leakage_boundaries": [
         "no_future_turn_content",
@@ -377,6 +401,8 @@
           "local_beats_hosted_same_protocol",
           "bird_interact_local_vs_hosted"
         ],
+        "next_command": "uv run python -m eval.run_hosted_baseline_comparison",
+        "next_required_artifact": "hosted-model and BIRD-Interact result manifests on frozen contracts",
         "status": "pending",
         "summary": "prepared artifacts exist, but pending claim because no same-protocol hosted-model manifest."
       },
@@ -390,7 +416,9 @@
           "local_beats_hosted_same_protocol",
           "bird_interact_local_vs_hosted"
         ],
-        "mode": "pending_claim"
+        "mode": "pending_claim",
+        "next_command": "uv run python -m eval.run_hosted_baseline_comparison",
+        "next_required_artifact": "hosted-model and BIRD-Interact result manifests on frozen contracts"
       },
       "leakage_boundaries": [
         "no_future_turn_content",
