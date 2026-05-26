@@ -308,6 +308,7 @@ def test_shareable_lab_notebook_is_plain_python_marimo_app() -> None:
     assert "endpoint_run_scorecard" in source
     assert "planner_scorecard" in source
     assert "target_evidence_matrix" in source
+    assert "method_decision_rules" in source
     assert "metric_dsl_eval_contract" in source
     assert "prompt_optimization_findings" in source
     assert "mo.ui.dropdown" in source
@@ -352,6 +353,7 @@ def test_shareable_lab_has_portable_jupyter_notebook_entrypoint() -> None:
     assert "endpoint_run_scorecard" in text
     assert "planner_scorecard" in text
     assert "target_evidence_matrix" in text
+    assert "method_decision_rules" in text
     assert "metric_dsl_eval_contract" in text
     assert "prompt_optimization_findings" in text
     assert "pip install" not in text
@@ -414,9 +416,8 @@ def test_blog_readme_points_to_shareable_lab_notebook() -> None:
 
     assert "attached codebase" in readme
     assert "notebooks/labs/local_multiturn_sql_lab.ipynb" in readme
-    assert "notebooks/blog/01_benchmark_gap.py" in readme
-    assert "notebooks/blog/05_next_experiments.py" in readme
-    assert "section notebooks" in readme
+    assert "notebooks/blog/" not in readme
+    assert "section notebook" not in readme.lower()
     assert "marimo edit notebooks/labs/local_multiturn_sql_lab.py" in readme
     assert "CPU-safe" in readme
     assert "auto-selects CUDA, MPS, or XPU" in readme

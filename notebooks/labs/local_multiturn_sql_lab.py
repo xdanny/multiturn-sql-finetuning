@@ -15,6 +15,7 @@ def _():
         endpoint_run_scorecard,
         lab_failure_trace,
         lab_method_scorecard,
+        method_decision_rules,
         metric_dsl_demo,
         metric_dsl_eval_contract,
         planner_scorecard,
@@ -31,6 +32,7 @@ def _():
         endpoint_run_scorecard,
         lab_failure_trace,
         lab_method_scorecard,
+        method_decision_rules,
         metric_dsl_demo,
         metric_dsl_eval_contract,
         mo,
@@ -173,7 +175,13 @@ def _(mo, report):
 
 
 @app.cell
-def _(lab_method_scorecard, mo, target_comparison, target_evidence_matrix):
+def _(
+    lab_method_scorecard,
+    method_decision_rules,
+    mo,
+    target_comparison,
+    target_evidence_matrix,
+):
     mo.vstack(
         [
             mo.md(
@@ -191,6 +199,10 @@ def _(lab_method_scorecard, mo, target_comparison, target_evidence_matrix):
             mo.ui.table(
                 target_evidence_matrix(),
                 label="Manifest-backed target evidence matrix",
+            ),
+            mo.ui.table(
+                method_decision_rules(),
+                label="Decision rules before spending GPU time",
             ),
         ]
     )

@@ -6,7 +6,6 @@ from pathlib import Path
 
 from notebooks.blog_support import (
     accuracy_scorecard,
-    blog_notebook_series,
     claim_ledger,
     claim_table,
     data_engineering_gates,
@@ -15,6 +14,7 @@ from notebooks.blog_support import (
     lab_failure_trace,
     lab_method_scorecard,
     lab_reader_flow,
+    method_decision_rules,
     metric_dsl_demo,
     metric_dsl_eval_contract,
     planner_scorecard,
@@ -29,15 +29,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 PUBLIC_LAB_NOTEBOOK = "notebooks/labs/local_multiturn_sql_lab.ipynb"
 PUBLIC_LAB_APP = "notebooks/labs/local_multiturn_sql_lab.py"
-
-PUBLIC_SECTION_NOTEBOOKS = [
-    "notebooks/blog/01_benchmark_gap.py",
-    "notebooks/blog/02_eval_protocol.py",
-    "notebooks/blog/03_method_targets.py",
-    "notebooks/blog/04_results_diagnostics.py",
-    "notebooks/blog/05_next_experiments.py",
-]
-PUBLIC_SECTION_PACKAGE_INIT = "notebooks/blog/__init__.py"
 
 FORBIDDEN_SETUP_NOTEBOOKS = {
     "notebooks/blog/02_wsl_5090_setup.py",
@@ -79,43 +70,23 @@ def test_public_blog_artifacts_are_one_shareable_lab_notebook() -> None:
     assert "endpoint_run_scorecard" in text
     assert "planner_scorecard" in text
     assert "target_evidence_matrix" in text
+    assert "method_decision_rules" in text
     assert "metric_dsl_eval_contract" in text
     assert "prompt_optimization_findings" in text
     assert "pip install" not in text
     assert "apt install" not in text
+    assert "notebooks/blog/" not in text
     for notebook_path in FORBIDDEN_SETUP_NOTEBOOKS:
         assert not (REPO_ROOT / notebook_path).exists()
     for chapter_path in FORBIDDEN_BLOG_CHAPTER_DOCS:
         assert not (REPO_ROOT / chapter_path).exists()
 
 
-def test_public_section_notebooks_are_runnable_marimo_apps() -> None:
-    series = blog_notebook_series()
+def test_public_blog_artifacts_do_not_publish_section_notebook_series() -> None:
+    blog_dir = REPO_ROOT / "notebooks" / "blog"
 
-    assert list(series["notebook"]) == PUBLIC_SECTION_NOTEBOOKS
-    assert list(series["step"]) == [1, 2, 3, 4, 5]
-    assert set(series["post_section"]) == {
-        "Benchmark gap",
-        "Evaluation protocol",
-        "Fine-tuning targets",
-        "Results and diagnostics",
-        "Next experiments",
-    }
-    assert all(series["run_command"].str.startswith("marimo edit notebooks/blog/"))
-    assert all(series["claim_boundary"].str.len() > 0)
-    assert all(series["attached_lab"] == PUBLIC_LAB_NOTEBOOK)
-
-    for notebook_path in PUBLIC_SECTION_NOTEBOOKS:
-        source = (REPO_ROOT / notebook_path).read_text()
-        ast.parse(source, filename=notebook_path)
-        assert "import marimo" in source
-        assert "app = marimo.App" in source
-        assert "blog_notebook_series" in source
-        assert 'if __name__ == "__main__":' in source
-        assert "app.run()" in source
-        assert "pip install" not in source
-        assert "apt install" not in source
-    assert (REPO_ROOT / PUBLIC_SECTION_PACKAGE_INIT).exists()
+    assert not list(blog_dir.glob("*.py"))
+    assert not (REPO_ROOT / "docs/blog/generated/notebook-series.md").exists()
 
 
 def test_shareable_lab_runs_the_finetuning_target_lab() -> None:
@@ -197,34 +168,71 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert "XPU" in lab_row["device_policy"]
     assert "Research question" in lab_row["reader_flow"]
     assert "open the lab notebook" in lab_row["reader_flow"]
-    assert "run the section notebooks" in lab_row["reader_flow"]
+    assert "run the lab sections" in lab_row["reader_flow"]
     assert "compare fine-tuning targets" in lab_row["reader_flow"]
     assert "read the evidence gates" in lab_row["reader_flow"]
     assert "chapter" not in lab_row["artifact"]
+    assert "section notebooks" not in lab_row["reader_flow"]
 
     reader_flow = lab_reader_flow()
     assert {
         "step",
-        "post_section",
+        "lab_step",
         "notebook",
         "run_command",
+        "alternate_command",
         "reader_action",
         "evidence_to_inspect",
         "claim_boundary",
-        "attached_lab",
     } <= set(reader_flow.columns)
+    assert "post_section" not in set(reader_flow.columns)
     assert list(reader_flow["step"]) == list(range(1, len(reader_flow) + 1))
-    assert "Benchmark gap" in set(reader_flow["post_section"])
-    assert "Evaluation protocol" in set(reader_flow["post_section"])
-    assert "Fine-tuning targets" in set(reader_flow["post_section"])
-    assert "Results and diagnostics" in set(reader_flow["post_section"])
-    assert "Next experiments" in set(reader_flow["post_section"])
+    assert "Benchmark gap" in set(reader_flow["lab_step"])
+    assert "Evaluation protocol" in set(reader_flow["lab_step"])
+    assert "Fine-tuning targets" in set(reader_flow["lab_step"])
+    assert "Results and diagnostics" in set(reader_flow["lab_step"])
+    assert "Next experiments" in set(reader_flow["lab_step"])
     assert any("single-turn" in action for action in reader_flow["reader_action"])
     assert any("not a benchmark result" in boundary for boundary in reader_flow["claim_boundary"])
-    assert set(reader_flow["notebook"]) == set(PUBLIC_SECTION_NOTEBOOKS)
-    assert all("marimo edit notebooks/blog/" in command for command in reader_flow["run_command"])
-    assert all(reader_flow["attached_lab"] == PUBLIC_LAB_NOTEBOOK)
+    assert set(reader_flow["notebook"]) == {PUBLIC_LAB_NOTEBOOK}
+    assert all(reader_flow["run_command"] == f"jupyter lab {PUBLIC_LAB_NOTEBOOK}")
+    assert all(reader_flow["alternate_command"] == f"marimo edit {PUBLIC_LAB_APP}")
 
+    decision_rules = method_decision_rules()
+    assert {
+        "fine_tuning_target",
+        "control_arm",
+        "win_condition",
+        "required_comparison",
+        "current_blocker",
+        "claim_ids",
+    } <= set(decision_rules.columns)
+    assert set(decision_rules["fine_tuning_target"]) == {
+        "Direct SQL SFT",
+        "Planner/DSL first, SQL second",
+        "Semantic-layer tuning",
+        "MEASURE()-preserving metric DSL",
+        "Behavior/recovery tuning",
+    }
+    assert all(
+        "same rows" in comparison and "same scorer" in comparison
+        for comparison in decision_rules["required_comparison"]
+    )
+    assert any(
+        "hosted_sota_same_protocol" in claim_ids
+        for claim_ids in decision_rules["claim_ids"]
+    )
+    assert any("non-oracle planner" in blocker for blocker in decision_rules["current_blocker"])
+    assert any("generated-history" in blocker for blocker in decision_rules["current_blocker"])
+
+    known_claim_ids = set(claim_ledger()["claim_id"])
+    decision_claim_ids = {
+        claim_id.strip()
+        for claim_ids in decision_rules["claim_ids"]
+        for claim_id in claim_ids.split(",")
+        if claim_id.strip()
+    }
+    assert decision_claim_ids <= known_claim_ids
 
     lab_scores = lab_method_scorecard()
     assert {
@@ -452,8 +460,8 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "claim_table_md",
         "metric_dsl_contract_md",
         "shareable_lab_md",
-        "notebook_series_md",
         "lab_reader_flow_md",
+        "method_decision_rules_md",
         "lab_method_scores_md",
         "lab_failure_trace_md",
         "data_engineering_gates_md",
@@ -497,29 +505,32 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "XPU" in shareable_lab_md
     assert "Research question" in shareable_lab_md
     assert "open the lab notebook" in shareable_lab_md
-    assert "run the section notebooks" in shareable_lab_md
+    assert "run the lab sections" in shareable_lab_md
     assert "compare fine-tuning targets" in shareable_lab_md
     assert "read the evidence gates" in shareable_lab_md
     assert "chapter" not in shareable_lab_md
-
-    notebook_series_md = (tmp_path / manifest["assets"]["notebook_series_md"]).read_text()
-    assert "Benchmark gap" in notebook_series_md
-    assert "Evaluation protocol" in notebook_series_md
-    assert "Fine-tuning targets" in notebook_series_md
-    assert "Results and diagnostics" in notebook_series_md
-    assert "Next experiments" in notebook_series_md
-    assert PUBLIC_LAB_NOTEBOOK in notebook_series_md
-    for notebook_path in PUBLIC_SECTION_NOTEBOOKS:
-        assert notebook_path in notebook_series_md
+    assert "section notebooks" not in shareable_lab_md
 
     lab_flow_md = (tmp_path / manifest["assets"]["lab_reader_flow_md"]).read_text()
     assert PUBLIC_LAB_NOTEBOOK in lab_flow_md
+    assert PUBLIC_LAB_APP in lab_flow_md
+    assert "lab_step" in lab_flow_md
+    assert "post_section" not in lab_flow_md
     assert "Research question" in lab_flow_md
     assert "Benchmark gap" in lab_flow_md
     assert "Fine-tuning targets" in lab_flow_md
     assert "not a benchmark result" in lab_flow_md
-    for notebook_path in PUBLIC_SECTION_NOTEBOOKS:
-        assert notebook_path in lab_flow_md
+    assert "notebooks/blog/" not in lab_flow_md
+
+    decision_rules_md = (
+        tmp_path / manifest["assets"]["method_decision_rules_md"]
+    ).read_text()
+    assert "Planner/DSL first, SQL second" in decision_rules_md
+    assert "MEASURE()-preserving metric DSL" in decision_rules_md
+    assert "same rows" in decision_rules_md
+    assert "same scorer" in decision_rules_md
+    assert "hosted_sota_same_protocol" in decision_rules_md
+    assert "generated-history" in decision_rules_md
 
     lab_scores_md = (tmp_path / manifest["assets"]["lab_method_scores_md"]).read_text()
     assert "direct_sql_baseline" in lab_scores_md
@@ -601,6 +612,7 @@ def test_checked_in_blog_evidence_assets_are_current(tmp_path) -> None:
     assert (checked_in_dir / "manifest.json").exists()
     assert not (checked_in_dir / "notebook-walkthrough.md").exists()
     assert not (checked_in_dir / "notebook-contracts.md").exists()
+    assert not (checked_in_dir / "notebook-series.md").exists()
     checked_in_manifest = json.loads((checked_in_dir / "manifest.json").read_text())
     assert checked_in_manifest == manifest
 
@@ -625,17 +637,19 @@ def test_research_goal_states_notebook_led_method_comparison() -> None:
     ]:
         assert phrase in goal
 
-    assert "Every public claim should name a section notebook, the lab notebook section, or generated evidence artifact" in goal
+    assert "Every public claim should name a lab notebook section or generated evidence artifact" in goal
     assert PUBLIC_LAB_NOTEBOOK in goal
     assert PUBLIC_LAB_APP in goal
-    for notebook_path in PUBLIC_SECTION_NOTEBOOKS:
-        assert notebook_path in goal
-        assert notebook_path in blog_readme
-        assert notebook_path in root_readme
     assert "shareable-lab.md" in blog_readme
     assert "attached codebase" in blog_readme
     assert PUBLIC_LAB_NOTEBOOK in blog_readme
     assert PUBLIC_LAB_APP in blog_readme
+    assert "notebooks/blog/" not in goal
+    assert "notebooks/blog/" not in blog_readme
+    assert "notebooks/blog/" not in root_readme
+    assert "section notebook" not in goal.lower()
+    assert "section notebook" not in blog_readme.lower()
+    assert "section notebook" not in root_readme.lower()
     assert "internal checkpoint" not in blog_readme
     assert "setup notebook" not in blog_readme
 
@@ -644,7 +658,7 @@ def test_publishable_blog_evidence_exposes_single_public_lab_notebook(tmp_path) 
     manifest = export_blog_evidence(tmp_path)
 
     assert "notebook_contracts_md" not in manifest["assets"]
-    assert "notebook_series_md" in manifest["assets"]
+    assert "notebook_series_md" not in manifest["assets"]
     for asset_path in manifest["assets"].values():
         if not asset_path.endswith(".md"):
             continue
@@ -652,3 +666,4 @@ def test_publishable_blog_evidence_exposes_single_public_lab_notebook(tmp_path) 
         assert "internal checkpoint" not in content
         assert "setup notebook" not in content
         assert "chapter notebook" not in content
+        assert "notebooks/blog/" not in content

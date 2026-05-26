@@ -22,13 +22,15 @@ BLOG_EVIDENCE_SOURCES = (
 )
 
 
-BLOG_NOTEBOOKS: tuple[dict[str, str], ...] = (
+LAB_NOTEBOOK = "notebooks/labs/local_multiturn_sql_lab.ipynb"
+LAB_APP = "notebooks/labs/local_multiturn_sql_lab.py"
+
+LAB_READER_SECTIONS: tuple[dict[str, str], ...] = (
     {
-        "post_section": "Benchmark gap",
-        "notebook": "notebooks/blog/01_benchmark_gap.py",
+        "lab_step": "Benchmark gap",
         "reader_action": (
-            "Research question: run the opening marimo notebook to reproduce the failure: "
-            "single-turn SQL can look solved while a follow-up loses state."
+            "Research question: start in the lab notebook with the failure "
+            "trace: single-turn SQL can look solved while a follow-up loses state."
         ),
         "evidence_to_inspect": "lab-failure-trace.md",
         "purpose": (
@@ -41,8 +43,7 @@ BLOG_NOTEBOOKS: tuple[dict[str, str], ...] = (
         ),
     },
     {
-        "post_section": "Evaluation protocol",
-        "notebook": "notebooks/blog/02_eval_protocol.py",
+        "lab_step": "Evaluation protocol",
         "reader_action": (
             "Inspect the protocol before reading scores: CoSQL/SParC/synthetic/"
             "BIRD roles, teacher-forced history, oracle boundaries, and hosted "
@@ -56,8 +57,7 @@ BLOG_NOTEBOOKS: tuple[dict[str, str], ...] = (
         ),
     },
     {
-        "post_section": "Fine-tuning targets",
-        "notebook": "notebooks/blog/03_method_targets.py",
+        "lab_step": "Fine-tuning targets",
         "reader_action": (
             "Compare direct SQL, planner-first SQL, semantic-layer grounding, "
             "MEASURE()-preserving DSL, and recovery as separate training hypotheses."
@@ -73,8 +73,7 @@ BLOG_NOTEBOOKS: tuple[dict[str, str], ...] = (
         ),
     },
     {
-        "post_section": "Results and diagnostics",
-        "notebook": "notebooks/blog/04_results_diagnostics.py",
+        "lab_step": "Results and diagnostics",
         "reader_action": (
             "Inspect strict vs value scoring, direct-SQL control results, oracle "
             "ceiling, and the non-oracle planner baseline."
@@ -90,8 +89,7 @@ BLOG_NOTEBOOKS: tuple[dict[str, str], ...] = (
         ),
     },
     {
-        "post_section": "Next experiments",
-        "notebook": "notebooks/blog/05_next_experiments.py",
+        "lab_step": "Next experiments",
         "reader_action": (
             "Turn the remaining misses into artifacts: predicted planner execution, "
             "metric-DSL comparison, rollout history, hosted baselines, and "
@@ -359,31 +357,12 @@ def metric_dsl_eval_contract() -> pd.DataFrame:
     )
 
 
-def blog_notebook_series() -> pd.DataFrame:
-    rows = []
-    for step, notebook in enumerate(BLOG_NOTEBOOKS, start=1):
-        rows.append(
-            {
-                "step": step,
-                "post_section": notebook["post_section"],
-                "notebook": notebook["notebook"],
-                "run_command": f"marimo edit {notebook['notebook']}",
-                "reader_action": notebook["reader_action"],
-                "evidence_to_inspect": notebook["evidence_to_inspect"],
-                "purpose": notebook["purpose"],
-                "claim_boundary": notebook["claim_boundary"],
-                "attached_lab": "notebooks/labs/local_multiturn_sql_lab.ipynb",
-            }
-        )
-    return pd.DataFrame(rows)
-
-
 def shareable_lab_attachment() -> pd.DataFrame:
     reader_flow = " -> ".join(
         [
             "Research question",
             "open the lab notebook",
-            "run the section notebooks",
+            "run the lab sections",
             "inspect the failure trace",
             "compare fine-tuning targets",
             "read the evidence gates",
@@ -393,10 +372,10 @@ def shareable_lab_attachment() -> pd.DataFrame:
         [
             {
                 "artifact": "shareable lab notebook and attached codebase",
-                "notebook": "notebooks/labs/local_multiturn_sql_lab.ipynb",
+                "notebook": LAB_NOTEBOOK,
                 "repo_url": "https://github.com/xdanny/multiturn-sql-finetuning",
-                "run_command": "jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb",
-                "alternate_command": "marimo edit notebooks/labs/local_multiturn_sql_lab.py",
+                "run_command": f"jupyter lab {LAB_NOTEBOOK}",
+                "alternate_command": f"marimo edit {LAB_APP}",
                 "device_policy": (
                     "The lab auto-selects CUDA, MPS, or XPU when PyTorch detects "
                     "an available accelerator and falls back to CPU."
@@ -418,18 +397,22 @@ def shareable_lab_attachment() -> pd.DataFrame:
 
 
 def lab_reader_flow() -> pd.DataFrame:
-    return blog_notebook_series()[
-        [
-            "step",
-            "post_section",
-            "notebook",
-            "run_command",
-            "reader_action",
-            "evidence_to_inspect",
-            "claim_boundary",
-            "attached_lab",
-        ]
-    ].copy()
+    rows = []
+    for step, section in enumerate(LAB_READER_SECTIONS, start=1):
+        rows.append(
+            {
+                "step": step,
+                "lab_step": section["lab_step"],
+                "notebook": LAB_NOTEBOOK,
+                "run_command": f"jupyter lab {LAB_NOTEBOOK}",
+                "alternate_command": f"marimo edit {LAB_APP}",
+                "reader_action": section["reader_action"],
+                "evidence_to_inspect": section["evidence_to_inspect"],
+                "purpose": section["purpose"],
+                "claim_boundary": section["claim_boundary"],
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def lab_method_scorecard() -> pd.DataFrame:
@@ -946,6 +929,114 @@ def target_evidence_matrix() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def method_decision_rules() -> pd.DataFrame:
+    return pd.DataFrame(
+        [
+            {
+                "fine_tuning_target": "Direct SQL SFT",
+                "control_arm": "Base Qwen and 100-step direct-SQL LoRA",
+                "win_condition": (
+                    "Defines the baseline every structured target must beat; "
+                    "not enough for a hosted-SOTA claim by itself."
+                ),
+                "required_comparison": (
+                    "Compare on same rows, same scorer, same prompt boundary, "
+                    "and same oracle policy before reporting movement."
+                ),
+                "current_blocker": (
+                    "Hosted same-protocol baseline and BIRD-Interact transfer are "
+                    "pending, so direct-SQL movement is only proxy evidence."
+                ),
+                "claim_ids": (
+                    "qwen35_9b_base_cosql_dev_100turns, "
+                    "multiturn_sql_100_cosql_dev_100turns, "
+                    "hosted_sota_same_protocol, "
+                    "bird_interact_local_vs_hosted"
+                ),
+            },
+            {
+                "fine_tuning_target": "Planner/DSL first, SQL second",
+                "control_arm": "Direct SQL SFT on the fixed proxy slice",
+                "win_condition": (
+                    "A non-oracle planner must recover tables, joins, projection "
+                    "shape, grain, duplicate policy, and enough values for SQL "
+                    "generation to beat direct SQL execution."
+                ),
+                "required_comparison": (
+                    "Compare predicted plans and generated SQL on same rows, same "
+                    "scorer, same schema text, and no labels extracted from gold SQL."
+                ),
+                "current_blocker": (
+                    "non-oracle planner-to-SQL execution is pending; current oracle "
+                    "planner rows are ceilings, not production evidence."
+                ),
+                "claim_ids": (
+                    "planner_lexical_schema_baseline, "
+                    "predicted_planner_sql_execution"
+                ),
+            },
+            {
+                "fine_tuning_target": "Semantic-layer tuning",
+                "control_arm": "Direct SQL prompt plus unpruned schema context",
+                "win_condition": (
+                    "A semantic-state target must improve value grounding, entity "
+                    "resolution, and grain choices without flooding the prompt."
+                ),
+                "required_comparison": (
+                    "Compare semantic artifacts and final SQL on same rows, same "
+                    "scorer, same latency/cost accounting, and versioned semantic "
+                    "model snapshots."
+                ),
+                "current_blocker": (
+                    "Value index, entity-resolution labels, and versioned semantic "
+                    "model manifests are not complete."
+                ),
+                "claim_ids": (
+                    "semantic_prompt_minimal_executable_cosql_dev_100turns, "
+                    "hosted_sota_same_protocol"
+                ),
+            },
+            {
+                "fine_tuning_target": "MEASURE()-preserving metric DSL",
+                "control_arm": "Direct SQL SFT on metric-heavy rows",
+                "win_condition": (
+                    "The model must preserve governed metric intent as MEASURE() "
+                    "until compilation, then match or beat direct SQL value accuracy."
+                ),
+                "required_comparison": (
+                    "Compare DSL parse, compile, measure preservation, and execution "
+                    "on same rows, same scorer, same semantic model version, and the "
+                    "same direct-SQL baseline."
+                ),
+                "current_blocker": (
+                    "metric-DSL prediction manifest and direct-SQL delta are pending."
+                ),
+                "claim_ids": (
+                    "metric_dsl_evaluation_manifest, "
+                    "metric_dsl_beats_direct_sql"
+                ),
+            },
+            {
+                "fine_tuning_target": "Behavior/recovery tuning",
+                "control_arm": "Teacher-forced history and direct SQL retry behavior",
+                "win_condition": (
+                    "The model must recover from its own prior empty results or bad "
+                    "SQL, not only answer when the history is clean."
+                ),
+                "required_comparison": (
+                    "Compare teacher-forced and generated-history rollouts on same "
+                    "rows, same scorer, same model, and same stopping rules."
+                ),
+                "current_blocker": "generated-history rollout and recovery delta are pending.",
+                "claim_ids": (
+                    "model_generated_history_rollout, "
+                    "rollout_beats_teacher_forced_history"
+                ),
+            },
+        ]
+    )
+
+
 def endpoint_run_scorecard() -> pd.DataFrame:
     summary = read_csv_artifact(
         "plots/rescored_vllm_semantic_prompt_iteration_100turns/summary.csv"
@@ -1096,6 +1187,7 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     output.mkdir(parents=True, exist_ok=True)
     for retired_asset in (
         "notebook-contracts.md",
+        "notebook-series.md",
         "notebook-walkthrough.md",
     ):
         retired_path = output / retired_asset
@@ -1107,8 +1199,8 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     claims = claim_table()
     metric_contract = metric_dsl_eval_contract()
     shareable_lab = shareable_lab_attachment()
-    notebook_series = blog_notebook_series()
     reader_flow = lab_reader_flow()
+    decision_rules = method_decision_rules()
     lab_scores = lab_method_scorecard()
     lab_trace = lab_failure_trace()
     data_gates = data_engineering_gates()
@@ -1147,13 +1239,13 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
             output / "shareable-lab.md",
             _markdown_table(shareable_lab),
         ),
-        "notebook_series_md": _write_text(
-            output / "notebook-series.md",
-            _markdown_table(notebook_series),
-        ),
         "lab_reader_flow_md": _write_text(
             output / "lab-reader-flow.md",
             _markdown_table(reader_flow),
+        ),
+        "method_decision_rules_md": _write_text(
+            output / "method-decision-rules.md",
+            _markdown_table(decision_rules),
         ),
         "lab_method_scores_md": _write_text(
             output / "lab-method-scores.md",
