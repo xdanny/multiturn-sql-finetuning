@@ -16,6 +16,8 @@ Rules:
 - For improvement claims, require same-model or same-method pairing exactly as
   the contract says; do not blur same-model and cross-method comparisons.
 - Keep comparison artifacts keyed to claim-ledger rows.
+- If a stage adds or changes a comparison gate, update
+  `data.finetuning_program_registry` so the cross-stage contract stays current.
 - Prefer narrow, machine-checkable comparison outputs over prose summaries.
 - When a method comparison depends on prior training-stage contracts, validate
   the training manifests before trusting the eval filenames.
@@ -34,6 +36,7 @@ When editing here, inspect:
 - `docs/research_goal.md`
 - `docs/methodology.md`
 - `docs/finetuning_ladder.md`
+- `data/finetuning_program_registry.py`
 - `eval/result_manifest.py`
 - `eval/compare_predicted_planner.py`
 - `eval/compare_metric_dsl_direct_sql.py`

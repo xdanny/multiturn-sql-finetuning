@@ -1,0 +1,28 @@
+{
+  "artifact_type": "finetuning_program_registry",
+  "benchmarks": [
+    "bird_interact_transfer",
+    "metric_dsl_direct_sql",
+    "prepared",
+    "synthetic_behavior_recovery",
+    "synthetic_metric_dsl_bootstrap",
+    "synthetic_semantic_layer"
+  ],
+  "blog_idea_count": 7,
+  "command": [
+    "/home/dan/docs/multiturn-sql-finetuning/data/finetuning_program_registry.py"
+  ],
+  "evaluation_modes": [
+    "metric_dsl",
+    "non_oracle_generation",
+    "predicted_planner"
+  ],
+  "output_path": "docs/data_artifacts/finetuning_program_registry.json",
+  "output_sha256": "28bd1819c54a0bd27fcd39fbe5a19e3eafdf49d58268745eb0ad93004d8e4892",
+  "source_docs": [
+    "docs/research_goal.md",
+    "docs/methodology.md",
+    "docs/finetuning_ladder.md"
+  ],
+  "stage_count": 7
+}

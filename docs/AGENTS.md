@@ -5,6 +5,8 @@ This subtree owns structured explanation of the repo's research program.
 Primary responsibilities:
 
 - Keep `research_goal`, `methodology`, and the finetuning ladder aligned.
+- Keep the generated `finetuning_program_registry` aligned with those docs when
+  a stage, benchmark surface, or control-arm contract changes.
 - Document claim boundary, benchmark meaning, and experiment sequencing in a
   way that matches the code and manifests.
 - Prefer disciplined repo language over generic blog-style prose.
@@ -27,5 +29,6 @@ When editing here, inspect:
 - `docs/finetuning_ladder.md`
 - `docs/metric_dsl_contract.md`
 - `docs/rollout_eval_contract.md`
+- `docs/data_artifacts/finetuning_program_registry.json`
 - `README.md`
 - `docs/evidence_contract.md`

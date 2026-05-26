@@ -11,6 +11,8 @@ Primary responsibilities:
   and command examples.
 - Emit a machine-checkable training manifest before and after runs so later
   eval artifacts can be tied back to an exact training input.
+- Keep `data.finetuning_program_registry` aligned with any new training target
+  or benchmark contract added here.
 
 Rules:
 
@@ -31,5 +33,6 @@ When editing here, inspect:
 
 - `train/finetune.py`
 - `docs/finetuning_ladder.md`
+- `data/finetuning_program_registry.py`
 - `docs/research_goal.md`
 - `tests/test_train_finetune.py`

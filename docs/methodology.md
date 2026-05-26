@@ -12,6 +12,10 @@ and not yet a hosted-model comparison.
 `docs/finetuning_ladder.md` is the stage-by-stage execution map for this
 methodology. Use it when deciding what the next training run is supposed to
 learn and what comparison has to clear before a method claim can move.
+The generated `docs/data_artifacts/finetuning_program_registry.json` is the
+machine-checkable cross-stage registry for that ladder: it maps each blog idea
+to a training target, benchmark surface, evaluation mode, comparison contract,
+and leakage boundary.
 
 ## Experiment Taxonomy
 

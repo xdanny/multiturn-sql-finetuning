@@ -1,0 +1,251 @@
+{
+  "artifact_type": "finetuning_program_registry",
+  "benchmarks": [
+    "bird_interact_transfer",
+    "metric_dsl_direct_sql",
+    "prepared",
+    "synthetic_behavior_recovery",
+    "synthetic_metric_dsl_bootstrap",
+    "synthetic_semantic_layer"
+  ],
+  "blog_idea_count": 7,
+  "evaluation_modes": [
+    "metric_dsl",
+    "non_oracle_generation",
+    "predicted_planner"
+  ],
+  "source_docs": [
+    "docs/research_goal.md",
+    "docs/methodology.md",
+    "docs/finetuning_ladder.md"
+  ],
+  "stage_count": 7,
+  "stages": [
+    {
+      "benchmark_surfaces": [
+        "prepared"
+      ],
+      "blog_idea": "direct SQL control",
+      "claim_boundary": "Proxy-only control arm until later same-row comparisons or Stage 6 benchmarks beat hosted baselines.",
+      "comparison_contracts": [
+        "eval.run_eval",
+        "eval.claim_ledger"
+      ],
+      "control_arm": null,
+      "leakage_boundaries": [
+        "no_future_turn_content",
+        "no_oracle_planner_hints",
+        "no_oracle_pruned_semantic_context"
+      ],
+      "method_key": "direct_sql_control",
+      "prepared_artifacts": [
+        "data.prepare",
+        "data/processed/eval_cosql_dev_100.jsonl"
+      ],
+      "primary_benchmark": "prepared",
+      "stage_id": 0,
+      "stage_name": "Direct SQL control",
+      "trainer_contract": {
+        "evaluation_mode": "non_oracle_generation",
+        "expected_benchmark": "prepared",
+        "expected_training_target": "direct_sql_control"
+      },
+      "training_target": "direct_sql_control"
+    },
+    {
+      "benchmark_surfaces": [
+        "prepared"
+      ],
+      "blog_idea": "planner-first intermediate state",
+      "claim_boundary": "Planner quality is a prerequisite surface, not a SQL win by itself.",
+      "comparison_contracts": [
+        "eval.planner_eval",
+        "eval.planner_optimize",
+        "eval.run_local_planner_eval"
+      ],
+      "control_arm": "direct_sql_control",
+      "leakage_boundaries": [
+        "no_future_turn_content",
+        "gold_plan_allowed_only_as_label",
+        "no_reference_sql_in_prompt"
+      ],
+      "method_key": "planner_supervision",
+      "prepared_artifacts": [
+        "data.prepare",
+        "eval.planner_eval",
+        "gold_plan"
+      ],
+      "primary_benchmark": "prepared",
+      "stage_id": 1,
+      "stage_name": "Planner supervision",
+      "trainer_contract": {
+        "evaluation_mode": "non_oracle_generation",
+        "expected_benchmark": "prepared",
+        "expected_training_target": "planner_supervision"
+      },
+      "training_target": "planner_supervision"
+    },
+    {
+      "benchmark_surfaces": [
+        "prepared"
+      ],
+      "blog_idea": "planner-to-SQL execution",
+      "claim_boundary": "Only a positive same-row comparison against direct SQL can clear this method claim.",
+      "comparison_contracts": [
+        "eval.run_predicted_planner_comparison",
+        "eval.run_local_predicted_planner_comparison"
+      ],
+      "control_arm": "direct_sql_control",
+      "leakage_boundaries": [
+        "no_future_turn_content",
+        "predicted_plan_must_be_non_oracle",
+        "same_row_pairing_against_direct_sql"
+      ],
+      "method_key": "predicted_planner_sql",
+      "prepared_artifacts": [
+        "eval.planner_eval",
+        "data/processed/eval_cosql_dev_predicted_planner_100.jsonl"
+      ],
+      "primary_benchmark": "prepared",
+      "stage_id": 2,
+      "stage_name": "Predicted-planner SQL",
+      "trainer_contract": {
+        "evaluation_mode": "predicted_planner",
+        "expected_benchmark": "prepared",
+        "expected_training_target": "predicted_planner"
+      },
+      "training_target": "predicted_planner"
+    },
+    {
+      "benchmark_surfaces": [
+        "synthetic_semantic_layer"
+      ],
+      "blog_idea": "semantic-layer state",
+      "claim_boundary": "Semantic artifacts only matter if same-row comparison beats the direct control without oracle pruning.",
+      "comparison_contracts": [
+        "eval.run_local_semantic_layer_comparison",
+        "eval.run_local_semantic_proxy_comparison"
+      ],
+      "control_arm": "direct_sql_control",
+      "leakage_boundaries": [
+        "no_future_turn_content",
+        "no_reference_sql_in_prompt",
+        "no_expected_rows_in_prompt",
+        "no_gold_metric_dsl_in_prompt"
+      ],
+      "method_key": "semantic_layer",
+      "prepared_artifacts": [
+        "data.semantic_layer_dataset",
+        "data.semantic_proxy_dataset",
+        "docs/data_artifacts/value_index_cosql_dev_100.jsonl"
+      ],
+      "primary_benchmark": "synthetic_semantic_layer",
+      "stage_id": 3,
+      "stage_name": "Semantic-layer tuning",
+      "trainer_contract": {
+        "evaluation_mode": "non_oracle_generation",
+        "expected_benchmark": "synthetic_semantic_layer",
+        "expected_training_target": "semantic_layer"
+      },
+      "training_target": "semantic_layer"
+    },
+    {
+      "benchmark_surfaces": [
+        "synthetic_metric_dsl_bootstrap",
+        "metric_dsl_direct_sql"
+      ],
+      "blog_idea": "MEASURE()-preserving DSL",
+      "claim_boundary": "A DSL parse/compile win is not enough; compiled SQL must beat same-row direct SQL on metric-heavy rows.",
+      "comparison_contracts": [
+        "eval.metric_dsl_eval",
+        "eval.run_metric_dsl_comparison",
+        "eval.run_local_metric_dsl_comparison"
+      ],
+      "control_arm": "direct_sql_control",
+      "leakage_boundaries": [
+        "no_future_turn_content",
+        "no_reference_sql_in_prompt",
+        "no_compiled_sql_in_prompt",
+        "measure_preservation_scored_separately_from_sql"
+      ],
+      "method_key": "metric_dsl",
+      "prepared_artifacts": [
+        "data.metric_dsl_dataset",
+        "data.metric_dsl_direct_sql_dataset",
+        "docs/data_artifacts/metric_dsl_training_rows.jsonl"
+      ],
+      "primary_benchmark": "synthetic_metric_dsl_bootstrap",
+      "stage_id": 4,
+      "stage_name": "MEASURE()-preserving metric DSL",
+      "trainer_contract": {
+        "evaluation_mode": "metric_dsl",
+        "expected_benchmark": "synthetic_metric_dsl_bootstrap",
+        "expected_training_target": "metric_dsl"
+      },
+      "training_target": "metric_dsl"
+    },
+    {
+      "benchmark_surfaces": [
+        "synthetic_behavior_recovery",
+        "prepared"
+      ],
+      "blog_idea": "generated-history recovery",
+      "claim_boundary": "Teacher-forced history cannot support a recovery claim; rollout comparison is required.",
+      "comparison_contracts": [
+        "eval.run_local_behavior_recovery_comparison",
+        "eval.run_local_rollout_comparison",
+        "eval.compare_rollout_history"
+      ],
+      "control_arm": "direct_sql_control",
+      "leakage_boundaries": [
+        "no_future_turn_content",
+        "no_reference_sql_in_prompt",
+        "no_repair_labels_in_prompt",
+        "generated_history_claims_require_rollout_eval"
+      ],
+      "method_key": "behavior_recovery",
+      "prepared_artifacts": [
+        "data.behavior_recovery_dataset",
+        "data.behavior_recovery_proxy_dataset",
+        "generated_history_trace"
+      ],
+      "primary_benchmark": "synthetic_behavior_recovery",
+      "stage_id": 5,
+      "stage_name": "Generated-history recovery",
+      "trainer_contract": {
+        "evaluation_mode": "non_oracle_generation",
+        "expected_benchmark": "synthetic_behavior_recovery",
+        "expected_training_target": "behavior_recovery"
+      },
+      "training_target": "behavior_recovery"
+    },
+    {
+      "benchmark_surfaces": [
+        "prepared",
+        "bird_interact_transfer"
+      ],
+      "blog_idea": "hosted and BIRD-Interact benchmark gate",
+      "claim_boundary": "This is the only stage that can support local-vs-hosted or BIRD-Interact competitiveness language.",
+      "comparison_contracts": [
+        "eval.run_hosted_baseline_comparison",
+        "eval.run_bird_interact_comparison"
+      ],
+      "control_arm": "best_local_candidate_from_stage_0_to_5",
+      "leakage_boundaries": [
+        "no_future_turn_content",
+        "non_oracle_generation_only",
+        "result_manifests_must_match_frozen_input_contract_hash"
+      ],
+      "method_key": "hosted_and_bird_benchmark",
+      "prepared_artifacts": [
+        "data.hosted_baseline_dataset",
+        "data.bird_interact_transfer_dataset"
+      ],
+      "primary_benchmark": "bird_interact_transfer",
+      "stage_id": 6,
+      "stage_name": "Hosted and BIRD-Interact comparison",
+      "trainer_contract": null,
+      "training_target": null
+    }
+  ]
+}

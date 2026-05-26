@@ -9,6 +9,9 @@ Primary responsibilities:
 - Keep every artifact auditable: prepared data, value index, semantic artifact,
   synthetic fixture, and planner labels should be reproducible from commands.
 - Keep oracle and non-oracle provenance explicit in every artifact.
+- Keep the cross-stage registry current: `data.finetuning_program_registry`
+  should reflect the actual training targets and benchmark surfaces that the
+  repo supports.
 
 Rules:
 
@@ -34,5 +37,6 @@ When editing here, inspect:
 - `data/hosted_baseline_dataset.py`
 - `data/bird_interact_transfer_dataset.py`
 - `data/metric_dsl.py`
+- `data/finetuning_program_registry.py`
 - `data/value_artifacts.py`
 - `data/value_index.py`

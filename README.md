@@ -16,6 +16,9 @@ then SQL, semantic-layer tuning, `MEASURE()`-preserving metric DSLs, and
 behavior/recovery tuning.
 See `docs/finetuning_ladder.md` for the structured training ladder that turns
 those ideas into named finetuning steps, evaluation gates, and claim boundaries.
+The machine-checkable cross-stage map for that ladder is
+`data.finetuning_program_registry`, which writes
+`docs/data_artifacts/finetuning_program_registry.json`.
 
 The first metric-DSL experiment surface is documented in
 `docs/metric_dsl_contract.md`, implemented in `data.metric_dsl`, and evaluated

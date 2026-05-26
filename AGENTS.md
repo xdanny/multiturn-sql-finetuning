@@ -8,6 +8,7 @@ Read these first:
 - `docs/research_goal.md`
 - `docs/finetuning_ladder.md`
 - `docs/methodology.md`
+- `docs/data_artifacts/finetuning_program_registry.json`
 
 Global invariants:
 
