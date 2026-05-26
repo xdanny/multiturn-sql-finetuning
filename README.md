@@ -784,6 +784,12 @@ Latest local smoke evidence:
 
 - 5-step Unsloth LoRA training completed on RTX 5090 and wrote `outputs/qwen35_9b_multiturn_sql/final`.
 - A 50-step LoRA run on 192 mixed SQL-chat examples completed on the RTX 5090 and wrote `outputs/qwen35_9b_multiturn_sql_50steps/final`.
+- A structured Stage 3 semantic-layer 5-step smoke run completed on RTX 5090
+  and wrote `outputs/experiments/semantic_layer_5steps/final` plus
+  `outputs/experiments/semantic_layer_5steps/training.manifest.json`.
+  This run used `CC=/home/dan/.local/bin/cc`; in restricted shells where Zig
+  cache writes are blocked, also set `ZIG_LOCAL_CACHE_DIR=/tmp/zig-cache` and
+  `ZIG_GLOBAL_CACHE_DIR=/tmp/zig-global-cache`.
 - On a 100-turn CoSQL-dev local benchmark spanning 32 dialogs, base Qwen scored 0.360 per-turn execution accuracy and the 50-step adapter scored 0.420.
 - Dialog-level aggregation over the same 100 turns reports base dialog execution accuracy 0.337 and interaction-match rate 0.0625; the 50-step adapter reports dialog execution accuracy 0.382 and interaction-match rate 0.09375.
 - The filtered plot command above was verified and wrote `plots/dev_100turns_lora50/summary.csv` plus `plots/dev_100turns_lora50/dialog_summary.csv`.
