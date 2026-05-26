@@ -70,22 +70,22 @@ Known constraints:
 - Schema-link label generation and semantic prompt pruning are available through `data.prepare --include-sql-labels --prune-semantic-model`. These flags now mark produced rows as `evaluation_mode=oracle_planner_diagnostic`. On the fixed 100-turn CoSQL slice, the best oracle prompt-only pruned-label run reaches `0.850` value accuracy, and training on that oracle-labelled format reaches `0.890`.
 - The end-to-end methodology, dataset roles, training strategy boundaries, and
   benchmark claim rules are documented in `docs/methodology.md`.
-- The public post now has one attached lab notebook and generated evidence
+- The public post now has one attached Marimo lab and generated evidence
   assets; see `docs/blog/README.md`.
 
 ## Blog-Attached Lab
 
-The blog post should point readers to one shareable Jupyter lab notebook. The
-notebook is the attached codebase artifact:
-
-```bash
-jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb
-```
-
-The same lab remains mirrored as a marimo app for local iteration:
+The blog post should point readers to one primary Marimo walkthrough. The
+Marimo notebook is the attached codebase artifact:
 
 ```bash
 marimo edit notebooks/labs/local_multiturn_sql_lab.py
+```
+
+A portable Jupyter export remains available for readers who prefer notebooks:
+
+```bash
+jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb
 ```
 
 The lab compares five fine-tuning targets: direct SQL, planner-first SQL,

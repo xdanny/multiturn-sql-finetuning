@@ -304,33 +304,28 @@ def test_shareable_lab_notebook_is_plain_python_marimo_app() -> None:
     assert "import marimo" in source
     assert "app = marimo.App" in source
     assert "run_multiturn_lab" in source
-    assert "data_engineering_gates" in source
-    assert "dataset_role_matrix" in source
-    assert "endpoint_run_scorecard" in source
-    assert "planner_scorecard" in source
-    assert "target_evidence_matrix" in source
-    assert "method_decision_rules" in source
-    assert "method_priority_backlog" in source
-    assert "metric_dsl_eval_contract" in source
-    assert "prompt_optimization_findings" in source
+    assert "notebooks.labs.local_multiturn_sql_lab_support" in source
+    assert "notebooks.blog_support" not in source
+    assert "data_engineering_gates" not in source
+    assert "dataset_role_matrix" not in source
+    assert "endpoint_run_scorecard" not in source
+    assert "planner_scorecard" not in source
+    assert "target_evidence_matrix" not in source
+    assert "method_decision_rules" not in source
+    assert "method_priority_backlog" not in source
+    assert "metric_dsl_eval_contract" not in source
+    assert "prompt_optimization_findings" not in source
     assert "mo.ui.dropdown" in source
     assert 'value="auto"' in source
     assert "device_preference=runtime_choice.value" in source
     for heading in [
-        "## 1. Research question",
-        "## 2. Why single-turn SQL fails here",
-        "## 3. The proxy slice",
-        "## Dataset roles",
-        "## 4. Candidate fine-tuning targets",
-        "## Target scorecard",
-        "## Method priority backlog",
-        "## 5. Execution trace",
-        "## Failure slice",
-        "## Endpoint and planner evidence",
-        "## Metric DSL checkpoint",
-        "## DSPy boundary",
-        "## Data engineering gates",
-        "## 6. Boundary and next gates",
+        "## 1. Runtime",
+        "## 2. Multi-turn task",
+        "## 3. Candidate training targets",
+        "## 4. Lab scorecard",
+        "## 5. Failure trace",
+        "## 6. Intermediate state",
+        "## 7. What this proves",
     ]:
         assert heading in source
     assert 'if __name__ == "__main__":' in source
@@ -432,6 +427,7 @@ def test_blog_readme_points_to_shareable_lab_notebook() -> None:
     readme = (REPO_ROOT / "docs" / "blog" / "README.md").read_text()
 
     assert "attached codebase" in readme
+    assert "primary Marimo walkthrough" in readme
     assert "notebooks/labs/local_multiturn_sql_lab.ipynb" in readme
     assert "notebooks/blog/" not in readme
     assert "section notebook" not in readme.lower()

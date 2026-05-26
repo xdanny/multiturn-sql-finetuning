@@ -57,9 +57,23 @@ def test_public_blog_artifacts_are_one_shareable_lab_notebook() -> None:
     assert "import marimo" in app_source
     assert "app = marimo.App" in app_source
     assert "run_multiturn_lab" in app_source
+    assert "notebooks.labs.local_multiturn_sql_lab_support" in app_source
+    assert "notebooks.blog_support" not in app_source
+    assert "endpoint_run_scorecard" not in app_source
+    assert "dataset_role_matrix" not in app_source
     assert "device_preference=runtime_choice.value" in app_source
     assert 'value="auto"' in app_source
     assert "auto-select" in app_source
+    for heading in [
+        "## 1. Runtime",
+        "## 2. Multi-turn task",
+        "## 3. Candidate training targets",
+        "## 4. Lab scorecard",
+        "## 5. Failure trace",
+        "## 6. Intermediate state",
+        "## 7. What this proves",
+    ]:
+        assert heading in app_source
     assert 'if __name__ == "__main__":' in app_source
     assert "app.run()" in app_source
 
@@ -208,18 +222,18 @@ def test_notebook_support_loads_current_artifacts() -> None:
     } <= set(lab_attachment.columns)
     lab_row = lab_attachment.iloc[0]
     assert "shareable lab notebook and attached codebase" in lab_row["artifact"]
-    assert lab_row["notebook"] == PUBLIC_LAB_NOTEBOOK
+    assert lab_row["notebook"] == PUBLIC_LAB_APP
     assert "github.com/xdanny/multiturn-sql-finetuning" in lab_row["repo_url"]
-    assert f"jupyter lab {PUBLIC_LAB_NOTEBOOK}" in lab_row["run_command"]
-    assert f"marimo edit {PUBLIC_LAB_APP}" in lab_row["alternate_command"]
+    assert lab_row["run_command"] == f"marimo edit {PUBLIC_LAB_APP}"
+    assert lab_row["alternate_command"] == f"jupyter lab {PUBLIC_LAB_NOTEBOOK}"
     assert "auto-selects CUDA, MPS, or XPU" in lab_row["device_policy"]
     assert "falls back to CPU" in lab_row["device_policy"]
     assert "CUDA" in lab_row["device_policy"]
     assert "MPS" in lab_row["device_policy"]
     assert "XPU" in lab_row["device_policy"]
     assert "Research question" in lab_row["reader_flow"]
-    assert "open the lab notebook" in lab_row["reader_flow"]
-    assert "run the lab sections" in lab_row["reader_flow"]
+    assert "open the Marimo lab" in lab_row["reader_flow"]
+    assert "run the lab checkpoints" in lab_row["reader_flow"]
     assert "compare fine-tuning targets" in lab_row["reader_flow"]
     assert "read the evidence gates" in lab_row["reader_flow"]
     assert "chapter" not in lab_row["artifact"]
@@ -245,9 +259,9 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert "Next experiments" in set(reader_flow["lab_step"])
     assert any("single-turn" in action for action in reader_flow["reader_action"])
     assert any("not a benchmark result" in boundary for boundary in reader_flow["claim_boundary"])
-    assert set(reader_flow["notebook"]) == {PUBLIC_LAB_NOTEBOOK}
-    assert all(reader_flow["run_command"] == f"jupyter lab {PUBLIC_LAB_NOTEBOOK}")
-    assert all(reader_flow["alternate_command"] == f"marimo edit {PUBLIC_LAB_APP}")
+    assert set(reader_flow["notebook"]) == {PUBLIC_LAB_APP}
+    assert all(reader_flow["run_command"] == f"marimo edit {PUBLIC_LAB_APP}")
+    assert all(reader_flow["alternate_command"] == f"jupyter lab {PUBLIC_LAB_NOTEBOOK}")
 
     decision_rules = method_decision_rules()
     assert {
@@ -637,6 +651,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "shareable lab notebook and attached codebase" in shareable_lab_md
     assert PUBLIC_LAB_NOTEBOOK in shareable_lab_md
     assert PUBLIC_LAB_APP in shareable_lab_md
+    assert f"marimo edit {PUBLIC_LAB_APP}" in shareable_lab_md
     assert f"jupyter lab {PUBLIC_LAB_NOTEBOOK}" in shareable_lab_md
     assert "auto-selects CUDA, MPS, or XPU" in shareable_lab_md
     assert "falls back to CPU" in shareable_lab_md
@@ -644,8 +659,8 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "MPS" in shareable_lab_md
     assert "XPU" in shareable_lab_md
     assert "Research question" in shareable_lab_md
-    assert "open the lab notebook" in shareable_lab_md
-    assert "run the lab sections" in shareable_lab_md
+    assert "open the Marimo lab" in shareable_lab_md
+    assert "run the lab checkpoints" in shareable_lab_md
     assert "compare fine-tuning targets" in shareable_lab_md
     assert "read the evidence gates" in shareable_lab_md
     assert "chapter" not in shareable_lab_md
@@ -814,6 +829,7 @@ def test_research_goal_states_notebook_led_method_comparison() -> None:
     assert "attached codebase" in blog_readme
     assert PUBLIC_LAB_NOTEBOOK in blog_readme
     assert PUBLIC_LAB_APP in blog_readme
+    assert "primary Marimo walkthrough" in blog_readme
     assert "notebooks/blog/" not in goal
     assert "notebooks/blog/" not in blog_readme
     assert "notebooks/blog/" not in root_readme

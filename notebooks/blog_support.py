@@ -33,7 +33,7 @@ LAB_READER_SECTIONS: tuple[dict[str, str], ...] = (
     {
         "lab_step": "Benchmark gap",
         "reader_action": (
-            "Research question: start in the lab notebook with the failure "
+            "Research question: start in the Marimo lab with the failure "
             "trace: single-turn SQL can look solved while a follow-up loses state."
         ),
         "evidence_to_inspect": "lab-failure-trace.md",
@@ -42,7 +42,7 @@ LAB_READER_SECTIONS: tuple[dict[str, str], ...] = (
             "failure before introducing any fine-tuning result."
         ),
         "claim_boundary": (
-            "Notebook demonstration only; it is not a benchmark result and "
+            "Marimo lab demonstration only; it is not a benchmark result and "
             "does not compare model leaderboard scores."
         ),
     },
@@ -459,8 +459,8 @@ def shareable_lab_attachment() -> pd.DataFrame:
     reader_flow = " -> ".join(
         [
             "Research question",
-            "open the lab notebook",
-            "run the lab sections",
+            "open the Marimo lab",
+            "run the lab checkpoints",
             "inspect the failure trace",
             "compare fine-tuning targets",
             "read the evidence gates",
@@ -470,20 +470,20 @@ def shareable_lab_attachment() -> pd.DataFrame:
         [
             {
                 "artifact": "shareable lab notebook and attached codebase",
-                "notebook": LAB_NOTEBOOK,
+                "notebook": LAB_APP,
                 "repo_url": "https://github.com/xdanny/multiturn-sql-finetuning",
-                "run_command": f"jupyter lab {LAB_NOTEBOOK}",
-                "alternate_command": f"marimo edit {LAB_APP}",
+                "run_command": f"marimo edit {LAB_APP}",
+                "alternate_command": f"jupyter lab {LAB_NOTEBOOK}",
                 "device_policy": (
                     "The lab auto-selects CUDA, MPS, or XPU when PyTorch detects "
                     "an available accelerator and falls back to CPU."
                 ),
                 "reader_flow": reader_flow,
                 "what_runs": (
-                    "One compact notebook runs the SQLite scenario, compares direct "
-                    "SQL, planner-first, semantic-layer, MEASURE()-preserving DSL, "
-                    "and behavior/recovery targets, then connects those behaviors "
-                    "to generated repo evidence."
+                    "One compact Marimo walkthrough runs the SQLite scenario, "
+                    "compares direct SQL, planner-first, semantic-layer, "
+                    "MEASURE()-preserving DSL, and behavior/recovery targets, "
+                    "then connects those behaviors to generated repo evidence."
                 ),
                 "claim_boundary": (
                     "This is a notebook lab for reasoning about method targets, "
@@ -501,9 +501,9 @@ def lab_reader_flow() -> pd.DataFrame:
             {
                 "step": step,
                 "lab_step": section["lab_step"],
-                "notebook": LAB_NOTEBOOK,
-                "run_command": f"jupyter lab {LAB_NOTEBOOK}",
-                "alternate_command": f"marimo edit {LAB_APP}",
+                "notebook": LAB_APP,
+                "run_command": f"marimo edit {LAB_APP}",
+                "alternate_command": f"jupyter lab {LAB_NOTEBOOK}",
                 "reader_action": section["reader_action"],
                 "evidence_to_inspect": section["evidence_to_inspect"],
                 "purpose": section["purpose"],

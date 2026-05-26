@@ -1,20 +1,20 @@
 # Blog Companion Lab
 
 The public post links to this repository as an attached codebase. The artifact
-readers should open is one shareable Jupyter lab notebook:
-
-```bash
-jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb
-```
-
-The same lab is mirrored as a marimo app for local iteration:
+readers should open is one primary Marimo walkthrough:
 
 ```bash
 marimo edit notebooks/labs/local_multiturn_sql_lab.py
 ```
 
-The notebook is CPU-safe and auto-selects CUDA, MPS, or XPU when PyTorch can
-detect an accelerator, then falls back to CPU. It compares direct SQL,
+A portable Jupyter export is also available:
+
+```bash
+jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb
+```
+
+The primary Marimo walkthrough is CPU-safe and auto-selects CUDA, MPS, or XPU
+when PyTorch can detect an accelerator, then falls back to CPU. It compares direct SQL,
 planner-first SQL, semantic-layer state, `MEASURE()`-preserving DSL, and
 behavior/recovery tuning on a small four-turn scenario. It should stay a
 portable lab, not a serving or dependency-installation guide.

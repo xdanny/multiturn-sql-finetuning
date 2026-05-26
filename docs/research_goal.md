@@ -58,16 +58,16 @@ The current repo has a useful local loop, but it is still mostly a proxy:
 - DSPy has been used for prompt variants; it still needs to optimize planner and semantic
   programs, not just final SQL wording.
 
-## Blog-Attached Lab Contract
+## Blog-Attached Marimo Lab Contract
 
-The public post should link to the attached codebase and one shareable lab
-notebook:
+The public post should link to the attached codebase and one primary Marimo
+walkthrough:
 
-1. `notebooks/labs/local_multiturn_sql_lab.ipynb`
-2. `notebooks/labs/local_multiturn_sql_lab.py`
+1. `notebooks/labs/local_multiturn_sql_lab.py`
+2. `notebooks/labs/local_multiturn_sql_lab.ipynb`
 
 The post explains the narrative, but every public claim should name a lab
-notebook section or generated evidence artifact that backs it. The lab
+checkpoint or generated evidence artifact that backs it. The lab
 auto-selects CUDA, MPS, or XPU when PyTorch detects an available
 accelerator and falls back to CPU. It should not require the full GPU training
 setup, dependency installation cells, or vLLM serving path.
@@ -85,7 +85,7 @@ should behave like a lab walkthrough inside the attached codebase:
 
 Every public claim should name a lab notebook section or generated evidence artifact
 that produced it. The public post should be readable
-on its own, but it should also let readers rerun the companion lab to see the
+on its own, but it should also let readers rerun the companion Marimo lab to see the
 boundary between current proxy evidence, oracle diagnostics, and future
 BIRD-Interact or hosted-model claims.
 The generated `target-evidence-matrix.md` is the public bridge between the toy lab
@@ -93,7 +93,7 @@ behaviors and manifest-backed model evidence, so readers can see which targets a
 supported, pending, or only diagnostic.
 
 Expensive model serving and GPU training stay in scripts. The public reader path stays
-focused on the shareable lab notebook and generated evidence assets.
+focused on the shareable Marimo lab and generated evidence assets.
 
 ## First DSL Experiment Surface
 
