@@ -45,6 +45,7 @@ Tracked outputs:
 - `docs/blog/generated/lab-failure-trace.md`
 - `docs/blog/generated/data-engineering-gates.md`
 - `docs/blog/generated/value-grounding-labels.md`
+- `docs/blog/generated/planner-readiness.md`
 - `docs/blog/generated/data-artifact-contract.md`
 - `docs/blog/generated/prompt-optimization-findings.md`
 - `docs/blog/generated/target-comparison.md`

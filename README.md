@@ -63,6 +63,9 @@ Known constraints:
 - Semantic model context increases prompt length. The current semantic endpoint run shows this cost directly, so future semantic prompts need retrieval and pruning.
 - DSPy-backed prompt search is available through `eval.prompt_optimize`; it can propose and score prompt variants against execution accuracy.
 - A non-oracle `predicted_planner` path is now wired: lexical planner output can be written back into prepared JSONL and injected into the SQL-generation prompt without reference SQL.
+- A planner-readiness report now checks the paired input before endpoint time and
+  records why the current lexical planner should be improved before treating the
+  predicted-planner path as a likely SQL win.
 - A `MEASURE()`-preserving metric-DSL evaluator is now wired for offline
   JSONL predictions; it scores semantic intent, compiles through a semantic
   model, optionally executes compiled SQL, and writes result manifests.
@@ -293,6 +296,24 @@ python -m eval.run_predicted_planner_comparison \
 The tracked preflight currently shows that the direct and predicted inputs align
 for 100 turns across 32 dialogs. It is a readiness artifact only; it does not
 support a SQL execution claim.
+
+Before running that endpoint pair, summarize whether the planner is ready enough
+to make the endpoint spend useful:
+
+```bash
+python -m eval.planner_readiness \
+  --planner-input results/planner_eval_cosql_dev_100.jsonl \
+  --preflight-input docs/predicted_planner_comparison_preflight.json \
+  --output docs/planner_readiness_cosql_dev_100.json
+```
+
+The current tracked report is deliberately conservative. It says the paired
+direct/predicted inputs are row-matched, but the lexical planner still has
+`0.790` zero-column-F1 turns, `0.820` selected-count mismatches, and `1.000`
+empty projection-expression turns on the 100-turn CoSQL proxy. The recommendation
+is `improve_planner_before_claim`. That is not a SQL execution score; it is the
+reason to improve column linking and projection shape before making the endpoint
+comparison the next public claim.
 
 ## Value Grounding Artifacts
 

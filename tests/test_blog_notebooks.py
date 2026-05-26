@@ -21,6 +21,7 @@ from notebooks.blog_support import (
     method_priority_backlog,
     metric_dsl_demo,
     metric_dsl_eval_contract,
+    planner_readiness_summary,
     planner_scorecard,
     prompt_optimization_findings,
     schema_validation_findings,
@@ -155,6 +156,17 @@ def test_notebook_support_loads_current_artifacts() -> None:
     planner = planner_scorecard()
     assert "column_f1" in set(planner["metric"])
     assert planner.loc[planner["metric"] == "macro_planner_score", "score"].iloc[0] > 0
+
+    readiness = planner_readiness_summary()
+    assert {
+        "artifact",
+        "metric",
+        "value",
+        "interpretation",
+    } <= set(readiness.columns)
+    assert "planner_readiness_cosql_dev_100.json" in set(readiness["artifact"])
+    assert "column_zero_rate" in set(readiness["metric"])
+    assert "recommendation" in set(readiness["metric"])
 
     strategies = semantic_strategy_table()
     assert "Semantic layer / MEASURE() preservation" in set(strategies["strategy"])
@@ -667,6 +679,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "lab_failure_trace_md",
         "data_engineering_gates_md",
         "value_grounding_labels_md",
+        "planner_readiness_md",
         "prompt_optimization_findings_md",
         "data_artifact_contract_md",
         "target_comparison_md",
@@ -679,6 +692,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "docs/claim_ledgers/cosql_dev_100.jsonl",
         "docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json",
         "docs/predicted_planner_comparison_preflight.json",
+        "docs/planner_readiness_cosql_dev_100.json",
         "docs/planner_baseline_cosql_dev_100_summary.json",
     }
 
@@ -691,6 +705,15 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "Planner baseline" in planner_svg
     assert "column_f1" in planner_svg
     assert "0.117" in planner_svg
+
+    planner_readiness_md = (
+        tmp_path / manifest["assets"]["planner_readiness_md"]
+    ).read_text()
+    assert "planner_readiness_cosql_dev_100.json" in planner_readiness_md
+    assert "column_zero_rate" in planner_readiness_md
+    assert "empty_projection_expression_rate" in planner_readiness_md
+    assert "improve_planner_before_claim" in planner_readiness_md
+    assert "readiness only; no SQL execution claim" in planner_readiness_md
 
     claim_table_md = (tmp_path / manifest["assets"]["claim_table_md"]).read_text()
     assert "metric_dsl_beats_direct_sql" in claim_table_md

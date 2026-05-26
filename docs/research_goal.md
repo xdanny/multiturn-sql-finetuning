@@ -146,6 +146,12 @@ The generated `target-evidence-matrix.md` is the public bridge between the toy l
 behaviors and manifest-backed model evidence, so readers can see which targets are
 supported, pending, or only diagnostic.
 
+The generated `planner-readiness.md` adds one more guardrail: before the blog
+treats predicted-planner SQL as the next result, the repo must show that the
+planner can recover columns and projection shape well enough to justify endpoint
+time. The current lexical planner is row-pair ready, but its readiness report
+still recommends `improve_planner_before_claim`.
+
 Expensive model serving and GPU training stay in scripts. The public reader path stays
 focused on the shareable Marimo lab and generated evidence assets.
 

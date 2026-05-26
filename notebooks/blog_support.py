@@ -22,6 +22,7 @@ BLOG_EVIDENCE_SOURCES = (
     "docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json",
     "docs/planner_baseline_cosql_dev_100_summary.json",
     "docs/predicted_planner_comparison_preflight.json",
+    "docs/planner_readiness_cosql_dev_100.json",
     "plots/rescored_vllm_semantic_prompt_iteration_100turns/summary.csv",
     "plots/failure_taxonomy/comparison/model_error_summary.csv",
     "plots/failure_taxonomy/comparison/pairwise_vs_baseline.csv",
@@ -264,6 +265,63 @@ def planner_scorecard() -> pd.DataFrame:
     return pd.DataFrame(
         [{"metric": field, "score": float(summary[field])} for field in fields]
     )
+
+
+def planner_readiness_summary() -> pd.DataFrame:
+    summary = read_json_artifact("docs/planner_readiness_cosql_dev_100.json")
+    interpretations = {
+        "endpoint_pair_ready": (
+            "Whether direct and predicted prepared inputs have matching row identities "
+            "before endpoint execution."
+        ),
+        "claim_boundary": "What this artifact is allowed to prove.",
+        "row_count": "Number of planner-evaluated turns in the readiness report.",
+        "dialog_count": "Number of dialogs covered by the planner readiness report.",
+        "database_count": "Number of databases covered by the planner readiness report.",
+        "column_zero_rate": "Share of turns where the predicted planner recovered no gold columns.",
+        "selected_count_mismatch_rate": (
+            "Share of turns where predicted projection width does not match the reference plan."
+        ),
+        "empty_projection_expression_rate": (
+            "Share of turns where the planner produced no explicit projection expressions."
+        ),
+        "join_zero_when_gold_join_rate": (
+            "Share of all turns where a gold join exists and the predicted join score is zero."
+        ),
+        "group_by_zero_when_gold_group_by_rate": (
+            "Share of all turns where gold grouping exists and predicted group-by score is zero."
+        ),
+        "recommendation": "Decision for the next planner step before making SQL claims.",
+        "top_risks": "Largest planner weaknesses to address before endpoint claims.",
+    }
+    metrics = [
+        "endpoint_pair_ready",
+        "claim_boundary",
+        "row_count",
+        "dialog_count",
+        "database_count",
+        "column_zero_rate",
+        "selected_count_mismatch_rate",
+        "empty_projection_expression_rate",
+        "join_zero_when_gold_join_rate",
+        "group_by_zero_when_gold_group_by_rate",
+        "recommendation",
+        "top_risks",
+    ]
+    rows = []
+    for metric in metrics:
+        value = summary.get(metric)
+        if isinstance(value, list):
+            value = ", ".join(str(item) for item in value)
+        rows.append(
+            {
+                "artifact": "planner_readiness_cosql_dev_100.json",
+                "metric": metric,
+                "value": value,
+                "interpretation": interpretations[metric],
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def claim_table() -> pd.DataFrame:
@@ -1790,6 +1848,7 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
 
     scores = accuracy_scorecard()
     planner = planner_scorecard()
+    planner_readiness = planner_readiness_summary()
     claims = claim_table()
     dataset_roles = dataset_role_matrix()
     metric_contract = metric_dsl_eval_contract()
@@ -1829,6 +1888,10 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
                 label_column="metric",
                 value_column="score",
             ),
+        ),
+        "planner_readiness_md": _write_text(
+            output / "planner-readiness.md",
+            _markdown_table(planner_readiness),
         ),
         "claim_table_md": _write_text(output / "claim-table.md", _markdown_table(claims)),
         "dataset_role_matrix_md": _write_text(

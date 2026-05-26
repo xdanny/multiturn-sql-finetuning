@@ -186,6 +186,22 @@ direct and predicted prepared inputs have matching row identities for the fixed
 100-turn proxy. This is only a readiness artifact. It cannot clear the claim
 without the endpoint result manifests and comparison metrics.
 
+Summarize whether that endpoint pair is worth running before spending model
+time:
+
+```bash
+python -m eval.planner_readiness \
+  --planner-input results/planner_eval_cosql_dev_100.jsonl \
+  --preflight-input docs/predicted_planner_comparison_preflight.json \
+  --output docs/planner_readiness_cosql_dev_100.json
+```
+
+The tracked readiness report is bounded to `readiness only; no SQL execution
+claim`. It records that the row pair is ready, but the lexical planner still has
+high column-linking and projection-shape risk: `0.790` zero-column-F1 turns,
+`0.820` selected-count mismatches, and `1.000` empty projection-expression
+turns. Its recommendation is `improve_planner_before_claim`, not `run_endpoint_pair`.
+
 For non-lexical planners, write JSONL predictions keyed by expanded turn id and
 run `eval.planner_eval --planner-source json_planner_predictions
 --planner-predictions <path>`. The planner loader preserves raw unknown fields
