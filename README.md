@@ -483,6 +483,28 @@ python -m eval.compare_rollout_history \
 The comparison command refuses mismatched models, mismatched input hashes, oracle
 diagnostics, and non-rollout manifests.
 
+For local checkpoint work, the repo now also has a same-checkpoint rollout path:
+
+```bash
+uv run python -m eval.run_local_rollout_comparison \
+  --training-manifest outputs/behavior_recovery_proxy/training.manifest.json \
+  --output-dir results/rollout \
+  --run-id <run-id> \
+  --model-name <local-model-name> \
+  --adapter-path <adapter-dir> \
+  --database-root data/raw/cosql_dataset/database
+```
+
+That runner executes both:
+
+- teacher-forced `benchmark=prepared`
+- generated-history `benchmark=prepared_rollout`
+
+for the same checkpoint and prepared input, then writes the compared rollout
+manifest through `eval.compare_rollout_history`. This is the real Stage 5
+prepared-dialog gate; the synthetic recovery pair stays as the smaller diagnostic
+gate before spending GPU time on multi-turn rollout.
+
 There is now a separate synthetic Stage 5 recovery pair for faster finetuning
 iteration before endpoint rollout:
 

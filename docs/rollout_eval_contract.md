@@ -67,6 +67,32 @@ manifest with:
 - `rollout_value_delta_vs_teacher_forced`
 - `rollout_strict_delta_vs_teacher_forced`
 
+## Local Same-Checkpoint Runner
+
+For local adapter evaluation, the repo also has a wrapper that runs both the
+teacher-forced prepared benchmark and the generated-history rollout benchmark
+for the same checkpoint and input manifest:
+
+```bash
+uv run python -m eval.run_local_rollout_comparison \
+  --training-manifest outputs/<run>/training.manifest.json \
+  --output-dir results/rollout \
+  --run-id <run-id> \
+  --model-name <local-model-name> \
+  --adapter-path <adapter-dir> \
+  --database-root data/raw/cosql_dataset/database
+```
+
+The training manifest must point at `benchmark=prepared` and
+`evaluation_mode=non_oracle_generation`. The runner then writes:
+
+- `<run-id>.teacher_forced.manifest.json`
+- `<run-id>.rollout.manifest.json`
+- `<run-id>.compared.manifest.json`
+
+This is the local Stage 5 prepared-dialog contract: same checkpoint, same
+prepared input, different history policy.
+
 ## Claim Boundary
 
 A generated-history rollout result can support only a proxy rollout claim until

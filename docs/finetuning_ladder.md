@@ -156,9 +156,10 @@ run, and a comparison manifest, it is not ready to be called a finetuning step.
   `uv run python -m train.finetune --config configs/qwen35_9b_5090.yaml --data docs/data_artifacts/behavior_recovery_training_rows.jsonl --eval-data docs/data_artifacts/behavior_recovery_training_rows.jsonl --expected-training-target behavior_recovery --expected-evaluation-mode non_oracle_generation --expected-benchmark synthetic_behavior_recovery`
 - Evaluation gate:
   first, `uv run python -m eval.run_local_behavior_recovery_comparison` for the
-  synthetic same-row pair. Then, `uv run python -m eval.rollout_eval` followed
-  by `uv run python -m eval.compare_rollout_history` for the same-model
-  generated-history gate on prepared dialogs.
+  synthetic same-row pair. Then, `uv run python -m eval.run_local_rollout_comparison`
+  for the same-checkpoint teacher-forced vs generated-history comparison on
+  prepared dialogs. The endpoint path remains `uv run python -m eval.rollout_eval`
+  followed by `uv run python -m eval.compare_rollout_history`.
 - Claim boundary:
   the synthetic pair can justify a narrow recovery-method comparison only. A
   behavior/recovery claim on the CoSQL proxy still requires same-model rollout

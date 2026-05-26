@@ -27,3 +27,4 @@ When editing here, inspect:
 - `docs/finetuning_ladder.md`
 - `docs/metric_dsl_contract.md`
 - `docs/rollout_eval_contract.md`
+- `README.md`

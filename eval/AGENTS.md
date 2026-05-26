@@ -48,6 +48,8 @@ When editing here, inspect:
 - `eval/run_local_semantic_layer_comparison.py`
 - `eval/run_local_semantic_proxy_comparison.py`
 - `eval/run_local_predicted_planner_comparison.py`
+- `eval/local_rollout_benchmark.py`
+- `eval/run_local_rollout_comparison.py`
 - `eval/local_planner_benchmark.py`
 - `eval/run_local_planner_eval.py`
 - `eval/compare_rollout_history.py`
