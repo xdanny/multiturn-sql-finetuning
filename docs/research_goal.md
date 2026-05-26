@@ -23,6 +23,10 @@ It needs to learn the intermediate decisions that hosted zero-shot prompting oft
 leaves implicit: what the user is still asking about, which values and entities are
 meant, which metric definition is governed, and which query grain is allowed.
 
+`docs/finetuning_ladder.md` is the operational companion to this document. It
+maps the research question to named finetuning stages, required artifacts,
+evaluation gates, and claim boundaries.
+
 ## What Would Count As Success
 
 A serious success claim needs all of these:

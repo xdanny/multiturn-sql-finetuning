@@ -9,6 +9,10 @@ matter specifically for multi-turn analytical SQL.
 The current evidence is a CoSQL proxy loop. It is not yet a BIRD-Interact score
 and not yet a hosted-model comparison.
 
+`docs/finetuning_ladder.md` is the stage-by-stage execution map for this
+methodology. Use it when deciding what the next training run is supposed to
+learn and what comparison has to clear before a method claim can move.
+
 ## Experiment Taxonomy
 
 | Term | Meaning in this repo | What it can prove |
