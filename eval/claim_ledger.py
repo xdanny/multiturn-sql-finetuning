@@ -94,6 +94,15 @@ PENDING_CLAIMS = (
         "required_artifact": "hosted-model result manifest with cost and latency",
     },
     {
+        "claim_id": "local_beats_hosted_same_protocol",
+        "claim_status": "pending",
+        "artifact_type": "pending_claim",
+        "evaluation_mode": "not_run",
+        "allowed_public_claim": "no local-vs-hosted win yet",
+        "blocking_reason": "no local-vs-hosted comparison with positive value delta",
+        "required_artifact": "compared local result manifest with hosted baseline",
+    },
+    {
         "claim_id": "bird_interact_local_vs_hosted",
         "claim_status": "pending",
         "artifact_type": "pending_claim",
@@ -434,6 +443,17 @@ def _manifest_row(
             "predicted_planner_value_delta_vs_direct_sql"
         ),
         "direct_sql_comparable_row_count": metrics.get("direct_sql_comparable_row_count"),
+        "hosted_comparison_run_id": metrics.get("hosted_comparison_run_id"),
+        "hosted_model_name": metrics.get("hosted_model_name"),
+        "hosted_input_sha256": metrics.get("hosted_input_sha256"),
+        "hosted_output_sha256": metrics.get("hosted_output_sha256"),
+        "hosted_value_execution_accuracy": metrics.get("hosted_value_execution_accuracy"),
+        "hosted_strict_execution_accuracy": metrics.get("hosted_strict_execution_accuracy"),
+        "hosted_mean_latency_ms": metrics.get("hosted_mean_latency_ms"),
+        "hosted_total_cost_usd": metrics.get("hosted_total_cost_usd"),
+        "local_value_delta_vs_hosted": metrics.get("local_value_delta_vs_hosted"),
+        "local_strict_delta_vs_hosted": metrics.get("local_strict_delta_vs_hosted"),
+        "hosted_comparable_row_count": metrics.get("hosted_comparable_row_count"),
         "metric_dsl_parse_rate": metrics.get("metric_dsl_parse_rate"),
         "metric_dsl_compile_rate": metrics.get("metric_dsl_compile_rate"),
         "compiled_sql_execution_evaluated_rows": metrics.get(
@@ -460,6 +480,8 @@ def _manifest_row(
         "output_sha256": manifest.get("output_sha256"),
         "output_sha256_matches": output_hash_matches,
     }
+    for metric_key in HOSTED_LATENCY_KEYS + HOSTED_COST_KEYS:
+        row[metric_key] = metrics.get(metric_key)
     row.update(input_contract)
     if row.get("result_history_policy"):
         row["history_policy"] = row["result_history_policy"]
@@ -513,6 +535,9 @@ def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any
         _row_has_metric_dsl_direct_sql_comparison(row, rows) for row in rows
     )
     has_hosted = any(_row_has_hosted_claim_support(row, rows) for row in rows)
+    has_local_beats_hosted = any(
+        _row_has_local_beats_hosted_claim_support(row, rows) for row in rows
+    )
     has_bird_interact = any(
         row.get("artifact_type") == "result_manifest"
         and "bird_interact" in str(row.get("benchmark") or "").lower()
@@ -523,6 +548,7 @@ def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any
         "model_generated_history_rollout": not has_rollout,
         "rollout_beats_teacher_forced_history": not has_rollout_teacher_forced_comparison,
         "hosted_sota_same_protocol": not has_hosted,
+        "local_beats_hosted_same_protocol": not has_local_beats_hosted,
         "bird_interact_local_vs_hosted": not has_bird_interact,
         "metric_dsl_evaluation_manifest": not has_metric_dsl_eval,
         "metric_dsl_beats_direct_sql": not has_metric_dsl_direct_sql_comparison,
@@ -544,6 +570,13 @@ def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any
                 )
                 row["required_artifact"] = (
                     "compared metric_dsl manifest plus matching direct-SQL manifest"
+                )
+            if row["claim_id"] == "local_beats_hosted_same_protocol" and has_hosted:
+                row["blocking_reason"] = (
+                    "no local-vs-hosted comparison with positive value delta"
+                )
+                row["required_artifact"] = (
+                    "local manifest compared with the same hosted baseline rows"
                 )
             pending.append(
                 {
@@ -744,12 +777,101 @@ def _row_has_hosted_claim_support(row: dict[str, Any], rows: list[dict[str, Any]
         return False
     if not _is_hosted_endpoint(row.get("endpoint")):
         return False
-    metric_keys = set(row.get("metric_keys") or [])
-    if not (metric_keys & set(HOSTED_LATENCY_KEYS)) or not (metric_keys & set(HOSTED_COST_KEYS)):
+    if not _row_has_hosted_cost_latency(row):
         return False
     if not _row_accuracy_keys(row):
         return False
     return any(_row_matches_local_protocol(row, candidate) for candidate in rows)
+
+
+def _row_has_hosted_cost_latency(row: dict[str, Any]) -> bool:
+    metric_keys = set(row.get("metric_keys") or [])
+    has_latency = bool(metric_keys & set(HOSTED_LATENCY_KEYS)) or any(
+        row.get(key) is not None for key in HOSTED_LATENCY_KEYS
+    )
+    has_cost = bool(metric_keys & set(HOSTED_COST_KEYS)) or any(
+        row.get(key) is not None for key in HOSTED_COST_KEYS
+    )
+    return has_latency and has_cost
+
+
+def _row_has_local_beats_hosted_claim_support(
+    row: dict[str, Any],
+    rows: list[dict[str, Any]],
+) -> bool:
+    if row.get("artifact_type") != "result_manifest" or not row.get("artifact_valid"):
+        return False
+    if not row.get("production_claim_allowed") or row.get("evaluation_mode") not in PRODUCTION_MODES:
+        return False
+    if row.get("oracle_allowed") or _is_hosted_endpoint(row.get("endpoint")):
+        return False
+    hosted_id = row.get("hosted_comparison_run_id")
+    if not hosted_id:
+        return False
+    command = [str(item) for item in row.get("command") or []]
+    if "# compared-with-hosted" not in command or str(hosted_id) not in command:
+        return False
+    if not row.get("hosted_model_name"):
+        return False
+    if not row.get("hosted_input_sha256") or not row.get("hosted_output_sha256"):
+        return False
+    if row.get("hosted_input_sha256") != row.get("input_sha256"):
+        return False
+    if row.get("hosted_mean_latency_ms") is None or row.get("hosted_total_cost_usd") is None:
+        return False
+    row_count = _num(row.get("row_count"))
+    comparable_rows = _num(row.get("hosted_comparable_row_count"))
+    if row_count is None or comparable_rows is None or comparable_rows != row_count:
+        return False
+    if not _has_matching_hosted_row(row, rows):
+        return False
+    local_score = _num(row.get("value_execution_accuracy"))
+    hosted_score = _num(row.get("hosted_value_execution_accuracy"))
+    delta = _num(row.get("local_value_delta_vs_hosted"))
+    if local_score is None or hosted_score is None or delta is None:
+        return False
+    return delta > 0 and local_score > hosted_score
+
+
+def _has_matching_hosted_row(
+    local_row: dict[str, Any],
+    rows: list[dict[str, Any]],
+) -> bool:
+    hosted_id = local_row.get("hosted_comparison_run_id")
+    comparable_rows = _num(local_row.get("hosted_comparable_row_count"))
+    for row in rows:
+        if row.get("claim_id") != hosted_id:
+            continue
+        if row.get("artifact_type") != "result_manifest" or not row.get("artifact_valid"):
+            return False
+        if not row.get("production_claim_allowed") or row.get("evaluation_mode") not in PRODUCTION_MODES:
+            return False
+        if row.get("oracle_allowed") or not _is_hosted_endpoint(row.get("endpoint")):
+            return False
+        if not _row_has_hosted_cost_latency(row):
+            return False
+        if row.get("benchmark") != local_row.get("benchmark"):
+            return False
+        if row.get("evaluation_mode") != local_row.get("evaluation_mode"):
+            return False
+        if row.get("input_sha256") != local_row.get("hosted_input_sha256"):
+            return False
+        if row.get("model_name") != local_row.get("hosted_model_name"):
+            return False
+        if row.get("output_sha256") != local_row.get("hosted_output_sha256"):
+            return False
+        if _num(row.get("row_count")) != comparable_rows:
+            return False
+        if _num(row.get("value_execution_accuracy")) != _num(
+            local_row.get("hosted_value_execution_accuracy")
+        ):
+            return False
+        hosted_strict = _num(local_row.get("hosted_strict_execution_accuracy"))
+        return (
+            hosted_strict is None
+            or _num(row.get("strict_execution_accuracy")) == hosted_strict
+        )
+    return False
 
 
 def _is_hosted_endpoint(endpoint: Any) -> bool:
@@ -880,7 +1002,10 @@ def build_claim_ledger(
         rows.append(planner)
     for row in rows:
         if row.get("artifact_type") == "result_manifest":
-            row["can_support_sota_claim"] = _row_has_hosted_claim_support(row, rows)
+            row["can_support_sota_claim"] = _row_has_local_beats_hosted_claim_support(
+                row,
+                rows,
+            )
     rows.extend(_pending_rows(rows))
     return rows
 

@@ -1,6 +1,7 @@
 claim_id,claim_status,evaluation_mode,allowed_public_claim,blocking_reason,required_artifact,value_execution_accuracy,strict_execution_accuracy,row_count,dialog_count
 bird_interact_local_vs_hosted,pending,not_run,no BIRD-Interact claim yet,no BIRD-Interact result manifest,BIRD-Interact local and hosted result manifests,,,,
 hosted_sota_same_protocol,pending,not_run,no hosted/SOTA comparison yet,no same-protocol hosted-model manifest,hosted-model result manifest with cost and latency,,,,
+local_beats_hosted_same_protocol,pending,not_run,no local-vs-hosted win yet,no local-vs-hosted comparison with positive value delta,compared local result manifest with hosted baseline,,,,
 metric_dsl_beats_direct_sql,pending,metric_dsl,no metric-DSL vs direct-SQL improvement claim yet,no side-by-side metric-DSL-vs-direct-SQL comparison,compared metric_dsl manifest with direct-SQL baseline,,,,
 metric_dsl_evaluation_manifest,pending,metric_dsl,no metric-DSL evaluation result yet,no valid metric_dsl result manifest,"metric_dsl result manifest with parse, compile, execution, and measure-preservation metrics",,,,
 model_generated_history_rollout,pending,non_oracle_generation,no generated-history rollout result yet,no model-generated-history rollout manifest,prepared_rollout result manifest with model_generated_sql_rollout history,,,,

@@ -41,8 +41,9 @@ The current ledger is intentionally conservative:
 - planner summaries are `supported_planner_quality`, not SQL accuracy;
 - generated-history rollout existence, rollout-vs-teacher-forced improvement,
   predicted-planner SQL execution, metric-DSL evaluation, metric-DSL-vs-direct-SQL
-  improvement, hosted/SOTA comparison, and BIRD-Interact comparison remain
-  `pending` until same-protocol result manifests exist.
+  improvement, hosted baseline existence, local-vs-hosted outperformance, and
+  BIRD-Interact comparison remain `pending` until same-protocol result manifests
+  and positive comparison deltas exist.
 
 Any hash mismatch, missing manifest field, non-oracle oracle marker, or
 predicted-planner manifest whose output rows are not also marked
@@ -65,7 +66,8 @@ and measure-preservation metrics.
 | Metric-DSL generation beats direct SQL on metric-heavy rows. | Pending | `eval.compare_metric_dsl_direct_sql` is implemented | `metric_dsl` | No, until the compared manifest has a positive value delta and references the direct-SQL manifest. |
 | A generated-history rollout result exists for the fixed CoSQL proxy. | Pending | `eval.rollout_eval` is implemented | `non_oracle_generation` | No, until a rollout result manifest exists. |
 | Generated-history rollout beats teacher-forced history for the same model/input. | Pending | none | not run | No, until side-by-side comparison metrics exist. |
-| Local 9B competes with hosted large models. | Pending | none | not run | No. |
+| A same-protocol hosted baseline exists. | Pending | `eval.compare_hosted_baseline` is implemented | not run | No, this only proves the comparison protocol exists. |
+| Local 9B beats the hosted baseline on the same rows. | Pending | none | not run | No, until the local manifest references a hosted baseline and shows a positive value delta. |
 | Local 9B competes on real BIRD-Interact/Multi-BIRD. | Pending | none | not run | No. |
 
 ## Reproducible Proxy Commands

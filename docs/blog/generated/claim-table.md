@@ -7,6 +7,7 @@
 | model_generated_history_rollout | pending | non_oracle_generation | no generated-history rollout result yet | no model-generated-history rollout manifest |
 | rollout_beats_teacher_forced_history | pending | not_run | no behavior/recovery improvement claim yet | no side-by-side rollout-vs-teacher-forced comparison |
 | hosted_sota_same_protocol | pending | not_run | no hosted/SOTA comparison yet | no same-protocol hosted-model manifest |
+| local_beats_hosted_same_protocol | pending | not_run | no local-vs-hosted win yet | no local-vs-hosted comparison with positive value delta |
 | bird_interact_local_vs_hosted | pending | not_run | no BIRD-Interact claim yet | no BIRD-Interact result manifest |
 | metric_dsl_evaluation_manifest | pending | metric_dsl | no metric-DSL evaluation result yet | no valid metric_dsl result manifest |
 | metric_dsl_beats_direct_sql | pending | metric_dsl | no metric-DSL vs direct-SQL improvement claim yet | no side-by-side metric-DSL-vs-direct-SQL comparison |

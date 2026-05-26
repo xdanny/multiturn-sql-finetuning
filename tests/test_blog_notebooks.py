@@ -143,6 +143,7 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert "rollout_beats_teacher_forced_history" in set(claims["claim_id"])
     assert "metric_dsl_evaluation_manifest" in set(claims["claim_id"])
     assert "metric_dsl_beats_direct_sql" in set(claims["claim_id"])
+    assert "local_beats_hosted_same_protocol" in set(claims["claim_id"])
     rollout = claims[claims["claim_id"] == "rollout_beats_teacher_forced_history"].iloc[0]
     assert rollout["claim_status"] == "pending"
     assert "teacher-forced" in rollout["evidence"]
@@ -286,6 +287,10 @@ def test_notebook_support_loads_current_artifacts() -> None:
     )
     assert any(
         "hosted_sota_same_protocol" in claim_ids
+        for claim_ids in decision_rules["claim_ids"]
+    )
+    assert any(
+        "local_beats_hosted_same_protocol" in claim_ids
         for claim_ids in decision_rules["claim_ids"]
     )
     assert any("non-oracle planner" in blocker for blocker in decision_rules["current_blocker"])
@@ -544,6 +549,7 @@ def test_notebook_support_loads_current_artifacts() -> None:
         "rollout_beats_teacher_forced_history",
         "metric_dsl_evaluation_manifest",
         "hosted_sota_same_protocol",
+        "local_beats_hosted_same_protocol",
         "bird_interact_local_vs_hosted",
     } <= gate_claim_ids
 
@@ -726,6 +732,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "same rows" in decision_rules_md
     assert "same scorer" in decision_rules_md
     assert "hosted_sota_same_protocol" in decision_rules_md
+    assert "local_beats_hosted_same_protocol" in decision_rules_md
     assert "generated-history" in decision_rules_md
 
     priority_md = (
@@ -773,6 +780,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "claim_ids" in data_gates_md
     assert "rollout_beats_teacher_forced_history" in data_gates_md
     assert "hosted_sota_same_protocol" in data_gates_md
+    assert "local_beats_hosted_same_protocol" in data_gates_md
     assert PUBLIC_LAB_NOTEBOOK in data_gates_md
 
     artifact_contract_md = (

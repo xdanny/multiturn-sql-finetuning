@@ -19,11 +19,13 @@ A serious success claim needs all of these:
    then on BIRD-Interact-style tasks.
 2. Hosted-model baselines run through the same prepared inputs, execution scorer,
    result manifest, and latency/cost accounting.
-3. A local model path that wins on multi-turn execution outcomes, not only on isolated
+3. A local model manifest compared against those hosted rows with a positive value
+   delta; merely publishing the hosted baseline is not the win.
+4. A local model path that wins on multi-turn execution outcomes, not only on isolated
    SQL syntax.
-4. Evidence that the win comes from learnable intermediate behavior: planning,
+5. Evidence that the win comes from learnable intermediate behavior: planning,
    semantic-layer reasoning, value grounding, clarification, or repair.
-5. No oracle planning hints in production-style claims.
+6. No oracle planning hints in production-style claims.
 
 ## Fine-Tuning Methods To Compare
 

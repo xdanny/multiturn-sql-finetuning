@@ -5,6 +5,8 @@ import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
 from eval.claim_ledger import (
     build_claim_ledger,
     write_claim_ledger,
@@ -967,6 +969,9 @@ def _write_hosted_manifest_case(
     oracle_allowed: bool = False,
     evaluation_mode: str = "non_oracle_generation",
     include_matching_local: bool = True,
+    local_value_accuracy: float = 1.0,
+    hosted_value_accuracy: float | None = None,
+    local_compared_to_hosted: bool = False,
 ) -> Path:
     input_path = tmp_path / "data" / "eval.jsonl"
     output_path = tmp_path / "results" / "hosted.jsonl"
@@ -996,6 +1001,34 @@ def _write_hosted_manifest_case(
     _write_jsonl(local_output_path, output_rows)
     manifests = []
     if include_matching_local:
+        local_metrics = {"value_execution_accuracy": local_value_accuracy}
+        hosted_value = (
+            float(metrics.get("value_execution_accuracy", local_value_accuracy))
+            if hosted_value_accuracy is None
+            else hosted_value_accuracy
+        )
+        if local_compared_to_hosted:
+            local_metrics.update(
+                {
+                    "hosted_comparison_run_id": "hosted_baseline",
+                    "hosted_model_name": "frontier-model",
+                    "hosted_input_sha256": _sha256(input_path),
+                    "hosted_output_sha256": _sha256(output_path),
+                    "hosted_value_execution_accuracy": hosted_value,
+                    "hosted_strict_execution_accuracy": metrics.get(
+                        "strict_execution_accuracy", hosted_value
+                    ),
+                    "hosted_mean_latency_ms": metrics.get("mean_latency_ms")
+                    or metrics.get("mean_generation_latency_ms"),
+                    "hosted_total_cost_usd": metrics.get("total_cost_usd")
+                    or metrics.get("estimated_cost_usd"),
+                    "local_value_delta_vs_hosted": local_value_accuracy - hosted_value,
+                    "local_strict_delta_vs_hosted": (
+                        local_value_accuracy - float(metrics.get("strict_execution_accuracy", hosted_value))
+                    ),
+                    "hosted_comparable_row_count": 1,
+                }
+            )
         manifests.append(
             {
                 "schema_version": 1,
@@ -1011,8 +1044,13 @@ def _write_hosted_manifest_case(
                 "output_path": str(local_output_path.relative_to(tmp_path)),
                 "output_sha256": _sha256(local_output_path),
                 "row_count": 1,
-                "metrics": {"value_execution_accuracy": 1.0},
-                "command": ["run-local"],
+                "metrics": local_metrics,
+                "command": ["run-local"]
+                + (
+                    ["# compared-with-hosted", "hosted_baseline"]
+                    if local_compared_to_hosted
+                    else []
+                ),
             }
         )
     manifests.append(
@@ -1054,11 +1092,64 @@ def test_hosted_non_oracle_manifest_clears_pending_claim_and_marks_sota_support(
     rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
 
     hosted = next(row for row in rows if row["claim_id"] == "hosted_baseline")
+    local = next(row for row in rows if row["claim_id"] == "local_baseline")
     pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
     assert hosted["artifact_valid"] is True
     assert hosted["production_claim_allowed"] is True
-    assert hosted["can_support_sota_claim"] is True
+    assert hosted["can_support_sota_claim"] is False
+    assert local["can_support_sota_claim"] is False
     assert "hosted_sota_same_protocol" not in pending
+    assert "local_beats_hosted_same_protocol" in pending
+
+
+def test_local_vs_hosted_positive_comparison_clears_outperformance_claim(
+    tmp_path,
+) -> None:
+    manifest_path = _write_hosted_manifest_case(
+        tmp_path,
+        metrics={
+            "value_execution_accuracy": 0.6,
+            "strict_execution_accuracy": 0.5,
+            "mean_latency_ms": 500.0,
+            "total_cost_usd": 0.25,
+        },
+        local_value_accuracy=0.8,
+        local_compared_to_hosted=True,
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    local = next(row for row in rows if row["claim_id"] == "local_baseline")
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert local["can_support_sota_claim"] is True
+    assert local["hosted_comparison_run_id"] == "hosted_baseline"
+    assert local["hosted_model_name"] == "frontier-model"
+    assert local["hosted_value_execution_accuracy"] == 0.6
+    assert local["local_value_delta_vs_hosted"] == pytest.approx(0.2)
+    assert "hosted_sota_same_protocol" not in pending
+    assert "local_beats_hosted_same_protocol" not in pending
+
+
+def test_local_vs_hosted_comparison_requires_positive_value_delta(tmp_path) -> None:
+    manifest_path = _write_hosted_manifest_case(
+        tmp_path,
+        metrics={
+            "value_execution_accuracy": 0.8,
+            "strict_execution_accuracy": 0.8,
+            "mean_latency_ms": 500.0,
+            "total_cost_usd": 0.25,
+        },
+        local_value_accuracy=0.6,
+        local_compared_to_hosted=True,
+    )
+
+    rows = build_claim_ledger(manifest_path=manifest_path, repo_root=tmp_path)
+
+    local = next(row for row in rows if row["claim_id"] == "local_baseline")
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert local["can_support_sota_claim"] is False
+    assert "hosted_sota_same_protocol" not in pending
+    assert "local_beats_hosted_same_protocol" in pending
 
 
 def test_hosted_non_oracle_manifest_requires_matching_local_protocol(tmp_path) -> None:
@@ -1079,6 +1170,7 @@ def test_hosted_non_oracle_manifest_requires_matching_local_protocol(tmp_path) -
     assert hosted["artifact_valid"] is True
     assert hosted["can_support_sota_claim"] is False
     assert "hosted_sota_same_protocol" in pending
+    assert "local_beats_hosted_same_protocol" in pending
 
 
 def test_hosted_non_oracle_manifest_requires_execution_metric(tmp_path) -> None:
@@ -1113,6 +1205,7 @@ def test_hosted_manifest_accepts_generation_latency_metric_alias(tmp_path) -> No
 
     pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
     assert "hosted_sota_same_protocol" not in pending
+    assert "local_beats_hosted_same_protocol" in pending
 
 
 def test_hosted_pending_claim_requires_cost_and_latency_metrics(tmp_path) -> None:

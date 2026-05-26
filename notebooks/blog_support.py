@@ -232,6 +232,7 @@ def claim_table() -> pd.DataFrame:
                 "model_generated_history_rollout",
                 "rollout_beats_teacher_forced_history",
                 "hosted_sota_same_protocol",
+                "local_beats_hosted_same_protocol",
                 "bird_interact_local_vs_hosted",
             ]
         )
@@ -749,14 +750,20 @@ def data_engineering_gates() -> pd.DataFrame:
                 "why_it_matters": (
                     "A SOTA comparison is otherwise a story about different protocols."
                 ),
-                "current_status": "pending: claim ledger tracks the missing hosted baseline",
+                "current_status": (
+                    "pending: claim ledger separately tracks the missing hosted "
+                    "baseline and local-vs-hosted win"
+                ),
                 "next_repo_action": (
-                    "Run hosted baselines through the fixed CoSQL proxy and publish "
-                    "the same execution manifest fields."
+                    "Run hosted baselines through the fixed CoSQL proxy, then compare "
+                    "the local manifest against the same rows with a positive value delta."
                 ),
                 "blocks_claim": "Blocks hosted-SOTA comparison claims.",
                 "source_artifacts": "docs/claim_ledgers/cosql_dev_100.jsonl",
-                "claim_ids": "hosted_sota_same_protocol",
+                "claim_ids": (
+                    "hosted_sota_same_protocol, "
+                    "local_beats_hosted_same_protocol"
+                ),
             },
             {
                 "gate": "bird_interact_transfer",
@@ -1197,13 +1204,15 @@ def method_decision_rules() -> pd.DataFrame:
                     "and same oracle policy before reporting movement."
                 ),
                 "current_blocker": (
-                    "Hosted same-protocol baseline and BIRD-Interact transfer are "
-                    "pending, so direct-SQL movement is only proxy evidence."
+                    "Hosted same-protocol baseline, a positive local-vs-hosted "
+                    "delta, and BIRD-Interact transfer are pending, so direct-SQL "
+                    "movement is only proxy evidence."
                 ),
                 "claim_ids": (
                     "qwen35_9b_base_cosql_dev_100turns, "
                     "multiturn_sql_100_cosql_dev_100turns, "
                     "hosted_sota_same_protocol, "
+                    "local_beats_hosted_same_protocol, "
                     "bird_interact_local_vs_hosted"
                 ),
             },
@@ -1246,7 +1255,8 @@ def method_decision_rules() -> pd.DataFrame:
                 ),
                 "claim_ids": (
                     "semantic_prompt_minimal_executable_cosql_dev_100turns, "
-                    "hosted_sota_same_protocol"
+                    "hosted_sota_same_protocol, "
+                    "local_beats_hosted_same_protocol"
                 ),
             },
             {
@@ -1402,8 +1412,9 @@ def method_priority_backlog() -> pd.DataFrame:
                     "prompt boundary, and oracle policy"
                 ),
                 "build_next": (
-                    "same-protocol hosted baseline and BIRD-Interact transfer so the "
-                    "direct-SQL control is not just a local proxy number"
+                    "same-protocol hosted baseline, local-vs-hosted comparison, and "
+                    "BIRD-Interact transfer so the direct-SQL control is not just a "
+                    "local proxy number"
                 ),
                 "falsifies_if": (
                     "a more structured target cannot beat the direct-SQL control on "
@@ -1413,6 +1424,7 @@ def method_priority_backlog() -> pd.DataFrame:
                     "qwen35_9b_base_cosql_dev_100turns, "
                     "multiturn_sql_100_cosql_dev_100turns, "
                     "hosted_sota_same_protocol, "
+                    "local_beats_hosted_same_protocol, "
                     "bird_interact_local_vs_hosted"
                 ),
             },
