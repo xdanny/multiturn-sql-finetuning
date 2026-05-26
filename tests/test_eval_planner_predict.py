@@ -6,6 +6,7 @@ import pytest
 
 from eval.planner_eval import annotate_prepared_records_with_plans
 from eval.planner_predict import (
+    generate_planner_json,
     planner_messages_for_record,
     predict_planner_records,
     run_planner_predict,
@@ -81,6 +82,39 @@ def test_predict_planner_records_preserves_fenced_and_malformed_json() -> None:
     assert predictions[1]["predicted_plan"]["parseable"] is False
     assert "no JSON object" in predictions[1]["predicted_plan"]["planner_parse_error"]
     assert predictions[1]["raw_planner_output"] == "not json"
+
+
+def test_generate_planner_json_disables_qwen_thinking() -> None:
+    class Message:
+        content = '{"relevant_tables": ["customers"]}'
+
+    class Choice:
+        message = Message()
+
+    class Response:
+        choices = [Choice()]
+
+    class Completions:
+        def create(self, **kwargs):
+            assert kwargs["extra_body"] == {"chat_template_kwargs": {"enable_thinking": False}}
+            return Response()
+
+    class Chat:
+        completions = Completions()
+
+    class Client:
+        chat = Chat()
+
+    text, latency_ms = generate_planner_json(
+        Client(),
+        model_name="planner-9b",
+        messages=[{"role": "user", "content": "q"}],
+        temperature=0.0,
+        max_tokens=8,
+    )
+
+    assert text == '{"relevant_tables": ["customers"]}'
+    assert latency_ms >= 0
 
 
 def test_planner_predictions_feed_existing_json_planner_loader(tmp_path) -> None:

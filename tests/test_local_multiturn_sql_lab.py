@@ -349,19 +349,24 @@ def test_shareable_lab_has_portable_jupyter_notebook_entrypoint() -> None:
         for cell in notebook["cells"]
     )
     assert "run_multiturn_lab" in text
-    assert "device_preference=\"auto\"" in text
+    assert 'DEVICE = "auto"' in text
+    assert "device_preference=DEVICE" in text
     assert "accelerator_report" in text
     assert "CUDA" in text
     assert "MPS" in text
     assert "XPU" in text
-    assert "endpoint_run_scorecard" in text
-    assert "dataset_role_matrix" in text
-    assert "planner_scorecard" in text
-    assert "target_evidence_matrix" in text
-    assert "method_decision_rules" in text
-    assert "method_priority_backlog" in text
-    assert "metric_dsl_eval_contract" in text
-    assert "prompt_optimization_findings" in text
+    assert "notebooks.labs.local_multiturn_sql_lab_support" in text
+    assert "notebooks.blog_support" not in text
+    assert "endpoint_run_scorecard" not in text
+    assert "dataset_role_matrix" not in text
+    assert "planner_scorecard" not in text
+    assert "target_evidence_matrix" not in text
+    assert "method_decision_rules" not in text
+    assert "method_priority_backlog" not in text
+    assert "metric_dsl_eval_contract" not in text
+    assert "prompt_optimization_findings" not in text
+    assert "pd.DataFrame(report[\"rows\"])" in text
+    assert "next_gates" in text
     assert "pip install" not in text
     assert "apt install" not in text
     assert "notebooks/blog/" not in text
@@ -371,13 +376,17 @@ def test_shareable_lab_has_portable_jupyter_notebook_entrypoint() -> None:
         for cell in notebook["cells"]
         if cell.get("cell_type") == "code"
     )
-    assert "report = run_multiturn_lab(device_preference=\"auto\")" in code
+    assert 'DEVICE = "auto"' in code
+    assert "report = run_multiturn_lab(device_preference=DEVICE)" in code
     assert 'report["device"].kind in {"cpu", "cuda", "mps", "xpu"}' in code
     assert "report[\"accelerator_report\"]" in code
-    assert "dataset_role_matrix()" in code
-    assert "target_evidence_matrix()" in code
-    assert "method_priority_backlog()" in code
-    assert "endpoint_run_scorecard()" in code
+    assert "pd.DataFrame(report[\"method_matrix\"])" in code
+    assert "pd.DataFrame(report[\"rows\"])" in code
+    assert "next_gates = pd.DataFrame" in code
+    assert "dataset_role_matrix()" not in code
+    assert "target_evidence_matrix()" not in code
+    assert "method_priority_backlog()" not in code
+    assert "endpoint_run_scorecard()" not in code
 
     namespace: dict[str, object] = {}
     for cell in notebook["cells"]:

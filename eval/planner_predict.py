@@ -84,6 +84,7 @@ def generate_planner_json(
         messages=messages,
         temperature=temperature,
         max_tokens=max_tokens,
+        extra_body={"chat_template_kwargs": {"enable_thinking": False}},
     )
     latency_ms = (time.perf_counter() - started) * 1000
     return response.choices[0].message.content or "", latency_ms

@@ -844,16 +844,18 @@ def prompt_optimization_findings() -> pd.DataFrame:
             "best_dspy_accuracy": None,
             "samples": 0,
             "promoted_decision": (
-                "pending: optimize a two-stage planner-to-SQL program before "
-                "using DSPy as evidence for a method claim."
+                "harness_ready: eval.planner_optimize can score static and DSPy "
+                "planner policies by planner F1 before SQL generation."
             ),
             "next_program_target": (
-                "Optimize planner label F1 with eval.planner_predict, then measure "
-                "value accuracy and failure-taxonomy deltas on a development split "
-                "before endpoint promotion; see the shareable lab notebook and "
-                "planner evaluation docs."
+                "Run eval.planner_optimize with DSPy proposals, promote the best "
+                "planner policy into eval.planner_predict, then measure value "
+                "accuracy and failure-taxonomy deltas on a development split."
             ),
-            "claim_boundary": "Planner program gate is not run yet; not a SOTA claim.",
+            "claim_boundary": (
+                "Planner optimizer exists, but no planner-search summary is "
+                "published yet; not a SOTA claim."
+            ),
         },
     ]
     return pd.DataFrame(rows, dtype=object)
@@ -1156,10 +1158,9 @@ def method_priority_backlog() -> pd.DataFrame:
                     "beating direct SQL on the same rows"
                 ),
                 "build_next": (
-                    "Use eval.planner_predict as the endpoint harness for a DSPy "
-                    "or static planner program that predicts tables, columns, joins, "
-                    "projection shape, duplicate policy, and value candidates without "
-                    "gold SQL labels."
+                    "Run eval.planner_optimize with DSPy proposals, then use "
+                    "eval.planner_predict as the endpoint harness for the promoted "
+                    "planner program without gold SQL labels."
                 ),
                 "falsifies_if": (
                     "planner F1 improves but final SQL does not beat direct SQL on "

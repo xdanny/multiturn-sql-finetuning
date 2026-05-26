@@ -92,6 +92,24 @@ python -m eval.planner_predict \
   --output results/planner_predictions/<run-id>.jsonl
 ```
 
+Screen planner prompt or DSPy-program variants before full SQL generation:
+
+```bash
+python -m eval.planner_optimize \
+  --input data/processed/eval_cosql_dev_100.jsonl \
+  --limit 100 \
+  --model-name <planner-model> \
+  --endpoint http://localhost:8000/v1 \
+  --output-dir results/planner_prompt_search/<run-id> \
+  --dspy-proposals 2
+```
+
+The planner optimizer writes `summary.csv` and per-variant JSONL files. It ranks
+parseable planner output before field-level F1, and malformed JSON receives zero
+planner credit. These are planner-quality artifacts only; they do not clear the
+`predicted_planner_sql_execution` claim until a predicted-planner SQL manifest
+beats a row-matched direct-SQL manifest.
+
 Create the first 100-turn predicted-planner artifact from those predictions:
 
 ```bash

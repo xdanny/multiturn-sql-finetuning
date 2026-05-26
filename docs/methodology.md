@@ -154,8 +154,12 @@ and inspectable. Its purpose is to create a scoring surface before building a
 stronger planner, not to claim the planner problem is solved.
 
 Stronger planners should enter through the same contract rather than through
-ad hoc prompt edits. `eval.planner_predict` now writes non-oracle JSON planner
-predictions keyed by expanded turn id. `eval.planner_eval` then reads those
+ad hoc prompt edits. `eval.planner_optimize` screens static and DSPy-proposed
+planner policies before endpoint SQL generation. Its ranking treats parse rate
+as a gate before planner F1, because malformed JSON is not a deployable planner
+even when empty fields can look superficially close. The promoted policy then
+flows through `eval.planner_predict`, which writes non-oracle JSON planner
+predictions keyed by expanded turn id. `eval.planner_eval` reads those
 predictions, scores them against gold SQL-derived labels, and writes a
 `predicted_planner` prepared artifact for endpoint SQL evaluation. The loader
 checks raw planner output for oracle provenance before any normalized plan can

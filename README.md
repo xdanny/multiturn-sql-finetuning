@@ -75,14 +75,14 @@ Known constraints:
 
 ## Blog-Attached Lab
 
-The blog post should point readers to one shareable lab notebook. The lab is the
-attached codebase artifact:
+The blog post should point readers to one shareable Jupyter lab notebook. The
+notebook is the attached codebase artifact:
 
 ```bash
 jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb
 ```
 
-The same lab remains available as a marimo app for local iteration:
+The same lab remains mirrored as a marimo app for local iteration:
 
 ```bash
 marimo edit notebooks/labs/local_multiturn_sql_lab.py
@@ -94,7 +94,8 @@ It also separates dataset roles for BIRD-Interact, BIRD mini-dev, CoSQL, SParC,
 synthetic schema-rich SQL, and the tiny SQLite lab so the repo does not treat
 every SQL row as interchangeable training data.
 It auto-selects CUDA, MPS, or XPU when PyTorch can see an accelerator and falls
-back to CPU. The public site consumes generated evidence such as
+back to CPU. It should stay a portable lab, not a serving or dependency
+installation guide. The public site consumes generated evidence such as
 `docs/blog/generated/shareable-lab.md`,
 `docs/blog/generated/dataset-role-matrix.md`,
 `docs/blog/generated/lab-method-scores.md`,
@@ -176,6 +177,24 @@ python -m eval.planner_predict \
   --endpoint http://localhost:8000/v1 \
   --output results/planner_predictions/<run-id>.jsonl
 ```
+
+Before promoting a planner prompt or DSPy program to full SQL generation, score
+planner variants directly:
+
+```bash
+python -m eval.planner_optimize \
+  --input data/processed/eval_cosql_dev_100.jsonl \
+  --limit 100 \
+  --model-name <planner-model> \
+  --endpoint http://localhost:8000/v1 \
+  --output-dir results/planner_prompt_search/<run-id> \
+  --dspy-proposals 2
+```
+
+This writes one JSONL file per planner variant plus `summary.csv`, ranked by
+parse rate first and planner F1 after that. Malformed JSON receives no planner
+credit. The scores use SQL-derived planner labels, so this is a
+planner-quality screen, not a SQL execution claim.
 
 Then score those predictions and write the matching `predicted_planner` prepared
 artifact:

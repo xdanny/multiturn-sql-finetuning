@@ -67,20 +67,25 @@ def test_public_blog_artifacts_are_one_shareable_lab_notebook() -> None:
     assert notebook["nbformat"] == 4
     text = "\n".join("".join(cell.get("source", "")) for cell in notebook["cells"])
     assert "run_multiturn_lab" in text
-    assert 'device_preference="auto"' in text
+    assert 'DEVICE = "auto"' in text
+    assert "device_preference=DEVICE" in text
     assert "CUDA" in text
     assert "MPS" in text
     assert "XPU" in text
-    assert "endpoint_run_scorecard" in text
-    assert "failure_taxonomy_delta" in text
-    assert "schema_validation_findings" in text
-    assert "dataset_role_matrix" in text
-    assert "planner_scorecard" in text
-    assert "target_evidence_matrix" in text
-    assert "method_decision_rules" in text
-    assert "method_priority_backlog" in text
-    assert "metric_dsl_eval_contract" in text
-    assert "prompt_optimization_findings" in text
+    assert "notebooks.labs.local_multiturn_sql_lab_support" in text
+    assert "notebooks.blog_support" not in text
+    assert "endpoint_run_scorecard" not in text
+    assert "failure_taxonomy_delta" not in text
+    assert "schema_validation_findings" not in text
+    assert "dataset_role_matrix" not in text
+    assert "planner_scorecard" not in text
+    assert "target_evidence_matrix" not in text
+    assert "method_decision_rules" not in text
+    assert "method_priority_backlog" not in text
+    assert "metric_dsl_eval_contract" not in text
+    assert "prompt_optimization_findings" not in text
+    assert "pd.DataFrame(report[\"rows\"])" in text
+    assert "next_gates" in text
     assert "pip install" not in text
     assert "apt install" not in text
     assert "notebooks/blog/" not in text
@@ -561,7 +566,10 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert oracle["best_variant"] == "schema_pruned_minimal"
     assert "static" in oracle["promoted_decision"]
     assert planner_gate["best_accuracy"] is None
-    assert "planner label F1" in planner_gate["next_program_target"]
+    assert "harness_ready" in planner_gate["promoted_decision"]
+    assert "eval.planner_optimize" in planner_gate["promoted_decision"]
+    assert "DSPy proposals" in planner_gate["next_program_target"]
+    assert "eval.planner_predict" in planner_gate["next_program_target"]
     assert all("not a SOTA claim" in boundary for boundary in prompt_findings["claim_boundary"])
 
 
@@ -720,8 +728,9 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "schema_pruned_minimal" in prompt_findings_md
     assert "0.850" in prompt_findings_md
     assert "0.830" in prompt_findings_md
-    assert "planner label F1" in prompt_findings_md
-    assert "shareable lab notebook" in prompt_findings_md
+    assert "harness_ready" in prompt_findings_md
+    assert "eval.planner_optimize" in prompt_findings_md
+    assert "eval.planner_predict" in prompt_findings_md
 
     target_md = (tmp_path / manifest["assets"]["target_comparison_md"]).read_text()
     assert "Direct SQL SFT" in target_md
