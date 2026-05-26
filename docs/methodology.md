@@ -101,8 +101,10 @@ return the right values. Compiled-SQL execution accuracy is reported only over
 rows with a database-backed execution attempt, and oracle-derived semantic
 models make the metric-DSL manifest diagnostic.
 The first Stage 4 finetuning rows are now produced by
-`uv run python -m data.metric_dsl_dataset`, which bootstraps a small
-chat-format training artifact from the synthetic method fixtures.
+`uv run python -m data.metric_dsl_dataset`, and the same-row direct-SQL control
+is produced by `uv run python -m data.metric_dsl_direct_sql_dataset`. Together
+they bootstrap a small paired training artifact from the synthetic method
+fixtures.
 
 A valid `metric_dsl` manifest supports a metric-intent quality claim, not a
 superiority claim. The repo requires `eval.compare_metric_dsl_direct_sql`, a

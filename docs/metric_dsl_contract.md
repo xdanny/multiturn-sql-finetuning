@@ -67,16 +67,45 @@ for Stage 4:
 
 ```bash
 uv run python -m data.metric_dsl_dataset
+uv run python -m data.metric_dsl_direct_sql_dataset
 ```
 
-That command writes:
+Those commands write:
 
 - `docs/data_artifacts/metric_dsl_training_rows.jsonl`
 - `docs/data_artifacts/metric_dsl_training_rows_summary.json`
 - `docs/data_artifacts/metric_dsl_training_rows.manifest.json`
+- `docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl`
+- `docs/data_artifacts/metric_dsl_direct_sql_training_rows_summary.json`
+- `docs/data_artifacts/metric_dsl_direct_sql_training_rows.manifest.json`
+
+The first artifact is the Stage 4 DSL target. The second is the same-row
+direct-SQL control. Keeping both artifacts derived from the same synthetic
+fixtures matters because the method comparison only means anything if the rows,
+semantic model, and failure modes are matched.
 
 These rows are intentionally small. They are a bootstrap contract for metric
 DSL finetuning, not a sufficient dataset for a broad superiority claim.
+
+Train them with explicit metadata checks:
+
+```bash
+uv run python -m train.finetune \
+  --config configs/qwen35_9b_5090.yaml \
+  --data docs/data_artifacts/metric_dsl_training_rows.jsonl \
+  --eval-data docs/data_artifacts/metric_dsl_training_rows.jsonl \
+  --expected-training-target metric_dsl \
+  --expected-evaluation-mode metric_dsl \
+  --expected-benchmark synthetic_metric_dsl_bootstrap
+
+uv run python -m train.finetune \
+  --config configs/qwen35_9b_5090.yaml \
+  --data docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl \
+  --eval-data docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl \
+  --expected-training-target direct_sql_control \
+  --expected-evaluation-mode non_oracle_generation \
+  --expected-benchmark metric_dsl_direct_sql
+```
 
 The evaluation runner lives in `eval.metric_dsl_eval`. It reads JSONL rows with
 `generated_metric_dsl` or `predicted_dsl`, `reference_metric_dsl` or `gold_dsl`,

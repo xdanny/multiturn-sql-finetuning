@@ -10,6 +10,7 @@ from train.finetune import (
     build_sft_config,
     load_jsonl_dataset,
     oracle_diagnostic_row_count,
+    require_expected_dataset_metadata,
     require_oracle_diagnostic_acknowledgement,
 )
 
@@ -98,6 +99,81 @@ def test_oracle_diagnostic_rows_require_explicit_acknowledgement(tmp_path) -> No
         )
         == 1
     )
+
+
+def test_require_expected_dataset_metadata_accepts_matching_rows(tmp_path) -> None:
+    path = tmp_path / "metric_dsl_train.jsonl"
+    path.write_text(
+        json.dumps(
+            {
+                "messages": [{"role": "user", "content": "q"}],
+                "training_target": "metric_dsl",
+                "evaluation_mode": "metric_dsl",
+                "benchmark": "synthetic_metric_dsl_bootstrap",
+            }
+        )
+        + "\n"
+    )
+
+    dataset = load_jsonl_dataset(path)
+
+    require_expected_dataset_metadata(
+        dataset,
+        dataset_name="training",
+        expected_training_target="metric_dsl",
+        expected_evaluation_mode="metric_dsl",
+        expected_benchmark="synthetic_metric_dsl_bootstrap",
+    )
+
+
+def test_require_expected_dataset_metadata_rejects_mixed_or_wrong_values(tmp_path) -> None:
+    path = tmp_path / "metric_dsl_train.jsonl"
+    path.write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "messages": [{"role": "user", "content": "q"}],
+                        "training_target": "metric_dsl",
+                        "evaluation_mode": "metric_dsl",
+                        "benchmark": "synthetic_metric_dsl_bootstrap",
+                    }
+                ),
+                json.dumps(
+                    {
+                        "messages": [{"role": "user", "content": "q"}],
+                        "training_target": "direct_sql_control",
+                        "evaluation_mode": "non_oracle_generation",
+                        "benchmark": "metric_dsl_direct_sql",
+                    }
+                ),
+            ]
+        )
+        + "\n"
+    )
+
+    dataset = load_jsonl_dataset(path)
+
+    with pytest.raises(ValueError, match="expected training_target=metric_dsl"):
+        require_expected_dataset_metadata(
+            dataset,
+            dataset_name="training",
+            expected_training_target="metric_dsl",
+        )
+
+    with pytest.raises(ValueError, match="expected evaluation_mode=metric_dsl"):
+        require_expected_dataset_metadata(
+            dataset,
+            dataset_name="training",
+            expected_evaluation_mode="metric_dsl",
+        )
+
+    with pytest.raises(ValueError, match="expected benchmark=synthetic_metric_dsl_bootstrap"):
+        require_expected_dataset_metadata(
+            dataset,
+            dataset_name="training",
+            expected_benchmark="synthetic_metric_dsl_bootstrap",
+        )
 
 
 def test_build_sft_config_applies_smoke_test_overrides() -> None:

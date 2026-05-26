@@ -85,13 +85,18 @@ run, and a comparison manifest, it is not ready to be called a finetuning step.
   surface is `uv run python -m data.metric_dsl_dataset`, which derives
   finetuning rows from the curated synthetic fixtures.
 - Trainer invocation:
-  `uv run python -m train.finetune --config configs/qwen35_9b_5090.yaml --data docs/data_artifacts/metric_dsl_training_rows.jsonl --eval-data docs/data_artifacts/metric_dsl_training_rows.jsonl`
+  `uv run python -m train.finetune --config configs/qwen35_9b_5090.yaml --data docs/data_artifacts/metric_dsl_training_rows.jsonl --eval-data docs/data_artifacts/metric_dsl_training_rows.jsonl --expected-training-target metric_dsl --expected-evaluation-mode metric_dsl --expected-benchmark synthetic_metric_dsl_bootstrap`
 - Evaluation gate:
   `uv run python -m eval.metric_dsl_eval` followed by
   `uv run python -m eval.compare_metric_dsl_direct_sql`.
 - Claim boundary:
   a parseable DSL manifest is only a quality claim. The method wins only if the
   compiled SQL beats the direct SQL baseline on matching metric-heavy rows.
+  The direct control for that comparison should be trained on
+  `docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl` with
+  `--expected-training-target direct_sql_control`,
+  `--expected-evaluation-mode non_oracle_generation`, and
+  `--expected-benchmark metric_dsl_direct_sql`.
 
 ## Stage 5: Generated-history recovery
 

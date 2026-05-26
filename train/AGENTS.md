@@ -17,6 +17,9 @@ Rules:
 - Prefer `uv run python -m train.finetune ...` in repo docs and examples.
 - Treat dataset mixture and stage naming as part of experiment meaning, not as
   optional metadata.
+- When a finetuning stage has a fixed contract, pass
+  `--expected-training-target`, `--expected-evaluation-mode`, and
+  `--expected-benchmark` so mislabeled datasets fail before training.
 - If a new finetuning target is added, document which control it is expected to
   beat and which eval command clears that claim.
 

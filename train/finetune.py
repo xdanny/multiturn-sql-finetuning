@@ -59,6 +59,38 @@ def require_oracle_diagnostic_acknowledgement(
     return oracle_rows
 
 
+def _unique_non_null_values(dataset: Dataset, column_name: str) -> set[str]:
+    if column_name not in dataset.column_names:
+        return set()
+    return {str(value) for value in dataset[column_name] if value is not None}
+
+
+def require_expected_dataset_metadata(
+    dataset: Dataset,
+    *,
+    dataset_name: str,
+    expected_training_target: str | None = None,
+    expected_evaluation_mode: str | None = None,
+    expected_benchmark: str | None = None,
+) -> None:
+    """Reject rows whose declared experiment metadata does not match the run contract."""
+
+    expected_fields = [
+        ("training_target", expected_training_target),
+        ("evaluation_mode", expected_evaluation_mode),
+        ("benchmark", expected_benchmark),
+    ]
+    for field_name, expected_value in expected_fields:
+        if expected_value is None:
+            continue
+        values = _unique_non_null_values(dataset, field_name)
+        if values != {expected_value}:
+            actual = ", ".join(sorted(values)) if values else "<missing>"
+            raise ValueError(
+                f"{dataset_name} rows expected {field_name}={expected_value}, got {actual}"
+            )
+
+
 def build_sft_config(
     config: dict[str, Any],
     *,
@@ -166,6 +198,9 @@ def train(
     output_dir: Path | None,
     report_to: str | None,
     allow_oracle_diagnostic_data: bool,
+    expected_training_target: str | None,
+    expected_evaluation_mode: str | None,
+    expected_benchmark: str | None,
 ) -> None:
     config = load_config(config_path)
     train_dataset = load_jsonl_dataset(data_path)
@@ -177,6 +212,13 @@ def train(
         train_dataset,
         dataset_name="training",
         allow_oracle_diagnostic_data=allow_oracle_diagnostic_data,
+    )
+    require_expected_dataset_metadata(
+        train_dataset,
+        dataset_name="training",
+        expected_training_target=expected_training_target,
+        expected_evaluation_mode=expected_evaluation_mode,
+        expected_benchmark=expected_benchmark,
     )
     if oracle_train_rows:
         print(
@@ -190,6 +232,13 @@ def train(
             eval_dataset,
             dataset_name="eval",
             allow_oracle_diagnostic_data=allow_oracle_diagnostic_data,
+        )
+        require_expected_dataset_metadata(
+            eval_dataset,
+            dataset_name="eval",
+            expected_training_target=expected_training_target,
+            expected_evaluation_mode=expected_evaluation_mode,
+            expected_benchmark=expected_benchmark,
         )
         if oracle_eval_rows:
             print(
@@ -253,6 +302,9 @@ def main() -> None:
             "Use only for explicit oracle diagnostic runs."
         ),
     )
+    parser.add_argument("--expected-training-target", default=None)
+    parser.add_argument("--expected-evaluation-mode", default=None)
+    parser.add_argument("--expected-benchmark", default=None)
     args = parser.parse_args()
 
     train(
@@ -265,6 +317,9 @@ def main() -> None:
         output_dir=args.output_dir,
         report_to=args.report_to,
         allow_oracle_diagnostic_data=args.allow_oracle_diagnostic_data,
+        expected_training_target=args.expected_training_target,
+        expected_evaluation_mode=args.expected_evaluation_mode,
+        expected_benchmark=args.expected_benchmark,
     )
 
 

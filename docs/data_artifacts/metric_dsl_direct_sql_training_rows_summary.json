@@ -1,0 +1,16 @@
+{
+  "artifact_type": "metric_dsl_direct_sql_training_rows",
+  "benchmark": "metric_dsl_direct_sql",
+  "failure_mode_counts": {
+    "duplicate_row_policy": 1,
+    "grain_fanout": 1,
+    "measure_preservation": 1,
+    "semantic_model": 1
+  },
+  "fixture_ids": [
+    "grain_fanout_bridge",
+    "measure_preservation_metric"
+  ],
+  "row_count": 2,
+  "training_target": "direct_sql_control"
+}

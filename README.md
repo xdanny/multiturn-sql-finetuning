@@ -21,8 +21,9 @@ The first metric-DSL experiment surface is documented in
 `docs/metric_dsl_contract.md`, implemented in `data.metric_dsl`, and evaluated
 offline through `eval.metric_dsl_eval`.
 Its first finetuning-data bootstrap path is implemented in
-`data.metric_dsl_dataset`, which writes small Stage 4 training artifacts under
-`docs/data_artifacts/`.
+`data.metric_dsl_dataset`, with a same-row direct-SQL control in
+`data.metric_dsl_direct_sql_dataset`; both write small Stage 4 training
+artifacts under `docs/data_artifacts/`.
 Generated-history rollout evaluation is documented in
 `docs/rollout_eval_contract.md` and implemented in `eval.rollout_eval`.
 
