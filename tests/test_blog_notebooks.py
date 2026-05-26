@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
 from pathlib import Path
 
+import notebooks.blog_support as blog_support
 from notebooks.blog_support import (
     accuracy_scorecard,
     claim_ledger,
@@ -19,6 +21,7 @@ from notebooks.blog_support import (
     lab_reader_flow,
     method_decision_rules,
     method_priority_backlog,
+    method_readiness_report,
     metric_dsl_demo,
     metric_dsl_eval_contract,
     planner_readiness_summary,
@@ -52,6 +55,10 @@ FORBIDDEN_BLOG_CHAPTER_DOCS = {
     "docs/blog/04_results_diagnostics.md",
     "docs/blog/05_next_experiments.md",
 }
+
+
+def manifest_asset_paths(manifest: dict) -> dict[str, str]:
+    return {asset["id"]: asset["path"] for asset in manifest["assets"]}
 
 
 def test_public_blog_artifacts_are_one_shareable_lab_notebook() -> None:
@@ -240,6 +247,147 @@ def test_notebook_support_loads_current_artifacts() -> None:
         for artifact in dataset_roles["next_artifact"]
     )
 
+    assert hasattr(blog_support, "single_to_multiturn_gap")
+    gap = blog_support.single_to_multiturn_gap()
+    assert {
+        "mechanism",
+        "single_turn_assumption",
+        "multi_turn_breakage",
+        "dataset_surface",
+        "repo_artifact_needed",
+    } <= set(gap.columns)
+    assert set(gap["mechanism"]) == {
+        "state carryover",
+        "value grounding",
+        "grain shift",
+        "metric intent",
+        "result-aware recovery",
+        "generated-history drift",
+    }
+    assert any("BIRD-style" in assumption for assumption in gap["single_turn_assumption"])
+    assert any("CoSQL" in surface for surface in gap["dataset_surface"])
+    assert any("SParC" in surface for surface in gap["dataset_surface"])
+    assert any("Synthetic schema-rich SQL" in surface for surface in gap["dataset_surface"])
+    assert any("BIRD-Interact" in surface for surface in gap["dataset_surface"])
+    assert any("France -> FR" in breakage for breakage in gap["multi_turn_breakage"])
+    assert any("MEASURE()" in artifact for artifact in gap["repo_artifact_needed"])
+
+    assert hasattr(blog_support, "hosted_comparison_protocol")
+    hosted_protocol = blog_support.hosted_comparison_protocol()
+    assert {
+        "protocol_gate",
+        "required_evidence",
+        "why_it_matters",
+        "minimum_acceptance",
+        "claim_ids",
+    } <= set(hosted_protocol.columns)
+    assert set(hosted_protocol["protocol_gate"]) == {
+        "same input rows",
+        "same scorer and output schema",
+        "same oracle boundary",
+        "hosted model manifest",
+        "local model manifest",
+        "generated-history rollout",
+        "latency and cost",
+        "BIRD-Interact transfer",
+    }
+    assert any(
+        "positive local-vs-hosted delta" in acceptance
+        for acceptance in hosted_protocol["minimum_acceptance"]
+    )
+    assert any(
+        "hosted_sota_same_protocol" in claim_ids
+        for claim_ids in hosted_protocol["claim_ids"]
+    )
+
+    assert hasattr(blog_support, "evaluation_harness_map")
+    harness = blog_support.evaluation_harness_map()
+    assert {
+        "research_target",
+        "module_path",
+        "command_surface",
+        "implemented_gate",
+        "current_status",
+        "claim_ids",
+    } <= set(harness.columns)
+    assert set(harness["research_target"]) >= {
+        "direct SQL control",
+        "planner quality before SQL",
+        "predicted-planner SQL",
+        "semantic/value artifacts",
+        "MEASURE()-preserving DSL",
+        "generated-history rollout",
+        "hosted/local comparison",
+    }
+    for module_path in harness["module_path"]:
+        assert (REPO_ROOT / module_path).exists(), module_path
+    assert any("eval.run_eval" in command for command in harness["command_surface"])
+    assert any("eval.planner_optimize" in command for command in harness["command_surface"])
+    assert any("eval.metric_dsl_eval" in command for command in harness["command_surface"])
+    assert any("eval.rollout_eval" in command for command in harness["command_surface"])
+    assert any("eval.compare_hosted_baseline" in command for command in harness["command_surface"])
+    assert any(
+        "same scorer" in gate and "same rows" in gate
+        for gate in harness["implemented_gate"]
+    )
+    assert any(
+        "metric_dsl_beats_direct_sql" in claim_ids
+        for claim_ids in harness["claim_ids"]
+    )
+
+    readiness_report = method_readiness_report()
+    assert {
+        "method",
+        "readiness_level",
+        "rankable_now",
+        "supported_claim_ids",
+        "blocking_claim_ids",
+        "module_path",
+        "next_command",
+        "next_artifact",
+        "claim_boundary",
+    } <= set(readiness_report.columns)
+    assert list(readiness_report["method"]) == [
+        "Direct SQL SFT",
+        "Planner/DSL first, SQL second",
+        "Semantic-layer tuning",
+        "MEASURE()-preserving metric DSL",
+        "Behavior/recovery tuning",
+        "Hosted and BIRD-Interact comparison",
+    ]
+    direct_readiness = readiness_report[
+        readiness_report["method"] == "Direct SQL SFT"
+    ].iloc[0]
+    planner_readiness = readiness_report[
+        readiness_report["method"] == "Planner/DSL first, SQL second"
+    ].iloc[0]
+    assert direct_readiness["readiness_level"] == "control_ready"
+    assert direct_readiness["rankable_now"] is True
+    assert direct_readiness["supported_claim_ids"] == [
+        "qwen35_9b_base_cosql_dev_100turns",
+        "multiturn_sql_100_cosql_dev_100turns",
+    ]
+    assert (
+        "semantic_prompt_minimal_executable_cosql_dev_100turns"
+        not in direct_readiness["supported_claim_ids"]
+    )
+    semantic_readiness = readiness_report[
+        readiness_report["method"] == "Semantic-layer tuning"
+    ].iloc[0]
+    assert semantic_readiness["supported_claim_ids"] == [
+        "semantic_prompt_minimal_executable_cosql_dev_100turns"
+    ]
+    assert planner_readiness["readiness_level"] == "needs_endpoint_comparison"
+    assert planner_readiness["rankable_now"] is False
+    assert "eval.run_predicted_planner_comparison" in planner_readiness["next_command"]
+    assert any(
+        "eval.metric_dsl_eval" in command for command in readiness_report["next_command"]
+    )
+    assert any(
+        "eval.rollout_eval" in command for command in readiness_report["next_command"]
+    )
+    assert all((REPO_ROOT / path).exists() for path in readiness_report["module_path"])
+
     lab_attachment = shareable_lab_attachment()
     assert {
         "artifact",
@@ -376,6 +524,34 @@ def test_notebook_support_loads_current_artifacts() -> None:
     }
     assert priority_claim_ids <= known_claim_ids
 
+    assert hasattr(blog_support, "experiment_ladder")
+    ladder = blog_support.experiment_ladder()
+    assert {
+        "rung",
+        "experiment",
+        "question",
+        "required_artifact",
+        "claim_gate",
+    } <= set(ladder.columns)
+    assert list(ladder["rung"]) == list(range(1, 8))
+    assert list(ladder["experiment"]) == [
+        "Direct SQL control",
+        "Planner quality before SQL",
+        "Predicted-planner SQL",
+        "Semantic-layer target",
+        "MEASURE()-preserving DSL",
+        "Generated-history rollout",
+        "Hosted and BIRD-Interact comparison",
+    ]
+    assert "same local endpoint" in ladder.iloc[0]["question"]
+    assert "score the plan before SQL" in ladder.iloc[1]["claim_gate"]
+    assert "non-oracle predicted plans" in ladder.iloc[2]["question"]
+    assert "governed entities" in ladder.iloc[3]["question"]
+    assert "MEASURE()" in ladder.iloc[4]["question"]
+    assert "teacher-forced" in ladder.iloc[5]["claim_gate"]
+    assert "hosted baselines" in ladder.iloc[6]["required_artifact"]
+    assert "BIRD-Interact" in ladder.iloc[6]["claim_gate"]
+
     lab_scores = lab_method_scorecard()
     assert {
         "system",
@@ -463,8 +639,11 @@ def test_notebook_support_loads_current_artifacts() -> None:
         "Behavior/recovery tuning",
     }
     direct = targets[targets["fine_tuning_target"] == "Direct SQL SFT"].iloc[0]
-    assert "0.640" in direct["current_evidence"]
+    semantic = targets[targets["fine_tuning_target"] == "Semantic-layer tuning"].iloc[0]
+    assert "0.530" in direct["current_evidence"]
+    assert "0.640" not in direct["current_evidence"]
     assert direct["claim_status"] == "supported_proxy"
+    assert "0.640" in semantic["current_evidence"]
     measure = targets[
         targets["fine_tuning_target"] == "MEASURE()-preserving metric DSL"
     ].iloc[0]
@@ -719,10 +898,11 @@ def test_notebook_support_loads_current_artifacts() -> None:
 
 def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     manifest = export_blog_evidence(tmp_path)
+    asset_paths = manifest_asset_paths(manifest)
 
-    assert manifest["schema_version"] == 1
+    assert manifest["schema_version"] == 2
     assert manifest["source_repo"] == "multiturn-sql-finetuning"
-    assert set(manifest["assets"]) == {
+    assert set(asset_paths) == {
         "accuracy_ladder_svg",
         "planner_baseline_svg",
         "claim_table_md",
@@ -730,6 +910,11 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "metric_dsl_contract_md",
         "shareable_lab_md",
         "lab_reader_flow_md",
+        "single_to_multiturn_gap_md",
+        "hosted_comparison_protocol_md",
+        "evaluation_harness_map_md",
+        "experiment_ladder_md",
+        "method_readiness_report_md",
         "method_decision_rules_md",
         "method_priority_backlog_md",
         "lab_method_scores_md",
@@ -747,7 +932,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "failure_taxonomy_delta_md",
         "schema_validation_findings_md",
     }
-    assert set(manifest["source_artifacts"]) >= {
+    assert {source["path"] for source in manifest["source_artifacts"]} >= {
         "docs/claim_ledgers/cosql_dev_100.jsonl",
         "docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json",
         "docs/data_artifacts/value_index_cosql_dev_100.manifest.json",
@@ -757,18 +942,18 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "docs/planner_baseline_cosql_dev_100_summary.json",
     }
 
-    accuracy_svg = (tmp_path / manifest["assets"]["accuracy_ladder_svg"]).read_text()
+    accuracy_svg = (tmp_path / asset_paths["accuracy_ladder_svg"]).read_text()
     assert "Best non-oracle prompt" in accuracy_svg
     assert "0.640" in accuracy_svg
     assert "Oracle-trained ceiling" in accuracy_svg
 
-    planner_svg = (tmp_path / manifest["assets"]["planner_baseline_svg"]).read_text()
+    planner_svg = (tmp_path / asset_paths["planner_baseline_svg"]).read_text()
     assert "Planner baseline" in planner_svg
     assert "column_f1" in planner_svg
     assert "0.117" in planner_svg
 
     planner_readiness_md = (
-        tmp_path / manifest["assets"]["planner_readiness_md"]
+        tmp_path / asset_paths["planner_readiness_md"]
     ).read_text()
     assert "planner_readiness_cosql_dev_100.json" in planner_readiness_md
     assert "column_zero_rate" in planner_readiness_md
@@ -776,12 +961,12 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "improve_planner_before_claim" in planner_readiness_md
     assert "readiness only; no SQL execution claim" in planner_readiness_md
 
-    claim_table_md = (tmp_path / manifest["assets"]["claim_table_md"]).read_text()
+    claim_table_md = (tmp_path / asset_paths["claim_table_md"]).read_text()
     assert "metric_dsl_beats_direct_sql" in claim_table_md
     assert "pending" in claim_table_md
 
     dataset_roles_md = (
-        tmp_path / manifest["assets"]["dataset_role_matrix_md"]
+        tmp_path / asset_paths["dataset_role_matrix_md"]
     ).read_text()
     assert "BIRD-Interact" in dataset_roles_md
     assert "BIRD mini-dev" in dataset_roles_md
@@ -792,11 +977,11 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "value grounding" in dataset_roles_md
     assert "schema-rich" in dataset_roles_md
 
-    metric_table_md = (tmp_path / manifest["assets"]["metric_dsl_contract_md"]).read_text()
+    metric_table_md = (tmp_path / asset_paths["metric_dsl_contract_md"]).read_text()
     assert "metric_dsl_value_delta_vs_direct_sql" in metric_table_md
     assert "pending_comparison" in metric_table_md
 
-    shareable_lab_md = (tmp_path / manifest["assets"]["shareable_lab_md"]).read_text()
+    shareable_lab_md = (tmp_path / asset_paths["shareable_lab_md"]).read_text()
     assert "shareable lab notebook and attached codebase" in shareable_lab_md
     assert PUBLIC_LAB_HTML_URL in shareable_lab_md
     assert PUBLIC_LAB_NOTEBOOK in shareable_lab_md
@@ -816,7 +1001,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "chapter" not in shareable_lab_md
     assert "section notebooks" not in shareable_lab_md
 
-    lab_flow_md = (tmp_path / manifest["assets"]["lab_reader_flow_md"]).read_text()
+    lab_flow_md = (tmp_path / asset_paths["lab_reader_flow_md"]).read_text()
     assert PUBLIC_LAB_NOTEBOOK in lab_flow_md
     assert PUBLIC_LAB_APP in lab_flow_md
     assert "lab_step" in lab_flow_md
@@ -827,8 +1012,76 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "not a benchmark result" in lab_flow_md
     assert "notebooks/blog/" not in lab_flow_md
 
+    gap_md = (tmp_path / asset_paths["single_to_multiturn_gap_md"]).read_text()
+    assert "state carryover" in gap_md
+    assert "value grounding" in gap_md
+    assert "grain shift" in gap_md
+    assert "metric intent" in gap_md
+    assert "result-aware recovery" in gap_md
+    assert "generated-history drift" in gap_md
+    assert "BIRD-style" in gap_md
+    assert "CoSQL" in gap_md
+    assert "SParC" in gap_md
+    assert "Synthetic schema-rich SQL" in gap_md
+    assert "BIRD-Interact" in gap_md
+    assert "France -> FR" in gap_md
+    assert "MEASURE()" in gap_md
+    assert "notebooks/blog/" not in gap_md
+
+    hosted_protocol_md = (
+        tmp_path / asset_paths["hosted_comparison_protocol_md"]
+    ).read_text()
+    assert "same input rows" in hosted_protocol_md
+    assert "hosted model manifest" in hosted_protocol_md
+    assert "local model manifest" in hosted_protocol_md
+    assert "latency and cost" in hosted_protocol_md
+    assert "generated-history rollout" in hosted_protocol_md
+    assert "BIRD-Interact transfer" in hosted_protocol_md
+    assert "positive local-vs-hosted delta" in hosted_protocol_md
+    assert "notebooks/blog/" not in hosted_protocol_md
+
+    harness_md = (tmp_path / asset_paths["evaluation_harness_map_md"]).read_text()
+    assert "direct SQL control" in harness_md
+    assert "planner quality before SQL" in harness_md
+    assert "predicted-planner SQL" in harness_md
+    assert "semantic/value artifacts" in harness_md
+    assert "MEASURE()-preserving DSL" in harness_md
+    assert "generated-history rollout" in harness_md
+    assert "hosted/local comparison" in harness_md
+    assert "eval.run_eval" in harness_md
+    assert "eval.planner_optimize" in harness_md
+    assert "eval.metric_dsl_eval" in harness_md
+    assert "eval.rollout_eval" in harness_md
+    assert "eval.compare_hosted_baseline" in harness_md
+    assert "notebooks/blog/" not in harness_md
+
+    method_readiness_md = (
+        tmp_path / asset_paths["method_readiness_report_md"]
+    ).read_text()
+    assert "Direct SQL SFT" in method_readiness_md
+    assert "Planner/DSL first, SQL second" in method_readiness_md
+    assert "needs_endpoint_comparison" in method_readiness_md
+    assert "eval.run_predicted_planner_comparison" in method_readiness_md
+    assert "eval.metric_dsl_eval" in method_readiness_md
+    assert "eval.rollout_eval" in method_readiness_md
+    assert "notebooks/blog/" not in method_readiness_md
+
+    experiment_ladder_md = (
+        tmp_path / asset_paths["experiment_ladder_md"]
+    ).read_text()
+    assert "Direct SQL control" in experiment_ladder_md
+    assert "Planner quality before SQL" in experiment_ladder_md
+    assert "Predicted-planner SQL" in experiment_ladder_md
+    assert "Semantic-layer target" in experiment_ladder_md
+    assert "MEASURE()-preserving DSL" in experiment_ladder_md
+    assert "Generated-history rollout" in experiment_ladder_md
+    assert "Hosted and BIRD-Interact comparison" in experiment_ladder_md
+    assert "score the plan before SQL" in experiment_ladder_md
+    assert "same local endpoint" in experiment_ladder_md
+    assert "notebooks/blog/" not in experiment_ladder_md
+
     decision_rules_md = (
-        tmp_path / manifest["assets"]["method_decision_rules_md"]
+        tmp_path / asset_paths["method_decision_rules_md"]
     ).read_text()
     assert "Planner/DSL first, SQL second" in decision_rules_md
     assert "MEASURE()-preserving metric DSL" in decision_rules_md
@@ -839,7 +1092,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "generated-history" in decision_rules_md
 
     priority_md = (
-        tmp_path / manifest["assets"]["method_priority_backlog_md"]
+        tmp_path / asset_paths["method_priority_backlog_md"]
     ).read_text()
     assert "Planner/DSL first, SQL second" in priority_md
     assert "oracle gap" in priority_md
@@ -848,7 +1101,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "Behavior/recovery tuning" in priority_md
     assert "generated-history" in priority_md
 
-    lab_scores_md = (tmp_path / manifest["assets"]["lab_method_scores_md"]).read_text()
+    lab_scores_md = (tmp_path / asset_paths["lab_method_scores_md"]).read_text()
     assert "direct_sql_baseline" in lab_scores_md
     assert "semantic_dsl_planner" in lab_scores_md
     assert "behavior_recovery_sql" in lab_scores_md
@@ -856,7 +1109,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "1.000" in lab_scores_md
     assert "not a benchmark result" in lab_scores_md
 
-    lab_trace_md = (tmp_path / manifest["assets"]["lab_failure_trace_md"]).read_text()
+    lab_trace_md = (tmp_path / asset_paths["lab_failure_trace_md"]).read_text()
     assert "turn_2" in lab_trace_md
     assert "turn_3" in lab_trace_md
     assert "turn_4" in lab_trace_md
@@ -867,7 +1120,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "notebooks/blog/" not in lab_trace_md
 
     data_gates_md = (
-        tmp_path / manifest["assets"]["data_engineering_gates_md"]
+        tmp_path / asset_paths["data_engineering_gates_md"]
     ).read_text()
     assert "fixed_proxy_slice" in data_gates_md
     assert "generated_history_rollout" in data_gates_md
@@ -887,7 +1140,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert PUBLIC_LAB_NOTEBOOK in data_gates_md
 
     synthetic_fixtures_md = (
-        tmp_path / manifest["assets"]["synthetic_method_fixtures_md"]
+        tmp_path / asset_paths["synthetic_method_fixtures_md"]
     ).read_text()
     assert "synthetic_method_fixtures_summary.json" in synthetic_fixtures_md
     assert "fixture_count" in synthetic_fixtures_md
@@ -896,13 +1149,13 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "behavior_recovery" in synthetic_fixtures_md
 
     value_labels_md = (
-        tmp_path / manifest["assets"]["value_grounding_labels_md"]
+        tmp_path / asset_paths["value_grounding_labels_md"]
     ).read_text()
     assert "value_grounding_labels_cosql_dev_100.jsonl" in value_labels_md
     assert "missing_from_user_text_count" in value_labels_md
     assert "exact_in_history_count" in value_labels_md
 
-    value_index_md = (tmp_path / manifest["assets"]["value_index_md"]).read_text()
+    value_index_md = (tmp_path / asset_paths["value_index_md"]).read_text()
     assert "value_index_cosql_dev_100_summary.json" in value_index_md
     assert "non_oracle_value_index_summary" in value_index_md
     assert "resolved_value_indexed_rate" in value_index_md
@@ -910,7 +1163,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "database_contents" in value_index_md
 
     artifact_contract_md = (
-        tmp_path / manifest["assets"]["data_artifact_contract_md"]
+        tmp_path / asset_paths["data_artifact_contract_md"]
     ).read_text()
     assert "value_index" in artifact_contract_md
     assert "entity_resolution_labels" in artifact_contract_md
@@ -924,7 +1177,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert PUBLIC_LAB_NOTEBOOK in artifact_contract_md
 
     prompt_findings_md = (
-        tmp_path / manifest["assets"]["prompt_optimization_findings_md"]
+        tmp_path / asset_paths["prompt_optimization_findings_md"]
     ).read_text()
     assert "non_oracle_sql_prompt_smoke" in prompt_findings_md
     assert "oracle_schema_pruned_prompt_search" in prompt_findings_md
@@ -937,15 +1190,16 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "eval.planner_predict" in prompt_findings_md
     assert "eval.run_predicted_planner_comparison" in prompt_findings_md
 
-    target_md = (tmp_path / manifest["assets"]["target_comparison_md"]).read_text()
+    target_md = (tmp_path / asset_paths["target_comparison_md"]).read_text()
     assert "Direct SQL SFT" in target_md
+    assert "0.530" in target_md
     assert "0.640" in target_md
     assert "MEASURE()-preserving metric DSL" in target_md
     assert "Behavior/recovery tuning" in target_md
     assert "shareable lab" in target_md
 
     target_evidence_md = (
-        tmp_path / manifest["assets"]["target_evidence_matrix_md"]
+        tmp_path / asset_paths["target_evidence_matrix_md"]
     ).read_text()
     assert "Direct SQL SFT" in target_evidence_md
     assert "Planner/DSL first, SQL second" in target_evidence_md
@@ -956,14 +1210,14 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "hosted baseline" in target_evidence_md
     assert "notebooks/blog/" not in target_evidence_md
 
-    endpoint_md = (tmp_path / manifest["assets"]["endpoint_run_scorecard_md"]).read_text()
+    endpoint_md = (tmp_path / asset_paths["endpoint_run_scorecard_md"]).read_text()
     assert "Base Qwen 3.5 9B" in endpoint_md
     assert "100-step LoRA" in endpoint_md
     assert "0.530" in endpoint_md
     assert "0.640" in endpoint_md
 
     failure_delta_md = (
-        tmp_path / manifest["assets"]["failure_taxonomy_delta_md"]
+        tmp_path / asset_paths["failure_taxonomy_delta_md"]
     ).read_text()
     assert "multiturn-sql-semantic-50[minimal_executable]" in failure_delta_md
     assert "net_fixed" in failure_delta_md
@@ -971,15 +1225,80 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "projection" in failure_delta_md
 
     schema_findings_md = (
-        tmp_path / manifest["assets"]["schema_validation_findings_md"]
+        tmp_path / asset_paths["schema_validation_findings_md"]
     ).read_text()
     assert "schema_mismatch_rows" in schema_findings_md
     assert "wrong_table_column" in schema_findings_md
     assert "repairable" in schema_findings_md
 
 
+def test_blog_evidence_manifest_is_machine_checkable_contract(tmp_path) -> None:
+    manifest = export_blog_evidence(tmp_path)
+
+    assert manifest["schema_version"] == 2
+    assert manifest["source_repo"] == "multiturn-sql-finetuning"
+    assert manifest["post_slug"] == "local-multiturn-sql-finetuning"
+    assert "notebooks/blog/" in manifest["forbidden_public_substrings"]
+    assert "notebook-contracts.md" in manifest["forbidden_public_substrings"]
+
+    assets = {asset["id"]: asset for asset in manifest["assets"]}
+    assert assets["claim_table_md"] == {
+        "id": "claim_table_md",
+        "path": "claim-table.md",
+        "kind": "markdown",
+        "required_in_post": False,
+        "required_reference": True,
+        "sha256": hashlib.sha256((tmp_path / "claim-table.md").read_bytes()).hexdigest(),
+        "claim_ids": [
+            "hosted_sota_same_protocol",
+            "local_beats_hosted_same_protocol",
+        ],
+    }
+    assert assets["accuracy_ladder_svg"]["kind"] == "svg"
+    assert assets["accuracy_ladder_svg"]["required_in_post"] is True
+    assert assets["accuracy_ladder_svg"]["required_reference"] is False
+    assert len(assets["accuracy_ladder_svg"]["sha256"]) == 64
+    assert assets["lab_reader_flow_md"]["required_reference"] is False
+    assert assets["single_to_multiturn_gap_md"]["kind"] == "markdown"
+    assert assets["single_to_multiturn_gap_md"]["required_reference"] is True
+    assert "rollout_beats_teacher_forced_history" in assets["single_to_multiturn_gap_md"]["claim_ids"]
+    assert assets["hosted_comparison_protocol_md"]["kind"] == "markdown"
+    assert assets["hosted_comparison_protocol_md"]["required_reference"] is True
+    assert "hosted_sota_same_protocol" in assets["hosted_comparison_protocol_md"]["claim_ids"]
+    assert "local_beats_hosted_same_protocol" in assets["hosted_comparison_protocol_md"]["claim_ids"]
+    assert "bird_interact_local_vs_hosted" in assets["hosted_comparison_protocol_md"]["claim_ids"]
+    assert assets["evaluation_harness_map_md"]["kind"] == "markdown"
+    assert assets["evaluation_harness_map_md"]["required_reference"] is True
+    assert "predicted_planner_sql_execution" in assets["evaluation_harness_map_md"]["claim_ids"]
+    assert "metric_dsl_beats_direct_sql" in assets["evaluation_harness_map_md"]["claim_ids"]
+    assert assets["method_readiness_report_md"]["kind"] == "markdown"
+    assert assets["method_readiness_report_md"]["required_reference"] is True
+    assert "predicted_planner_sql_execution" in assets["method_readiness_report_md"]["claim_ids"]
+    assert "metric_dsl_beats_direct_sql" in assets["method_readiness_report_md"]["claim_ids"]
+    assert "rollout_beats_teacher_forced_history" in assets["method_readiness_report_md"]["claim_ids"]
+    assert assets["experiment_ladder_md"]["kind"] == "markdown"
+    assert assets["experiment_ladder_md"]["required_reference"] is True
+    assert "predicted_planner_sql_execution" in assets["experiment_ladder_md"]["claim_ids"]
+    assert "bird_interact_local_vs_hosted" in assets["experiment_ladder_md"]["claim_ids"]
+
+    source_artifacts = {source["path"]: source for source in manifest["source_artifacts"]}
+    assert (
+        source_artifacts["docs/claim_ledgers/cosql_dev_100.jsonl"]["sha256"]
+        == hashlib.sha256(
+            (REPO_ROOT / "docs/claim_ledgers/cosql_dev_100.jsonl").read_bytes()
+        ).hexdigest()
+    )
+
+    hosted_claim = manifest["claim_snapshot"]["hosted_sota_same_protocol"]
+    assert hosted_claim["claim_status"] == "pending"
+    assert hosted_claim["production_claim_allowed"] is False
+    assert hosted_claim["can_support_sota_claim"] is False
+    assert "hosted/SOTA comparison" in hosted_claim["allowed_public_claim"]
+
+
 def test_checked_in_blog_evidence_assets_are_current(tmp_path) -> None:
     manifest = export_blog_evidence(tmp_path)
+    asset_paths = manifest_asset_paths(manifest)
     checked_in_dir = REPO_ROOT / "docs" / "blog" / "generated"
 
     assert (checked_in_dir / "manifest.json").exists()
@@ -989,7 +1308,7 @@ def test_checked_in_blog_evidence_assets_are_current(tmp_path) -> None:
     checked_in_manifest = json.loads((checked_in_dir / "manifest.json").read_text())
     assert checked_in_manifest == manifest
 
-    for asset_path in manifest["assets"].values():
+    for asset_path in asset_paths.values():
         assert (checked_in_dir / asset_path).read_text() == (tmp_path / asset_path).read_text()
 
 
@@ -1012,6 +1331,10 @@ def test_research_goal_states_notebook_led_method_comparison() -> None:
         "Synthetic schema-rich SQL",
         "BIRD-Interact",
         "data_artifact_contract",
+        "Experiment Ladder",
+        "hosted-comparison-protocol.md",
+        "evaluation-harness-map.md",
+        "method-readiness-report.md",
     ]:
         assert phrase in goal
 
@@ -1037,10 +1360,11 @@ def test_research_goal_states_notebook_led_method_comparison() -> None:
 
 def test_publishable_blog_evidence_exposes_single_public_lab_notebook(tmp_path) -> None:
     manifest = export_blog_evidence(tmp_path)
+    asset_paths = manifest_asset_paths(manifest)
 
-    assert "notebook_contracts_md" not in manifest["assets"]
-    assert "notebook_series_md" not in manifest["assets"]
-    for asset_path in manifest["assets"].values():
+    assert "notebook_contracts_md" not in asset_paths
+    assert "notebook_series_md" not in asset_paths
+    for asset_path in asset_paths.values():
         if not asset_path.endswith(".md"):
             continue
         content = (tmp_path / asset_path).read_text()

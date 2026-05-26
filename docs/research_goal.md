@@ -11,6 +11,18 @@ as BIRD, but multi-turn analysis asks for more than one correct query. It requir
 state, ambiguity handling, schema understanding, value grounding, metric semantics,
 repair, and recovery.
 
+The repo should therefore read like an experiment, not like a collection of SQL
+utilities. The starting claim is narrow:
+
+> Zero-shot prompting can look strong on single-turn SQL while still failing the
+> behaviors that make data analysis conversational.
+
+The project is valuable only if it can show whether specialization changes that
+behavior. A local model does not need to be generally smarter than a hosted model.
+It needs to learn the intermediate decisions that hosted zero-shot prompting often
+leaves implicit: what the user is still asking about, which values and entities are
+meant, which metric definition is governed, and which query grain is allowed.
+
 ## What Would Count As Success
 
 A serious success claim needs all of these:
@@ -26,6 +38,51 @@ A serious success claim needs all of these:
 5. Evidence that the win comes from learnable intermediate behavior: planning,
    semantic-layer reasoning, value grounding, clarification, or repair.
 6. No oracle planning hints in production-style claims.
+
+## Experiment Ladder
+
+The comparison should move in this order. Skipping a rung makes the result hard to
+interpret.
+
+1. **Direct SQL control**: same rows, same local endpoint path, no oracle hints. This
+   says whether ordinary SFT helps the fixed multi-turn proxy.
+2. **Planner quality before SQL**: predict tables, columns, joins, projection shape,
+   grouping, and duplicate policy without seeing reference SQL. Score the plan before
+   asking whether SQL improved.
+3. **Predicted-planner SQL**: feed only non-oracle predicted plans into SQL generation
+   and compare against the direct SQL control on row-matched manifests.
+4. **Semantic-layer target**: retrieve or predict governed entities, dimensions,
+   measures, grain, and value aliases. Score those artifacts before mixing them into
+   generation prompts.
+5. **`MEASURE()`-preserving DSL**: predict metric intent first, compile it through a
+   semantic model, then compare compiled SQL against direct SQL on the same metric-heavy
+   rows.
+6. **Generated-history rollout**: stop teacher-forcing clean previous SQL and test
+   whether the model can continue after its own earlier misses.
+7. **Hosted and BIRD-Interact comparison**: only after the local protocol is stable,
+   run hosted baselines and BIRD-Interact-style tasks with the same scorer, manifest,
+   latency, and cost accounting.
+
+Each rung should produce an artifact the blog can cite directly: a prepared input
+manifest, a planner score, a semantic-artifact report, a metric-DSL comparison, a
+rollout manifest, or a hosted comparison. A prose claim without one of those artifacts
+is not ready for publication.
+
+The generated `docs/blog/generated/hosted-comparison-protocol.md` is the public
+contract for the hosted comparison rung. It spells out the same input rows,
+scorer, oracle boundary, hosted model manifest, local model manifest,
+generated-history rollout, latency and cost accounting, and BIRD-Interact
+transfer evidence required before the pending hosted/SOTA claim can move.
+
+The generated `docs/blog/generated/evaluation-harness-map.md` ties those claims
+back to code. Each row names the module and command surface that can produce or
+check the evidence, so a method is not "next" unless there is an executable path
+for preparing, scoring, or comparing it.
+
+The generated `docs/blog/generated/method-readiness-report.md` is the stricter
+ranking guard. It maps each method to supported claims, blocking claims, the
+next executable command, and the artifact needed before the method can be called
+rankable.
 
 ## Fine-Tuning Methods To Compare
 
