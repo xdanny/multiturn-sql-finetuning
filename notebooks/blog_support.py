@@ -782,6 +782,155 @@ def data_engineering_gates() -> pd.DataFrame:
     )
 
 
+def data_artifact_contract() -> pd.DataFrame:
+    """Define the dataset artifacts required before method claims become credible."""
+
+    return pd.DataFrame(
+        [
+            {
+                "artifact": "value_index",
+                "failure_isolated": (
+                    "Display-to-storage mismatches such as France -> FR, casing, "
+                    "abbreviations, Roman numerals, dates, teams, venues, and people."
+                ),
+                "labels_or_fields": (
+                    "database_id, table, column, raw_value, normalized_value, "
+                    "aliases, source_frequency, confidence, source_rows"
+                ),
+                "consumer": (
+                    "semantic-layer prompts, planner value slots, recovery prompts, "
+                    "and metric-DSL filters"
+                ),
+                "verification_gate": (
+                    "same rows value-grounding accuracy plus manifest hashes for "
+                    "the value index used by the run"
+                ),
+                "claim_ids": (
+                    "semantic_prompt_minimal_executable_cosql_dev_100turns, "
+                    "predicted_planner_sql_execution"
+                ),
+            },
+            {
+                "artifact": "entity_resolution_labels",
+                "failure_isolated": (
+                    "Mentions in follow-up turns resolve to the wrong entity, wrong "
+                    "table role, or stale conversation turn."
+                ),
+                "labels_or_fields": (
+                    "turn_id, mention_text, resolved_table, resolved_column, "
+                    "resolved_value, evidence_span, prior_turn_reference"
+                ),
+                "consumer": (
+                    "planner supervision, semantic-state tuning, and generated-history "
+                    "rollout diagnostics"
+                ),
+                "verification_gate": (
+                    "same rows entity-resolution F1 before SQL generation and value "
+                    "accuracy after SQL generation"
+                ),
+                "claim_ids": (
+                    "semantic_prompt_minimal_executable_cosql_dev_100turns, "
+                    "rollout_beats_teacher_forced_history"
+                ),
+            },
+            {
+                "artifact": "grain_fanout_fixtures",
+                "failure_isolated": (
+                    "Bridge tables, duplicated child rows, and many-to-many joins "
+                    "change metric values while SQL still executes."
+                ),
+                "labels_or_fields": (
+                    "schema_id, fact_table, bridge_table, fanout_path, grain, "
+                    "duplicate_row_policy, expected_metric_delta"
+                ),
+                "consumer": (
+                    "planner/DSL training, semantic-model manifests, and SQL "
+                    "execution scorers"
+                ),
+                "verification_gate": (
+                    "same rows fanout-safe value accuracy plus explicit duplicate "
+                    "policy match"
+                ),
+                "claim_ids": (
+                    "multiturn_sql_100_cosql_dev_100turns, "
+                    "metric_dsl_beats_direct_sql"
+                ),
+            },
+            {
+                "artifact": "semantic_model_manifest",
+                "failure_isolated": (
+                    "Raw DDL does not define governed measures, dimensions, grain, "
+                    "allowed joins, or when MEASURE() must be preserved."
+                ),
+                "labels_or_fields": (
+                    "semantic_model_id, version, measures, dimensions, grains, "
+                    "joins, MEASURE() definitions, model_sha256"
+                ),
+                "consumer": (
+                    "semantic-layer tuning, MEASURE()-preserving metric DSL, "
+                    "compiled SQL evaluation, and hosted baseline parity checks"
+                ),
+                "verification_gate": (
+                    "metric-DSL parse/compile manifest and same rows direct-SQL "
+                    "comparison with semantic model hashes"
+                ),
+                "claim_ids": (
+                    "metric_dsl_evaluation_manifest, "
+                    "metric_dsl_beats_direct_sql"
+                ),
+            },
+            {
+                "artifact": "schema_alias_validator",
+                "failure_isolated": (
+                    "Wrong-table columns, alias-role mistakes, and ambiguous "
+                    "unqualified references look like generic execution failures."
+                ),
+                "labels_or_fields": (
+                    "query_id, alias_map, column_bindings, unknown_columns, "
+                    "wrong_table_columns, ambiguous_columns, repair_hint"
+                ),
+                "consumer": (
+                    "planner/generator attribution, repair data, and pre-execution "
+                    "SQL diagnostics"
+                ),
+                "verification_gate": (
+                    "validator manifest with same rows repairable-error counts and "
+                    "schema diagnostic examples"
+                ),
+                "claim_ids": (
+                    "planner_lexical_schema_baseline, "
+                    "predicted_planner_sql_execution"
+                ),
+            },
+            {
+                "artifact": "generated_history_trace",
+                "failure_isolated": (
+                    "teacher-forced history hides whether the model can recover from "
+                    "its own previous SQL, empty results, or bad value grounding."
+                ),
+                "labels_or_fields": (
+                    "dialog_id, turn_id, generated_sql, execution_result, feedback, "
+                    "state_delta, repair_action, stop_reason"
+                ),
+                "consumer": (
+                    "behavior/recovery tuning, rollout evaluation, and BIRD-Interact "
+                    "transfer experiments"
+                ),
+                "verification_gate": (
+                    "generated-history rollout manifest on same rows compared with "
+                    f"the same model under teacher-forced history; lab demonstration "
+                    f"is in {LAB_NOTEBOOK}"
+                ),
+                "claim_ids": (
+                    "model_generated_history_rollout, "
+                    "rollout_beats_teacher_forced_history, "
+                    "bird_interact_local_vs_hosted"
+                ),
+            },
+        ]
+    )
+
+
 def _prompt_summary_row(relative_path: str) -> dict[str, Any]:
     summary = read_csv_artifact(relative_path)
     if summary.empty:
@@ -1564,6 +1713,7 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     lab_scores = lab_method_scorecard()
     lab_trace = lab_failure_trace()
     data_gates = data_engineering_gates()
+    artifact_contract = data_artifact_contract()
     prompt_findings = prompt_optimization_findings()
     targets = target_comparison()
     target_evidence = target_evidence_matrix()
@@ -1628,6 +1778,10 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
         "data_engineering_gates_md": _write_text(
             output / "data-engineering-gates.md",
             _markdown_table(data_gates),
+        ),
+        "data_artifact_contract_md": _write_text(
+            output / "data-artifact-contract.md",
+            _markdown_table(artifact_contract),
         ),
         "prompt_optimization_findings_md": _write_text(
             output / "prompt-optimization-findings.md",

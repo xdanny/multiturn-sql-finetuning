@@ -99,6 +99,7 @@ installation guide. The public site consumes generated evidence such as
 `docs/blog/generated/shareable-lab.md`,
 `docs/blog/generated/dataset-role-matrix.md`,
 `docs/blog/generated/lab-method-scores.md`,
+`docs/blog/generated/data-artifact-contract.md`,
 `docs/blog/generated/target-evidence-matrix.md`, and
 `docs/blog/generated/lab-failure-trace.md`.
 

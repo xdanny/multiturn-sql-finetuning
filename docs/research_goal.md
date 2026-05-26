@@ -58,6 +58,46 @@ The current repo has a useful local loop, but it is still mostly a proxy:
 - DSPy has been used for prompt variants; it still needs to optimize planner and semantic
   programs, not just final SQL wording.
 
+## Method Decision Rules
+
+The repo should not rank fine-tuning methods by vibes, prompt length, or isolated
+accuracy numbers. Each candidate has to beat the right control arm on the same
+rows, with the same scorer, the same prompt boundary, and the same oracle policy:
+
+- **Direct SQL SFT** is the control arm. It defines the baseline every structured
+  target must beat; it does not answer the hosted-SOTA question alone.
+- **Planner/DSL first, SQL second** wins only if a non-oracle planner improves
+  planner labels and the resulting SQL beats direct SQL execution on matching rows.
+- **Semantic-layer tuning** wins only if versioned semantic artifacts improve value
+  grounding, entity resolution, joins, and grain without simply flooding the prompt.
+- **MEASURE()-preserving metric DSL** wins only if generated DSL parses, compiles,
+  preserves governed `MEASURE()` intent, and the compiled SQL matches or beats
+  direct SQL on metric-heavy rows.
+- **Behavior/recovery tuning** wins only in generated-history rollout, where the
+  model has to recover from its own prior bad SQL or empty result instead of reading
+  clean teacher-forced history.
+
+The generated `method-decision-rules.md` and `method-priority-backlog.md` assets are
+the public form of these rules. They should change only when the claim ledger and
+evaluation code can enforce the new rule.
+
+## Data Artifact Contract
+
+The next work is data engineering as much as model training. The repo needs a
+`data_artifact_contract` for the intermediate state a multi-turn SQL model must learn:
+
+| Artifact | Failure it isolates | Why it matters |
+| --- | --- | --- |
+| Value index | Display-to-storage mismatches such as `France -> FR`, aliases, abbreviations, dates, and entity names. | Prevents executable SQL from silently returning empty or wrong rows. |
+| Entity-resolution labels | Follow-up mentions bind to the wrong entity, table role, value, or previous turn. | Separates context resolution from final SQL generation. |
+| Grain and fanout fixtures | Bridge tables, duplicated child rows, and many-to-many joins inflate metrics. | Tests whether a model understands analytical grain, not only syntax. |
+| Semantic model manifest | Governed measures, dimensions, joins, grain, and `MEASURE()` definitions. | Makes semantic-layer and metric-DSL claims reproducible. |
+| Schema/alias validator output | Wrong-table columns and ambiguous aliases collapse into generic execution errors. | Turns bad SQL into repairable planner/generator labels. |
+| Generated-history trace | Teacher-forced history hides failures after the model's own bad turns. | Makes behavior and recovery tuning measurable. |
+
+These artifacts should be versioned and referenced by manifests before the blog claims
+that a method learned the corresponding behavior.
+
 ## Blog-Attached Marimo Lab Contract
 
 The public post should link to the attached codebase and one primary Marimo

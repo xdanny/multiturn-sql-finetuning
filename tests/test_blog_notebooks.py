@@ -8,6 +8,7 @@ from notebooks.blog_support import (
     accuracy_scorecard,
     claim_ledger,
     claim_table,
+    data_artifact_contract,
     data_engineering_gates,
     dataset_role_matrix,
     endpoint_run_scorecard,
@@ -546,6 +547,45 @@ def test_notebook_support_loads_current_artifacts() -> None:
         "bird_interact_local_vs_hosted",
     } <= gate_claim_ids
 
+    artifact_contract = data_artifact_contract()
+    assert {
+        "artifact",
+        "failure_isolated",
+        "labels_or_fields",
+        "consumer",
+        "verification_gate",
+        "claim_ids",
+    } <= set(artifact_contract.columns)
+    assert set(artifact_contract["artifact"]) >= {
+        "value_index",
+        "entity_resolution_labels",
+        "grain_fanout_fixtures",
+        "semantic_model_manifest",
+        "schema_alias_validator",
+        "generated_history_trace",
+    }
+    value_index = artifact_contract[
+        artifact_contract["artifact"] == "value_index"
+    ].iloc[0]
+    semantic_manifest = artifact_contract[
+        artifact_contract["artifact"] == "semantic_model_manifest"
+    ].iloc[0]
+    rollout_trace = artifact_contract[
+        artifact_contract["artifact"] == "generated_history_trace"
+    ].iloc[0]
+    assert "France -> FR" in value_index["failure_isolated"]
+    assert "aliases" in value_index["labels_or_fields"]
+    assert "MEASURE()" in semantic_manifest["labels_or_fields"]
+    assert "teacher-forced" in rollout_trace["failure_isolated"]
+    assert all("same rows" in gate or "manifest" in gate for gate in artifact_contract["verification_gate"])
+    artifact_claim_ids = {
+        claim_id.strip()
+        for claim_ids in artifact_contract["claim_ids"]
+        for claim_id in claim_ids.split(",")
+        if claim_id.strip()
+    }
+    assert artifact_claim_ids <= known_claim_ids
+
     prompt_findings = prompt_optimization_findings()
     assert {
         "optimization_scope",
@@ -606,6 +646,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "lab_failure_trace_md",
         "data_engineering_gates_md",
         "prompt_optimization_findings_md",
+        "data_artifact_contract_md",
         "target_comparison_md",
         "target_evidence_matrix_md",
         "endpoint_run_scorecard_md",
@@ -734,6 +775,20 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "hosted_sota_same_protocol" in data_gates_md
     assert PUBLIC_LAB_NOTEBOOK in data_gates_md
 
+    artifact_contract_md = (
+        tmp_path / manifest["assets"]["data_artifact_contract_md"]
+    ).read_text()
+    assert "value_index" in artifact_contract_md
+    assert "entity_resolution_labels" in artifact_contract_md
+    assert "grain_fanout_fixtures" in artifact_contract_md
+    assert "semantic_model_manifest" in artifact_contract_md
+    assert "schema_alias_validator" in artifact_contract_md
+    assert "generated_history_trace" in artifact_contract_md
+    assert "France -> FR" in artifact_contract_md
+    assert "MEASURE()" in artifact_contract_md
+    assert "teacher-forced" in artifact_contract_md
+    assert PUBLIC_LAB_NOTEBOOK in artifact_contract_md
+
     prompt_findings_md = (
         tmp_path / manifest["assets"]["prompt_optimization_findings_md"]
     ).read_text()
@@ -819,6 +874,7 @@ def test_research_goal_states_notebook_led_method_comparison() -> None:
         "SParC",
         "Synthetic schema-rich SQL",
         "BIRD-Interact",
+        "data_artifact_contract",
     ]:
         assert phrase in goal
 
