@@ -25,6 +25,9 @@ Rules:
 - If a local comparison runner exists, it should reuse `eval.local_benchmark`
   or another manifest-writing generator rather than inventing a second result
   format.
+- Planner-quality loops should stop at planner manifests and predicted prepared
+  artifacts unless they explicitly continue into a separate SQL-generation
+  stage.
 
 When editing here, inspect:
 
@@ -38,4 +41,6 @@ When editing here, inspect:
 - `eval/local_metric_dsl_benchmark.py`
 - `eval/run_local_metric_dsl_comparison.py`
 - `eval/run_local_predicted_planner_comparison.py`
+- `eval/local_planner_benchmark.py`
+- `eval/run_local_planner_eval.py`
 - `eval/compare_rollout_history.py`

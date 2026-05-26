@@ -30,6 +30,8 @@ paired evaluation path is `eval.run_metric_dsl_comparison`, and the local
 checkpoint experiment loop is `eval.run_local_metric_dsl_comparison`.
 The predicted-planner path now also has a local checkpoint comparison loop in
 `eval.run_local_predicted_planner_comparison`.
+Planner supervision has a local checkpoint evaluation path in
+`eval.run_local_planner_eval`.
 Generated-history rollout evaluation is documented in
 `docs/rollout_eval_contract.md` and implemented in `eval.rollout_eval`.
 

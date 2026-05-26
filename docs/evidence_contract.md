@@ -155,6 +155,21 @@ python -m eval.planner_eval \
   --summary-output results/planner_eval_cosql_dev_100_summary.json
 ```
 
+For local planner-supervision checkpoints, the repo now also has:
+
+```bash
+uv run python -m eval.run_local_planner_eval \
+  --training-manifest results/train/planner_supervision.manifest.json \
+  --output-dir results/planner_local \
+  --run-id planner_local_probe \
+  --model-name unsloth/Qwen3.5-9B \
+  --adapter-path outputs/planner_supervision/final \
+  --predicted-prepared-output data/processed/eval_cosql_dev_predicted_planner_100.jsonl
+```
+
+That path generates planner JSON locally, scores it with `planner_eval`, and
+can write the `predicted_planner` prepared artifact that Stage 2 consumes.
+
 Future endpoint runs through `eval.run_eval` write a manifest next to the JSONL
 output by default. Historical manifest snapshots for the currently cited proxy
 numbers live in `docs/result_manifests/cosql_dev_100_proxy.json`.

@@ -37,7 +37,11 @@ run, and a comparison manifest, it is not ready to be called a finetuning step.
   `uv run python -m train.finetune --config configs/qwen35_9b_5090.yaml --data <planner-train.jsonl> --eval-data <planner-eval.jsonl>`
 - Evaluation gate:
   `uv run python -m eval.planner_eval` and `uv run python -m eval.planner_optimize` must show
-  planner-quality movement before SQL generation is promoted.
+  planner-quality movement before SQL generation is promoted. For local
+  checkpoint experiments, the repo now also has
+  `uv run python -m eval.run_local_planner_eval`, which generates planner JSON
+  locally, scores it with `planner_eval`, and can write predicted prepared JSON
+  for Stage 2.
 - Claim boundary:
   planner quality is not SQL quality. A better planner score alone does not beat
   the direct SQL control.
