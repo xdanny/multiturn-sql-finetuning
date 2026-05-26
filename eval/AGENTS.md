@@ -22,6 +22,9 @@ Rules:
 - For local checkpoint experiments, keep the generation step separate from the
   scorer, then feed the scored manifests into the same comparison path used by
   offline or endpoint variants.
+- If a local comparison runner exists, it should reuse `eval.local_benchmark`
+  or another manifest-writing generator rather than inventing a second result
+  format.
 
 When editing here, inspect:
 
@@ -34,4 +37,5 @@ When editing here, inspect:
 - `eval/run_metric_dsl_comparison.py`
 - `eval/local_metric_dsl_benchmark.py`
 - `eval/run_local_metric_dsl_comparison.py`
+- `eval/run_local_predicted_planner_comparison.py`
 - `eval/compare_rollout_history.py`

@@ -196,6 +196,23 @@ direct and predicted prepared inputs have matching row identities for the fixed
 100-turn proxy. This is only a readiness artifact. It cannot clear the claim
 without the endpoint result manifests and comparison metrics.
 
+For local checkpoint experiments on the same paired inputs, use:
+
+```bash
+uv run python -m eval.run_local_predicted_planner_comparison \
+  --direct-training-manifest results/train/direct_sql_control.manifest.json \
+  --predicted-training-manifest results/train/predicted_planner.manifest.json \
+  --output-dir results/predicted_planner_local \
+  --run-id lexical_planner_local \
+  --model-name unsloth/Qwen3.5-9B \
+  --direct-adapter-path outputs/direct_sql/final \
+  --predicted-adapter-path outputs/predicted_planner/final \
+  --database-root data/raw/cosql_dataset/database
+```
+
+That path reuses `eval.local_benchmark`, writes local result manifests for both
+sides, and then writes the same predicted-planner comparison manifest format.
+
 Summarize whether that endpoint pair is worth running before spending model
 time:
 

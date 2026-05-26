@@ -5,6 +5,7 @@ Run local 5090 benchmarks for base Qwen and fine-tuned LoRA adapters.
 from __future__ import annotations
 
 import argparse
+import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -14,6 +15,7 @@ from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from eval.ragas_metrics import extract_sql, score_single_turn
+from eval.result_manifest import build_result_manifest, write_result_manifest
 from eval.run_eval import (
     SQL_ONLY_INSTRUCTION as _SQL_ONLY_INSTRUCTION,
 )
@@ -22,6 +24,7 @@ from eval.run_eval import (
     enforce_sql_only_instruction,
     load_benchmark_records,
     messages_for_generation,
+    summarize_eval_metrics,
     write_results,
 )
 
@@ -96,6 +99,9 @@ def run_local_benchmark(
     max_memory_gb: int | None,
     database_root: Path | None,
     allow_oracle_plan: bool,
+    manifest_output: Path | None = None,
+    prompt_variant: str | None = None,
+    command: list[str] | None = None,
 ) -> int:
     records = load_benchmark_records(
         benchmark,
@@ -139,10 +145,34 @@ def run_local_benchmark(
         )
 
     written = write_results(results, output)
-    mean_score = (
-        sum(result["execution_score"] for result in results) / len(results) if results else 0.0
+    metrics = summarize_eval_metrics(results)
+    if manifest_output is None:
+        manifest_output = output.with_suffix(".manifest.json")
+    evaluation_modes = metrics.get("evaluation_modes", {})
+    evaluation_mode = (
+        next(iter(evaluation_modes))
+        if len(evaluation_modes) == 1
+        else ",".join(sorted(evaluation_modes)) or "unknown"
     )
+    manifest = build_result_manifest(
+        run_id=output.stem,
+        benchmark=benchmark,
+        input_path=input_path,
+        output_path=output,
+        model_name=model_name,
+        endpoint="local",
+        evaluation_mode=evaluation_mode,
+        oracle_allowed=allow_oracle_plan,
+        prompt_variant=prompt_variant,
+        database_root=database_root,
+        command=list(command or ["python", "-m", "eval.local_benchmark"]),
+        row_count=written,
+        metrics=metrics,
+    )
+    write_result_manifest(manifest, manifest_output)
+    mean_score = metrics.get("execution_accuracy", 0.0)
     print(f"Wrote {written} rows to {output}")
+    print(f"Wrote result manifest to {manifest_output}")
     print(f"Mean normalized/execution score: {mean_score:.3f}")
     return 0 if written else 1
 
@@ -154,6 +184,7 @@ def main() -> int:
     parser.add_argument("--benchmark", choices=["prepared", "sparc", "bird_mini_dev"], required=True)
     parser.add_argument("--input", type=Path, default=None)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--manifest-output", type=Path, default=None)
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--max-new-tokens", type=int, default=256)
     parser.add_argument("--max-memory-gb", type=int, default=30)
@@ -163,6 +194,7 @@ def main() -> int:
         action="store_true",
         help="Allow prepared inputs containing gold SQL-derived planning hints.",
     )
+    parser.add_argument("--prompt-variant", default=None)
     args = parser.parse_args()
 
     return run_local_benchmark(
@@ -176,6 +208,9 @@ def main() -> int:
         max_memory_gb=args.max_memory_gb,
         database_root=args.database_root,
         allow_oracle_plan=args.allow_oracle_plan,
+        manifest_output=args.manifest_output,
+        prompt_variant=args.prompt_variant,
+        command=sys.argv,
     )
 
 

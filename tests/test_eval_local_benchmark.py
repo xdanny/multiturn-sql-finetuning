@@ -118,3 +118,73 @@ def test_run_local_benchmark_injects_predicted_plan_messages(tmp_path, monkeypat
     prompt_text = json.dumps(captured["messages"])
     assert "Predicted SQL plan" in prompt_text
     assert "Relevant tables: customers" in prompt_text
+
+
+def test_run_local_benchmark_writes_manifest(tmp_path, monkeypatch) -> None:
+    input_path = tmp_path / "prepared.jsonl"
+    output_path = tmp_path / "results.jsonl"
+    manifest_path = tmp_path / "results.manifest.json"
+    input_path.write_text(
+        json.dumps(
+            {
+                "dialog_id": "dialog-a",
+                "database_id": "music",
+                "source": "unit",
+                "messages": [
+                    {"role": "system", "content": "sys"},
+                    {"role": "user", "content": "List singers."},
+                    {"role": "assistant", "content": "SELECT name FROM singer;"},
+                ],
+                "evaluation_mode": "non_oracle_generation",
+                "gold_plans": [{"relevant_tables": ["singer"]}],
+            }
+        )
+        + "\n"
+    )
+
+    monkeypatch.setattr(
+        "eval.local_benchmark.load_model_and_tokenizer",
+        lambda **kwargs: (object(), object()),
+    )
+    monkeypatch.setattr(
+        "eval.local_benchmark.generate_local_sql",
+        lambda model, tokenizer, *, messages, max_new_tokens: ("SELECT name FROM singer;", 1.0),
+    )
+    monkeypatch.setattr(
+        "eval.local_benchmark.score_single_turn",
+        lambda reference_sql, generated_sql, database_path=None: SimpleNamespace(
+            execution_score=1.0,
+            strict_execution_score=1.0,
+            value_execution_score=1.0,
+            order_sensitive=False,
+            normalized_match=True,
+            syntax_valid=True,
+            error=None,
+        ),
+    )
+
+    assert (
+        run_local_benchmark(
+            model_name="local-9b",
+            adapter_path=None,
+            benchmark="prepared",
+            input_path=input_path,
+            output=output_path,
+            limit=None,
+            max_new_tokens=32,
+            max_memory_gb=None,
+            database_root=None,
+            allow_oracle_plan=False,
+            manifest_output=manifest_path,
+            prompt_variant="direct_sql_control",
+            command=["python", "-m", "eval.local_benchmark"],
+        )
+        == 0
+    )
+
+    manifest = json.loads(manifest_path.read_text())
+    assert manifest["benchmark"] == "prepared"
+    assert manifest["evaluation_mode"] == "non_oracle_generation"
+    assert manifest["model_name"] == "local-9b"
+    assert manifest["prompt_variant"] == "direct_sql_control"
+    assert manifest["metrics"]["value_execution_accuracy"] == 1.0

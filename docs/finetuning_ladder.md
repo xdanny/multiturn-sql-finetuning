@@ -53,7 +53,10 @@ run, and a comparison manifest, it is not ready to be called a finetuning step.
   `uv run python -m train.finetune --config configs/qwen35_9b_5090.yaml --data <predicted-planner-train.jsonl> --eval-data <predicted-planner-eval.jsonl>`
 - Evaluation gate:
   `uv run python -m eval.run_predicted_planner_comparison` against the direct control
-  on the same rows.
+  on the same rows. For local checkpoint experiments, the repo also has
+  `uv run python -m eval.run_local_predicted_planner_comparison`, which reuses
+  the paired prepared inputs, writes local result manifests for both sides, and
+  then writes the comparison manifest.
 - Claim boundary:
   only a same rows comparison with a positive value delta can clear the planner
   method claim.
