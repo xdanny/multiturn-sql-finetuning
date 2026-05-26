@@ -9,6 +9,7 @@ from typing import Any
 
 from eval.direct_sql_eval import run_direct_sql_eval
 from eval.local_text_benchmark import run_local_text_benchmark
+from eval.pair_input_contract import PairInputSpec, validate_pair_input_paths
 from eval.training_manifest_pair import (
     TrainingManifestSpec,
     validate_training_manifest_path,
@@ -59,11 +60,6 @@ def _validate_non_leak_rows(
                 if marker in content:
                     raise ValueError(f"{label} training row leaked scorer-only content")
 
-
-def _row_identity(row: dict[str, Any], *, fields: tuple[str, ...]) -> tuple[str, ...]:
-    return tuple(str(row.get(field)) for field in fields)
-
-
 def validate_sql_pair_training_manifests(
     *,
     method_training_manifest: Path,
@@ -100,18 +96,22 @@ def validate_sql_pair_training_manifests(
         label="direct SQL",
         forbidden_prompt_markers=spec.forbidden_prompt_markers,
     )
-    if [_row_identity(row, fields=spec.row_identity_fields) for row in method_rows] != [
-        _row_identity(row, fields=spec.row_identity_fields) for row in direct_rows
-    ]:
-        raise ValueError(
-            f"{spec.comparison_label} and direct SQL training inputs must share the same row identity"
-        )
+    validated_rows = validate_pair_input_paths(
+        left_input_path=method_input,
+        right_input_path=direct_input,
+        spec=PairInputSpec(
+            label=spec.comparison_label,
+            left_name=spec.method_name,
+            right_name="direct SQL",
+            row_identity_fields=spec.row_identity_fields,
+        ),
+    )
     return {
         "method_manifest": method_manifest,
         "direct_manifest": direct_manifest,
         "method_input_path": method_input,
         "direct_input_path": direct_input,
-        "row_count": len(method_rows),
+        "row_count": validated_rows["row_count"],
     }
 
 

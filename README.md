@@ -29,6 +29,9 @@ control side use different scorers, the shared orchestration now lives in
 Paired training-manifest validation now lives in `eval.training_manifest_pair`.
 New comparison runners should reuse that helper instead of re-encoding stage,
 benchmark, and evaluation-mode checks inline.
+Paired row-identity and non-empty input checks now live in
+`eval.pair_input_contract`, so same-row comparison rules are shared instead of
+being reimplemented inside each runner.
 
 The first metric-DSL experiment surface is documented in
 `docs/metric_dsl_contract.md`, implemented in `data.metric_dsl`, and evaluated

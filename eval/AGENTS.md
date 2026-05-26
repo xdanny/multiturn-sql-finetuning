@@ -33,6 +33,9 @@ Rules:
 - For paired training-manifest metadata checks, prefer
   `eval.training_manifest_pair` instead of repeating stage, benchmark, and
   evaluation-mode validation inline.
+- For same-row and non-empty paired-input checks, prefer
+  `eval.pair_input_contract` instead of duplicating row-identity validation in
+  each comparison runner.
 - If a local comparison runner exists, it should reuse `eval.local_benchmark`
   or another manifest-writing generator rather than inventing a second result
   format.
@@ -54,6 +57,7 @@ When editing here, inspect:
 - `eval/compare_behavior_recovery_direct_sql.py`
 - `eval/local_generation_pair.py`
 - `eval/local_sql_pair.py`
+- `eval/pair_input_contract.py`
 - `eval/training_manifest_pair.py`
 - `eval/run_metric_dsl_comparison.py`
 - `eval/local_metric_dsl_benchmark.py`

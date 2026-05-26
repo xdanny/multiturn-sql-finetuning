@@ -10,6 +10,7 @@ from typing import Any
 from eval.compare_metric_dsl_direct_sql import compare_metric_dsl_direct_sql_manifest_files
 from eval.direct_sql_eval import run_direct_sql_eval
 from eval.metric_dsl_eval import run_metric_dsl_eval
+from eval.pair_input_contract import PairInputSpec, validate_pair_input_paths
 from eval.result_manifest import sha256_file
 from eval.training_manifest_pair import (
     TrainingManifestSpec,
@@ -22,16 +23,6 @@ DIRECT_MODE = "non_oracle_generation"
 METRIC_STAGE = "metric_dsl"
 METRIC_BENCHMARK = "synthetic_metric_dsl_bootstrap"
 METRIC_MODE = "metric_dsl"
-
-
-def _load_jsonl(path: Path) -> list[dict[str, Any]]:
-    with path.open() as handle:
-        return [json.loads(line) for line in handle if line.strip()]
-
-
-def _row_identity(row: dict[str, Any]) -> tuple[str, str]:
-    return (str(row.get("fixture_id")), str(row.get("reference_sql")))
-
 
 def validate_metric_dsl_comparison_inputs(
     *,
@@ -56,18 +47,22 @@ def validate_metric_dsl_comparison_inputs(
             evaluation_mode=DIRECT_MODE,
         ),
     )
-    metric_rows = _load_jsonl(metric_input)
-    direct_rows = _load_jsonl(direct_input)
-    if not metric_rows or not direct_rows:
-        raise ValueError("metric-DSL comparison requires non-empty paired inputs")
-    if [_row_identity(row) for row in metric_rows] != [_row_identity(row) for row in direct_rows]:
-        raise ValueError("metric-DSL and direct-SQL training inputs must share row identity")
+    validated_rows = validate_pair_input_paths(
+        left_input_path=metric_input,
+        right_input_path=direct_input,
+        spec=PairInputSpec(
+            label="metric-DSL",
+            left_name="metric-DSL",
+            right_name="direct SQL",
+            row_identity_fields=("fixture_id", "reference_sql"),
+        ),
+    )
     return {
         "metric_manifest": metric_manifest,
         "direct_manifest": direct_manifest,
         "metric_input_path": metric_input,
         "direct_input_path": direct_input,
-        "row_count": len(metric_rows),
+        "row_count": validated_rows["row_count"],
     }
 
 

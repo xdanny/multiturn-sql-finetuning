@@ -64,6 +64,7 @@ def test_agents_guidance_exists_at_repo_and_domain_levels() -> None:
             "local_sql_pair",
             "local_generation_pair",
             "training_manifest_pair",
+            "pair_input_contract",
         ],
         REPO_ROOT / "train" / "AGENTS.md": [
             "train.finetune",

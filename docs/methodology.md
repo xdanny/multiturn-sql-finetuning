@@ -31,6 +31,10 @@ The stage, benchmark, and evaluation-mode checks for paired training manifests
 now live in `eval.training_manifest_pair`, so those constraints are shared
 across direct SQL, predicted planner, and metric DSL comparisons instead of
 being copied into each runner.
+The same-row requirement is now also shared explicitly in
+`eval.pair_input_contract`, which validates that paired prepared inputs are
+non-empty and preserve the same row identity before a comparison is allowed to
+run.
 
 ## Experiment Taxonomy
 
