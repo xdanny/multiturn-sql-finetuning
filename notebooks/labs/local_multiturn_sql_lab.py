@@ -228,6 +228,27 @@ def _(mo, trace):
 
 
 @app.cell
+def _(mo, pd, report):
+    fixtures = pd.DataFrame(report["synthetic_fixture_table"])
+    mo.vstack(
+        [
+            mo.md(
+                """
+                ## 7. Synthetic fixture pack
+
+                The tiny lab shows the behavior. The synthetic fixture pack turns
+                those behaviors into versioned rows the repo can use before a
+                larger endpoint run: value normalization, entity resolution,
+                grain/fanout, `MEASURE()` preservation, and recovery.
+                """
+            ),
+            mo.ui.table(fixtures, label="Synthetic fixtures promoted from the lab"),
+        ]
+    )
+    return (fixtures,)
+
+
+@app.cell
 def _(mo, pd):
     next_gates = pd.DataFrame(
         [
@@ -272,7 +293,7 @@ def _(mo, pd):
         [
             mo.md(
                 """
-                ## 7. What this proves
+                ## 8. What this proves
 
                 This lab is not a benchmark result and it is not a hosted-SOTA
                 comparison. It is a small executable argument for what the repo

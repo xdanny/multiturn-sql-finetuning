@@ -23,6 +23,9 @@ BLOG_EVIDENCE_SOURCES = (
     "docs/data_artifacts/value_index_cosql_dev_100.jsonl",
     "docs/data_artifacts/value_index_cosql_dev_100.manifest.json",
     "docs/data_artifacts/value_index_cosql_dev_100_summary.json",
+    "docs/data_artifacts/synthetic_method_fixtures.jsonl",
+    "docs/data_artifacts/synthetic_method_fixtures.manifest.json",
+    "docs/data_artifacts/synthetic_method_fixtures_summary.json",
     "docs/planner_baseline_cosql_dev_100_summary.json",
     "docs/predicted_planner_comparison_preflight.json",
     "docs/planner_readiness_cosql_dev_100.json",
@@ -36,13 +39,15 @@ BLOG_EVIDENCE_SOURCES = (
 
 LAB_NOTEBOOK = "notebooks/labs/local_multiturn_sql_lab.ipynb"
 LAB_APP = "notebooks/labs/local_multiturn_sql_lab.py"
+LAB_HTML_URL = "/labs/local-multiturn-sql-finetuning/"
 
 LAB_READER_SECTIONS: tuple[dict[str, str], ...] = (
     {
         "lab_step": "Benchmark gap",
         "reader_action": (
-            "Research question: start in the Marimo lab with the failure "
-            "trace: single-turn SQL can look solved while a follow-up loses state."
+            "Research question: start in the published HTML lab with the "
+            "failure trace: single-turn SQL can look solved while a follow-up "
+            "loses state."
         ),
         "evidence_to_inspect": "lab-failure-trace.md",
         "purpose": (
@@ -50,7 +55,7 @@ LAB_READER_SECTIONS: tuple[dict[str, str], ...] = (
             "failure before introducing any fine-tuning result."
         ),
         "claim_boundary": (
-            "Marimo lab demonstration only; it is not a benchmark result and "
+            "Published lab demonstration only; it is not a benchmark result and "
             "does not compare model leaderboard scores."
         ),
     },
@@ -246,6 +251,58 @@ def value_index_summary() -> pd.DataFrame:
             for metric, value in metrics.items()
         ]
     )
+
+
+def synthetic_method_fixture_summary() -> pd.DataFrame:
+    summary = read_json_artifact("docs/data_artifacts/synthetic_method_fixtures_summary.json")
+    rows = [
+        {
+            "artifact": "synthetic_method_fixtures_summary.json",
+            "metric": "fixture_count",
+            "value": int(summary["fixture_count"]),
+            "interpretation": (
+                "Curated synthetic rows that isolate method-specific multi-turn "
+                "failures before endpoint spend."
+            ),
+        },
+        {
+            "artifact": "synthetic_method_fixtures_summary.json",
+            "metric": "schema_count",
+            "value": int(summary["schema_count"]),
+            "interpretation": "Number of deterministic SQLite schemas in the fixture pack.",
+        },
+        {
+            "artifact": "synthetic_method_fixtures_summary.json",
+            "metric": "non_oracle_fixture_count",
+            "value": int(summary["non_oracle_fixture_count"]),
+            "interpretation": "Rows designed so reference SQL is used for scoring, not prompt context.",
+        },
+        {
+            "artifact": "synthetic_method_fixtures_summary.json",
+            "metric": "failure_modes",
+            "value": ", ".join(sorted((summary.get("failure_mode_counts") or {}).keys())),
+            "interpretation": (
+                "Failure classes covered by synthetic rows: values, entity "
+                "resolution, grain/fanout, MEASURE() preservation, and recovery."
+            ),
+        },
+        {
+            "artifact": "synthetic_method_fixtures_summary.json",
+            "metric": "training_targets",
+            "value": ", ".join(sorted((summary.get("training_target_counts") or {}).keys())),
+            "interpretation": (
+                "Candidate tuning targets exercised before larger CoSQL or "
+                "BIRD-Interact endpoint runs."
+            ),
+        },
+        {
+            "artifact": "synthetic_method_fixtures_summary.json",
+            "metric": "required_artifacts",
+            "value": ", ".join(sorted((summary.get("required_artifact_counts") or {}).keys())),
+            "interpretation": "Data artifacts the fixtures are meant to validate or supervise.",
+        },
+    ]
+    return pd.DataFrame(rows)
 
 
 def accuracy_scorecard() -> pd.DataFrame:
@@ -520,6 +577,9 @@ def metric_dsl_eval_contract() -> pd.DataFrame:
 
 
 def dataset_role_matrix() -> pd.DataFrame:
+    synthetic_summary = read_json_artifact(
+        "docs/data_artifacts/synthetic_method_fixtures_summary.json"
+    )
     return pd.DataFrame(
         [
             {
@@ -592,8 +652,15 @@ def dataset_role_matrix() -> pd.DataFrame:
                     "Synthetic rows can isolate value grounding, join fanout, and "
                     "metric preservation failures before expensive endpoint runs."
                 ),
-                "current_status": "design target for the next data-artifact buildout",
-                "next_artifact": "fixture pack with value indexes, fanout cases, and MEASURE() labels",
+                "current_status": (
+                    "fixture pack available: "
+                    f"{synthetic_summary['fixture_count']} curated rows across "
+                    "value normalization, entity resolution, fanout, MEASURE(), and recovery"
+                ),
+                "next_artifact": (
+                    "turn the synthetic fixtures into row-matched metric-DSL, "
+                    "semantic retrieval, and recovery endpoint evals"
+                ),
             },
             {
                 "data_source": "Tiny SQLite lab",
@@ -617,7 +684,7 @@ def shareable_lab_attachment() -> pd.DataFrame:
     reader_flow = " -> ".join(
         [
             "Research question",
-            "open the Marimo lab",
+            "open the published HTML lab",
             "run the lab checkpoints",
             "inspect the failure trace",
             "compare fine-tuning targets",
@@ -630,6 +697,7 @@ def shareable_lab_attachment() -> pd.DataFrame:
                 "artifact": "shareable lab notebook and attached codebase",
                 "notebook": LAB_APP,
                 "repo_url": "https://github.com/xdanny/multiturn-sql-finetuning",
+                "published_html_url": LAB_HTML_URL,
                 "run_command": f"marimo edit {LAB_APP}",
                 "alternate_command": f"jupyter lab {LAB_NOTEBOOK}",
                 "device_policy": (
@@ -638,7 +706,7 @@ def shareable_lab_attachment() -> pd.DataFrame:
                 ),
                 "reader_flow": reader_flow,
                 "what_runs": (
-                    "One compact Marimo walkthrough runs the SQLite scenario, "
+                    "One compact published lab runs the SQLite scenario, "
                     "compares direct SQL, planner-first, semantic-layer, "
                     "MEASURE()-preserving DSL, and behavior/recovery targets, "
                     "then connects those behaviors to generated repo evidence."
@@ -702,6 +770,9 @@ def lab_failure_trace() -> pd.DataFrame:
         ("turn_2", "direct_sql_baseline"),
         ("turn_3", "direct_sql_baseline"),
         ("turn_4", "direct_sql_baseline"),
+        ("turn_4", "planner_first_sql"),
+        ("turn_4", "semantic_value_sql"),
+        ("turn_4", "semantic_dsl_planner"),
         ("turn_4", "behavior_recovery_sql"),
     }
     why_by_key = {
@@ -715,6 +786,18 @@ def lab_failure_trace() -> pd.DataFrame:
         ("turn_4", "direct_sql_baseline"): (
             "Retrying the same value-grounding mistake does not use execution feedback."
         ),
+        ("turn_4", "planner_first_sql"): (
+            "The planner carries state, but still repeats the display-value mistake; "
+            "planning alone is not recovery."
+        ),
+        ("turn_4", "semantic_value_sql"): (
+            "Semantic grounding returns the right rows, but this row does not prove "
+            "the model inspected the failed previous result."
+        ),
+        ("turn_4", "semantic_dsl_planner"): (
+            "The DSL keeps the metric and value semantics, but it still lacks an "
+            "explicit empty-result repair action."
+        ),
         ("turn_4", "behavior_recovery_sql"): (
             "The recovery target uses the empty-result signal to repair the previous turn."
         ),
@@ -724,13 +807,19 @@ def lab_failure_trace() -> pd.DataFrame:
         key = (row["turn_id"], row["system"])
         if key not in selected:
             continue
+        if row["value_match"] and row["requires_recovery"] and not row["recovery_success"]:
+            failure_type = "correct_rows_no_repair"
+        else:
+            failure_type = row["failure_type"] or "recovery_success"
         rows.append(
             {
                 "turn_id": row["turn_id"],
                 "question": row["question"],
                 "system": row["system"],
-                "failure_type": row["failure_type"] or "recovery_success",
+                "failure_type": failure_type,
+                "requires_recovery": row["requires_recovery"],
                 "value_match": row["value_match"],
+                "recovery_success": row["recovery_success"],
                 "actual_rows": row["actual_rows"],
                 "expected_rows": row["expected_rows"],
                 "intermediate_plan": row["intermediate_plan"],
@@ -746,6 +835,9 @@ def data_engineering_gates() -> pd.DataFrame:
     )
     value_index = read_json_artifact(
         "docs/data_artifacts/value_index_cosql_dev_100_summary.json"
+    )
+    synthetic_summary = read_json_artifact(
+        "docs/data_artifacts/synthetic_method_fixtures_summary.json"
     )
     value_index_coverage = value_index.get("coverage") or {}
     return pd.DataFrame(
@@ -849,13 +941,20 @@ def data_engineering_gates() -> pd.DataFrame:
                     "Execution success is not enough if the join path changes the "
                     "grain or duplicates rows."
                 ),
-                "current_status": "pending: listed as a failure class, not yet fixture-backed",
+                "current_status": (
+                    "partial: synthetic fixture pack now includes "
+                    f"{synthetic_summary['failure_mode_counts']['grain_fanout']} "
+                    "grain/fanout row with an explicit duplicate-row policy"
+                ),
                 "next_repo_action": (
-                    "Add duplicated-child and bridge-table cases with expected "
-                    "duplicate-row policy labels."
+                    "Run planner, semantic, and metric-DSL predictions on the "
+                    "fixture row and require the duplicate-row policy before "
+                    "promoting fanout-heavy endpoint claims."
                 ),
                 "blocks_claim": "Blocks trustworthy analytical metric claims.",
                 "source_artifacts": (
+                    "docs/data_artifacts/synthetic_method_fixtures.jsonl; "
+                    "docs/data_artifacts/synthetic_method_fixtures_summary.json; "
                     "docs/claim_ledgers/cosql_dev_100.jsonl; "
                     "results/classified/vllm_qwen35_9b_base_cosql_dev_100turns.jsonl"
                 ),
@@ -904,13 +1003,22 @@ def data_engineering_gates() -> pd.DataFrame:
                     "Business analysis needs stable measures, dimensions, grain, "
                     "allowed joins, and semantic-model versions."
                 ),
-                "current_status": "partial: metric-DSL parser/evaluator exists; model predictions pending",
+                "current_status": (
+                    "partial: metric-DSL parser/evaluator exists and the synthetic "
+                    "fixture pack now includes "
+                    f"{synthetic_summary['training_target_counts']['metric_dsl']} "
+                    "metric-DSL target rows; model predictions pending"
+                ),
                 "next_repo_action": (
                     "Generate metric-DSL predictions, compile them through the same "
                     "semantic model, and compare against direct SQL."
                 ),
                 "blocks_claim": "Blocks MEASURE()-first or semantic-layer superiority claims.",
-                "source_artifacts": "docs/claim_ledgers/cosql_dev_100.jsonl",
+                "source_artifacts": (
+                    "docs/data_artifacts/synthetic_method_fixtures.jsonl; "
+                    "docs/data_artifacts/synthetic_method_fixtures_summary.json; "
+                    "docs/claim_ledgers/cosql_dev_100.jsonl"
+                ),
                 "claim_ids": (
                     "metric_dsl_evaluation_manifest, "
                     "metric_dsl_beats_direct_sql"
@@ -1921,6 +2029,7 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     lab_scores = lab_method_scorecard()
     lab_trace = lab_failure_trace()
     data_gates = data_engineering_gates()
+    synthetic_fixtures = synthetic_method_fixture_summary()
     value_labels = value_grounding_label_summary()
     value_index = value_index_summary()
     artifact_contract = data_artifact_contract()
@@ -1992,6 +2101,10 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
         "data_engineering_gates_md": _write_text(
             output / "data-engineering-gates.md",
             _markdown_table(data_gates),
+        ),
+        "synthetic_method_fixtures_md": _write_text(
+            output / "synthetic-method-fixtures.md",
+            _markdown_table(synthetic_fixtures),
         ),
         "value_grounding_labels_md": _write_text(
             output / "value-grounding-labels.md",

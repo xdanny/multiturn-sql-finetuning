@@ -1,7 +1,8 @@
-# Blog Companion Lab
+# Blog-Attached Code Lab
 
-The public post links to this repository as an attached codebase. The artifact
-readers should open is one primary Marimo walkthrough:
+The public post links to this repository as an attached codebase and to a
+published HTML lab at `/labs/local-multiturn-sql-finetuning/`. The same lab can
+be rerun from the source code with Marimo:
 
 ```bash
 marimo edit notebooks/labs/local_multiturn_sql_lab.py
@@ -13,7 +14,7 @@ A portable Jupyter export is also available:
 jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb
 ```
 
-The primary Marimo walkthrough is CPU-safe and auto-selects CUDA, MPS, or XPU
+The lab is CPU-safe and auto-selects CUDA, MPS, or XPU
 when PyTorch can detect an accelerator, then falls back to CPU. It compares direct SQL,
 planner-first SQL, semantic-layer state, `MEASURE()`-preserving DSL, and
 behavior/recovery tuning on a small four-turn scenario. It should stay a
@@ -44,6 +45,7 @@ Tracked outputs:
 - `docs/blog/generated/lab-method-scores.md`
 - `docs/blog/generated/lab-failure-trace.md`
 - `docs/blog/generated/data-engineering-gates.md`
+- `docs/blog/generated/synthetic-method-fixtures.md`
 - `docs/blog/generated/value-grounding-labels.md`
 - `docs/blog/generated/value-index.md`
 - `docs/blog/generated/planner-readiness.md`

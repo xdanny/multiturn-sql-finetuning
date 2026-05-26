@@ -77,18 +77,23 @@ Known constraints:
 - A first non-oracle value index is generated from the fixed-slice SQLite
   database contents. Its coverage report separates stored-value coverage from
   user-mention alias coverage, so value/entity work has a measurable next target.
+- A first synthetic schema-rich fixture pack is generated under
+  `docs/data_artifacts/synthetic_method_fixtures.jsonl`. It turns value
+  normalization, entity resolution, grain/fanout, `MEASURE()` preservation, and
+  recovery into curated rows with expected outputs before spending endpoint time.
 - Local execution scoring reports both strict label-aware accuracy and value-only accuracy. Treat older single `accuracy` numbers as strict-era results unless they come from `results/rescored/`.
 - Failure analysis now classifies every wrong rescored turn into actionable labels and compares adapters or prompt variants against a baseline under `plots/failure_taxonomy/`.
 - Schema-link label generation and semantic prompt pruning are available through `data.prepare --include-sql-labels --prune-semantic-model`. These flags now mark produced rows as `evaluation_mode=oracle_planner_diagnostic`. On the fixed 100-turn CoSQL slice, the best oracle prompt-only pruned-label run reaches `0.850` value accuracy, and training on that oracle-labelled format reaches `0.890`.
 - The end-to-end methodology, dataset roles, training strategy boundaries, and
   benchmark claim rules are documented in `docs/methodology.md`.
-- The public post now has one attached Marimo lab and generated evidence
+- The public post now has one attached codebase, a published HTML lab, and generated evidence
   assets; see `docs/blog/README.md`.
 
 ## Blog-Attached Lab
 
-The blog post should point readers to one primary Marimo walkthrough. The
-Marimo notebook is the attached codebase artifact:
+The blog post should point readers to the attached codebase and a published HTML
+lab at `/labs/local-multiturn-sql-finetuning/`. The same lab can be rerun from
+the source code with Marimo:
 
 ```bash
 marimo edit notebooks/labs/local_multiturn_sql_lab.py
@@ -113,6 +118,7 @@ installation guide. The public site consumes generated evidence such as
 `docs/blog/generated/lab-method-scores.md`,
 `docs/blog/generated/data-artifact-contract.md`,
 `docs/blog/generated/value-grounding-labels.md`,
+`docs/blog/generated/synthetic-method-fixtures.md`,
 `docs/blog/generated/target-evidence-matrix.md`, and
 `docs/blog/generated/lab-failure-trace.md`.
 

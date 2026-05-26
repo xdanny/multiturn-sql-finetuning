@@ -32,6 +32,21 @@ def test_multiturn_lab_runs_without_requiring_gpu() -> None:
     assert all("available" in status for status in report["accelerator_report"])
     assert report["runtime_policy"]["reported_accelerators"] == "CUDA, MPS, XPU"
     assert report["runtime_policy"]["accelerator_usage"] == "selected_if_available"
+    assert report["synthetic_fixture_summary"]["fixture_count"] == 5
+    assert {
+        "value_normalization",
+        "entity_resolution",
+        "grain_fanout",
+        "measure_preservation",
+        "recovery",
+    } <= set(report["synthetic_fixture_summary"]["failure_mode_counts"])
+    assert {row["fixture_id"] for row in report["synthetic_fixture_table"]} == {
+        "value_normalization_france",
+        "entity_resolution_followup",
+        "grain_fanout_bridge",
+        "measure_preservation_metric",
+        "recovery_empty_result",
+    }
     assert set(report["systems"]) == {
         "direct_sql_baseline",
         "planner_first_sql",
@@ -325,7 +340,8 @@ def test_shareable_lab_notebook_is_plain_python_marimo_app() -> None:
         "## 4. Lab scorecard",
         "## 5. Failure trace",
         "## 6. Intermediate state",
-        "## 7. What this proves",
+        "## 7. Synthetic fixture pack",
+        "## 8. What this proves",
     ]:
         assert heading in source
     assert 'if __name__ == "__main__":' in source
@@ -337,19 +353,21 @@ def test_shareable_lab_has_portable_jupyter_notebook_entrypoint() -> None:
 
     notebook = json.loads(notebook_path.read_text())
     assert notebook["nbformat"] == 4
-    assert notebook["metadata"]["kernelspec"]["language"] == "python"
+    assert notebook["metadata"]["language_info"]["name"] == "python"
 
     text = "\n".join(
         "".join(cell.get("source", ""))
         for cell in notebook["cells"]
     )
     assert "run_multiturn_lab" in text
-    assert 'DEVICE = "auto"' in text
-    assert "device_preference=DEVICE" in text
+    assert 'value="auto"' in text
+    assert "device_preference=runtime_choice.value" in text
     assert "accelerator_report" in text
     assert "CUDA" in text
     assert "MPS" in text
     assert "XPU" in text
+    assert "synthetic_fixture_table" in text
+    assert "## 7. Synthetic fixture pack" in text
     assert "notebooks.labs.local_multiturn_sql_lab_support" in text
     assert "notebooks.blog_support" not in text
     assert "endpoint_run_scorecard" not in text
@@ -371,12 +389,12 @@ def test_shareable_lab_has_portable_jupyter_notebook_entrypoint() -> None:
         for cell in notebook["cells"]
         if cell.get("cell_type") == "code"
     )
-    assert 'DEVICE = "auto"' in code
-    assert "report = run_multiturn_lab(device_preference=DEVICE)" in code
-    assert 'report["device"].kind in {"cpu", "cuda", "mps", "xpu"}' in code
+    assert 'value="auto"' in code
+    assert "report = run_multiturn_lab(device_preference=runtime_choice.value)" in code
     assert "report[\"accelerator_report\"]" in code
     assert "pd.DataFrame(report[\"method_matrix\"])" in code
     assert "pd.DataFrame(report[\"rows\"])" in code
+    assert "pd.DataFrame(report[\"synthetic_fixture_table\"])" in code
     assert "next_gates = pd.DataFrame" in code
     assert "dataset_role_matrix()" not in code
     assert "target_evidence_matrix()" not in code
@@ -427,7 +445,8 @@ def test_blog_readme_points_to_shareable_lab_notebook() -> None:
     readme = (REPO_ROOT / "docs" / "blog" / "README.md").read_text()
 
     assert "attached codebase" in readme
-    assert "primary Marimo walkthrough" in readme
+    assert "/labs/local-multiturn-sql-finetuning/" in readme
+    assert "source code with Marimo" in readme
     assert "notebooks/labs/local_multiturn_sql_lab.ipynb" in readme
     assert "notebooks/blog/" not in readme
     assert "section notebook" not in readme.lower()

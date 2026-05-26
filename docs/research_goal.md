@@ -117,10 +117,19 @@ remaining semantic-layer gap directly: stored values are often present, but
 user-facing aliases are not always recoverable. The next step is entity/alias
 expansion and retrieval scoring before SQL generation.
 
-## Blog-Attached Marimo Lab Contract
+The first synthetic schema-rich fixture pack is
+`docs/data_artifacts/synthetic_method_fixtures.jsonl`. It is not a benchmark and
+does not support a hosted-SOTA claim. It is a curated data-engineering surface for
+testing the method hypotheses before endpoint runs: value normalization, entity
+resolution, bridge-table fanout, governed `MEASURE()` preservation, and
+empty-result recovery. Each row keeps reference SQL out of prompt-visible inputs
+and records the artifacts needed to score the failure mode.
 
-The public post should link to the attached codebase and one primary Marimo
-walkthrough:
+## Blog-Attached Code Lab Contract
+
+The public post should link to the attached codebase and one published HTML lab
+at `/labs/local-multiturn-sql-finetuning/`. The same walkthrough remains
+runnable from the codebase:
 
 1. `notebooks/labs/local_multiturn_sql_lab.py`
 2. `notebooks/labs/local_multiturn_sql_lab.ipynb`
@@ -142,9 +151,9 @@ should behave like a lab walkthrough inside the attached codebase:
 4. Separate production-style proxy results from oracle diagnostics.
 5. Turn the remaining failures into next repo artifacts.
 
-Every public claim should name a lab notebook section or generated evidence artifact
+Every public claim should name a lab section or generated evidence artifact
 that produced it. The public post should be readable
-on its own, but it should also let readers rerun the companion Marimo lab to see the
+on its own, but it should also let readers rerun the companion lab to see the
 boundary between current proxy evidence, oracle diagnostics, and future
 BIRD-Interact or hosted-model claims.
 The generated `target-evidence-matrix.md` is the public bridge between the toy lab
@@ -158,7 +167,7 @@ time. The current lexical planner is row-pair ready, but its readiness report
 still recommends `improve_planner_before_claim`.
 
 Expensive model serving and GPU training stay in scripts. The public reader path stays
-focused on the shareable Marimo lab and generated evidence assets.
+focused on the published lab, the attached codebase, and generated evidence assets.
 
 ## First DSL Experiment Surface
 

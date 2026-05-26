@@ -1,0 +1,31 @@
+{
+  "artifact_type": "synthetic_method_fixture_pack",
+  "failure_mode_counts": {
+    "context_carryover": 2,
+    "duplicate_row_policy": 1,
+    "entity_resolution": 2,
+    "grain_change": 1,
+    "grain_fanout": 1,
+    "measure_preservation": 1,
+    "recovery": 1,
+    "semantic_model": 1,
+    "value_normalization": 2
+  },
+  "fixture_count": 5,
+  "non_oracle_fixture_count": 5,
+  "required_artifact_counts": {
+    "entity_resolution_labels": 2,
+    "generated_history_trace": 1,
+    "grain_fanout_fixtures": 1,
+    "semantic_model_manifest": 2,
+    "value_index": 3
+  },
+  "schema_count": 1,
+  "schema_version": 1,
+  "training_target_counts": {
+    "behavior_recovery": 1,
+    "metric_dsl": 2,
+    "planner_first_sql": 3,
+    "semantic_layer": 5
+  }
+}

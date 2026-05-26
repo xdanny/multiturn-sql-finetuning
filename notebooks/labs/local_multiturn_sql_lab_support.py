@@ -6,6 +6,11 @@ import sqlite3
 from dataclasses import dataclass
 from typing import Any
 
+from data.synthetic_method_fixtures import (
+    build_synthetic_method_fixtures,
+    summarize_synthetic_method_fixtures,
+)
+
 
 @dataclass(frozen=True)
 class Accelerator:
@@ -793,9 +798,28 @@ def run_multiturn_lab(device_preference: str = "auto") -> dict[str, Any]:
         "rows": rows,
         "systems": summaries,
         "method_matrix": method_matrix(),
+        "synthetic_fixture_summary": summarize_synthetic_method_fixtures(
+            build_synthetic_method_fixtures()
+        ),
+        "synthetic_fixture_table": synthetic_fixture_table(),
         "scenario_contract": scenario_contract(turns),
         "walkthrough_sections": lab_walkthrough_sections(),
     }
+
+
+def synthetic_fixture_table() -> list[dict[str, str]]:
+    rows = []
+    for fixture in build_synthetic_method_fixtures():
+        rows.append(
+            {
+                "fixture_id": fixture["fixture_id"],
+                "failure_modes": ", ".join(fixture["failure_modes"]),
+                "training_targets": ", ".join(fixture["training_targets"]),
+                "required_artifacts": ", ".join(fixture["required_artifacts"]),
+                "claim_boundary": fixture["claim_boundary"],
+            }
+        )
+    return rows
 
 
 def method_matrix() -> list[dict[str, str]]:

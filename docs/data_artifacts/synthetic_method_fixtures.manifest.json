@@ -1,0 +1,14 @@
+{
+  "artifact_type": "synthetic_method_fixture_pack",
+  "command": [
+    "/home/dan/docs/multiturn-sql-finetuning/data/synthetic_method_fixtures.py"
+  ],
+  "fixture_count": 5,
+  "label_source": "synthetic_curated",
+  "oracle_policy": "non_oracle_inputs_only",
+  "output_path": "docs/data_artifacts/synthetic_method_fixtures.jsonl",
+  "output_sha256": "bb25bac6e3c8161ed31f8461884b6bd2d1181d668aceb841f09d29bf381bbfea",
+  "schema_version": 1,
+  "summary_path": "docs/data_artifacts/synthetic_method_fixtures_summary.json",
+  "summary_sha256": "36eec7540329d35b748064d337d286ae2e1edd7d028f4406ef4632178fb184d6"
+}

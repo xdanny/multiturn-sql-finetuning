@@ -27,6 +27,7 @@ from notebooks.blog_support import (
     schema_validation_findings,
     semantic_strategy_table,
     shareable_lab_attachment,
+    synthetic_method_fixture_summary,
     target_comparison,
     target_evidence_matrix,
     value_grounding_label_summary,
@@ -37,6 +38,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 PUBLIC_LAB_NOTEBOOK = "notebooks/labs/local_multiturn_sql_lab.ipynb"
 PUBLIC_LAB_APP = "notebooks/labs/local_multiturn_sql_lab.py"
+PUBLIC_LAB_HTML_URL = "/labs/local-multiturn-sql-finetuning/"
 
 FORBIDDEN_SETUP_NOTEBOOKS = {
     "notebooks/blog/02_wsl_5090_setup.py",
@@ -75,7 +77,8 @@ def test_public_blog_artifacts_are_one_shareable_lab_notebook() -> None:
         "## 4. Lab scorecard",
         "## 5. Failure trace",
         "## 6. Intermediate state",
-        "## 7. What this proves",
+        "## 7. Synthetic fixture pack",
+        "## 8. What this proves",
     ]:
         assert heading in app_source
     assert 'if __name__ == "__main__":' in app_source
@@ -85,11 +88,13 @@ def test_public_blog_artifacts_are_one_shareable_lab_notebook() -> None:
     assert notebook["nbformat"] == 4
     text = "\n".join("".join(cell.get("source", "")) for cell in notebook["cells"])
     assert "run_multiturn_lab" in text
-    assert 'DEVICE = "auto"' in text
-    assert "device_preference=DEVICE" in text
+    assert 'value="auto"' in text
+    assert "device_preference=runtime_choice.value" in text
     assert "CUDA" in text
     assert "MPS" in text
     assert "XPU" in text
+    assert "synthetic_fixture_table" in text
+    assert "## 7. Synthetic fixture pack" in text
     assert "notebooks.labs.local_multiturn_sql_lab_support" in text
     assert "notebooks.blog_support" not in text
     assert "endpoint_run_scorecard" not in text
@@ -240,6 +245,7 @@ def test_notebook_support_loads_current_artifacts() -> None:
         "artifact",
         "notebook",
         "repo_url",
+        "published_html_url",
         "run_command",
         "alternate_command",
         "device_policy",
@@ -251,6 +257,7 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert "shareable lab notebook and attached codebase" in lab_row["artifact"]
     assert lab_row["notebook"] == PUBLIC_LAB_APP
     assert "github.com/xdanny/multiturn-sql-finetuning" in lab_row["repo_url"]
+    assert lab_row["published_html_url"] == PUBLIC_LAB_HTML_URL
     assert lab_row["run_command"] == f"marimo edit {PUBLIC_LAB_APP}"
     assert lab_row["alternate_command"] == f"jupyter lab {PUBLIC_LAB_NOTEBOOK}"
     assert "auto-selects CUDA, MPS, or XPU" in lab_row["device_policy"]
@@ -259,7 +266,7 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert "MPS" in lab_row["device_policy"]
     assert "XPU" in lab_row["device_policy"]
     assert "Research question" in lab_row["reader_flow"]
-    assert "open the Marimo lab" in lab_row["reader_flow"]
+    assert "open the published HTML lab" in lab_row["reader_flow"]
     assert "run the lab checkpoints" in lab_row["reader_flow"]
     assert "compare fine-tuning targets" in lab_row["reader_flow"]
     assert "read the evidence gates" in lab_row["reader_flow"]
@@ -408,7 +415,9 @@ def test_notebook_support_loads_current_artifacts() -> None:
         "question",
         "system",
         "failure_type",
+        "requires_recovery",
         "value_match",
+        "recovery_success",
         "actual_rows",
         "expected_rows",
         "intermediate_plan",
@@ -418,8 +427,23 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert ("turn_2", "direct_sql_baseline") in trace_keys
     assert ("turn_3", "direct_sql_baseline") in trace_keys
     assert ("turn_4", "behavior_recovery_sql") in trace_keys
+    assert {
+        "direct_sql_baseline",
+        "planner_first_sql",
+        "semantic_value_sql",
+        "semantic_dsl_planner",
+        "behavior_recovery_sql",
+    } <= set(lab_trace.loc[lab_trace["turn_id"] == "turn_4", "system"])
     assert "value_grounding" in set(lab_trace["failure_type"])
     assert "context_carryover" in set(lab_trace["failure_type"])
+    assert any(
+        row["value_match"] is True and row["recovery_success"] is False
+        for _, row in lab_trace[lab_trace["turn_id"] == "turn_4"].iterrows()
+    )
+    assert any(
+        row["value_match"] is True and row["recovery_success"] is True
+        for _, row in lab_trace[lab_trace["turn_id"] == "turn_4"].iterrows()
+    )
     assert any("France -> FR" in note for note in lab_trace["why_it_matters"])
     assert any("repairs empty result" in plan for plan in lab_trace["intermediate_plan"])
 
@@ -562,6 +586,27 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert all(gates["source_artifacts"].str.len() > 0)
     assert all(gates["claim_ids"].str.len() > 0)
 
+    synthetic_fixtures = synthetic_method_fixture_summary()
+    assert {
+        "artifact",
+        "metric",
+        "value",
+        "interpretation",
+    } <= set(synthetic_fixtures.columns)
+    assert "synthetic_method_fixtures_summary.json" in set(synthetic_fixtures["artifact"])
+    assert synthetic_fixtures.loc[
+        synthetic_fixtures["metric"] == "fixture_count",
+        "value",
+    ].iloc[0] == 5
+    assert any(
+        row["metric"] == "failure_modes" and "grain_fanout" in row["value"]
+        for _, row in synthetic_fixtures.iterrows()
+    )
+    assert any(
+        row["metric"] == "training_targets" and "metric_dsl" in row["value"]
+        for _, row in synthetic_fixtures.iterrows()
+    )
+
     known_claim_ids = set(claim_ledger()["claim_id"])
     gate_claim_ids = {
         claim_id.strip()
@@ -690,6 +735,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "lab_method_scores_md",
         "lab_failure_trace_md",
         "data_engineering_gates_md",
+        "synthetic_method_fixtures_md",
         "value_grounding_labels_md",
         "value_index_md",
         "planner_readiness_md",
@@ -705,6 +751,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "docs/claim_ledgers/cosql_dev_100.jsonl",
         "docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json",
         "docs/data_artifacts/value_index_cosql_dev_100.manifest.json",
+        "docs/data_artifacts/synthetic_method_fixtures.manifest.json",
         "docs/predicted_planner_comparison_preflight.json",
         "docs/planner_readiness_cosql_dev_100.json",
         "docs/planner_baseline_cosql_dev_100_summary.json",
@@ -751,6 +798,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
 
     shareable_lab_md = (tmp_path / manifest["assets"]["shareable_lab_md"]).read_text()
     assert "shareable lab notebook and attached codebase" in shareable_lab_md
+    assert PUBLIC_LAB_HTML_URL in shareable_lab_md
     assert PUBLIC_LAB_NOTEBOOK in shareable_lab_md
     assert PUBLIC_LAB_APP in shareable_lab_md
     assert f"marimo edit {PUBLIC_LAB_APP}" in shareable_lab_md
@@ -761,7 +809,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "MPS" in shareable_lab_md
     assert "XPU" in shareable_lab_md
     assert "Research question" in shareable_lab_md
-    assert "open the Marimo lab" in shareable_lab_md
+    assert "open the published HTML lab" in shareable_lab_md
     assert "run the lab checkpoints" in shareable_lab_md
     assert "compare fine-tuning targets" in shareable_lab_md
     assert "read the evidence gates" in shareable_lab_md
@@ -837,6 +885,15 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "hosted_sota_same_protocol" in data_gates_md
     assert "local_beats_hosted_same_protocol" in data_gates_md
     assert PUBLIC_LAB_NOTEBOOK in data_gates_md
+
+    synthetic_fixtures_md = (
+        tmp_path / manifest["assets"]["synthetic_method_fixtures_md"]
+    ).read_text()
+    assert "synthetic_method_fixtures_summary.json" in synthetic_fixtures_md
+    assert "fixture_count" in synthetic_fixtures_md
+    assert "grain_fanout" in synthetic_fixtures_md
+    assert "measure_preservation" in synthetic_fixtures_md
+    assert "behavior_recovery" in synthetic_fixtures_md
 
     value_labels_md = (
         tmp_path / manifest["assets"]["value_grounding_labels_md"]
@@ -958,14 +1015,16 @@ def test_research_goal_states_notebook_led_method_comparison() -> None:
     ]:
         assert phrase in goal
 
-    assert "Every public claim should name a lab notebook section or generated evidence artifact" in goal
+    assert "Every public claim should name a lab section or generated evidence artifact" in goal
+    assert PUBLIC_LAB_HTML_URL in goal
     assert PUBLIC_LAB_NOTEBOOK in goal
     assert PUBLIC_LAB_APP in goal
     assert "shareable-lab.md" in blog_readme
     assert "attached codebase" in blog_readme
+    assert PUBLIC_LAB_HTML_URL in blog_readme
     assert PUBLIC_LAB_NOTEBOOK in blog_readme
     assert PUBLIC_LAB_APP in blog_readme
-    assert "primary Marimo walkthrough" in blog_readme
+    assert "source code with Marimo" in blog_readme
     assert "notebooks/blog/" not in goal
     assert "notebooks/blog/" not in blog_readme
     assert "notebooks/blog/" not in root_readme
