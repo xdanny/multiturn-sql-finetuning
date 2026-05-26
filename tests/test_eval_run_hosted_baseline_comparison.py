@@ -56,6 +56,7 @@ def test_run_hosted_baseline_comparison_validates_and_compares(tmp_path, monkeyp
     local_training_manifest = tmp_path / "local.training.manifest.json"
     local_result_manifest = tmp_path / "local.result.manifest.json"
     hosted_result_manifest = tmp_path / "hosted.result.manifest.json"
+    contract_manifest = tmp_path / "hosted.contract.manifest.json"
     output_path = tmp_path / "local.compared.manifest.json"
     eval_path = tmp_path / "eval.jsonl"
 
@@ -75,6 +76,7 @@ def test_run_hosted_baseline_comparison_validates_and_compares(tmp_path, monkeyp
             "benchmark": "prepared",
             "evaluation_mode": "non_oracle_generation",
             "input_path": str(eval_path),
+            "input_sha256": "contract-sha",
         },
     )
     _write_json(
@@ -84,6 +86,15 @@ def test_run_hosted_baseline_comparison_validates_and_compares(tmp_path, monkeyp
             "benchmark": "prepared",
             "evaluation_mode": "non_oracle_generation",
             "input_path": str(eval_path),
+            "input_sha256": "contract-sha",
+        },
+    )
+    _write_json(
+        contract_manifest,
+        {
+            "benchmark": "prepared",
+            "output_path": str(eval_path),
+            "output_sha256": "contract-sha",
         },
     )
 
@@ -103,6 +114,7 @@ def test_run_hosted_baseline_comparison_validates_and_compares(tmp_path, monkeyp
         local_training_manifest=local_training_manifest,
         local_result_manifest=local_result_manifest,
         hosted_result_manifest=hosted_result_manifest,
+        contract_manifest=contract_manifest,
         output_path=output_path,
     )
 

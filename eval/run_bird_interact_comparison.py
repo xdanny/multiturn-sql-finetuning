@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from eval.compare_hosted_baseline import compare_hosted_baseline_manifest_files
+from eval.stage6_protocol import validate_result_manifest_against_contract
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -28,11 +29,24 @@ def run_bird_interact_comparison(
     *,
     local_result_manifest: Path,
     hosted_result_manifest: Path,
+    contract_manifest: Path,
     output_path: Path,
     repo_root: Path = Path("."),
 ) -> int:
     validate_bird_interact_result_manifest(local_result_manifest)
     validate_bird_interact_result_manifest(hosted_result_manifest)
+    validate_result_manifest_against_contract(
+        result_manifest_path=local_result_manifest,
+        contract_manifest_path=contract_manifest,
+        expected_benchmark="bird_interact_transfer",
+        label="local BIRD-Interact",
+    )
+    validate_result_manifest_against_contract(
+        result_manifest_path=hosted_result_manifest,
+        contract_manifest_path=contract_manifest,
+        expected_benchmark="bird_interact_transfer",
+        label="hosted BIRD-Interact",
+    )
     compare_hosted_baseline_manifest_files(
         local_manifest_path=local_result_manifest,
         hosted_manifest_path=hosted_result_manifest,
@@ -46,6 +60,11 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--local-result-manifest", type=Path, required=True)
     parser.add_argument("--hosted-result-manifest", type=Path, required=True)
+    parser.add_argument(
+        "--contract-manifest",
+        type=Path,
+        default=Path("docs/data_artifacts/bird_interact_transfer.manifest.json"),
+    )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--repo-root", type=Path, default=Path("."))
     args = parser.parse_args()
@@ -53,6 +72,7 @@ def main() -> int:
     return run_bird_interact_comparison(
         local_result_manifest=args.local_result_manifest,
         hosted_result_manifest=args.hosted_result_manifest,
+        contract_manifest=args.contract_manifest,
         output_path=args.output,
         repo_root=args.repo_root,
     )

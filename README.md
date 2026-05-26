@@ -67,6 +67,9 @@ This repo is now organized around verified, runnable gates:
   keeps predicted-planner SQL, metric-DSL-vs-direct-SQL, hosted baselines,
   local-vs-hosted wins, and BIRD-Interact claims pending until matching artifacts
   and positive comparison deltas exist.
+- Stage 6 hosted and BIRD-Interact wrappers now also require each result
+  manifest's `input_sha256` to match the checked-in frozen contract artifact,
+  so a comparison cannot quietly drift onto a different input slice.
 - Generated-history rollout evaluation is now wired so behavior/recovery can be
   tested without teacher-forcing prior gold SQL into later turns.
 - Tests cover dataset formatting, training-data validation, SQL scoring, result loading, and plotting.

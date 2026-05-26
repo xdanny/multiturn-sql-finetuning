@@ -190,7 +190,8 @@ run, and a comparison manifest, it is not ready to be called a finetuning step.
   through `eval.compare_hosted_baseline`. After that, a BIRD-Interact transfer
   run goes through `uv run python -m eval.run_bird_interact_comparison`, which
   requires both manifests to already declare a `bird_interact` benchmark plus
-  the same oracle policy, latency accounting, and cost accounting.
+  the same oracle policy, latency accounting, cost accounting, and frozen-input
+  contract hash.
 - Claim boundary:
   this is the only stage that can support “local model competes with hosted
   SOTA” language.

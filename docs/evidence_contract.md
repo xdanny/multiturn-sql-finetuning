@@ -166,7 +166,9 @@ uv run python -m eval.run_hosted_baseline_comparison \
 
 That wrapper is intentionally narrow. It does not run the hosted model. It
 checks that the local candidate came from the prepared non-oracle path first,
-then hands off to `eval.compare_hosted_baseline` for the same-row comparison.
+then verifies that both result manifests point back to the checked-in hosted
+input contract through `input_sha256`, and only then hands off to
+`eval.compare_hosted_baseline` for the same-row comparison.
 
 The BIRD-Interact transfer wrapper is similarly narrow:
 
@@ -178,8 +180,10 @@ uv run python -m eval.run_bird_interact_comparison \
 ```
 
 It does not run either model. It requires both result manifests to already use
-a `bird_interact` benchmark and `non_oracle_generation`, then hands off to the
-same local-vs-hosted comparer so the Stage 6 transfer path stays machine-checkable.
+a `bird_interact` benchmark and `non_oracle_generation`, and it binds those
+result manifests back to the frozen transfer contract hash before handing off
+to the same local-vs-hosted comparer. That keeps the Stage 6 transfer path
+machine-checkable even when result manifests are produced elsewhere.
 
 ## Reproducible Proxy Commands
 
