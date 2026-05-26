@@ -179,15 +179,18 @@ run, and a comparison manifest, it is not ready to be called a finetuning step.
 - Prepared data:
   the first checked-in input contract is `data.hosted_baseline_dataset`, which
   freezes the non-oracle prepared CoSQL proxy rows for same-protocol hosted
-  comparison. BIRD-Interact-style transfer rows remain the next dataset gate.
+  comparison. The next checked-in transfer gate is
+  `data.bird_interact_transfer_dataset`, which freezes a BIRD-Interact-style
+  benchmark contract under a distinct `bird_interact_transfer` benchmark name.
 - Trainer invocation:
   use the best earlier finetuned candidate from Stages 0 through 5.
 - Evaluation gate:
   `uv run python -m eval.run_hosted_baseline_comparison` validates the local
   candidate manifest and then writes the same compared local-vs-hosted manifest
   through `eval.compare_hosted_baseline`. After that, a BIRD-Interact transfer
-  manifest needs the same oracle policy, latency accounting, and cost
-  accounting.
+  run goes through `uv run python -m eval.run_bird_interact_comparison`, which
+  requires both manifests to already declare a `bird_interact` benchmark plus
+  the same oracle policy, latency accounting, and cost accounting.
 - Claim boundary:
   this is the only stage that can support “local model competes with hosted
   SOTA” language.

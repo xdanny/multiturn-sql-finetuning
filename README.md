@@ -538,6 +538,25 @@ That wrapper refuses to compare a local candidate unless its training manifest
 declares the prepared non-oracle protocol first, then hands off to
 `eval.compare_hosted_baseline`.
 
+The matching BIRD-Interact transfer contract is also checked in:
+
+- `docs/data_artifacts/bird_interact_transfer_rows.jsonl`
+- `docs/data_artifacts/bird_interact_transfer_summary.json`
+- `docs/data_artifacts/bird_interact_transfer.manifest.json`
+
+And the transfer comparison wrapper is:
+
+```bash
+uv run python -m eval.run_bird_interact_comparison \
+  --local-result-manifest results/<local-bird-run>.manifest.json \
+  --hosted-result-manifest results/<hosted-bird-run>.manifest.json \
+  --output results/<local-bird-run>.vs_hosted.manifest.json
+```
+
+That wrapper is intentionally strict: both result manifests must already declare
+a `bird_interact` benchmark and `non_oracle_generation` mode before the
+comparison is allowed.
+
 There is now a separate synthetic Stage 5 recovery pair for faster finetuning
 iteration before endpoint rollout:
 

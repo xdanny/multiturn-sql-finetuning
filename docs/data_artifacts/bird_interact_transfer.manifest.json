@@ -1,0 +1,14 @@
+{
+  "artifact_type": "bird_interact_transfer_dataset",
+  "benchmark": "bird_interact_transfer",
+  "command": [
+    "/home/dan/docs/multiturn-sql-finetuning/data/bird_interact_transfer_dataset.py"
+  ],
+  "evaluation_mode": "non_oracle_generation",
+  "input_path": "data/processed/eval_cosql_dev_100.jsonl",
+  "input_sha256": "00886900e4faf539bc6a6428b8b699b77f169874a9bfb8a205b1beaa2785cf6e",
+  "output_path": "docs/data_artifacts/bird_interact_transfer_rows.jsonl",
+  "output_sha256": "72c74158eaf22aad20d3859c2cbe6f6a02ffab362147f6341fb416ba860cfacd",
+  "summary_path": "docs/data_artifacts/bird_interact_transfer_summary.json",
+  "summary_sha256": "d3247944afe6ac917a2bbd5729f3ef13ba2ca79fba6d0dc7cd02c153c090fc73"
+}

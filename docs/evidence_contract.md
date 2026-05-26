@@ -79,6 +79,16 @@ The Stage 6 input contract is now also checked in:
 Those rows freeze the non-oracle prepared proxy slice that a hosted baseline
 must use before any local-vs-hosted claim is even comparable.
 
+The Stage 6 BIRD-Interact transfer input contract is also checked in:
+
+- `docs/data_artifacts/bird_interact_transfer_rows.jsonl`
+- `docs/data_artifacts/bird_interact_transfer_summary.json`
+- `docs/data_artifacts/bird_interact_transfer.manifest.json`
+
+Those artifacts do not claim a real BIRD-Interact result yet. They freeze the
+benchmark surface and naming contract that a future local and hosted run must
+declare before the claim ledger can clear `bird_interact_local_vs_hosted`.
+
 ## Data Artifact Evidence
 
 The value-grounding artifact is the first versioned intermediate-state artifact
@@ -157,6 +167,19 @@ uv run python -m eval.run_hosted_baseline_comparison \
 That wrapper is intentionally narrow. It does not run the hosted model. It
 checks that the local candidate came from the prepared non-oracle path first,
 then hands off to `eval.compare_hosted_baseline` for the same-row comparison.
+
+The BIRD-Interact transfer wrapper is similarly narrow:
+
+```bash
+uv run python -m eval.run_bird_interact_comparison \
+  --local-result-manifest results/<local-bird-run>.manifest.json \
+  --hosted-result-manifest results/<hosted-bird-run>.manifest.json \
+  --output results/<local-bird-run>.vs_hosted.manifest.json
+```
+
+It does not run either model. It requires both result manifests to already use
+a `bird_interact` benchmark and `non_oracle_generation`, then hands off to the
+same local-vs-hosted comparer so the Stage 6 transfer path stays machine-checkable.
 
 ## Reproducible Proxy Commands
 

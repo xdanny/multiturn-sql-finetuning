@@ -51,6 +51,7 @@ When editing here, inspect:
 - `eval/local_rollout_benchmark.py`
 - `eval/run_local_rollout_comparison.py`
 - `eval/run_hosted_baseline_comparison.py`
+- `eval/run_bird_interact_comparison.py`
 - `eval/local_planner_benchmark.py`
 - `eval/run_local_planner_eval.py`
 - `eval/compare_rollout_history.py`

@@ -1,0 +1,8 @@
+{
+  "artifact_type": "bird_interact_transfer_dataset",
+  "benchmark": "bird_interact_transfer",
+  "database_count": 20,
+  "dialog_count": 20,
+  "evaluation_mode": "non_oracle_generation",
+  "row_count": 100
+}
