@@ -26,6 +26,9 @@ runner from scratch.
 For mixed-output method-vs-control experiments, where the method side and the
 control side use different scorers, the shared orchestration now lives in
 `eval.local_generation_pair`. Stage 4 metric DSL uses that path.
+Paired training-manifest validation now lives in `eval.training_manifest_pair`.
+New comparison runners should reuse that helper instead of re-encoding stage,
+benchmark, and evaluation-mode checks inline.
 
 The first metric-DSL experiment surface is documented in
 `docs/metric_dsl_contract.md`, implemented in `data.metric_dsl`, and evaluated

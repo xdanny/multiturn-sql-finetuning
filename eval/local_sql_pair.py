@@ -9,6 +9,10 @@ from typing import Any
 
 from eval.direct_sql_eval import run_direct_sql_eval
 from eval.local_text_benchmark import run_local_text_benchmark
+from eval.training_manifest_pair import (
+    TrainingManifestSpec,
+    validate_training_manifest_path,
+)
 
 NON_ORACLE_GENERATION = "non_oracle_generation"
 DEFAULT_FORBIDDEN_PROMPT_MARKERS = ("reference_sql", "expected_rows", "gold_metric_dsl")
@@ -33,34 +37,9 @@ class SqlPairSpec:
     def output_stem(self) -> str:
         return self.method_output_stem or self.method_name
 
-
-def _load_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text())
-
-
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
     with path.open() as handle:
         return [json.loads(line) for line in handle if line.strip()]
-
-
-def _validate_training_manifest(
-    manifest: dict[str, Any],
-    *,
-    expected_stage: str,
-    expected_benchmark: str,
-    expected_mode: str,
-    label: str,
-) -> Path:
-    if manifest.get("stage") != expected_stage:
-        raise ValueError(f"{label} training manifest must use stage={expected_stage}")
-    if manifest.get("benchmark") != expected_benchmark:
-        raise ValueError(f"{label} training manifest must use benchmark={expected_benchmark}")
-    if manifest.get("evaluation_mode") != expected_mode:
-        raise ValueError(f"{label} training manifest must use evaluation_mode={expected_mode}")
-    train_data_path = manifest.get("train_data_path")
-    if not train_data_path:
-        raise ValueError(f"{label} training manifest is missing train_data_path")
-    return Path(str(train_data_path))
 
 
 def _validate_non_leak_rows(
@@ -91,21 +70,23 @@ def validate_sql_pair_training_manifests(
     direct_training_manifest: Path,
     spec: SqlPairSpec,
 ) -> dict[str, Any]:
-    method_manifest = _load_json(method_training_manifest)
-    direct_manifest = _load_json(direct_training_manifest)
-    method_input = _validate_training_manifest(
-        method_manifest,
-        expected_stage=spec.method_stage,
-        expected_benchmark=spec.method_benchmark,
-        expected_mode=spec.evaluation_mode,
-        label=spec.method_name,
+    method_manifest, method_input = validate_training_manifest_path(
+        manifest_path=method_training_manifest,
+        spec=TrainingManifestSpec(
+            label=spec.method_name,
+            stage=spec.method_stage,
+            benchmark=spec.method_benchmark,
+            evaluation_mode=spec.evaluation_mode,
+        ),
     )
-    direct_input = _validate_training_manifest(
-        direct_manifest,
-        expected_stage=spec.direct_stage,
-        expected_benchmark=spec.direct_benchmark,
-        expected_mode=spec.evaluation_mode,
-        label="direct SQL",
+    direct_manifest, direct_input = validate_training_manifest_path(
+        manifest_path=direct_training_manifest,
+        spec=TrainingManifestSpec(
+            label="direct SQL",
+            stage=spec.direct_stage,
+            benchmark=spec.direct_benchmark,
+            evaluation_mode=spec.evaluation_mode,
+        ),
     )
     method_rows = _load_jsonl(method_input)
     direct_rows = _load_jsonl(direct_input)

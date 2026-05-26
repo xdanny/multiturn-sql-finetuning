@@ -11,6 +11,10 @@ from eval.compare_metric_dsl_direct_sql import compare_metric_dsl_direct_sql_man
 from eval.direct_sql_eval import run_direct_sql_eval
 from eval.metric_dsl_eval import run_metric_dsl_eval
 from eval.result_manifest import sha256_file
+from eval.training_manifest_pair import (
+    TrainingManifestSpec,
+    validate_training_manifest_path,
+)
 
 DIRECT_STAGE = "direct_sql_control"
 DIRECT_BENCHMARK = "metric_dsl_direct_sql"
@@ -18,10 +22,6 @@ DIRECT_MODE = "non_oracle_generation"
 METRIC_STAGE = "metric_dsl"
 METRIC_BENCHMARK = "synthetic_metric_dsl_bootstrap"
 METRIC_MODE = "metric_dsl"
-
-
-def _load_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text())
 
 
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -33,46 +33,28 @@ def _row_identity(row: dict[str, Any]) -> tuple[str, str]:
     return (str(row.get("fixture_id")), str(row.get("reference_sql")))
 
 
-def _validate_manifest(
-    manifest: dict[str, Any],
-    *,
-    expected_stage: str,
-    expected_benchmark: str,
-    expected_mode: str,
-    label: str,
-) -> Path:
-    if manifest.get("stage") != expected_stage:
-        raise ValueError(f"{label} training manifest must use stage={expected_stage}")
-    if manifest.get("benchmark") != expected_benchmark:
-        raise ValueError(f"{label} training manifest must use benchmark={expected_benchmark}")
-    if manifest.get("evaluation_mode") != expected_mode:
-        raise ValueError(f"{label} training manifest must use evaluation_mode={expected_mode}")
-    train_data_path = manifest.get("train_data_path")
-    if not train_data_path:
-        raise ValueError(f"{label} training manifest is missing train_data_path")
-    return Path(str(train_data_path))
-
-
 def validate_metric_dsl_comparison_inputs(
     *,
     metric_training_manifest: Path,
     direct_training_manifest: Path,
 ) -> dict[str, Any]:
-    metric_manifest = _load_json(metric_training_manifest)
-    direct_manifest = _load_json(direct_training_manifest)
-    metric_input = _validate_manifest(
-        metric_manifest,
-        expected_stage=METRIC_STAGE,
-        expected_benchmark=METRIC_BENCHMARK,
-        expected_mode=METRIC_MODE,
-        label="metric-DSL",
+    metric_manifest, metric_input = validate_training_manifest_path(
+        manifest_path=metric_training_manifest,
+        spec=TrainingManifestSpec(
+            label="metric-DSL",
+            stage=METRIC_STAGE,
+            benchmark=METRIC_BENCHMARK,
+            evaluation_mode=METRIC_MODE,
+        ),
     )
-    direct_input = _validate_manifest(
-        direct_manifest,
-        expected_stage=DIRECT_STAGE,
-        expected_benchmark=DIRECT_BENCHMARK,
-        expected_mode=DIRECT_MODE,
-        label="direct SQL",
+    direct_manifest, direct_input = validate_training_manifest_path(
+        manifest_path=direct_training_manifest,
+        spec=TrainingManifestSpec(
+            label="direct SQL",
+            stage=DIRECT_STAGE,
+            benchmark=DIRECT_BENCHMARK,
+            evaluation_mode=DIRECT_MODE,
+        ),
     )
     metric_rows = _load_jsonl(metric_input)
     direct_rows = _load_jsonl(direct_input)

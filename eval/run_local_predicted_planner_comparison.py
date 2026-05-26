@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 from typing import Any
 
 from eval.compare_predicted_planner import compare_predicted_planner_manifest_files
 from eval.local_benchmark import run_local_benchmark
 from eval.run_predicted_planner_comparison import validate_comparison_inputs
+from eval.training_manifest_pair import (
+    TrainingManifestSpec,
+    validate_training_manifest_path,
+)
 
 DIRECT_STAGE = "direct_sql_control"
 PREDICTED_STAGE = "predicted_planner"
@@ -17,51 +20,28 @@ PREPARED_BENCHMARK = "prepared"
 NON_ORACLE_GENERATION = "non_oracle_generation"
 PREDICTED_PLANNER = "predicted_planner"
 
-
-def _load_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text())
-
-
-def _validate_training_manifest(
-    manifest: dict[str, Any],
-    *,
-    expected_stage: str,
-    expected_benchmark: str,
-    expected_mode: str,
-    label: str,
-) -> Path:
-    if manifest.get("stage") != expected_stage:
-        raise ValueError(f"{label} training manifest must use stage={expected_stage}")
-    if manifest.get("benchmark") != expected_benchmark:
-        raise ValueError(f"{label} training manifest must use benchmark={expected_benchmark}")
-    if manifest.get("evaluation_mode") != expected_mode:
-        raise ValueError(f"{label} training manifest must use evaluation_mode={expected_mode}")
-    train_data_path = manifest.get("train_data_path")
-    if not train_data_path:
-        raise ValueError(f"{label} training manifest is missing train_data_path")
-    return Path(str(train_data_path))
-
-
 def validate_local_predicted_planner_training_manifests(
     *,
     direct_training_manifest: Path,
     predicted_training_manifest: Path,
 ) -> dict[str, Any]:
-    direct_manifest = _load_json(direct_training_manifest)
-    predicted_manifest = _load_json(predicted_training_manifest)
-    direct_input = _validate_training_manifest(
-        direct_manifest,
-        expected_stage=DIRECT_STAGE,
-        expected_benchmark=PREPARED_BENCHMARK,
-        expected_mode=NON_ORACLE_GENERATION,
-        label="direct SQL",
+    direct_manifest, direct_input = validate_training_manifest_path(
+        manifest_path=direct_training_manifest,
+        spec=TrainingManifestSpec(
+            label="direct SQL",
+            stage=DIRECT_STAGE,
+            benchmark=PREPARED_BENCHMARK,
+            evaluation_mode=NON_ORACLE_GENERATION,
+        ),
     )
-    predicted_input = _validate_training_manifest(
-        predicted_manifest,
-        expected_stage=PREDICTED_STAGE,
-        expected_benchmark=PREPARED_BENCHMARK,
-        expected_mode=PREDICTED_PLANNER,
-        label="predicted planner",
+    predicted_manifest, predicted_input = validate_training_manifest_path(
+        manifest_path=predicted_training_manifest,
+        spec=TrainingManifestSpec(
+            label="predicted planner",
+            stage=PREDICTED_STAGE,
+            benchmark=PREPARED_BENCHMARK,
+            evaluation_mode=PREDICTED_PLANNER,
+        ),
     )
     summary = validate_comparison_inputs(
         direct_input=direct_input,

@@ -30,6 +30,9 @@ Rules:
 - For mixed-output method-vs-control pairs, prefer
   `eval.local_generation_pair` so the orchestration stays shared even when the
   method side uses a different scorer than direct SQL.
+- For paired training-manifest metadata checks, prefer
+  `eval.training_manifest_pair` instead of repeating stage, benchmark, and
+  evaluation-mode validation inline.
 - If a local comparison runner exists, it should reuse `eval.local_benchmark`
   or another manifest-writing generator rather than inventing a second result
   format.
@@ -51,6 +54,7 @@ When editing here, inspect:
 - `eval/compare_behavior_recovery_direct_sql.py`
 - `eval/local_generation_pair.py`
 - `eval/local_sql_pair.py`
+- `eval/training_manifest_pair.py`
 - `eval/run_metric_dsl_comparison.py`
 - `eval/local_metric_dsl_benchmark.py`
 - `eval/local_text_benchmark.py`

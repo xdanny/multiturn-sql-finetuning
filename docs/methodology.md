@@ -27,6 +27,10 @@ same SQL path as the direct control, the repo now has a second narrow helper:
 `eval.local_generation_pair`. Stage 4 metric DSL uses it to keep the paired
 generation flow shared while still letting the method side go through
 `eval.metric_dsl_eval`.
+The stage, benchmark, and evaluation-mode checks for paired training manifests
+now live in `eval.training_manifest_pair`, so those constraints are shared
+across direct SQL, predicted planner, and metric DSL comparisons instead of
+being copied into each runner.
 
 ## Experiment Taxonomy
 
