@@ -142,11 +142,17 @@ If you want the short version before reading the full stage details, see
   `uv run python -m eval.metric_dsl_eval` followed by
   `uv run python -m eval.compare_metric_dsl_direct_sql`. The repo also has
   `uv run python -m eval.run_metric_dsl_comparison` to validate the paired
-  training manifests, score both offline sides, and write the comparison
-  manifest in one path, plus `uv run python -m eval.run_local_metric_dsl_comparison`
-  for actual local checkpoint generation on the Stage 4 pair. The local runner
-  now uses the shared `eval.local_generation_pair` contract instead of a
-  Stage-4-only orchestration path.
+  training manifests, project bootstrap label rows into explicit prediction
+  rows, score both offline sides, and write the comparison manifest in one
+  path, plus `uv run python -m eval.run_local_metric_dsl_comparison` for actual
+  local checkpoint generation on the Stage 4 pair. The local runner now uses
+  the shared `eval.local_generation_pair` contract instead of a Stage-4-only
+  orchestration path. The tracked bootstrap readiness and evidence artifacts are
+  `docs/metric_dsl_comparison_preflight.json` and
+  `docs/result_manifests/metric_dsl_bootstrap_vs_direct_sql.json`. The current
+  bootstrap comparison ties direct SQL on value accuracy and loses on strict
+  accuracy, so it proves the contract runs end to end without proving the
+  method wins.
 - Claim boundary:
   a parseable DSL manifest is only a quality claim. The method wins only if the
   compiled SQL beats the direct SQL baseline on matching metric-heavy rows.

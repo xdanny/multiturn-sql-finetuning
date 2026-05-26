@@ -14,7 +14,7 @@
   "expected_evaluation_mode": "non_oracle_generation",
   "expected_training_target": "direct_sql_control",
   "final_dir": "outputs/semantic_layer_direct_sql_control/final",
-  "git_commit": "0c5ac36f9c9c165926e76b36b4a605fc2145cf44",
+  "git_commit": "19b1ecaaab03052039047cd3f36f06226caba359",
   "output_dir": "outputs/semantic_layer_direct_sql_control",
   "run_id": "semantic-layer-direct-control",
   "schema_version": 1,

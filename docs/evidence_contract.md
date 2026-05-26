@@ -384,6 +384,25 @@ identities, hashes, non-oracle status, direct execution scores, and the comparer
 provenance marker must match before the ledger can clear
 `metric_dsl_beats_direct_sql`.
 
+The repo now also carries a checked-in Stage 4 bootstrap chain:
+
+- `docs/data_artifacts/metric_dsl_training_run.manifest.json`
+- `docs/data_artifacts/metric_dsl_direct_sql_training_run.manifest.json`
+- `docs/metric_dsl_comparison_preflight.json`
+- `docs/result_manifests/metric_dsl_bootstrap_vs_direct_sql.json`
+
+That path is still bounded as bootstrap evidence. The offline runner projects
+`gold_dsl` and `reference_sql` labels into explicit prediction rows so the
+compiler, database-backed execution, and direct-SQL comparer can all be checked
+end to end before a real checkpoint exists. The current checked-in result is:
+
+- value delta vs direct SQL: `+0.00`
+- strict delta vs direct SQL: `-1.00`
+
+So Stage 4 is now measured at the contract level, but the next artifact that
+matters for a method claim is a checkpoint-generated comparison from
+`uv run python -m eval.run_local_metric_dsl_comparison`.
+
 Run generated-history rollout without teacher-forcing prior gold SQL:
 
 ```bash

@@ -1,0 +1,17 @@
+{
+  "artifact_type": "metric_dsl_comparison_preflight",
+  "claim_boundary": "preflight only; no SQL execution claim",
+  "direct_input_path": "docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl",
+  "direct_input_sha256": "4f8e1dbdd3fe7a93f90217dfc085a32017474e67bb92f9a43707bfc822e32b25",
+  "direct_stage": "direct_sql_control",
+  "direct_training_manifest_path": "docs/data_artifacts/metric_dsl_direct_sql_training_run.manifest.json",
+  "direct_training_manifest_sha256": "eab80fd087caf51c606eb51cb97a6aa450dbad061899c534de1632ce6daeac3c",
+  "metric_input_path": "docs/data_artifacts/metric_dsl_training_rows.jsonl",
+  "metric_input_sha256": "426d1476b104e927cd0a067717364011c50cb8a1177933e7d088e9114c5916f2",
+  "metric_stage": "metric_dsl",
+  "metric_training_manifest_path": "docs/data_artifacts/metric_dsl_training_run.manifest.json",
+  "metric_training_manifest_sha256": "4c6d9f499d529667a3559de19af23db9db889d4c3a79d4aa53cf0fba6360fd85",
+  "row_count": 2,
+  "schema_version": 1,
+  "status": "ready_for_offline_pair"
+}

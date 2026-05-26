@@ -52,6 +52,10 @@ training manifest for those stages, so eval and comparison artifacts can be
 traced back to exact prepared inputs and expected stage metadata. The offline
 paired evaluation path is `eval.run_metric_dsl_comparison`, and the local
 checkpoint experiment loop is `eval.run_local_metric_dsl_comparison`.
+The bootstrap path is now measured end to end through
+`docs/result_manifests/metric_dsl_bootstrap_vs_direct_sql.json`: value accuracy
+ties direct SQL, while strict accuracy is worse. That is useful contract
+evidence, not a model win.
 Stage 3 now has the same shape: `data.semantic_layer_dataset` writes the
 semantic-aware SQL rows, `data.semantic_layer_direct_sql_dataset` writes the
 same-row control without semantic-model prompt context, and

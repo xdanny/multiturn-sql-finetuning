@@ -181,6 +181,7 @@ def _stages() -> list[dict[str, Any]]:
                 ],
                 "mode": "comparison_manifest",
                 "comparison_metric_prefix": "semantic_proxy",
+                "comparison_summary_label": "semantic proxy",
                 "artifacts_ready_summary": "prepared semantic artifacts exist, but no checked-in same-row semantic comparison result manifest yet.",
                 "next_required_artifact": "stage-specific semantic comparison manifest from semantic training artifacts",
                 "next_command": "uv run python -m eval.run_local_semantic_layer_comparison",
@@ -223,16 +224,19 @@ def _stages() -> list[dict[str, Any]]:
                 "eval.run_local_metric_dsl_comparison",
             ],
             "evidence_contract": {
-                "claim_ids": [
-                    "metric_dsl_evaluation_manifest",
-                    "metric_dsl_beats_direct_sql",
-                ],
                 "artifact_paths": [
+                    "docs/result_manifests/metric_dsl_bootstrap_vs_direct_sql.json",
                     "docs/data_artifacts/metric_dsl_training_rows.manifest.json",
                     "docs/data_artifacts/metric_dsl_direct_sql_training_rows.manifest.json",
+                    "docs/data_artifacts/metric_dsl_training_run.manifest.json",
+                    "docs/data_artifacts/metric_dsl_direct_sql_training_run.manifest.json",
+                    "docs/metric_dsl_comparison_preflight.json",
                 ],
-                "mode": "pending_claim",
-                "next_required_artifact": "compared metric_dsl manifest with direct-SQL baseline",
+                "mode": "comparison_manifest",
+                "comparison_metric_prefix": "metric_dsl",
+                "comparison_summary_label": "metric-DSL bootstrap",
+                "artifacts_ready_summary": "prepared metric-DSL artifacts exist, but no checked-in compared manifest is present yet.",
+                "next_required_artifact": "checkpoint-generated metric_dsl compared manifest with direct-SQL baseline",
                 "next_command": "uv run python -m eval.run_local_metric_dsl_comparison",
             },
             "trainer_contract": {
@@ -429,6 +433,7 @@ def _summarize_current_evidence(stage: dict[str, Any], claim_rows: dict[str, dic
             compared = _load_json(comparison_path)
             metrics = compared.get("metrics") or {}
             prefix = str(contract.get("comparison_metric_prefix") or "")
+            label = str(contract.get("comparison_summary_label") or "comparison")
             value_delta = float(metrics.get(f"{prefix}_value_delta_vs_direct_sql") or 0.0)
             strict_delta = float(metrics.get(f"{prefix}_strict_delta_vs_direct_sql") or 0.0)
             row_count = int(metrics.get(f"{prefix}_comparable_row_count") or compared.get("row_count") or 0)
@@ -436,7 +441,7 @@ def _summarize_current_evidence(stage: dict[str, Any], claim_rows: dict[str, dic
             strict_text = f"{strict_delta:+.2f}"
             return {
                 "status": "measured",
-                "summary": f"measured semantic proxy comparison exists; value delta vs direct SQL is {value_text} on {row_count} rows, while strict delta is {strict_text}.",
+                "summary": f"measured {label} comparison exists; value delta vs direct SQL is {value_text} on {row_count} rows, while strict delta is {strict_text}.",
                 "claim_ids": claim_ids,
                 "artifact_paths": existing_artifacts,
                 "next_required_artifact": contract.get("next_required_artifact"),

@@ -1,0 +1,27 @@
+{
+  "benchmark": "synthetic_metric_dsl_bootstrap",
+  "command": [
+    "train.finetune",
+    "validate-data-only"
+  ],
+  "config_path": "configs/qwen35_9b_5090.yaml",
+  "config_sha256": "620bbe8bd76c89c892116c82634fd289b1d2b67217af097f24c8e33f87cbb1ed",
+  "eval_data_path": "docs/data_artifacts/metric_dsl_training_rows.jsonl",
+  "eval_data_sha256": "426d1476b104e927cd0a067717364011c50cb8a1177933e7d088e9114c5916f2",
+  "eval_row_count": 2,
+  "evaluation_mode": "metric_dsl",
+  "expected_benchmark": "synthetic_metric_dsl_bootstrap",
+  "expected_evaluation_mode": "metric_dsl",
+  "expected_training_target": "metric_dsl",
+  "final_dir": "outputs/metric_dsl_bootstrap/final",
+  "git_commit": "19b1ecaaab03052039047cd3f36f06226caba359",
+  "output_dir": "outputs/metric_dsl_bootstrap",
+  "run_id": "metric-dsl-bootstrap",
+  "schema_version": 1,
+  "stage": "metric_dsl",
+  "status": "validated",
+  "train_data_path": "docs/data_artifacts/metric_dsl_training_rows.jsonl",
+  "train_data_sha256": "426d1476b104e927cd0a067717364011c50cb8a1177933e7d088e9114c5916f2",
+  "train_row_count": 2,
+  "training_target": "metric_dsl"
+}

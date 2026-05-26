@@ -5,9 +5,9 @@
     "/home/dan/docs/multiturn-sql-finetuning/data/semantic_layer_dataset.py"
   ],
   "fixture_source_path": "docs/data_artifacts/synthetic_method_fixtures.jsonl",
-  "fixture_source_sha256": "bb25bac6e3c8161ed31f8461884b6bd2d1181d668aceb841f09d29bf381bbfea",
+  "fixture_source_sha256": "668e0b16aa34badf004f87c43568c87d4a3dc584ea9b94401622c4d91ea586bd",
   "output_path": "docs/data_artifacts/semantic_layer_training_rows.jsonl",
-  "output_sha256": "33b835e65416ee8e22bf6d6efd31c575315bcf97875e2ec694e4127d3b04723f",
+  "output_sha256": "b5d33ba403136451b2879f9b26618ae5805427f4db98a3bd9c73bf685031005d",
   "row_count": 5,
   "summary_path": "docs/data_artifacts/semantic_layer_training_rows_summary.json",
   "summary_sha256": "e8b53c99451058321e277fc318e22628d6e672fa69ff0aee64eb549852119b76",

@@ -66,8 +66,8 @@ No wide summary table appears here on purpose.
 - Comparison gate: eval.metric_dsl_eval, eval.run_metric_dsl_comparison, eval.run_local_metric_dsl_comparison.
 - Win condition: same-row compiled SQL beats the direct SQL control on metric-heavy rows.
 - Leakage to forbid: no_future_turn_content, no_reference_sql_in_prompt, no_compiled_sql_in_prompt, measure_preservation_scored_separately_from_sql.
-- Current evidence: prepared artifacts exist, but pending claim because no valid metric_dsl result manifest.
-- Next evidence: compared metric_dsl manifest with direct-SQL baseline via `uv run python -m eval.run_local_metric_dsl_comparison`.
+- Current evidence: measured metric-DSL bootstrap comparison exists; value delta vs direct SQL is +0.00 on 2 rows, while strict delta is -1.00.
+- Next evidence: checkpoint-generated metric_dsl compared manifest with direct-SQL baseline via `uv run python -m eval.run_local_metric_dsl_comparison`.
 - Claim boundary: A DSL parse/compile win is not enough; compiled SQL must beat same-row direct SQL on metric-heavy rows.
 
 ## Stage 5: Generated-history recovery

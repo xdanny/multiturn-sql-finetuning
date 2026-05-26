@@ -4,9 +4,9 @@
     "/home/dan/docs/multiturn-sql-finetuning/data/metric_dsl_dataset.py"
   ],
   "fixture_source_path": "docs/data_artifacts/synthetic_method_fixtures.jsonl",
-  "fixture_source_sha256": "bb25bac6e3c8161ed31f8461884b6bd2d1181d668aceb841f09d29bf381bbfea",
+  "fixture_source_sha256": "668e0b16aa34badf004f87c43568c87d4a3dc584ea9b94401622c4d91ea586bd",
   "output_path": "docs/data_artifacts/metric_dsl_training_rows.jsonl",
-  "output_sha256": "f900f9bdb744cacafed1878e71baec6c07c4b262867a0fe515a00139622c35bd",
+  "output_sha256": "426d1476b104e927cd0a067717364011c50cb8a1177933e7d088e9114c5916f2",
   "row_count": 2,
   "summary_path": "docs/data_artifacts/metric_dsl_training_rows_summary.json",
   "summary_sha256": "15f37f66a08ce6a9ad8937c06410d332439cae1ad9a966680c160048e6859160",

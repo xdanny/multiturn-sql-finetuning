@@ -232,6 +232,7 @@
         ],
         "artifacts_ready_summary": "prepared semantic artifacts exist, but no checked-in same-row semantic comparison result manifest yet.",
         "comparison_metric_prefix": "semantic_proxy",
+        "comparison_summary_label": "semantic proxy",
         "mode": "comparison_manifest",
         "next_command": "uv run python -m eval.run_local_semantic_layer_comparison",
         "next_required_artifact": "stage-specific semantic comparison manifest from semantic training artifacts"
@@ -275,30 +276,34 @@
       "control_arm": "direct_sql_control",
       "current_evidence": {
         "artifact_paths": [
+          "docs/result_manifests/metric_dsl_bootstrap_vs_direct_sql.json",
           "docs/data_artifacts/metric_dsl_training_rows.manifest.json",
-          "docs/data_artifacts/metric_dsl_direct_sql_training_rows.manifest.json"
+          "docs/data_artifacts/metric_dsl_direct_sql_training_rows.manifest.json",
+          "docs/data_artifacts/metric_dsl_training_run.manifest.json",
+          "docs/data_artifacts/metric_dsl_direct_sql_training_run.manifest.json",
+          "docs/metric_dsl_comparison_preflight.json"
         ],
-        "claim_ids": [
-          "metric_dsl_evaluation_manifest",
-          "metric_dsl_beats_direct_sql"
-        ],
+        "claim_ids": [],
         "next_command": "uv run python -m eval.run_local_metric_dsl_comparison",
-        "next_required_artifact": "compared metric_dsl manifest with direct-SQL baseline",
-        "status": "pending",
-        "summary": "prepared artifacts exist, but pending claim because no valid metric_dsl result manifest."
+        "next_required_artifact": "checkpoint-generated metric_dsl compared manifest with direct-SQL baseline",
+        "status": "measured",
+        "summary": "measured metric-DSL bootstrap comparison exists; value delta vs direct SQL is +0.00 on 2 rows, while strict delta is -1.00."
       },
       "evidence_contract": {
         "artifact_paths": [
+          "docs/result_manifests/metric_dsl_bootstrap_vs_direct_sql.json",
           "docs/data_artifacts/metric_dsl_training_rows.manifest.json",
-          "docs/data_artifacts/metric_dsl_direct_sql_training_rows.manifest.json"
+          "docs/data_artifacts/metric_dsl_direct_sql_training_rows.manifest.json",
+          "docs/data_artifacts/metric_dsl_training_run.manifest.json",
+          "docs/data_artifacts/metric_dsl_direct_sql_training_run.manifest.json",
+          "docs/metric_dsl_comparison_preflight.json"
         ],
-        "claim_ids": [
-          "metric_dsl_evaluation_manifest",
-          "metric_dsl_beats_direct_sql"
-        ],
-        "mode": "pending_claim",
+        "artifacts_ready_summary": "prepared metric-DSL artifacts exist, but no checked-in compared manifest is present yet.",
+        "comparison_metric_prefix": "metric_dsl",
+        "comparison_summary_label": "metric-DSL bootstrap",
+        "mode": "comparison_manifest",
         "next_command": "uv run python -m eval.run_local_metric_dsl_comparison",
-        "next_required_artifact": "compared metric_dsl manifest with direct-SQL baseline"
+        "next_required_artifact": "checkpoint-generated metric_dsl compared manifest with direct-SQL baseline"
       },
       "leakage_boundaries": [
         "no_future_turn_content",

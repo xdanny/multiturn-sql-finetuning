@@ -1,0 +1,27 @@
+{
+  "benchmark": "metric_dsl_direct_sql",
+  "command": [
+    "train.finetune",
+    "validate-data-only"
+  ],
+  "config_path": "configs/qwen35_9b_5090.yaml",
+  "config_sha256": "620bbe8bd76c89c892116c82634fd289b1d2b67217af097f24c8e33f87cbb1ed",
+  "eval_data_path": "docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl",
+  "eval_data_sha256": "4f8e1dbdd3fe7a93f90217dfc085a32017474e67bb92f9a43707bfc822e32b25",
+  "eval_row_count": 2,
+  "evaluation_mode": "non_oracle_generation",
+  "expected_benchmark": "metric_dsl_direct_sql",
+  "expected_evaluation_mode": "non_oracle_generation",
+  "expected_training_target": "direct_sql_control",
+  "final_dir": "outputs/metric_dsl_direct_control/final",
+  "git_commit": "19b1ecaaab03052039047cd3f36f06226caba359",
+  "output_dir": "outputs/metric_dsl_direct_control",
+  "run_id": "metric-dsl-direct-control",
+  "schema_version": 1,
+  "stage": "direct_sql_control",
+  "status": "validated",
+  "train_data_path": "docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl",
+  "train_data_sha256": "4f8e1dbdd3fe7a93f90217dfc085a32017474e67bb92f9a43707bfc822e32b25",
+  "train_row_count": 2,
+  "training_target": "direct_sql_control"
+}

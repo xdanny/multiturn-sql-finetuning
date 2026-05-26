@@ -102,9 +102,25 @@ def test_write_metric_dsl_comparison_preflight_records_ready_pair(tmp_path: Path
             train_path=direct_input,
         ),
     )
-    shared_rows = [{"fixture_id": "measure_preservation_metric", "reference_sql": "SELECT 1"}]
-    _write_jsonl(metric_input, shared_rows)
-    _write_jsonl(direct_input, shared_rows)
+    _write_jsonl(
+        metric_input,
+        [
+            {
+                "fixture_id": "measure_preservation_metric",
+                "reference_sql": "SELECT 1",
+                "gold_dsl": "MEASURE(revenue)",
+            }
+        ],
+    )
+    _write_jsonl(
+        direct_input,
+        [
+            {
+                "fixture_id": "measure_preservation_metric",
+                "reference_sql": "SELECT 1",
+            }
+        ],
+    )
 
     preflight = write_metric_dsl_comparison_preflight(
         metric_training_manifest=metric_manifest_path,
@@ -143,9 +159,25 @@ def test_run_metric_dsl_comparison_runs_both_eval_paths_then_compares(tmp_path, 
             train_path=direct_input,
         ),
     )
-    shared_rows = [{"fixture_id": "measure_preservation_metric", "reference_sql": "SELECT 1"}]
-    _write_jsonl(metric_input, shared_rows)
-    _write_jsonl(direct_input, shared_rows)
+    _write_jsonl(
+        metric_input,
+        [
+            {
+                "fixture_id": "measure_preservation_metric",
+                "reference_sql": "SELECT 1",
+                "gold_dsl": "MEASURE(revenue)",
+            }
+        ],
+    )
+    _write_jsonl(
+        direct_input,
+        [
+            {
+                "fixture_id": "measure_preservation_metric",
+                "reference_sql": "SELECT 1",
+            }
+        ],
+    )
 
     metric_calls: list[dict] = []
     direct_calls: list[dict] = []
@@ -243,8 +275,14 @@ def test_run_metric_dsl_comparison_runs_both_eval_paths_then_compares(tmp_path, 
     )
 
     assert exit_code == 0
-    assert metric_calls[0]["input_path"] == metric_input
-    assert direct_calls[0]["input_path"] == direct_input
+    assert metric_calls[0]["input_path"] != metric_input
+    assert direct_calls[0]["input_path"] != direct_input
+    metric_prepared_row = json.loads(metric_calls[0]["input_path"].read_text().splitlines()[0])
+    direct_prepared_row = json.loads(direct_calls[0]["input_path"].read_text().splitlines()[0])
+    assert metric_prepared_row["predicted_dsl"] == "MEASURE(revenue)"
+    assert metric_prepared_row["bootstrap_prediction_source"] == "gold_dsl_label"
+    assert direct_prepared_row["generated_sql"] == "SELECT 1"
+    assert direct_prepared_row["bootstrap_prediction_source"] == "reference_sql_label"
     assert compare_calls == [
         {
             "metric_dsl_manifest_path": output_dir / "metric-stage4.metric_dsl.manifest.json",

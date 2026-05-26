@@ -13,6 +13,7 @@ class MetricQuery:
     measures: tuple[str, ...]
     dimensions: tuple[str, ...] = ()
     filters: tuple[str, ...] = ()
+    duplicate_row_policy: str | None = None
     order_by: str | None = None
     limit: int | None = None
 
@@ -27,6 +28,15 @@ def _split_csv(value: str) -> tuple[str, ...]:
 
 def _parse_measures(value: str) -> tuple[str, ...]:
     return tuple(_normalize_name(match) for match in re.findall(r"MEASURE\(([^)]+)\)", value, re.I))
+
+
+def _parse_duplicate_row_policy(value: str) -> str | None:
+    match = re.search(
+        r"duplicate_row_policy\s*=\s*['\"]([^'\"]+)['\"]",
+        value,
+        re.I,
+    )
+    return _normalize_name(match.group(1)) if match else None
 
 
 def parse_metric_query(text: str) -> MetricQuery:
@@ -54,14 +64,20 @@ def parse_metric_query(text: str) -> MetricQuery:
     by_match = re.search(r"\s+BY\s+(.+)$", remaining, re.I)
     dimension_text = ""
     measure_text = remaining
+    duplicate_row_policy = None
     if by_match:
         dimension_text = by_match.group(1).strip()
         measure_text = remaining[: by_match.start()].strip()
+        using_match = re.search(r"\s+USING\s+(.+)$", dimension_text, re.I)
+        if using_match:
+            duplicate_row_policy = _parse_duplicate_row_policy(using_match.group(1).strip())
+            dimension_text = dimension_text[: using_match.start()].strip()
 
     return MetricQuery(
         measures=_parse_measures(measure_text),
         dimensions=tuple(_normalize_name(value) for value in _split_csv(dimension_text)),
         filters=filters,
+        duplicate_row_policy=duplicate_row_policy,
         order_by=order_by,
         limit=limit,
     )
@@ -120,7 +136,11 @@ def compile_metric_query(query: MetricQuery, semantic_model: Mapping[str, Any]) 
         select_parts.append(f"{dimension_sql} AS {dimension}")
         group_by_parts.append(dimension_sql)
     for measure in query.measures:
-        measure_sql = str(_semantic_lookup(semantic_model, "measures", measure)["sql"])
+        measure_spec = _semantic_lookup(semantic_model, "measures", measure)
+        measure_sql = str(measure_spec["sql"])
+        policy_sql = measure_spec.get("sql_by_policy", {})
+        if query.duplicate_row_policy and query.duplicate_row_policy in policy_sql:
+            measure_sql = str(policy_sql[query.duplicate_row_policy])
         select_parts.append(f"{measure_sql} AS {measure}")
     if not select_parts:
         raise ValueError("metric query must select at least one measure or dimension")

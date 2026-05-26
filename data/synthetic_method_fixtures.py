@@ -84,6 +84,7 @@ INSERT INTO order_promotions (order_id, campaign_id, source_event) VALUES
 SEMANTIC_MODEL = {
     "semantic_model_id": "synthetic_revenue_v1",
     "version": "1",
+    "base_table": "orders",
     "entities": {
         "customer": {
             "table": "customers",
@@ -100,21 +101,46 @@ SEMANTIC_MODEL = {
         "customer_country": {
             "table": "customers",
             "column": "country_code",
+            "sql": "customers.country_code",
             "aliases": {"France": "FR", "United States": "US"},
         },
-        "customer_name": {"table": "customers", "column": "name"},
-        "campaign_name": {"table": "campaigns", "column": "name"},
+        "customer_name": {
+            "table": "customers",
+            "column": "name",
+            "sql": "customers.name",
+        },
+        "campaign_name": {
+            "table": "campaigns",
+            "column": "name",
+            "sql": "campaigns.name",
+        },
     },
     "measures": {
         "revenue": {
             "expression": "SUM(orders.amount)",
+            "sql": "SUM(orders.amount)",
+            "sql_by_policy": {
+                "dedupe_bridge_rows": "SUM(DISTINCT orders.amount)",
+            },
             "grain": "one row per order",
         }
     },
     "joins": [
-        "orders.customer_id = customers.id",
-        "order_promotions.order_id = orders.id",
-        "order_promotions.campaign_id = campaigns.id",
+        {
+            "table": "customers",
+            "sql_on": "orders.customer_id = customers.id",
+            "required_by": ["customer_country", "customer_name"],
+        },
+        {
+            "table": "order_promotions",
+            "sql_on": "order_promotions.order_id = orders.id",
+            "required_by": ["campaign_name"],
+        },
+        {
+            "table": "campaigns",
+            "sql_on": "order_promotions.campaign_id = campaigns.id",
+            "required_by": ["campaign_name"],
+        },
     ],
     "fanout_rules": {
         "order_promotions": "dedupe_bridge_rows before summing order revenue",

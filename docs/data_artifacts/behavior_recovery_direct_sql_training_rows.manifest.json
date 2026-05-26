@@ -5,9 +5,9 @@
     "/home/dan/docs/multiturn-sql-finetuning/data/behavior_recovery_direct_sql_dataset.py"
   ],
   "fixture_source_path": "docs/data_artifacts/synthetic_method_fixtures.jsonl",
-  "fixture_source_sha256": "bb25bac6e3c8161ed31f8461884b6bd2d1181d668aceb841f09d29bf381bbfea",
+  "fixture_source_sha256": "668e0b16aa34badf004f87c43568c87d4a3dc584ea9b94401622c4d91ea586bd",
   "output_path": "docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl",
-  "output_sha256": "110c89876191bdeccb8b5ad7a8e9d78b65f27fc207d6a4c6db37b42870edcbf5",
+  "output_sha256": "8886285044b7996b6836e8d53c440a99fccf97a54a0814691dc898db7ac2bc54",
   "row_count": 1,
   "summary_path": "docs/data_artifacts/behavior_recovery_direct_sql_training_rows_summary.json",
   "summary_sha256": "8be674962984c5516d520821fa9956b18697dd4bba092746f834df0ccfb9f6a8",

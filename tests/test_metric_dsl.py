@@ -39,6 +39,17 @@ def test_parse_metric_query_preserves_measure_tokens() -> None:
     assert query.limit == 5
 
 
+def test_parse_metric_query_supports_duplicate_row_policy_clause() -> None:
+    query = parse_metric_query(
+        "MEASURE(revenue) BY campaign_name "
+        "USING duplicate_row_policy='dedupe_bridge_rows'"
+    )
+
+    assert query.measures == ("revenue",)
+    assert query.dimensions == ("campaign_name",)
+    assert query.duplicate_row_policy == "dedupe_bridge_rows"
+
+
 def test_compile_metric_query_expands_governed_measures_at_the_boundary() -> None:
     query = parse_metric_query(
         "MEASURE(revenue) BY customer_country WHERE customer_country = 'FR' "
@@ -56,6 +67,28 @@ def test_compile_metric_query_expands_governed_measures_at_the_boundary() -> Non
         "ORDER BY revenue DESC "
         "LIMIT 5"
     )
+
+
+def test_compile_metric_query_can_switch_measure_sql_by_duplicate_row_policy() -> None:
+    query = parse_metric_query(
+        "MEASURE(revenue) BY customer_country "
+        "USING duplicate_row_policy='dedupe_bridge_rows'"
+    )
+    semantic_model = {
+        **SEMANTIC_MODEL,
+        "measures": {
+            "revenue": {
+                "sql": "SUM(orders.amount)",
+                "sql_by_policy": {
+                    "dedupe_bridge_rows": "SUM(DISTINCT orders.amount)",
+                },
+            }
+        },
+    }
+
+    sql = compile_metric_query(query, semantic_model)
+
+    assert "SUM(DISTINCT orders.amount) AS revenue" in sql
 
 
 def test_score_metric_query_separates_measure_preservation_from_dimensions() -> None:
