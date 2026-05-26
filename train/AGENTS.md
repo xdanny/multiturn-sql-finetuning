@@ -19,6 +19,10 @@ Rules:
 - Preserve the `allow-oracle-diagnostic-data` guard. Oracle rows are diagnostic
   unless the run is explicitly labeled that way.
 - Prefer `uv run python -m train.finetune ...` in repo docs and examples.
+- On this WSL machine, if Linux `gcc` / `clang` are absent but
+  `/home/dan/.local/bin/cc` exists, export `CC=/home/dan/.local/bin/cc`
+  before `train.finetune` so Triton can compile its launchers. In constrained
+  shells, also point Zig caches at writable directories such as `/tmp`.
 - Treat dataset mixture and stage naming as part of experiment meaning, not as
   optional metadata.
 - When a finetuning stage has a fixed contract, pass
