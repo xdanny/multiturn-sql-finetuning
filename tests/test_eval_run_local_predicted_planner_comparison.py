@@ -149,49 +149,52 @@ def test_run_local_predicted_planner_comparison_runs_local_eval_then_compares(
     _write_jsonl(direct_input, [_record(mode="non_oracle_generation")])
     _write_jsonl(predicted_input, [_record(mode="predicted_planner")])
 
-    benchmark_calls: list[dict] = []
+    pair_calls: list[dict] = []
     compare_calls: list[dict] = []
 
-    def fake_run_local_benchmark(**kwargs):
-        benchmark_calls.append(kwargs)
-        kwargs["manifest_output"].write_text(
+    def fake_run_local_benchmark_pair(**kwargs):
+        pair_calls.append(kwargs)
+        outputs = {
+            "method_output": output_dir / "planner-local.predicted_planner.jsonl",
+            "method_manifest_output": output_dir / "planner-local.predicted_planner.manifest.json",
+            "direct_output": output_dir / "planner-local.direct.jsonl",
+            "direct_manifest_output": output_dir / "planner-local.direct.manifest.json",
+            "compared_output": output_dir / "planner-local.compared.manifest.json",
+        }
+        output_dir.mkdir(parents=True, exist_ok=True)
+        outputs["method_manifest_output"].write_text(
             json.dumps(
                 {
-                    "run_id": kwargs["output"].stem,
-                    "output_path": str(kwargs["output"]),
+                    "run_id": "planner-local.predicted_planner",
+                    "output_path": str(outputs["method_output"]),
                     "row_count": 1,
                     "benchmark": "prepared",
-                    "evaluation_mode": "predicted_planner"
-                    if kwargs["input_path"] == predicted_input
-                    else "non_oracle_generation",
+                    "evaluation_mode": "predicted_planner",
                     "model_name": kwargs["model_name"],
                     "metrics": {
-                        "value_execution_accuracy": 1.0
-                        if kwargs["input_path"] == predicted_input
-                        else 0.5,
-                        "strict_execution_accuracy": 1.0
-                        if kwargs["input_path"] == predicted_input
-                        else 0.5,
+                        "value_execution_accuracy": 1.0,
+                        "strict_execution_accuracy": 1.0,
                     },
                 }
             )
         )
-        kwargs["output"].write_text(
+        outputs["direct_manifest_output"].write_text(
             json.dumps(
                 {
-                    "id": "dialog-a:0",
-                    "dialog_id": "dialog-a",
-                    "turn_index": 0,
-                    "database_id": "music",
-                    "reference_sql": "SELECT name FROM singer;",
-                    "evaluation_mode": "predicted_planner"
-                    if kwargs["input_path"] == predicted_input
-                    else "non_oracle_generation",
+                    "run_id": "planner-local.direct",
+                    "output_path": str(outputs["direct_output"]),
+                    "row_count": 1,
+                    "benchmark": "prepared",
+                    "evaluation_mode": "non_oracle_generation",
+                    "model_name": kwargs["model_name"],
+                    "metrics": {
+                        "value_execution_accuracy": 0.5,
+                        "strict_execution_accuracy": 0.5,
+                    },
                 }
             )
-            + "\n"
         )
-        return 0
+        return outputs
 
     def fake_compare(**kwargs):
         compare_calls.append(kwargs)
@@ -199,8 +202,8 @@ def test_run_local_predicted_planner_comparison_runs_local_eval_then_compares(
         return {"compared": True}
 
     monkeypatch.setattr(
-        "eval.run_local_predicted_planner_comparison.run_local_benchmark",
-        fake_run_local_benchmark,
+        "eval.run_local_predicted_planner_comparison.run_local_benchmark_pair",
+        fake_run_local_benchmark_pair,
     )
     monkeypatch.setattr(
         "eval.run_local_predicted_planner_comparison.compare_predicted_planner_manifest_files",
@@ -221,11 +224,11 @@ def test_run_local_predicted_planner_comparison_runs_local_eval_then_compares(
     )
 
     assert exit_code == 0
-    assert [call["input_path"] for call in benchmark_calls] == [direct_input, predicted_input]
-    assert benchmark_calls[0]["adapter_path"] == tmp_path / "direct_adapter"
-    assert benchmark_calls[1]["adapter_path"] == tmp_path / "predicted_adapter"
-    assert benchmark_calls[0]["manifest_output"] == output_dir / "planner-local.direct.manifest.json"
-    assert benchmark_calls[1]["manifest_output"] == output_dir / "planner-local.predicted_planner.manifest.json"
+    assert len(pair_calls) == 1
+    assert pair_calls[0]["direct_input_path"] == direct_input
+    assert pair_calls[0]["method_input_path"] == predicted_input
+    assert pair_calls[0]["direct_adapter_path"] == tmp_path / "direct_adapter"
+    assert pair_calls[0]["method_adapter_path"] == tmp_path / "predicted_adapter"
     assert compare_calls == [
         {
             "predicted_manifest_path": output_dir / "planner-local.predicted_planner.manifest.json",

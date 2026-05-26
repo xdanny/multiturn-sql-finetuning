@@ -7,7 +7,10 @@ from pathlib import Path
 from typing import Any
 
 from eval.compare_predicted_planner import compare_predicted_planner_manifest_files
-from eval.local_benchmark import run_local_benchmark
+from eval.local_benchmark_pair import (
+    LocalBenchmarkPairSpec,
+    run_local_benchmark_pair,
+)
 from eval.run_predicted_planner_comparison import validate_comparison_inputs
 from eval.training_manifest_pair import (
     TrainingManifestSpec,
@@ -19,6 +22,10 @@ PREDICTED_STAGE = "predicted_planner"
 PREPARED_BENCHMARK = "prepared"
 NON_ORACLE_GENERATION = "non_oracle_generation"
 PREDICTED_PLANNER = "predicted_planner"
+SPEC = LocalBenchmarkPairSpec(
+    method_output_stem="predicted_planner",
+    method_prompt_variant="predicted_planner",
+)
 
 def validate_local_predicted_planner_training_manifests(
     *,
@@ -75,28 +82,27 @@ def run_local_predicted_planner_comparison(
         direct_training_manifest=direct_training_manifest,
         predicted_training_manifest=predicted_training_manifest,
     )
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    direct_output = output_dir / f"{run_id}.direct.jsonl"
-    direct_manifest_output = output_dir / f"{run_id}.direct.manifest.json"
-    predicted_output = output_dir / f"{run_id}.predicted_planner.jsonl"
-    predicted_manifest_output = output_dir / f"{run_id}.predicted_planner.manifest.json"
-    compared_manifest = output_dir / f"{run_id}.compared.manifest.json"
-
-    direct_code = run_local_benchmark(
+    outputs = run_local_benchmark_pair(
+        spec=SPEC,
+        output_dir=output_dir,
+        run_id=run_id,
         model_name=model_name,
-        adapter_path=direct_adapter_path,
-        benchmark="prepared",
-        input_path=validated["direct_input_path"],
-        output=direct_output,
-        limit=None,
+        method_input_path=validated["predicted_input_path"],
+        direct_input_path=validated["direct_input_path"],
+        method_adapter_path=predicted_adapter_path,
+        direct_adapter_path=direct_adapter_path,
+        database_root=database_root,
         max_new_tokens=max_new_tokens,
         max_memory_gb=max_memory_gb,
-        database_root=database_root,
-        allow_oracle_plan=False,
-        manifest_output=direct_manifest_output,
-        prompt_variant="direct_sql_control",
-        command=[
+        method_command=[
+            "python",
+            "-m",
+            "eval.run_local_predicted_planner_comparison",
+            "--run-id",
+            run_id,
+            "# predicted_planner",
+        ],
+        direct_command=[
             "python",
             "-m",
             "eval.run_local_predicted_planner_comparison",
@@ -105,38 +111,10 @@ def run_local_predicted_planner_comparison(
             "# direct_sql_control",
         ],
     )
-    if direct_code != 0:
-        return direct_code
-
-    predicted_code = run_local_benchmark(
-        model_name=model_name,
-        adapter_path=predicted_adapter_path,
-        benchmark="prepared",
-        input_path=validated["predicted_input_path"],
-        output=predicted_output,
-        limit=None,
-        max_new_tokens=max_new_tokens,
-        max_memory_gb=max_memory_gb,
-        database_root=database_root,
-        allow_oracle_plan=False,
-        manifest_output=predicted_manifest_output,
-        prompt_variant="predicted_planner",
-        command=[
-            "python",
-            "-m",
-            "eval.run_local_predicted_planner_comparison",
-            "--run-id",
-            run_id,
-            "# predicted_planner",
-        ],
-    )
-    if predicted_code != 0:
-        return predicted_code
-
     compare_predicted_planner_manifest_files(
-        predicted_manifest_path=predicted_manifest_output,
-        direct_manifest_path=direct_manifest_output,
-        output_path=compared_manifest,
+        predicted_manifest_path=outputs["method_manifest_output"],
+        direct_manifest_path=outputs["direct_manifest_output"],
+        output_path=outputs["compared_output"],
         repo_root=repo_root,
     )
     return 0

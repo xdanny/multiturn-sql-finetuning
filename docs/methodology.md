@@ -35,6 +35,10 @@ The same-row requirement is now also shared explicitly in
 `eval.pair_input_contract`, which validates that paired prepared inputs are
 non-empty and preserve the same row identity before a comparison is allowed to
 run.
+For paired local benchmark runs where both sides still go through
+`eval.local_benchmark`, the repo now also has `eval.local_benchmark_pair`.
+That keeps predicted-planner and semantic-proxy local comparisons as thin
+wrappers around manifest validation plus their method-specific comparer.
 
 ## Experiment Taxonomy
 

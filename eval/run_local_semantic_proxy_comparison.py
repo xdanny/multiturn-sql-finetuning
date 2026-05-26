@@ -10,12 +10,19 @@ from typing import Any
 from eval.compare_semantic_proxy_direct_sql import (
     compare_semantic_proxy_direct_sql_manifest_files,
 )
-from eval.local_benchmark import run_local_benchmark
+from eval.local_benchmark_pair import (
+    LocalBenchmarkPairSpec,
+    run_local_benchmark_pair,
+)
 
 SEMANTIC_STAGE = "semantic_layer"
 DIRECT_STAGE = "direct_sql_control"
 SEMANTIC_BENCHMARK = "cosql_semantic_proxy"
 DIRECT_BENCHMARK = "cosql_semantic_proxy_direct_sql"
+SPEC = LocalBenchmarkPairSpec(
+    method_output_stem="semantic_proxy",
+    method_prompt_variant="semantic_proxy",
+)
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -97,51 +104,25 @@ def run_local_semantic_proxy_comparison(
         semantic_training_manifest=semantic_training_manifest,
         direct_training_manifest=direct_training_manifest,
     )
-    output_dir.mkdir(parents=True, exist_ok=True)
-    semantic_output = output_dir / f"{run_id}.semantic_proxy.jsonl"
-    semantic_manifest_output = output_dir / f"{run_id}.semantic_proxy.manifest.json"
-    direct_output = output_dir / f"{run_id}.direct.jsonl"
-    direct_manifest_output = output_dir / f"{run_id}.direct.manifest.json"
-    compared_output = output_dir / f"{run_id}.compared.manifest.json"
-
-    semantic_code = run_local_benchmark(
+    outputs = run_local_benchmark_pair(
+        spec=SPEC,
+        output_dir=output_dir,
+        run_id=run_id,
         model_name=model_name,
-        adapter_path=semantic_adapter_path,
-        benchmark="prepared",
-        input_path=validated["semantic_input_path"],
-        output=semantic_output,
-        limit=None,
+        method_input_path=validated["semantic_input_path"],
+        direct_input_path=validated["direct_input_path"],
+        method_adapter_path=semantic_adapter_path,
+        direct_adapter_path=direct_adapter_path,
+        database_root=database_root,
         max_new_tokens=max_new_tokens,
         max_memory_gb=max_memory_gb,
-        database_root=database_root,
-        allow_oracle_plan=False,
-        manifest_output=semantic_manifest_output,
-        prompt_variant="semantic_proxy",
-        command=["python", "-m", "eval.run_local_semantic_proxy_comparison"],
+        method_command=["python", "-m", "eval.run_local_semantic_proxy_comparison"],
+        direct_command=["python", "-m", "eval.run_local_semantic_proxy_comparison"],
     )
-    if semantic_code != 0:
-        return semantic_code
-    direct_code = run_local_benchmark(
-        model_name=model_name,
-        adapter_path=direct_adapter_path,
-        benchmark="prepared",
-        input_path=validated["direct_input_path"],
-        output=direct_output,
-        limit=None,
-        max_new_tokens=max_new_tokens,
-        max_memory_gb=max_memory_gb,
-        database_root=database_root,
-        allow_oracle_plan=False,
-        manifest_output=direct_manifest_output,
-        prompt_variant="direct_sql_control",
-        command=["python", "-m", "eval.run_local_semantic_proxy_comparison"],
-    )
-    if direct_code != 0:
-        return direct_code
     compare_semantic_proxy_direct_sql_manifest_files(
-        semantic_manifest_path=semantic_manifest_output,
-        direct_manifest_path=direct_manifest_output,
-        output_path=compared_output,
+        semantic_manifest_path=outputs["method_manifest_output"],
+        direct_manifest_path=outputs["direct_manifest_output"],
+        output_path=outputs["compared_output"],
         repo_root=repo_root,
     )
     return 0

@@ -63,6 +63,7 @@ def test_agents_guidance_exists_at_repo_and_domain_levels() -> None:
             "same-model",
             "local_sql_pair",
             "local_generation_pair",
+            "local_benchmark_pair",
             "training_manifest_pair",
             "pair_input_contract",
         ],

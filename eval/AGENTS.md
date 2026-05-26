@@ -36,6 +36,9 @@ Rules:
 - For same-row and non-empty paired-input checks, prefer
   `eval.pair_input_contract` instead of duplicating row-identity validation in
   each comparison runner.
+- For paired local `run_local_benchmark` flows, prefer
+  `eval.local_benchmark_pair` so SQL-vs-SQL benchmark orchestration stays
+  shared across stages like predicted planner and semantic proxy.
 - If a local comparison runner exists, it should reuse `eval.local_benchmark`
   or another manifest-writing generator rather than inventing a second result
   format.
@@ -56,6 +59,7 @@ When editing here, inspect:
 - `eval/compare_semantic_proxy_direct_sql.py`
 - `eval/compare_behavior_recovery_direct_sql.py`
 - `eval/local_generation_pair.py`
+- `eval/local_benchmark_pair.py`
 - `eval/local_sql_pair.py`
 - `eval/pair_input_contract.py`
 - `eval/training_manifest_pair.py`

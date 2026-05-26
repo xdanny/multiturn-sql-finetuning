@@ -129,42 +129,54 @@ def test_run_local_semantic_proxy_comparison_uses_eval_rows_and_compares(tmp_pat
     )
     _write_jsonl(direct_eval, [_prepared_row(user_content="Schema/context:\nfoo\n\nQuestion:\nQ")])
 
-    benchmark_calls: list[dict] = []
+    pair_calls: list[dict] = []
     compare_calls: list[dict] = []
 
-    def fake_run_local_benchmark(**kwargs):
-        benchmark_calls.append(kwargs)
-        kwargs["manifest_output"].write_text(
+    def fake_run_local_benchmark_pair(**kwargs):
+        pair_calls.append(kwargs)
+        outputs = {
+            "method_output": output_dir / "semantic-proxy-local.semantic_proxy.jsonl",
+            "method_manifest_output": output_dir / "semantic-proxy-local.semantic_proxy.manifest.json",
+            "direct_output": output_dir / "semantic-proxy-local.direct.jsonl",
+            "direct_manifest_output": output_dir / "semantic-proxy-local.direct.manifest.json",
+            "compared_output": output_dir / "semantic-proxy-local.compared.manifest.json",
+        }
+        output_dir.mkdir(parents=True, exist_ok=True)
+        outputs["method_manifest_output"].write_text(
             json.dumps(
                 {
-                    "run_id": kwargs["output"].stem,
-                    "output_path": str(kwargs["output"]),
+                    "run_id": "semantic-proxy-local.semantic_proxy",
+                    "output_path": str(outputs["method_output"]),
                     "row_count": 1,
                     "benchmark": "prepared",
                     "evaluation_mode": "non_oracle_generation",
-                    "prompt_variant": kwargs["prompt_variant"],
+                    "prompt_variant": "semantic_proxy",
                     "model_name": kwargs["model_name"],
                     "metrics": {
-                        "value_execution_accuracy": 1.0 if kwargs["prompt_variant"] == "semantic_proxy" else 0.5,
-                        "strict_execution_accuracy": 1.0 if kwargs["prompt_variant"] == "semantic_proxy" else 0.5,
+                        "value_execution_accuracy": 1.0,
+                        "strict_execution_accuracy": 1.0,
                     },
                 }
             )
         )
-        kwargs["output"].write_text(
+        outputs["direct_manifest_output"].write_text(
             json.dumps(
                 {
-                    "id": "dialog-a:0",
-                    "dialog_id": "dialog-a",
-                    "turn_index": 0,
-                    "database_id": "music",
-                    "reference_sql": "SELECT name FROM singer;",
+                    "run_id": "semantic-proxy-local.direct",
+                    "output_path": str(outputs["direct_output"]),
+                    "row_count": 1,
+                    "benchmark": "prepared",
                     "evaluation_mode": "non_oracle_generation",
+                    "prompt_variant": "direct_sql_control",
+                    "model_name": kwargs["model_name"],
+                    "metrics": {
+                        "value_execution_accuracy": 0.5,
+                        "strict_execution_accuracy": 0.5,
+                    },
                 }
             )
-            + "\n"
         )
-        return 0
+        return outputs
 
     def fake_compare(**kwargs):
         compare_calls.append(kwargs)
@@ -172,8 +184,8 @@ def test_run_local_semantic_proxy_comparison_uses_eval_rows_and_compares(tmp_pat
         return {"compared": True}
 
     monkeypatch.setattr(
-        "eval.run_local_semantic_proxy_comparison.run_local_benchmark",
-        fake_run_local_benchmark,
+        "eval.run_local_semantic_proxy_comparison.run_local_benchmark_pair",
+        fake_run_local_benchmark_pair,
     )
     monkeypatch.setattr(
         "eval.run_local_semantic_proxy_comparison.compare_semantic_proxy_direct_sql_manifest_files",
@@ -194,9 +206,11 @@ def test_run_local_semantic_proxy_comparison_uses_eval_rows_and_compares(tmp_pat
     )
 
     assert exit_code == 0
-    assert [call["input_path"] for call in benchmark_calls] == [semantic_eval, direct_eval]
-    assert benchmark_calls[0]["prompt_variant"] == "semantic_proxy"
-    assert benchmark_calls[1]["prompt_variant"] == "direct_sql_control"
+    assert len(pair_calls) == 1
+    assert pair_calls[0]["method_input_path"] == semantic_eval
+    assert pair_calls[0]["direct_input_path"] == direct_eval
+    assert pair_calls[0]["method_adapter_path"] == tmp_path / "semantic_adapter"
+    assert pair_calls[0]["direct_adapter_path"] == tmp_path / "direct_adapter"
     assert compare_calls == [
         {
             "semantic_manifest_path": output_dir / "semantic-proxy-local.semantic_proxy.manifest.json",
