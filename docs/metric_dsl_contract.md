@@ -96,7 +96,9 @@ uv run python -m train.finetune \
   --eval-data docs/data_artifacts/metric_dsl_training_rows.jsonl \
   --expected-training-target metric_dsl \
   --expected-evaluation-mode metric_dsl \
-  --expected-benchmark synthetic_metric_dsl_bootstrap
+  --expected-benchmark synthetic_metric_dsl_bootstrap \
+  --run-id metric_dsl_bootstrap \
+  --training-manifest-output results/train/metric_dsl_bootstrap.manifest.json
 
 uv run python -m train.finetune \
   --config configs/qwen35_9b_5090.yaml \
@@ -104,8 +106,15 @@ uv run python -m train.finetune \
   --eval-data docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl \
   --expected-training-target direct_sql_control \
   --expected-evaluation-mode non_oracle_generation \
-  --expected-benchmark metric_dsl_direct_sql
+  --expected-benchmark metric_dsl_direct_sql \
+  --run-id metric_dsl_direct_control \
+  --training-manifest-output results/train/metric_dsl_direct_control.manifest.json
 ```
+
+Those training manifests are not scorecards. Their job is simpler: prove which
+prepared rows were used, which stage contract was enforced, and where the
+resulting checkpoint lives before any eval manifest or comparison manifest is
+trusted.
 
 The evaluation runner lives in `eval.metric_dsl_eval`. It reads JSONL rows with
 `generated_metric_dsl` or `predicted_dsl`, `reference_metric_dsl` or `gold_dsl`,

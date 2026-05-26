@@ -86,6 +86,10 @@ run, and a comparison manifest, it is not ready to be called a finetuning step.
   finetuning rows from the curated synthetic fixtures.
 - Trainer invocation:
   `uv run python -m train.finetune --config configs/qwen35_9b_5090.yaml --data docs/data_artifacts/metric_dsl_training_rows.jsonl --eval-data docs/data_artifacts/metric_dsl_training_rows.jsonl --expected-training-target metric_dsl --expected-evaluation-mode metric_dsl --expected-benchmark synthetic_metric_dsl_bootstrap`
+- Training artifact:
+  each run should emit a training manifest with the prepared-data hashes,
+  expected metadata contract, output directory, and final checkpoint path, for
+  example via `--run-id metric_dsl_bootstrap --training-manifest-output results/train/metric_dsl_bootstrap.manifest.json`.
 - Evaluation gate:
   `uv run python -m eval.metric_dsl_eval` followed by
   `uv run python -m eval.compare_metric_dsl_direct_sql`.

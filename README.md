@@ -23,7 +23,9 @@ offline through `eval.metric_dsl_eval`.
 Its first finetuning-data bootstrap path is implemented in
 `data.metric_dsl_dataset`, with a same-row direct-SQL control in
 `data.metric_dsl_direct_sql_dataset`; both write small Stage 4 training
-artifacts under `docs/data_artifacts/`.
+artifacts under `docs/data_artifacts/`. `train.finetune` can now also emit a
+training manifest for those stages, so eval and comparison artifacts can be
+traced back to exact prepared inputs and expected stage metadata.
 Generated-history rollout evaluation is documented in
 `docs/rollout_eval_contract.md` and implemented in `eval.rollout_eval`.
 

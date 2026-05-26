@@ -9,6 +9,8 @@ Primary responsibilities:
 - Reject misleading training inputs before GPU time is spent.
 - Make run naming, stage naming, and mixture intent explicit in documentation
   and command examples.
+- Emit a machine-checkable training manifest before and after runs so later
+  eval artifacts can be tied back to an exact training input.
 
 Rules:
 
@@ -20,6 +22,8 @@ Rules:
 - When a finetuning stage has a fixed contract, pass
   `--expected-training-target`, `--expected-evaluation-mode`, and
   `--expected-benchmark` so mislabeled datasets fail before training.
+- Use `--run-id` and `--training-manifest-output` when a run is intended to
+  feed a benchmark claim or a same-row method comparison.
 - If a new finetuning target is added, document which control it is expected to
   beat and which eval command clears that claim.
 

@@ -14,6 +14,7 @@ from datasets import Dataset
 
 from data.plan_contract import ORACLE_PLANNER_DIAGNOSTIC
 from data.prepare import ORACLE_DIAGNOSTIC_WARNING
+from train.run_manifest import build_training_run_manifest, write_training_run_manifest
 
 
 def load_config(path: Path) -> dict[str, Any]:
@@ -89,6 +90,13 @@ def require_expected_dataset_metadata(
             raise ValueError(
                 f"{dataset_name} rows expected {field_name}={expected_value}, got {actual}"
             )
+
+
+def _single_dataset_value(dataset: Dataset, column_name: str) -> str | None:
+    values = _unique_non_null_values(dataset, column_name)
+    if len(values) == 1:
+        return next(iter(values))
+    return None
 
 
 def build_sft_config(
@@ -201,10 +209,15 @@ def train(
     expected_training_target: str | None,
     expected_evaluation_mode: str | None,
     expected_benchmark: str | None,
+    training_manifest_output: Path | None,
+    run_id: str | None,
 ) -> None:
     config = load_config(config_path)
     train_dataset = load_jsonl_dataset(data_path)
     eval_dataset = load_jsonl_dataset(eval_data_path) if eval_data_path else None
+    resolved_output_dir = output_dir if output_dir is not None else Path(config["training"]["output_dir"])
+    final_dir = resolved_output_dir / "final"
+    manifest_run_id = run_id or resolved_output_dir.name
 
     print(f"Loaded config: {config_path}")
     print(f"Loaded train rows: {len(train_dataset)} from {data_path}")
@@ -246,11 +259,37 @@ def train(
                 f"{oracle_eval_rows}/{len(eval_dataset)} eval rows are oracle planner diagnostics. "
                 f"{ORACLE_DIAGNOSTIC_WARNING}"
             )
+    inferred_training_target = _single_dataset_value(train_dataset, "training_target")
+    inferred_evaluation_mode = _single_dataset_value(train_dataset, "evaluation_mode")
+    inferred_benchmark = _single_dataset_value(train_dataset, "benchmark")
+    manifest_path = training_manifest_output or (resolved_output_dir / "training.manifest.json")
+    command = ["train.finetune", "validate-data-only" if validate_data_only else "train"]
+    manifest = build_training_run_manifest(
+        run_id=manifest_run_id,
+        status="validated" if validate_data_only else "ready",
+        config_path=config_path,
+        output_dir=resolved_output_dir,
+        final_dir=final_dir,
+        train_data_path=data_path,
+        eval_data_path=eval_data_path,
+        train_row_count=len(train_dataset),
+        eval_row_count=len(eval_dataset) if eval_dataset is not None else 0,
+        benchmark=inferred_benchmark,
+        training_target=inferred_training_target,
+        evaluation_mode=inferred_evaluation_mode,
+        expected_training_target=expected_training_target,
+        expected_evaluation_mode=expected_evaluation_mode,
+        expected_benchmark=expected_benchmark,
+        command=command,
+    )
+    write_training_run_manifest(manifest, manifest_path)
     if validate_data_only:
         return
 
     model, tokenizer = load_unsloth_model(config)
     if dry_run:
+        manifest["status"] = "dry_run"
+        write_training_run_manifest(manifest, manifest_path)
         print("Dry-run: model loaded, LoRA attached, and data validated. Exiting before training.")
         return
 
@@ -273,10 +312,12 @@ def train(
     )
     trainer.train()
 
-    final_dir = Path(args.output_dir) / "final"
     final_dir.mkdir(parents=True, exist_ok=True)
     model.save_pretrained(final_dir)
     tokenizer.save_pretrained(final_dir)
+    manifest["status"] = "completed"
+    manifest["final_dir"] = str(final_dir)
+    write_training_run_manifest(manifest, manifest_path)
     print(f"Saved final adapter to {final_dir}")
 
 
@@ -305,6 +346,8 @@ def main() -> None:
     parser.add_argument("--expected-training-target", default=None)
     parser.add_argument("--expected-evaluation-mode", default=None)
     parser.add_argument("--expected-benchmark", default=None)
+    parser.add_argument("--training-manifest-output", type=Path, default=None)
+    parser.add_argument("--run-id", default=None)
     args = parser.parse_args()
 
     train(
@@ -320,6 +363,8 @@ def main() -> None:
         expected_training_target=args.expected_training_target,
         expected_evaluation_mode=args.expected_evaluation_mode,
         expected_benchmark=args.expected_benchmark,
+        training_manifest_output=args.training_manifest_output,
+        run_id=args.run_id,
     )
 
 
