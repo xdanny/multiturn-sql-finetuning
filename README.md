@@ -28,6 +28,16 @@ training manifest for those stages, so eval and comparison artifacts can be
 traced back to exact prepared inputs and expected stage metadata. The offline
 paired evaluation path is `eval.run_metric_dsl_comparison`, and the local
 checkpoint experiment loop is `eval.run_local_metric_dsl_comparison`.
+Stage 3 now has the same shape: `data.semantic_layer_dataset` writes the
+semantic-aware SQL rows, `data.semantic_layer_direct_sql_dataset` writes the
+same-row control without semantic-model prompt context, and
+`eval.run_local_semantic_layer_comparison` generates, scores, and compares the
+paired local checkpoints.
+It now also has a prepared CoSQL proxy package:
+`data.semantic_proxy_dataset` writes the semantic train/eval artifacts,
+`data.semantic_proxy_direct_sql_dataset` writes the direct control, and
+`eval.run_local_semantic_proxy_comparison` compares local checkpoints on the
+same prepared dialog turns.
 The predicted-planner path now also has a local checkpoint comparison loop in
 `eval.run_local_predicted_planner_comparison`.
 Planner supervision has a local checkpoint evaluation path in
@@ -95,6 +105,16 @@ Known constraints:
   `docs/data_artifacts/synthetic_method_fixtures.jsonl`. It turns value
   normalization, entity resolution, grain/fanout, `MEASURE()` preservation, and
   recovery into curated rows with expected outputs before spending endpoint time.
+- Semantic-layer Stage 3 now has checked-in paired training artifacts under
+  `docs/data_artifacts/semantic_layer_training_rows.jsonl` and
+  `docs/data_artifacts/semantic_layer_direct_sql_training_rows.jsonl`. Those
+  rows are intentionally non-oracle at prompt time: the semantic path can see
+  governed semantic context, but neither side can see scorer-only labels or
+  future-only outputs.
+- The fixed CoSQL proxy now also has checked-in Stage 3 package artifacts under
+  `docs/data_artifacts/semantic_proxy*.jsonl`. Those artifacts point back to the
+  non-oracle value-label and value-index summaries and keep semantic/direct row
+  identity aligned at the prepared-record level.
 - Local execution scoring reports both strict label-aware accuracy and value-only accuracy. Treat older single `accuracy` numbers as strict-era results unless they come from `results/rescored/`.
 - Failure analysis now classifies every wrong rescored turn into actionable labels and compares adapters or prompt variants against a baseline under `plots/failure_taxonomy/`.
 - Schema-link label generation and semantic prompt pruning are available through `data.prepare --include-sql-labels --prune-semantic-model`. These flags now mark produced rows as `evaluation_mode=oracle_planner_diagnostic`. On the fixed 100-turn CoSQL slice, the best oracle prompt-only pruned-label run reaches `0.850` value accuracy, and training on that oracle-labelled format reaches `0.890`.
@@ -462,6 +482,19 @@ python -m eval.compare_rollout_history \
 
 The comparison command refuses mismatched models, mismatched input hashes, oracle
 diagnostics, and non-rollout manifests.
+
+There is now a separate synthetic Stage 5 recovery pair for faster finetuning
+iteration before endpoint rollout:
+
+- `docs/data_artifacts/behavior_recovery_training_rows.jsonl`
+- `docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl`
+- `uv run python -m eval.run_local_behavior_recovery_comparison`
+
+That pair stays non-oracle. It keeps the visible schema, conversation, prior
+SQL, and observed empty rows, but it does not expose repair labels such as
+`requires_repair_action` in the prompt. The shared scorer records both SQL
+accuracy and `recovery_success_rate`, so recovery is not flattened into generic
+execution accuracy.
 
 The optional `data.prepare --manifest-output` file records dataset composition:
 source counts, evaluation modes, turn formats, history policies, assistant-turn

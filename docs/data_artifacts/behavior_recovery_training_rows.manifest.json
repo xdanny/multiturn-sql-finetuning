@@ -1,0 +1,15 @@
+{
+  "artifact_type": "behavior_recovery_training_rows",
+  "benchmark": "synthetic_behavior_recovery",
+  "command": [
+    "/home/dan/docs/multiturn-sql-finetuning/data/behavior_recovery_dataset.py"
+  ],
+  "fixture_source_path": "docs/data_artifacts/synthetic_method_fixtures.jsonl",
+  "fixture_source_sha256": "bb25bac6e3c8161ed31f8461884b6bd2d1181d668aceb841f09d29bf381bbfea",
+  "output_path": "docs/data_artifacts/behavior_recovery_training_rows.jsonl",
+  "output_sha256": "7351576b7991ae252d0223b2cc6fe7e7556090979400ef5cdeadfeb72f024cfb",
+  "row_count": 1,
+  "summary_path": "docs/data_artifacts/behavior_recovery_training_rows_summary.json",
+  "summary_sha256": "78176c897da42015dbc32dc6bcdca007a27a89a4d6d9cdb66719ca6dba00f2db",
+  "training_target": "behavior_recovery"
+}

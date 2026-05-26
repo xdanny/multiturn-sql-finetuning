@@ -1,0 +1,18 @@
+{
+  "artifact_type": "semantic_proxy_direct_sql_dataset",
+  "benchmark": "cosql_semantic_proxy_direct_sql",
+  "command": [
+    "/home/dan/docs/multiturn-sql-finetuning/data/semantic_proxy_direct_sql_dataset.py"
+  ],
+  "eval_input_path": "data/processed/eval_cosql_dev_100.jsonl",
+  "eval_input_sha256": "00886900e4faf539bc6a6428b8b699b77f169874a9bfb8a205b1beaa2785cf6e",
+  "eval_output_path": "docs/data_artifacts/semantic_proxy_direct_sql_eval.jsonl",
+  "eval_output_sha256": "58a91ea5834a10f7400d5e78fd87645640fc2f6bb5142bd3af35435041016669",
+  "summary_path": "docs/data_artifacts/semantic_proxy_direct_sql_summary.json",
+  "summary_sha256": "330c1e51c8ccb11dc07838278c9894d890a4610884d8eef132dea88ef7e712a2",
+  "train_input_path": "data/processed/train_64_each.jsonl",
+  "train_input_sha256": "ce22d0dc49112fd78ed571c9ed0aefbb7e48a02f579ed3ca263a5072b2b47641",
+  "train_output_path": "docs/data_artifacts/semantic_proxy_direct_sql_train.jsonl",
+  "train_output_sha256": "741b7ccab5b179593c42f83a3c488b627d10b474ad41c005e1851f474453ad4e",
+  "training_target": "direct_sql_control"
+}

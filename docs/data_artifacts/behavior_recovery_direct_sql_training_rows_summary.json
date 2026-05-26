@@ -1,0 +1,14 @@
+{
+  "artifact_type": "behavior_recovery_direct_sql_training_rows",
+  "benchmark": "behavior_recovery_direct_sql",
+  "failure_mode_counts": {
+    "entity_resolution": 1,
+    "recovery": 1,
+    "value_normalization": 1
+  },
+  "fixture_ids": [
+    "recovery_empty_result"
+  ],
+  "row_count": 1,
+  "training_target": "direct_sql_control"
+}

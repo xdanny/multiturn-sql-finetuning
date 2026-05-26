@@ -100,6 +100,40 @@ databases. Against the gold labels as a coverage evaluation only, it indexes
 remaining gap is the artifact-backed reason to add alias/entity expansion before
 claiming semantic value grounding improved SQL.
 
+The Stage 3 synthetic finetuning path now mirrors that claim boundary:
+
+- `docs/data_artifacts/semantic_layer_training_rows.jsonl`
+- `docs/data_artifacts/semantic_layer_training_rows_summary.json`
+- `docs/data_artifacts/semantic_layer_training_rows.manifest.json`
+- `docs/data_artifacts/semantic_layer_direct_sql_training_rows.jsonl`
+- `docs/data_artifacts/semantic_layer_direct_sql_training_rows_summary.json`
+- `docs/data_artifacts/semantic_layer_direct_sql_training_rows.manifest.json`
+
+Those rows are derived from the curated synthetic fixtures, but the prompt path
+is explicitly non-oracle. The semantic-layer prompt can see schema, dialog
+history, and governed semantic model context. It cannot see scorer-only fields
+such as `expected_rows`, `reference_sql`, or gold DSL strings. The direct
+control uses the same rows and SQL targets without the semantic model so the
+comparison stays interpretable.
+
+The Stage 3 proxy package makes the same boundary concrete on the fixed CoSQL
+slice:
+
+- `docs/data_artifacts/semantic_proxy_train.jsonl`
+- `docs/data_artifacts/semantic_proxy_eval.jsonl`
+- `docs/data_artifacts/semantic_proxy_summary.json`
+- `docs/data_artifacts/semantic_proxy.manifest.json`
+- `docs/data_artifacts/semantic_proxy_direct_sql_train.jsonl`
+- `docs/data_artifacts/semantic_proxy_direct_sql_eval.jsonl`
+- `docs/data_artifacts/semantic_proxy_direct_sql_summary.json`
+- `docs/data_artifacts/semantic_proxy_direct_sql.manifest.json`
+
+Those artifacts reference the non-oracle value-label and value-index summaries,
+reuse the prepared CoSQL eval contract, and keep the same dialog-turn identity
+across the semantic and direct-control arms. The semantic training pack also
+filters mixed source files down to the rows that actually contain semantic
+context, so Stage 3 is not benchmarked against a half-semantic training split.
+
 ## Reproducible Proxy Commands
 
 Create a CoSQL-only prepared artifact:
@@ -303,6 +337,22 @@ python -m eval.compare_rollout_history \
 The comparison command requires the same model, same input hash, non-oracle
 manifests, and a positive rollout value delta before the claim ledger can clear
 `rollout_beats_teacher_forced_history`.
+
+The repo also carries a smaller synthetic recovery gate for Stage 5:
+
+```bash
+uv run python -m eval.run_local_behavior_recovery_comparison \
+  --behavior-recovery-training-manifest outputs/behavior_recovery/training.manifest.json \
+  --direct-training-manifest outputs/behavior_recovery_direct_sql/training.manifest.json \
+  --output-dir results/behavior_recovery \
+  --run-id <run-id> \
+  --model-name <local-model-name>
+```
+
+That path compares `benchmark=behavior_recovery` against
+`benchmark=behavior_recovery_direct_sql` on the same synthetic recovery row and
+writes deltas for value accuracy, strict accuracy, and `recovery_success_rate`.
+It is still a synthetic gate, not a rollout claim.
 
 ## Blog Rule
 

@@ -72,15 +72,43 @@ run, and a comparison manifest, it is not ready to be called a finetuning step.
   represented as semantic state instead of buried in one SQL string.
 - Prepared data:
   non-oracle semantic artifacts such as the value index, semantic retrieval
-  context, and entity-resolution labels that do not leak reference SQL.
+  context, and entity-resolution labels that do not leak reference SQL. The
+  first runnable finetuning surface is
+  `uv run python -m data.semantic_layer_dataset`, which derives semantic-aware
+  SQL rows from the curated synthetic fixtures without copying scorer-only
+  fields such as `expected_rows`, `reference_sql`, or gold metric DSL strings
+  into the user prompt.
+  The first proxy package on real CoSQL rows is
+  `uv run python -m data.semantic_proxy_dataset`, which packages the fixed
+  semantic training and eval slices together with the non-oracle value-label and
+  value-index summaries. Its direct control companion is
+  `uv run python -m data.semantic_proxy_direct_sql_dataset`.
 - Trainer invocation:
-  `uv run python -m train.finetune --config configs/qwen35_9b_5090.yaml --data <semantic-train.jsonl> --eval-data <semantic-eval.jsonl>`
+  `uv run python -m train.finetune --config configs/qwen35_9b_5090.yaml --data docs/data_artifacts/semantic_layer_training_rows.jsonl --eval-data docs/data_artifacts/semantic_layer_training_rows.jsonl --expected-training-target semantic_layer --expected-evaluation-mode non_oracle_generation --expected-benchmark synthetic_semantic_layer`
+- Training artifact:
+  each run should emit a training manifest for the exact semantic rows it saw,
+  for example with `--run-id semantic_layer_bootstrap --training-manifest-output results/train/semantic_layer_bootstrap.manifest.json`.
 - Evaluation gate:
   value/entity retrieval artifacts must improve metric and join behavior on the
-  same evaluation rows before SQL gains are called causal.
+  same evaluation rows before SQL gains are called causal. The local checkpoint
+  loop is `uv run python -m eval.run_local_semantic_layer_comparison`, which
+  pairs a `semantic_layer` manifest with a row-matched
+  `synthetic_semantic_layer_direct_sql` control and writes the compared
+  manifest only after both sides are scored on the same fixture rows.
+  The corresponding proxy loop on prepared CoSQL rows is
+  `uv run python -m eval.run_local_semantic_proxy_comparison`, which reuses the
+  packaged semantic/direct eval slices and compares the resulting prepared
+  manifests on the same dialog turns.
 - Claim boundary:
   semantic prompt growth alone is not enough. The semantic path has to justify
-  itself with artifact quality and same-row SQL outcomes.
+  itself with artifact quality and same-row SQL outcomes. The direct control
+  for that comparison should be trained with
+  `docs/data_artifacts/semantic_layer_direct_sql_training_rows.jsonl`, which
+  keeps the same synthetic rows and SQL targets but omits semantic model
+  context so the comparison isolates the semantic-layer signal itself.
+  On the CoSQL proxy package, the semantic training pack is filtered to rows
+  that actually contain semantic context; mixed source files are not allowed to
+  silently blur the stage boundary.
 
 ## Stage 4: MEASURE()-preserving metric DSL
 
@@ -118,16 +146,23 @@ run, and a comparison manifest, it is not ready to be called a finetuning step.
 - Training target:
   model behavior after its own earlier SQL, empty results, and repair steps.
 - Prepared data:
-  rollout-style rows or synthetic recovery fixtures that encode the difference
-  between teacher-forced clean history and model-generated history.
+  the first checked-in gate is the synthetic recovery pair:
+  `data.behavior_recovery_dataset` and
+  `data.behavior_recovery_direct_sql_dataset`. Those rows keep prior SQL and
+  observed empty rows visible, but they do not copy scorer-only repair labels
+  into the prompt. Rollout-style prepared rows remain the higher-fidelity proxy
+  gate for later endpoint runs.
 - Trainer invocation:
-  `uv run python -m train.finetune --config configs/qwen35_9b_5090.yaml --data <recovery-train.jsonl> --eval-data <recovery-eval.jsonl>`
+  `uv run python -m train.finetune --config configs/qwen35_9b_5090.yaml --data docs/data_artifacts/behavior_recovery_training_rows.jsonl --eval-data docs/data_artifacts/behavior_recovery_training_rows.jsonl --expected-training-target behavior_recovery --expected-evaluation-mode non_oracle_generation --expected-benchmark synthetic_behavior_recovery`
 - Evaluation gate:
-  `uv run python -m eval.rollout_eval` followed by
-  `uv run python -m eval.compare_rollout_history`.
+  first, `uv run python -m eval.run_local_behavior_recovery_comparison` for the
+  synthetic same-row pair. Then, `uv run python -m eval.rollout_eval` followed
+  by `uv run python -m eval.compare_rollout_history` for the same-model
+  generated-history gate on prepared dialogs.
 - Claim boundary:
-  recovery is not proven on teacher-forced rows. The same-model rollout must
-  beat the teacher-forced baseline.
+  the synthetic pair can justify a narrow recovery-method comparison only. A
+  behavior/recovery claim on the CoSQL proxy still requires same-model rollout
+  to beat the teacher-forced baseline.
 
 ## Stage 6: Hosted and BIRD-Interact comparison
 

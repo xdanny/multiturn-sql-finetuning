@@ -1,0 +1,22 @@
+{
+  "artifact_type": "semantic_proxy_dataset",
+  "benchmark": "cosql_semantic_proxy",
+  "command": [
+    "/home/dan/docs/multiturn-sql-finetuning/data/semantic_proxy_dataset.py"
+  ],
+  "eval_input_path": "data/processed/eval_cosql_dev_100.jsonl",
+  "eval_input_sha256": "00886900e4faf539bc6a6428b8b699b77f169874a9bfb8a205b1beaa2785cf6e",
+  "eval_output_path": "docs/data_artifacts/semantic_proxy_eval.jsonl",
+  "eval_output_sha256": "7d695387df3c05ec864ba1c7bd132748a367fbd97046803bd8d8b2cdba2a584a",
+  "summary_path": "docs/data_artifacts/semantic_proxy_summary.json",
+  "summary_sha256": "4161d60a2d6a6f65f75ba25fa8f34419e15536c4a0990c12d0e7e00c89031118",
+  "train_input_path": "data/processed/train_64_each_semantic.jsonl",
+  "train_input_sha256": "03f64a126ac34e3fd62e08a5a06acea8ff3a189bd214979ab966a71bacb69158",
+  "train_output_path": "docs/data_artifacts/semantic_proxy_train.jsonl",
+  "train_output_sha256": "3948b498615eeecc8dc9a4a4ecb06df1f41f89cf43f394c5f1a9465e2cb9bbfa",
+  "training_target": "semantic_layer",
+  "value_index_summary_path": "docs/data_artifacts/value_index_cosql_dev_100_summary.json",
+  "value_index_summary_sha256": "420133ccd09b3a6be60a2a21566a76fec46336de39612eb6caf7759813db5844",
+  "value_labels_summary_path": "docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json",
+  "value_labels_summary_sha256": "c53be03c5e2cb99acba406d20f72b94a7c330a4076b059a1bfe56f2d32ccb2ec"
+}

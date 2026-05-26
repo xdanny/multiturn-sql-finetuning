@@ -1,0 +1,8 @@
+{
+  "artifact_type": "semantic_proxy_direct_sql_dataset",
+  "benchmark": "cosql_semantic_proxy_direct_sql",
+  "eval_database_count": 20,
+  "eval_row_count": 100,
+  "train_row_count": 192,
+  "training_target": "direct_sql_control"
+}

@@ -37,9 +37,16 @@ When editing here, inspect:
 - `eval/result_manifest.py`
 - `eval/compare_predicted_planner.py`
 - `eval/compare_metric_dsl_direct_sql.py`
+- `eval/compare_semantic_layer_direct_sql.py`
+- `eval/compare_semantic_proxy_direct_sql.py`
+- `eval/compare_behavior_recovery_direct_sql.py`
 - `eval/run_metric_dsl_comparison.py`
 - `eval/local_metric_dsl_benchmark.py`
+- `eval/local_text_benchmark.py`
+- `eval/run_local_behavior_recovery_comparison.py`
 - `eval/run_local_metric_dsl_comparison.py`
+- `eval/run_local_semantic_layer_comparison.py`
+- `eval/run_local_semantic_proxy_comparison.py`
 - `eval/run_local_predicted_planner_comparison.py`
 - `eval/local_planner_benchmark.py`
 - `eval/run_local_planner_eval.py`

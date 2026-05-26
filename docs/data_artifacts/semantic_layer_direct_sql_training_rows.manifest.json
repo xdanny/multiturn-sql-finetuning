@@ -1,0 +1,15 @@
+{
+  "artifact_type": "semantic_layer_direct_sql_training_rows",
+  "benchmark": "synthetic_semantic_layer_direct_sql",
+  "command": [
+    "/home/dan/docs/multiturn-sql-finetuning/data/semantic_layer_direct_sql_dataset.py"
+  ],
+  "fixture_source_path": "docs/data_artifacts/synthetic_method_fixtures.jsonl",
+  "fixture_source_sha256": "bb25bac6e3c8161ed31f8461884b6bd2d1181d668aceb841f09d29bf381bbfea",
+  "output_path": "docs/data_artifacts/semantic_layer_direct_sql_training_rows.jsonl",
+  "output_sha256": "3d401929486ddc5da0c58c3bddc30c090a9ab88d8d3cd487eebb8c3d26fa449f",
+  "row_count": 5,
+  "summary_path": "docs/data_artifacts/semantic_layer_direct_sql_training_rows_summary.json",
+  "summary_sha256": "41f6286b69f9a6c5b27dc3cd607dc80e2a3233e5cb85a3c2fd9288e9cf9d03c5",
+  "training_target": "direct_sql_control"
+}

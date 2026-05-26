@@ -1,0 +1,24 @@
+{
+  "artifact_type": "semantic_layer_direct_sql_training_rows",
+  "benchmark": "synthetic_semantic_layer_direct_sql",
+  "failure_mode_counts": {
+    "context_carryover": 2,
+    "duplicate_row_policy": 1,
+    "entity_resolution": 2,
+    "grain_change": 1,
+    "grain_fanout": 1,
+    "measure_preservation": 1,
+    "recovery": 1,
+    "semantic_model": 1,
+    "value_normalization": 2
+  },
+  "fixture_ids": [
+    "value_normalization_france",
+    "entity_resolution_followup",
+    "grain_fanout_bridge",
+    "measure_preservation_metric",
+    "recovery_empty_result"
+  ],
+  "row_count": 5,
+  "training_target": "direct_sql_control"
+}

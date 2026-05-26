@@ -1,0 +1,9 @@
+{
+  "artifact_type": "semantic_proxy_dataset",
+  "benchmark": "cosql_semantic_proxy",
+  "eval_database_count": 20,
+  "eval_dialog_count": 20,
+  "eval_row_count": 100,
+  "train_row_count": 64,
+  "training_target": "semantic_layer"
+}

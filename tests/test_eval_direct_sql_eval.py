@@ -92,3 +92,69 @@ def test_run_direct_sql_eval_writes_results_and_manifest(tmp_path: Path) -> None
     assert manifest["metrics"]["value_execution_accuracy"] == 1.0
     assert manifest["metrics"]["strict_execution_accuracy"] == 1.0
     assert manifest["metrics"]["execution_evaluated_rows"] == 1
+
+
+def test_evaluate_direct_sql_rows_scores_recovery_success_for_repair_fixture(tmp_path: Path) -> None:
+    reference_sql = (
+        "SELECT customers.name, SUM(orders.amount) AS revenue "
+        "FROM orders JOIN customers ON orders.customer_id = customers.id "
+        "WHERE customers.country_code = 'FR' GROUP BY customers.name "
+        "ORDER BY revenue DESC LIMIT 1"
+    )
+    rows = [
+        {
+            "id": "recovery-1",
+            "fixture_id": "recovery_empty_result",
+            "generated_sql": reference_sql,
+            "reference_sql": reference_sql,
+        }
+    ]
+
+    [result] = evaluate_direct_sql_rows(rows, fixtures_path=None, working_dir=tmp_path)
+
+    assert result["recovery_required"] is True
+    assert result["recovery_success"] is True
+
+
+def test_run_direct_sql_eval_writes_recovery_metrics_for_behavior_recovery_benchmark(
+    tmp_path: Path,
+) -> None:
+    input_path = tmp_path / "recovery_predictions.jsonl"
+    output_path = tmp_path / "recovery_results.jsonl"
+    manifest_path = tmp_path / "recovery_results.manifest.json"
+    reference_sql = (
+        "SELECT customers.name, SUM(orders.amount) AS revenue "
+        "FROM orders JOIN customers ON orders.customer_id = customers.id "
+        "WHERE customers.country_code = 'FR' GROUP BY customers.name "
+        "ORDER BY revenue DESC LIMIT 1"
+    )
+    _write_jsonl(
+        input_path,
+        [
+            {
+                "id": "recovery-1",
+                "fixture_id": "recovery_empty_result",
+                "generated_sql": reference_sql,
+                "reference_sql": reference_sql,
+                "evaluation_mode": "non_oracle_generation",
+            }
+        ],
+    )
+
+    exit_code = run_direct_sql_eval(
+        input_path=input_path,
+        output_path=output_path,
+        manifest_output=manifest_path,
+        model_name="local-9b",
+        fixtures_path=None,
+        working_dir=tmp_path / "scratch",
+        benchmark="behavior_recovery",
+        command=["python", "-m", "eval.direct_sql_eval"],
+    )
+
+    manifest = json.loads(manifest_path.read_text())
+
+    assert exit_code == 0
+    assert manifest["benchmark"] == "behavior_recovery"
+    assert manifest["metrics"]["recovery_evaluated_rows"] == 1
+    assert manifest["metrics"]["recovery_success_rate"] == 1.0

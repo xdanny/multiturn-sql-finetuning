@@ -62,6 +62,17 @@ def _database_path_for_row(
     return database_path
 
 
+def _recovery_required(row: dict[str, Any], fixture: dict[str, Any] | None) -> bool:
+    if row.get("recovery_required") is not None:
+        return bool(row.get("recovery_required"))
+    if fixture is None:
+        return False
+    checks = fixture.get("evaluation_checks") or {}
+    return bool(checks.get("requires_generated_history")) or "recovery" in set(
+        fixture.get("failure_modes") or []
+    )
+
+
 def evaluate_direct_sql_rows(
     rows: list[dict[str, Any]],
     *,
@@ -77,8 +88,11 @@ def evaluate_direct_sql_rows(
         if not generated_sql:
             generated_sql = ""
         reference_sql = str(row["reference_sql"])
+        fixture = fixtures.get(str(row.get("fixture_id"))) if row.get("fixture_id") else None
         database_path = _database_path_for_row(row, fixtures=fixtures, working_dir=working_dir)
         score = score_single_turn(reference_sql, extract_sql(generated_sql), database_path=database_path)
+        recovery_required = _recovery_required(row, fixture)
+        recovery_success = recovery_required and bool(score.strict_execution_score)
         results.append(
             {
                 **row,
@@ -92,6 +106,8 @@ def evaluate_direct_sql_rows(
                 "syntax_valid": score.syntax_valid,
                 "score_error": score.error,
                 "database_path": str(database_path) if database_path else None,
+                "recovery_required": recovery_required,
+                "recovery_success": recovery_success,
             }
         )
     return results
@@ -112,12 +128,17 @@ def _summarize_results(results: list[dict[str, Any]]) -> dict[str, Any]:
         for result in results
         if result.get("value_execution_score") is not None
     ]
+    recovery_rows = [result for result in results if result.get("recovery_required")]
     return {
         "rows": len(results),
         "execution_evaluated_rows": len(value_scores),
         "strict_execution_accuracy": _mean(strict_scores),
         "value_execution_accuracy": _mean(value_scores),
         "syntax_accuracy": _mean([float(bool(result.get("syntax_valid"))) for result in results]),
+        "recovery_evaluated_rows": len(recovery_rows),
+        "recovery_success_rate": _mean(
+            [float(bool(result.get("recovery_success"))) for result in recovery_rows]
+        ),
     }
 
 
@@ -129,6 +150,8 @@ def run_direct_sql_eval(
     model_name: str,
     fixtures_path: Path | None,
     working_dir: Path,
+    benchmark: str = BENCHMARK,
+    prompt_variant: str = "direct_sql_control",
     command: list[str] | None = None,
 ) -> int:
     rows = _load_jsonl(input_path)
@@ -139,14 +162,14 @@ def run_direct_sql_eval(
         manifest_output = output_path.with_suffix(".manifest.json")
     manifest = build_result_manifest(
         run_id=output_path.stem,
-        benchmark=BENCHMARK,
+        benchmark=benchmark,
         input_path=input_path,
         output_path=output_path,
         model_name=model_name,
         endpoint="offline",
         evaluation_mode=NON_ORACLE_GENERATION,
         oracle_allowed=False,
-        prompt_variant="direct_sql_control",
+        prompt_variant=prompt_variant,
         database_root=working_dir,
         command=list(command or sys.argv),
         row_count=written,
