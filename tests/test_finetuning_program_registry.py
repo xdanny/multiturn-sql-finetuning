@@ -31,6 +31,14 @@ def test_build_finetuning_program_registry_covers_blog_method_ideas() -> None:
     assert stage_by_key["metric_dsl"]["blog_idea"] == "MEASURE()-preserving DSL"
     assert stage_by_key["metric_dsl"]["learning_focus"] == "preserve governed metric intent before SQL compilation"
     assert stage_by_key["predicted_planner_sql"]["win_condition"] == "same-row SQL execution beats the direct SQL control"
+    assert stage_by_key["direct_sql_control"]["current_evidence"]["status"] == "measured"
+    assert "best checked-in direct-SQL proxy value accuracy is 0.63" in stage_by_key["direct_sql_control"]["current_evidence"]["summary"]
+    assert stage_by_key["planner_supervision"]["current_evidence"]["status"] == "measured"
+    assert "macro planner score is 0.571" in stage_by_key["planner_supervision"]["current_evidence"]["summary"]
+    assert stage_by_key["predicted_planner_sql"]["current_evidence"]["status"] == "pending"
+    assert "no predicted_planner result manifest" in stage_by_key["predicted_planner_sql"]["current_evidence"]["summary"]
+    assert stage_by_key["semantic_layer"]["current_evidence"]["status"] == "artifacts_ready"
+    assert "no checked-in same-row semantic comparison result manifest yet" in stage_by_key["semantic_layer"]["current_evidence"]["summary"]
     assert stage_by_key["semantic_layer"]["blog_idea"] == "semantic-layer state"
     assert stage_by_key["behavior_recovery"]["blog_idea"] == "generated-history recovery"
     assert stage_by_key["hosted_and_bird_benchmark"]["blog_idea"] == "hosted and BIRD-Interact benchmark gate"
@@ -114,6 +122,8 @@ def test_build_finetuning_stage_scorecard_is_human_readable() -> None:
     assert "## Stage 3: Semantic-layer tuning" in scorecard
     assert "- Learns: governed entities, joins, grain, and value meaning that raw schema text misses." in scorecard
     assert "- Win condition: same-row comparison beats the direct SQL control without oracle pruning." in scorecard
+    assert "- Current evidence: prepared semantic artifacts exist, but no checked-in same-row semantic comparison result manifest yet." in scorecard
+    assert "- Current evidence: prepared artifacts exist, but pending claim because no predicted_planner result manifest." in scorecard
     assert "## Stage 6: Hosted and BIRD-Interact comparison" in scorecard
     assert "- Control arm: best_local_candidate_from_stage_0_to_5" in scorecard
     assert "No wide summary table appears here on purpose." in scorecard

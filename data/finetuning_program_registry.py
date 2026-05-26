@@ -10,10 +10,12 @@ from typing import Any
 
 from eval.result_manifest import sha256_file
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
 ARTIFACT_TYPE = "finetuning_program_registry"
 DEFAULT_OUTPUT = Path("docs/data_artifacts/finetuning_program_registry.json")
 DEFAULT_MANIFEST_OUTPUT = Path("docs/data_artifacts/finetuning_program_registry.manifest.json")
 DEFAULT_SCORECARD_OUTPUT = Path("docs/data_artifacts/finetuning_stage_scorecard.md")
+DEFAULT_CLAIM_LEDGER = Path("docs/claim_ledgers/cosql_dev_100.jsonl")
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -41,6 +43,16 @@ def _stages() -> list[dict[str, Any]]:
                 "eval.run_eval",
                 "eval.claim_ledger",
             ],
+            "evidence_contract": {
+                "claim_ids": [
+                    "qwen35_9b_base_cosql_dev_100turns",
+                    "multiturn_sql_100_cosql_dev_100turns",
+                ],
+                "artifact_paths": [
+                    "docs/result_manifests/cosql_dev_100_proxy.json",
+                ],
+                "mode": "best_value_accuracy",
+            },
             "trainer_contract": {
                 "expected_training_target": "direct_sql_control",
                 "evaluation_mode": "non_oracle_generation",
@@ -74,6 +86,13 @@ def _stages() -> list[dict[str, Any]]:
                 "eval.planner_optimize",
                 "eval.run_local_planner_eval",
             ],
+            "evidence_contract": {
+                "claim_ids": ["planner_lexical_schema_baseline"],
+                "artifact_paths": [
+                    "docs/planner_baseline_cosql_dev_100_summary.json",
+                ],
+                "mode": "planner_macro",
+            },
             "trainer_contract": {
                 "expected_training_target": "planner_supervision",
                 "evaluation_mode": "non_oracle_generation",
@@ -105,6 +124,13 @@ def _stages() -> list[dict[str, Any]]:
                 "eval.run_predicted_planner_comparison",
                 "eval.run_local_predicted_planner_comparison",
             ],
+            "evidence_contract": {
+                "claim_ids": ["predicted_planner_sql_execution"],
+                "artifact_paths": [
+                    "data/processed/eval_cosql_dev_predicted_planner_100.jsonl",
+                ],
+                "mode": "pending_claim",
+            },
             "trainer_contract": {
                 "expected_training_target": "predicted_planner",
                 "evaluation_mode": "predicted_planner",
@@ -137,6 +163,15 @@ def _stages() -> list[dict[str, Any]]:
                 "eval.run_local_semantic_layer_comparison",
                 "eval.run_local_semantic_proxy_comparison",
             ],
+            "evidence_contract": {
+                "artifact_paths": [
+                    "docs/data_artifacts/semantic_layer_training_rows.manifest.json",
+                    "docs/data_artifacts/semantic_proxy.manifest.json",
+                    "docs/data_artifacts/semantic_proxy_direct_sql.manifest.json",
+                ],
+                "mode": "artifacts_only",
+                "artifacts_ready_summary": "prepared semantic artifacts exist, but no checked-in same-row semantic comparison result manifest yet.",
+            },
             "trainer_contract": {
                 "expected_training_target": "semantic_layer",
                 "evaluation_mode": "non_oracle_generation",
@@ -174,6 +209,17 @@ def _stages() -> list[dict[str, Any]]:
                 "eval.run_metric_dsl_comparison",
                 "eval.run_local_metric_dsl_comparison",
             ],
+            "evidence_contract": {
+                "claim_ids": [
+                    "metric_dsl_evaluation_manifest",
+                    "metric_dsl_beats_direct_sql",
+                ],
+                "artifact_paths": [
+                    "docs/data_artifacts/metric_dsl_training_rows.manifest.json",
+                    "docs/data_artifacts/metric_dsl_direct_sql_training_rows.manifest.json",
+                ],
+                "mode": "pending_claim",
+            },
             "trainer_contract": {
                 "expected_training_target": "metric_dsl",
                 "evaluation_mode": "metric_dsl",
@@ -208,6 +254,17 @@ def _stages() -> list[dict[str, Any]]:
                 "eval.run_local_rollout_comparison",
                 "eval.compare_rollout_history",
             ],
+            "evidence_contract": {
+                "claim_ids": [
+                    "model_generated_history_rollout",
+                    "rollout_beats_teacher_forced_history",
+                ],
+                "artifact_paths": [
+                    "docs/data_artifacts/behavior_recovery_training_rows.manifest.json",
+                    "docs/data_artifacts/behavior_recovery_proxy.manifest.json",
+                ],
+                "mode": "pending_claim",
+            },
             "trainer_contract": {
                 "expected_training_target": "behavior_recovery",
                 "evaluation_mode": "non_oracle_generation",
@@ -240,6 +297,18 @@ def _stages() -> list[dict[str, Any]]:
                 "eval.run_hosted_baseline_comparison",
                 "eval.run_bird_interact_comparison",
             ],
+            "evidence_contract": {
+                "claim_ids": [
+                    "hosted_sota_same_protocol",
+                    "local_beats_hosted_same_protocol",
+                    "bird_interact_local_vs_hosted",
+                ],
+                "artifact_paths": [
+                    "docs/data_artifacts/hosted_baseline.manifest.json",
+                    "docs/data_artifacts/bird_interact_transfer.manifest.json",
+                ],
+                "mode": "pending_claim",
+            },
             "trainer_contract": None,
             "leakage_boundaries": [
                 "no_future_turn_content",
@@ -252,8 +321,92 @@ def _stages() -> list[dict[str, Any]]:
     ]
 
 
+def _load_jsonl(path: Path) -> list[dict[str, Any]]:
+    with path.open() as handle:
+        return [json.loads(line) for line in handle if line.strip()]
+
+
+def _resolve_repo_path(path_value: str | Path) -> Path:
+    path = Path(path_value)
+    return path if path.is_absolute() else REPO_ROOT / path
+
+
+def _load_claim_rows() -> dict[str, dict[str, Any]]:
+    path = _resolve_repo_path(DEFAULT_CLAIM_LEDGER)
+    if not path.exists():
+        return {}
+    return {str(row.get("claim_id")): row for row in _load_jsonl(path) if row.get("claim_id")}
+
+
+def _format_metric(value: float) -> str:
+    return f"{value:.3f}" if value < 0.6 else f"{value:.2f}"
+
+
+def _summarize_current_evidence(stage: dict[str, Any], claim_rows: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    contract = stage.get("evidence_contract") or {}
+    artifact_paths = [str(path) for path in contract.get("artifact_paths", [])]
+    existing_artifacts = [path for path in artifact_paths if _resolve_repo_path(path).exists()]
+    claim_ids = [str(claim_id) for claim_id in contract.get("claim_ids", [])]
+    rows = [claim_rows[claim_id] for claim_id in claim_ids if claim_id in claim_rows]
+    mode = contract.get("mode")
+
+    if mode == "best_value_accuracy" and rows:
+        best = max(
+            (float(row.get("value_execution_accuracy") or 0.0) for row in rows),
+            default=0.0,
+        )
+        return {
+            "status": "measured",
+            "summary": f"measured proxy results exist; best checked-in direct-SQL proxy value accuracy is {_format_metric(best)}.",
+            "claim_ids": claim_ids,
+            "artifact_paths": existing_artifacts,
+        }
+    if mode == "planner_macro" and rows:
+        row = rows[0]
+        score = float(row.get("macro_planner_score") or 0.0)
+        return {
+            "status": "measured",
+            "summary": f"planner-quality evidence exists; current checked-in macro planner score is {_format_metric(score)}.",
+            "claim_ids": claim_ids,
+            "artifact_paths": existing_artifacts,
+        }
+    if mode == "pending_claim" and rows:
+        blocking_reason = next(
+            (str(row.get("blocking_reason")) for row in rows if row.get("blocking_reason")),
+            "required result artifacts are still missing",
+        )
+        prefix = "prepared artifacts exist, but " if existing_artifacts else ""
+        return {
+            "status": "pending",
+            "summary": f"{prefix}pending claim because {blocking_reason}.",
+            "claim_ids": claim_ids,
+            "artifact_paths": existing_artifacts,
+        }
+    if mode == "artifacts_only" and existing_artifacts:
+        return {
+            "status": "artifacts_ready",
+            "summary": str(contract.get("artifacts_ready_summary") or "prepared artifacts exist, but no checked-in result manifest yet."),
+            "claim_ids": claim_ids,
+            "artifact_paths": existing_artifacts,
+        }
+    return {
+        "status": "missing",
+        "summary": "no checked-in evidence artifact found for this stage yet.",
+        "claim_ids": claim_ids,
+        "artifact_paths": existing_artifacts,
+    }
+
+
 def build_finetuning_program_registry() -> dict[str, Any]:
     stages = _stages()
+    claim_rows = _load_claim_rows()
+    stages = [
+        {
+            **stage,
+            "current_evidence": _summarize_current_evidence(stage, claim_rows),
+        }
+        for stage in stages
+    ]
     evaluation_modes = sorted(
         {
             stage["trainer_contract"]["evaluation_mode"]
@@ -309,6 +462,7 @@ def build_finetuning_stage_scorecard(registry: dict[str, Any] | None = None) -> 
                 f"- Comparison gate: {', '.join(stage['comparison_contracts'])}.",
                 f"- Win condition: {stage['win_condition']}.",
                 f"- Leakage to forbid: {', '.join(stage['leakage_boundaries'])}.",
+                f"- Current evidence: {stage['current_evidence']['summary']}",
                 f"- Claim boundary: {stage['claim_boundary']}",
                 "",
             ]

@@ -32,6 +32,27 @@
         "eval.claim_ledger"
       ],
       "control_arm": null,
+      "current_evidence": {
+        "artifact_paths": [
+          "docs/result_manifests/cosql_dev_100_proxy.json"
+        ],
+        "claim_ids": [
+          "qwen35_9b_base_cosql_dev_100turns",
+          "multiturn_sql_100_cosql_dev_100turns"
+        ],
+        "status": "measured",
+        "summary": "measured proxy results exist; best checked-in direct-SQL proxy value accuracy is 0.63."
+      },
+      "evidence_contract": {
+        "artifact_paths": [
+          "docs/result_manifests/cosql_dev_100_proxy.json"
+        ],
+        "claim_ids": [
+          "qwen35_9b_base_cosql_dev_100turns",
+          "multiturn_sql_100_cosql_dev_100turns"
+        ],
+        "mode": "best_value_accuracy"
+      },
       "leakage_boundaries": [
         "no_future_turn_content",
         "no_oracle_planner_hints",
@@ -66,6 +87,25 @@
         "eval.run_local_planner_eval"
       ],
       "control_arm": "direct_sql_control",
+      "current_evidence": {
+        "artifact_paths": [
+          "docs/planner_baseline_cosql_dev_100_summary.json"
+        ],
+        "claim_ids": [
+          "planner_lexical_schema_baseline"
+        ],
+        "status": "measured",
+        "summary": "planner-quality evidence exists; current checked-in macro planner score is 0.571."
+      },
+      "evidence_contract": {
+        "artifact_paths": [
+          "docs/planner_baseline_cosql_dev_100_summary.json"
+        ],
+        "claim_ids": [
+          "planner_lexical_schema_baseline"
+        ],
+        "mode": "planner_macro"
+      },
       "leakage_boundaries": [
         "no_future_turn_content",
         "gold_plan_allowed_only_as_label",
@@ -100,6 +140,25 @@
         "eval.run_local_predicted_planner_comparison"
       ],
       "control_arm": "direct_sql_control",
+      "current_evidence": {
+        "artifact_paths": [
+          "data/processed/eval_cosql_dev_predicted_planner_100.jsonl"
+        ],
+        "claim_ids": [
+          "predicted_planner_sql_execution"
+        ],
+        "status": "pending",
+        "summary": "prepared artifacts exist, but pending claim because no predicted_planner result manifest."
+      },
+      "evidence_contract": {
+        "artifact_paths": [
+          "data/processed/eval_cosql_dev_predicted_planner_100.jsonl"
+        ],
+        "claim_ids": [
+          "predicted_planner_sql_execution"
+        ],
+        "mode": "pending_claim"
+      },
       "leakage_boundaries": [
         "no_future_turn_content",
         "predicted_plan_must_be_non_oracle",
@@ -133,6 +192,25 @@
         "eval.run_local_semantic_proxy_comparison"
       ],
       "control_arm": "direct_sql_control",
+      "current_evidence": {
+        "artifact_paths": [
+          "docs/data_artifacts/semantic_layer_training_rows.manifest.json",
+          "docs/data_artifacts/semantic_proxy.manifest.json",
+          "docs/data_artifacts/semantic_proxy_direct_sql.manifest.json"
+        ],
+        "claim_ids": [],
+        "status": "artifacts_ready",
+        "summary": "prepared semantic artifacts exist, but no checked-in same-row semantic comparison result manifest yet."
+      },
+      "evidence_contract": {
+        "artifact_paths": [
+          "docs/data_artifacts/semantic_layer_training_rows.manifest.json",
+          "docs/data_artifacts/semantic_proxy.manifest.json",
+          "docs/data_artifacts/semantic_proxy_direct_sql.manifest.json"
+        ],
+        "artifacts_ready_summary": "prepared semantic artifacts exist, but no checked-in same-row semantic comparison result manifest yet.",
+        "mode": "artifacts_only"
+      },
       "leakage_boundaries": [
         "no_future_turn_content",
         "no_reference_sql_in_prompt",
@@ -170,6 +248,29 @@
         "eval.run_local_metric_dsl_comparison"
       ],
       "control_arm": "direct_sql_control",
+      "current_evidence": {
+        "artifact_paths": [
+          "docs/data_artifacts/metric_dsl_training_rows.manifest.json",
+          "docs/data_artifacts/metric_dsl_direct_sql_training_rows.manifest.json"
+        ],
+        "claim_ids": [
+          "metric_dsl_evaluation_manifest",
+          "metric_dsl_beats_direct_sql"
+        ],
+        "status": "pending",
+        "summary": "prepared artifacts exist, but pending claim because no valid metric_dsl result manifest."
+      },
+      "evidence_contract": {
+        "artifact_paths": [
+          "docs/data_artifacts/metric_dsl_training_rows.manifest.json",
+          "docs/data_artifacts/metric_dsl_direct_sql_training_rows.manifest.json"
+        ],
+        "claim_ids": [
+          "metric_dsl_evaluation_manifest",
+          "metric_dsl_beats_direct_sql"
+        ],
+        "mode": "pending_claim"
+      },
       "leakage_boundaries": [
         "no_future_turn_content",
         "no_reference_sql_in_prompt",
@@ -207,6 +308,29 @@
         "eval.compare_rollout_history"
       ],
       "control_arm": "direct_sql_control",
+      "current_evidence": {
+        "artifact_paths": [
+          "docs/data_artifacts/behavior_recovery_training_rows.manifest.json",
+          "docs/data_artifacts/behavior_recovery_proxy.manifest.json"
+        ],
+        "claim_ids": [
+          "model_generated_history_rollout",
+          "rollout_beats_teacher_forced_history"
+        ],
+        "status": "pending",
+        "summary": "prepared artifacts exist, but pending claim because no model-generated-history rollout manifest."
+      },
+      "evidence_contract": {
+        "artifact_paths": [
+          "docs/data_artifacts/behavior_recovery_training_rows.manifest.json",
+          "docs/data_artifacts/behavior_recovery_proxy.manifest.json"
+        ],
+        "claim_ids": [
+          "model_generated_history_rollout",
+          "rollout_beats_teacher_forced_history"
+        ],
+        "mode": "pending_claim"
+      },
       "leakage_boundaries": [
         "no_future_turn_content",
         "no_reference_sql_in_prompt",
@@ -243,6 +367,31 @@
         "eval.run_bird_interact_comparison"
       ],
       "control_arm": "best_local_candidate_from_stage_0_to_5",
+      "current_evidence": {
+        "artifact_paths": [
+          "docs/data_artifacts/hosted_baseline.manifest.json",
+          "docs/data_artifacts/bird_interact_transfer.manifest.json"
+        ],
+        "claim_ids": [
+          "hosted_sota_same_protocol",
+          "local_beats_hosted_same_protocol",
+          "bird_interact_local_vs_hosted"
+        ],
+        "status": "pending",
+        "summary": "prepared artifacts exist, but pending claim because no same-protocol hosted-model manifest."
+      },
+      "evidence_contract": {
+        "artifact_paths": [
+          "docs/data_artifacts/hosted_baseline.manifest.json",
+          "docs/data_artifacts/bird_interact_transfer.manifest.json"
+        ],
+        "claim_ids": [
+          "hosted_sota_same_protocol",
+          "local_beats_hosted_same_protocol",
+          "bird_interact_local_vs_hosted"
+        ],
+        "mode": "pending_claim"
+      },
       "leakage_boundaries": [
         "no_future_turn_content",
         "non_oracle_generation_only",
