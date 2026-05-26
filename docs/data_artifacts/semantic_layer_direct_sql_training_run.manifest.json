@@ -1,0 +1,27 @@
+{
+  "benchmark": "synthetic_semantic_layer_direct_sql",
+  "command": [
+    "train.finetune",
+    "validate-data-only"
+  ],
+  "config_path": "configs/qwen35_9b_5090.yaml",
+  "config_sha256": "620bbe8bd76c89c892116c82634fd289b1d2b67217af097f24c8e33f87cbb1ed",
+  "eval_data_path": "docs/data_artifacts/semantic_layer_direct_sql_training_rows.jsonl",
+  "eval_data_sha256": "3d401929486ddc5da0c58c3bddc30c090a9ab88d8d3cd487eebb8c3d26fa449f",
+  "eval_row_count": 5,
+  "evaluation_mode": "non_oracle_generation",
+  "expected_benchmark": "synthetic_semantic_layer_direct_sql",
+  "expected_evaluation_mode": "non_oracle_generation",
+  "expected_training_target": "direct_sql_control",
+  "final_dir": "outputs/semantic_layer_direct_sql_control/final",
+  "git_commit": "0c5ac36f9c9c165926e76b36b4a605fc2145cf44",
+  "output_dir": "outputs/semantic_layer_direct_sql_control",
+  "run_id": "semantic-layer-direct-control",
+  "schema_version": 1,
+  "stage": "direct_sql_control",
+  "status": "validated",
+  "train_data_path": "docs/data_artifacts/semantic_layer_direct_sql_training_rows.jsonl",
+  "train_data_sha256": "3d401929486ddc5da0c58c3bddc30c090a9ab88d8d3cd487eebb8c3d26fa449f",
+  "train_row_count": 5,
+  "training_target": "direct_sql_control"
+}

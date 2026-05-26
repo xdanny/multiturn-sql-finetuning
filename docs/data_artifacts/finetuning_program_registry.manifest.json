@@ -18,7 +18,7 @@
     "predicted_planner"
   ],
   "output_path": "docs/data_artifacts/finetuning_program_registry.json",
-  "output_sha256": "d59641bf45fb930cd576bc1db8ccae17e9602a82de5727251d1fa2e0b9f6617c",
+  "output_sha256": "8ee2a463f223dc534157bfec07224da6eecfcdf10ed24f30bcdb58bbded12674",
   "scorecard_output_path": "docs/data_artifacts/finetuning_stage_scorecard.md",
   "scorecard_output_sha256": "191b5c4e45ae6cde6bc5c3809d874a762611d26183450c97b8fbf437e5d120a6",
   "source_docs": [

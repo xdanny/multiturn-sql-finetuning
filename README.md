@@ -57,6 +57,10 @@ semantic-aware SQL rows, `data.semantic_layer_direct_sql_dataset` writes the
 same-row control without semantic-model prompt context, and
 `eval.run_local_semantic_layer_comparison` generates, scores, and compares the
 paired local checkpoints.
+The repo now also checks in validate-only Stage 3 training manifests plus
+`docs/semantic_layer_comparison_preflight.json`, so the current semantic-layer
+pair can be validated as structurally ready even before a fresh local checkpoint
+run is checked in.
 It now also has a prepared CoSQL proxy package:
 `data.semantic_proxy_dataset` writes the semantic train/eval artifacts,
 `data.semantic_proxy_direct_sql_dataset` writes the direct control, and

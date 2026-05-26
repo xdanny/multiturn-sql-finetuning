@@ -8,6 +8,7 @@ import pytest
 from eval.run_local_semantic_layer_comparison import (
     run_local_semantic_layer_comparison,
     validate_local_semantic_layer_training_manifests,
+    write_semantic_layer_comparison_preflight,
 )
 
 
@@ -167,3 +168,49 @@ def test_run_local_semantic_layer_comparison_runs_generation_eval_then_compares(
             "repo_root": Path("."),
         }
     ]
+
+
+def test_write_semantic_layer_comparison_preflight_records_ready_pair(tmp_path: Path) -> None:
+    semantic_manifest_path = tmp_path / "semantic.manifest.json"
+    direct_manifest_path = tmp_path / "direct.manifest.json"
+    semantic_input = tmp_path / "semantic.jsonl"
+    direct_input = tmp_path / "direct.jsonl"
+    output_path = tmp_path / "semantic_layer_comparison_preflight.json"
+    _write_json(
+        semantic_manifest_path,
+        _training_manifest(
+            stage="semantic_layer",
+            benchmark="synthetic_semantic_layer",
+            mode="non_oracle_generation",
+            train_path=semantic_input,
+        ),
+    )
+    _write_json(
+        direct_manifest_path,
+        _training_manifest(
+            stage="direct_sql_control",
+            benchmark="synthetic_semantic_layer_direct_sql",
+            mode="non_oracle_generation",
+            train_path=direct_input,
+        ),
+    )
+    _write_jsonl(semantic_input, [_record(fixture_id="value_normalization_france")])
+    _write_jsonl(direct_input, [_record(fixture_id="value_normalization_france")])
+
+    payload = write_semantic_layer_comparison_preflight(
+        semantic_training_manifest=semantic_manifest_path,
+        direct_training_manifest=direct_manifest_path,
+        output_path=output_path,
+    )
+
+    assert payload["artifact_type"] == "semantic_layer_comparison_preflight"
+    assert payload["status"] == "ready_for_local_pair"
+    assert payload["claim_boundary"] == "preflight only; no SQL execution claim"
+    assert payload["semantic_training_manifest_path"] == str(semantic_manifest_path)
+    assert payload["direct_training_manifest_path"] == str(direct_manifest_path)
+    assert payload["semantic_input_path"] == str(semantic_input)
+    assert payload["direct_input_path"] == str(direct_input)
+    assert payload["semantic_stage"] == "semantic_layer"
+    assert payload["direct_stage"] == "direct_sql_control"
+    assert payload["row_count"] == 1
+    assert json.loads(output_path.read_text()) == payload

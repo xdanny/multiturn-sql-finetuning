@@ -1,0 +1,17 @@
+{
+  "artifact_type": "semantic_layer_comparison_preflight",
+  "claim_boundary": "preflight only; no SQL execution claim",
+  "direct_input_path": "docs/data_artifacts/semantic_layer_direct_sql_training_rows.jsonl",
+  "direct_input_sha256": "3d401929486ddc5da0c58c3bddc30c090a9ab88d8d3cd487eebb8c3d26fa449f",
+  "direct_stage": "direct_sql_control",
+  "direct_training_manifest_path": "docs/data_artifacts/semantic_layer_direct_sql_training_run.manifest.json",
+  "direct_training_manifest_sha256": "3739ae364e59f632789e7771743f325fab19ee85eea7dfd73bf5eb38d67dcaa0",
+  "row_count": 5,
+  "schema_version": 1,
+  "semantic_input_path": "docs/data_artifacts/semantic_layer_training_rows.jsonl",
+  "semantic_input_sha256": "33b835e65416ee8e22bf6d6efd31c575315bcf97875e2ec694e4127d3b04723f",
+  "semantic_stage": "semantic_layer",
+  "semantic_training_manifest_path": "docs/data_artifacts/semantic_layer_training_run.manifest.json",
+  "semantic_training_manifest_sha256": "b7f0d1f1c7f7f7ac0e4f2c196f9f84b1548a24b24cfee7a8065de271d53ce660",
+  "status": "ready_for_local_pair"
+}

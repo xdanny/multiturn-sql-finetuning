@@ -91,6 +91,9 @@ If you want the short version before reading the full stage details, see
 - Training artifact:
   each run should emit a training manifest for the exact semantic rows it saw,
   for example with `--run-id semantic_layer_bootstrap --training-manifest-output results/train/semantic_layer_bootstrap.manifest.json`.
+  The repo now also checks in a validate-only bootstrap pair:
+  `docs/data_artifacts/semantic_layer_training_run.manifest.json` and
+  `docs/data_artifacts/semantic_layer_direct_sql_training_run.manifest.json`.
 - Evaluation gate:
   value/entity retrieval artifacts must improve metric and join behavior on the
   same evaluation rows before SQL gains are called causal. The local checkpoint
@@ -100,6 +103,11 @@ If you want the short version before reading the full stage details, see
   manifest only after both sides are scored on the same fixture rows. This
   runner now uses the shared `eval.local_sql_pair` contract rather than a
   stage-specific local workflow.
+  Before spending local checkpoint time, the same runner can now write a
+  readiness artifact with `--preflight-only --preflight-output
+  docs/semantic_layer_comparison_preflight.json`. That checked-in preflight
+  proves the current semantic-layer and direct-control training manifests point
+  at the same five synthetic rows, but it is not itself a scored SQL result.
   The corresponding proxy loop on prepared CoSQL rows is
   `uv run python -m eval.run_local_semantic_proxy_comparison`, which reuses the
   packaged semantic/direct eval slices and compares the resulting prepared

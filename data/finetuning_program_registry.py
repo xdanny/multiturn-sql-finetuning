@@ -173,8 +173,11 @@ def _stages() -> list[dict[str, Any]]:
                 "artifact_paths": [
                     "docs/result_manifests/semantic_proxy_vs_direct_sql.json",
                     "docs/data_artifacts/semantic_layer_training_rows.manifest.json",
+                    "docs/data_artifacts/semantic_layer_training_run.manifest.json",
                     "docs/data_artifacts/semantic_proxy.manifest.json",
                     "docs/data_artifacts/semantic_proxy_direct_sql.manifest.json",
+                    "docs/data_artifacts/semantic_layer_direct_sql_training_run.manifest.json",
+                    "docs/semantic_layer_comparison_preflight.json",
                 ],
                 "mode": "comparison_manifest",
                 "comparison_metric_prefix": "semantic_proxy",

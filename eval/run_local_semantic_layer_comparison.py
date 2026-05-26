@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 from eval.compare_semantic_layer_direct_sql import (
@@ -13,6 +14,7 @@ from eval.local_sql_pair import (
     run_local_sql_pair_generation_and_eval,
     validate_sql_pair_training_manifests,
 )
+from eval.result_manifest import sha256_file
 
 SPEC = SqlPairSpec(
     method_name="semantic_layer",
@@ -42,6 +44,38 @@ def validate_local_semantic_layer_training_manifests(
     }
 
 
+def write_semantic_layer_comparison_preflight(
+    *,
+    semantic_training_manifest: Path,
+    direct_training_manifest: Path,
+    output_path: Path,
+) -> dict[str, object]:
+    validated = validate_local_semantic_layer_training_manifests(
+        semantic_training_manifest=semantic_training_manifest,
+        direct_training_manifest=direct_training_manifest,
+    )
+    payload = {
+        "schema_version": 1,
+        "artifact_type": "semantic_layer_comparison_preflight",
+        "status": "ready_for_local_pair",
+        "claim_boundary": "preflight only; no SQL execution claim",
+        "semantic_training_manifest_path": str(semantic_training_manifest),
+        "semantic_training_manifest_sha256": sha256_file(semantic_training_manifest),
+        "direct_training_manifest_path": str(direct_training_manifest),
+        "direct_training_manifest_sha256": sha256_file(direct_training_manifest),
+        "semantic_input_path": str(validated["semantic_input_path"]),
+        "semantic_input_sha256": sha256_file(Path(str(validated["semantic_input_path"]))),
+        "direct_input_path": str(validated["direct_input_path"]),
+        "direct_input_sha256": sha256_file(Path(str(validated["direct_input_path"]))),
+        "semantic_stage": SPEC.method_stage,
+        "direct_stage": SPEC.direct_stage,
+        "row_count": validated["row_count"],
+    }
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    return payload
+
+
 def run_local_semantic_layer_comparison(
     *,
     semantic_training_manifest: Path,
@@ -55,6 +89,7 @@ def run_local_semantic_layer_comparison(
     max_memory_gb: int | None,
     repo_root: Path = Path("."),
     fixtures_path: Path | None = None,
+    preflight_output: Path | None = None,
 ) -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     validated = validate_sql_pair_training_manifests(
@@ -62,6 +97,12 @@ def run_local_semantic_layer_comparison(
         direct_training_manifest=direct_training_manifest,
         spec=SPEC,
     )
+    if preflight_output is not None:
+        write_semantic_layer_comparison_preflight(
+            semantic_training_manifest=semantic_training_manifest,
+            direct_training_manifest=direct_training_manifest,
+            output_path=preflight_output,
+        )
     outputs = run_local_sql_pair_generation_and_eval(
         validated=validated,
         spec=SPEC,
@@ -96,7 +137,18 @@ def main() -> int:
     parser.add_argument("--max-memory-gb", type=int, default=30)
     parser.add_argument("--repo-root", type=Path, default=Path("."))
     parser.add_argument("--fixtures", type=Path, default=None)
+    parser.add_argument("--preflight-output", type=Path, default=None)
+    parser.add_argument("--preflight-only", action="store_true")
     args = parser.parse_args()
+    if args.preflight_only:
+        if args.preflight_output is None:
+            raise SystemExit("--preflight-output is required with --preflight-only")
+        write_semantic_layer_comparison_preflight(
+            semantic_training_manifest=args.semantic_training_manifest,
+            direct_training_manifest=args.direct_training_manifest,
+            output_path=args.preflight_output,
+        )
+        return 0
     return run_local_semantic_layer_comparison(
         semantic_training_manifest=args.semantic_training_manifest,
         direct_training_manifest=args.direct_training_manifest,
@@ -109,6 +161,7 @@ def main() -> int:
         max_memory_gb=args.max_memory_gb,
         repo_root=args.repo_root,
         fixtures_path=args.fixtures,
+        preflight_output=args.preflight_output,
     )
 
 

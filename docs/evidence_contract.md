@@ -124,9 +124,12 @@ The Stage 3 synthetic finetuning path now mirrors that claim boundary:
 - `docs/data_artifacts/semantic_layer_training_rows.jsonl`
 - `docs/data_artifacts/semantic_layer_training_rows_summary.json`
 - `docs/data_artifacts/semantic_layer_training_rows.manifest.json`
+- `docs/data_artifacts/semantic_layer_training_run.manifest.json`
 - `docs/data_artifacts/semantic_layer_direct_sql_training_rows.jsonl`
 - `docs/data_artifacts/semantic_layer_direct_sql_training_rows_summary.json`
 - `docs/data_artifacts/semantic_layer_direct_sql_training_rows.manifest.json`
+- `docs/data_artifacts/semantic_layer_direct_sql_training_run.manifest.json`
+- `docs/semantic_layer_comparison_preflight.json`
 
 Those rows are derived from the curated synthetic fixtures, but the prompt path
 is explicitly non-oracle. The semantic-layer prompt can see schema, dialog
@@ -134,6 +137,26 @@ history, and governed semantic model context. It cannot see scorer-only fields
 such as `expected_rows`, `reference_sql`, or gold DSL strings. The direct
 control uses the same rows and SQL targets without the semantic model so the
 comparison stays interpretable.
+
+The checked-in training-run manifests are validate-only provenance artifacts.
+They prove that the current Stage 3 pair can be named and validated through
+`train.finetune` without loading a model. The checked-in preflight then proves
+that those two manifests still point at the same five synthetic rows:
+
+```bash
+uv run python -m eval.run_local_semantic_layer_comparison \
+  --semantic-training-manifest docs/data_artifacts/semantic_layer_training_run.manifest.json \
+  --direct-training-manifest docs/data_artifacts/semantic_layer_direct_sql_training_run.manifest.json \
+  --output-dir /tmp/semantic-layer-unused \
+  --run-id semantic-layer-bootstrap \
+  --model-name unsloth/Qwen3.5-9B \
+  --preflight-output docs/semantic_layer_comparison_preflight.json \
+  --preflight-only
+```
+
+That preflight is bounded to `preflight only; no SQL execution claim`. The next
+missing artifact after it is the stage-specific compared manifest written by a
+real `eval.run_local_semantic_layer_comparison` run.
 
 The Stage 3 proxy package makes the same boundary concrete on the fixed CoSQL
 slice:
