@@ -177,13 +177,17 @@ run, and a comparison manifest, it is not ready to be called a finetuning step.
   none yet. This stage is the benchmark gate for whichever earlier training path
   becomes the strongest local candidate.
 - Prepared data:
-  fixed hosted-baseline rows, local rows, and BIRD-Interact-style transfer rows
-  with shared scoring and manifest metadata.
+  the first checked-in input contract is `data.hosted_baseline_dataset`, which
+  freezes the non-oracle prepared CoSQL proxy rows for same-protocol hosted
+  comparison. BIRD-Interact-style transfer rows remain the next dataset gate.
 - Trainer invocation:
   use the best earlier finetuned candidate from Stages 0 through 5.
 - Evaluation gate:
-  `uv run python -m eval.compare_hosted_baseline` plus a BIRD-Interact transfer
-  manifest with the same oracle policy, latency accounting, and cost accounting.
+  `uv run python -m eval.run_hosted_baseline_comparison` validates the local
+  candidate manifest and then writes the same compared local-vs-hosted manifest
+  through `eval.compare_hosted_baseline`. After that, a BIRD-Interact transfer
+  manifest needs the same oracle policy, latency accounting, and cost
+  accounting.
 - Claim boundary:
   this is the only stage that can support “local model competes with hosted
   SOTA” language.

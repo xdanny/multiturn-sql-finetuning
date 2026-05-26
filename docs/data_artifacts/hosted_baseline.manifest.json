@@ -1,0 +1,14 @@
+{
+  "artifact_type": "hosted_baseline_dataset",
+  "benchmark": "prepared",
+  "command": [
+    "/home/dan/docs/multiturn-sql-finetuning/data/hosted_baseline_dataset.py"
+  ],
+  "evaluation_mode": "non_oracle_generation",
+  "input_path": "data/processed/eval_cosql_dev_100.jsonl",
+  "input_sha256": "00886900e4faf539bc6a6428b8b699b77f169874a9bfb8a205b1beaa2785cf6e",
+  "output_path": "docs/data_artifacts/hosted_baseline_rows.jsonl",
+  "output_sha256": "392364708951fc0ae0f4cb0cd17b490c65a8565c55c9d885ea46493a3aafa698",
+  "summary_path": "docs/data_artifacts/hosted_baseline_summary.json",
+  "summary_sha256": "ac60dc21dfd3387f9253330c18147f7319f7f608fc2b885a7faf7a66c5e477ea"
+}

@@ -517,6 +517,27 @@ CoSQL proxy, but they are labeled as `training_target=behavior_recovery` so the
 run manifest and rollout comparison path can treat Stage 5 as a distinct
 finetuning rung instead of a generic prepared run.
 
+The first Stage 6 benchmark artifact is also checked in:
+
+- `docs/data_artifacts/hosted_baseline_rows.jsonl`
+- `docs/data_artifacts/hosted_baseline_summary.json`
+- `docs/data_artifacts/hosted_baseline.manifest.json`
+
+This freezes the same non-oracle prepared slice that a hosted baseline must use.
+The comparison wrapper is:
+
+```bash
+uv run python -m eval.run_hosted_baseline_comparison \
+  --local-training-manifest outputs/<local-run>/training.manifest.json \
+  --local-result-manifest results/<local-run>.manifest.json \
+  --hosted-result-manifest results/<hosted-run>.manifest.json \
+  --output results/<local-run>.vs_hosted.manifest.json
+```
+
+That wrapper refuses to compare a local candidate unless its training manifest
+declares the prepared non-oracle protocol first, then hands off to
+`eval.compare_hosted_baseline`.
+
 There is now a separate synthetic Stage 5 recovery pair for faster finetuning
 iteration before endpoint rollout:
 

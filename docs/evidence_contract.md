@@ -70,6 +70,15 @@ and measure-preservation metrics.
 | Local 9B beats the hosted baseline on the same rows. | Pending | none | not run | No, until the local manifest references a hosted baseline and shows a positive value delta. |
 | Local 9B competes on real BIRD-Interact/Multi-BIRD. | Pending | none | not run | No. |
 
+The Stage 6 input contract is now also checked in:
+
+- `docs/data_artifacts/hosted_baseline_rows.jsonl`
+- `docs/data_artifacts/hosted_baseline_summary.json`
+- `docs/data_artifacts/hosted_baseline.manifest.json`
+
+Those rows freeze the non-oracle prepared proxy slice that a hosted baseline
+must use before any local-vs-hosted claim is even comparable.
+
 ## Data Artifact Evidence
 
 The value-grounding artifact is the first versioned intermediate-state artifact
@@ -133,6 +142,21 @@ reuse the prepared CoSQL eval contract, and keep the same dialog-turn identity
 across the semantic and direct-control arms. The semantic training pack also
 filters mixed source files down to the rows that actually contain semantic
 context, so Stage 3 is not benchmarked against a half-semantic training split.
+
+The Stage 6 hosted comparison wrapper now validates the local candidate manifest
+before comparing result manifests:
+
+```bash
+uv run python -m eval.run_hosted_baseline_comparison \
+  --local-training-manifest outputs/<local-run>/training.manifest.json \
+  --local-result-manifest results/<local-run>.manifest.json \
+  --hosted-result-manifest results/<hosted-run>.manifest.json \
+  --output results/<local-run>.vs_hosted.manifest.json
+```
+
+That wrapper is intentionally narrow. It does not run the hosted model. It
+checks that the local candidate came from the prepared non-oracle path first,
+then hands off to `eval.compare_hosted_baseline` for the same-row comparison.
 
 ## Reproducible Proxy Commands
 
