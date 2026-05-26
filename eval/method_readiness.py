@@ -27,7 +27,10 @@ METHODS: tuple[dict[str, Any], ...] = (
         ),
         "next_artifact": "same-protocol direct SQL manifest on fixed proxy and BIRD-Interact rows",
         "claim_boundary": "Control arm only; proxy movement is not a hosted/SOTA win.",
-        "rankable_when": "Current proxy rows are rankable as the direct-SQL control.",
+        "rankable_when": (
+            "Use as the direct-SQL control now; rank against hosted/SOTA only after "
+            "same-protocol hosted and BIRD-Interact blockers clear."
+        ),
     },
     {
         "method": "Planner/DSL first, SQL second",
@@ -149,6 +152,25 @@ def _blocking_reasons(claims: dict[str, dict[str, Any]], claim_ids: list[str]) -
     return reasons
 
 
+def _open_blocking_claim_ids(
+    claims: dict[str, dict[str, Any]],
+    claim_ids: tuple[str, ...],
+) -> list[str]:
+    open_claim_ids = []
+    for claim_id in claim_ids:
+        row = claims.get(claim_id)
+        if row is None:
+            open_claim_ids.append(claim_id)
+            continue
+        if (
+            row.get("claim_status") == "pending"
+            or row.get("artifact_valid") is False
+            or row.get("blocking_reason")
+        ):
+            open_claim_ids.append(claim_id)
+    return open_claim_ids
+
+
 def build_method_readiness(*, ledger_path: Path, repo_root: Path) -> list[dict[str, Any]]:
     """Return deterministic method-readiness rows from the claim ledger."""
 
@@ -163,18 +185,29 @@ def build_method_readiness(*, ledger_path: Path, repo_root: Path) -> list[dict[s
             claims,
             tuple(method["blocking_claim_ids"]),
         )
-        rankable_now = (
+        open_blocking_claim_ids = _open_blocking_claim_ids(
+            claims,
+            tuple(method["blocking_claim_ids"]),
+        )
+        blocking_reasons = _blocking_reasons(claims, blocking_claim_ids)
+        control_ready_now = (
             method["readiness_level"] == "control_ready"
             and _all_supported(claims, supported_claim_ids)
+        )
+        rankable_now = (
+            _all_supported(claims, supported_claim_ids)
+            and not open_blocking_claim_ids
         )
         rows.append(
             {
                 "method": method["method"],
                 "readiness_level": method["readiness_level"],
+                "control_ready_now": control_ready_now,
                 "rankable_now": rankable_now,
                 "supported_claim_ids": supported_claim_ids,
                 "blocking_claim_ids": blocking_claim_ids,
-                "blocking_reasons": _blocking_reasons(claims, blocking_claim_ids),
+                "open_blocking_claim_ids": open_blocking_claim_ids,
+                "blocking_reasons": blocking_reasons,
                 "module_path": method["module_path"],
                 "module_exists": (repo_root / method["module_path"]).exists(),
                 "next_command": method["next_command"],

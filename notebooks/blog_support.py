@@ -7,6 +7,7 @@ import hashlib
 import html
 import json
 from collections import Counter
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +47,14 @@ FORBIDDEN_PUBLIC_SUBSTRINGS = (
     "notebook-walkthrough.md",
 )
 ASSET_CLAIM_IDS = {
+    "accuracy_ladder_svg": (
+        "qwen35_9b_base_cosql_dev_100turns",
+        "multiturn_sql_100_cosql_dev_100turns",
+        "semantic_prompt_minimal_executable_cosql_dev_100turns",
+        "schema_pruned_minimal_schemafix_oracle_cosql_dev_100turns",
+        "schema_pruned_trained100_oracle_cosql_dev_100turns",
+    ),
+    "planner_baseline_svg": ("planner_lexical_schema_baseline",),
     "claim_table_md": (
         "hosted_sota_same_protocol",
         "local_beats_hosted_same_protocol",
@@ -1212,11 +1221,13 @@ def method_readiness_report() -> pd.DataFrame:
         repo_root=repo_root(),
     )
     frame = pd.DataFrame(rows)
+    frame["control_ready_now"] = frame["control_ready_now"].astype(object)
     frame["rankable_now"] = frame["rankable_now"].astype(object)
     return frame[
         [
             "method",
             "readiness_level",
+            "control_ready_now",
             "rankable_now",
             "supported_claim_ids",
             "blocking_claim_ids",
@@ -1226,6 +1237,21 @@ def method_readiness_report() -> pd.DataFrame:
             "claim_boundary",
         ]
     ]
+
+
+def _manifest_json_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): _manifest_json_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_manifest_json_value(item) for item in value]
+    if hasattr(value, "item"):
+        with suppress(AttributeError, TypeError, ValueError):
+            value = value.item()
+    if value is None:
+        return None
+    if isinstance(value, float) and pd.isna(value):
+        return None
+    return value
 
 
 def shareable_lab_attachment() -> pd.DataFrame:
@@ -2867,23 +2893,12 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
         }
         for source_path in BLOG_EVIDENCE_SOURCES
     ]
-    ledger = claim_ledger().set_index("claim_id")
     claim_snapshot = {
-        claim_id: {
-            "claim_status": str(row["claim_status"]),
-            "allowed_public_claim": str(row["allowed_public_claim"]),
-            "production_claim_allowed": False,
-            "can_support_sota_claim": bool(
-                row["claim_status"] == "supported_proxy"
-                and claim_id
-                in {
-                    "hosted_sota_same_protocol",
-                    "local_beats_hosted_same_protocol",
-                    "bird_interact_local_vs_hosted",
-                }
-            ),
+        str(row["claim_id"]): {
+            str(field): _manifest_json_value(value)
+            for field, value in row.items()
         }
-        for claim_id, row in ledger.iterrows()
+        for row in read_jsonl_artifact("docs/claim_ledgers/cosql_dev_100.jsonl")
     }
     manifest = {
         "schema_version": 2,

@@ -339,6 +339,7 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert {
         "method",
         "readiness_level",
+        "control_ready_now",
         "rankable_now",
         "supported_claim_ids",
         "blocking_claim_ids",
@@ -362,7 +363,8 @@ def test_notebook_support_loads_current_artifacts() -> None:
         readiness_report["method"] == "Planner/DSL first, SQL second"
     ].iloc[0]
     assert direct_readiness["readiness_level"] == "control_ready"
-    assert direct_readiness["rankable_now"] is True
+    assert direct_readiness["control_ready_now"] is True
+    assert direct_readiness["rankable_now"] is False
     assert direct_readiness["supported_claim_ids"] == [
         "qwen35_9b_base_cosql_dev_100turns",
         "multiturn_sql_100_cosql_dev_100turns",
@@ -378,6 +380,7 @@ def test_notebook_support_loads_current_artifacts() -> None:
         "semantic_prompt_minimal_executable_cosql_dev_100turns"
     ]
     assert planner_readiness["readiness_level"] == "needs_endpoint_comparison"
+    assert planner_readiness["control_ready_now"] is False
     assert planner_readiness["rankable_now"] is False
     assert "eval.run_predicted_planner_comparison" in planner_readiness["next_command"]
     assert any(
@@ -1258,6 +1261,22 @@ def test_blog_evidence_manifest_is_machine_checkable_contract(tmp_path) -> None:
     assert assets["accuracy_ladder_svg"]["required_in_post"] is True
     assert assets["accuracy_ladder_svg"]["required_reference"] is False
     assert len(assets["accuracy_ladder_svg"]["sha256"]) == 64
+    assert {
+        "qwen35_9b_base_cosql_dev_100turns",
+        "multiturn_sql_100_cosql_dev_100turns",
+        "semantic_prompt_minimal_executable_cosql_dev_100turns",
+        "schema_pruned_minimal_schemafix_oracle_cosql_dev_100turns",
+        "schema_pruned_trained100_oracle_cosql_dev_100turns",
+    } <= set(assets["accuracy_ladder_svg"]["claim_ids"])
+    assert assets["planner_baseline_svg"]["kind"] == "svg"
+    assert assets["planner_baseline_svg"]["required_in_post"] is True
+    assert assets["planner_baseline_svg"]["claim_ids"] == [
+        "planner_lexical_schema_baseline"
+    ]
+    required_in_post_assets = [
+        asset for asset in assets.values() if asset["required_in_post"]
+    ]
+    assert all(asset["claim_ids"] for asset in required_in_post_assets)
     assert assets["lab_reader_flow_md"]["required_reference"] is False
     assert assets["single_to_multiturn_gap_md"]["kind"] == "markdown"
     assert assets["single_to_multiturn_gap_md"]["required_reference"] is True
@@ -1294,6 +1313,29 @@ def test_blog_evidence_manifest_is_machine_checkable_contract(tmp_path) -> None:
     assert hosted_claim["production_claim_allowed"] is False
     assert hosted_claim["can_support_sota_claim"] is False
     assert "hosted/SOTA comparison" in hosted_claim["allowed_public_claim"]
+
+    ledger_rows = {
+        row["claim_id"]: row
+        for row in map(
+            json.loads,
+            (REPO_ROOT / "docs/claim_ledgers/cosql_dev_100.jsonl")
+            .read_text()
+            .splitlines(),
+        )
+    }
+    for claim_id in [
+        "qwen35_9b_base_cosql_dev_100turns",
+        "hosted_sota_same_protocol",
+    ]:
+        snapshot = manifest["claim_snapshot"][claim_id]
+        ledger_row = ledger_rows[claim_id]
+        for field in [
+            "claim_status",
+            "allowed_public_claim",
+            "production_claim_allowed",
+            "can_support_sota_claim",
+        ]:
+            assert snapshot[field] == ledger_row[field]
 
 
 def test_checked_in_blog_evidence_assets_are_current(tmp_path) -> None:
