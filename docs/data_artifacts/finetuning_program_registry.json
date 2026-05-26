@@ -206,26 +206,29 @@
       "control_arm": "direct_sql_control",
       "current_evidence": {
         "artifact_paths": [
+          "docs/result_manifests/semantic_proxy_vs_direct_sql.json",
           "docs/data_artifacts/semantic_layer_training_rows.manifest.json",
           "docs/data_artifacts/semantic_proxy.manifest.json",
           "docs/data_artifacts/semantic_proxy_direct_sql.manifest.json"
         ],
         "claim_ids": [],
         "next_command": "uv run python -m eval.run_local_semantic_layer_comparison",
-        "next_required_artifact": "same-row semantic comparison result manifest",
-        "status": "artifacts_ready",
-        "summary": "prepared semantic artifacts exist, but no checked-in same-row semantic comparison result manifest yet."
+        "next_required_artifact": "stage-specific semantic comparison manifest from semantic training artifacts",
+        "status": "measured",
+        "summary": "measured semantic proxy comparison exists; value delta vs direct SQL is +0.01 on 100 rows, while strict delta is -0.11."
       },
       "evidence_contract": {
         "artifact_paths": [
+          "docs/result_manifests/semantic_proxy_vs_direct_sql.json",
           "docs/data_artifacts/semantic_layer_training_rows.manifest.json",
           "docs/data_artifacts/semantic_proxy.manifest.json",
           "docs/data_artifacts/semantic_proxy_direct_sql.manifest.json"
         ],
         "artifacts_ready_summary": "prepared semantic artifacts exist, but no checked-in same-row semantic comparison result manifest yet.",
-        "mode": "artifacts_only",
+        "comparison_metric_prefix": "semantic_proxy",
+        "mode": "comparison_manifest",
         "next_command": "uv run python -m eval.run_local_semantic_layer_comparison",
-        "next_required_artifact": "same-row semantic comparison result manifest"
+        "next_required_artifact": "stage-specific semantic comparison manifest from semantic training artifacts"
       },
       "leakage_boundaries": [
         "no_future_turn_content",

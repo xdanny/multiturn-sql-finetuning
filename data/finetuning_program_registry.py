@@ -171,13 +171,15 @@ def _stages() -> list[dict[str, Any]]:
             ],
             "evidence_contract": {
                 "artifact_paths": [
+                    "docs/result_manifests/semantic_proxy_vs_direct_sql.json",
                     "docs/data_artifacts/semantic_layer_training_rows.manifest.json",
                     "docs/data_artifacts/semantic_proxy.manifest.json",
                     "docs/data_artifacts/semantic_proxy_direct_sql.manifest.json",
                 ],
-                "mode": "artifacts_only",
+                "mode": "comparison_manifest",
+                "comparison_metric_prefix": "semantic_proxy",
                 "artifacts_ready_summary": "prepared semantic artifacts exist, but no checked-in same-row semantic comparison result manifest yet.",
-                "next_required_artifact": "same-row semantic comparison result manifest",
+                "next_required_artifact": "stage-specific semantic comparison manifest from semantic training artifacts",
                 "next_command": "uv run python -m eval.run_local_semantic_layer_comparison",
             },
             "trainer_contract": {
@@ -352,6 +354,10 @@ def _load_claim_rows() -> dict[str, dict[str, Any]]:
     return {str(row.get("claim_id")): row for row in _load_jsonl(path) if row.get("claim_id")}
 
 
+def _load_json(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text())
+
+
 def _format_metric(value: float) -> str:
     return f"{value:.3f}" if value < 0.6 else f"{value:.2f}"
 
@@ -360,6 +366,7 @@ def _summarize_current_evidence(stage: dict[str, Any], claim_rows: dict[str, dic
     contract = stage.get("evidence_contract") or {}
     artifact_paths = [str(path) for path in contract.get("artifact_paths", [])]
     existing_artifacts = [path for path in artifact_paths if _resolve_repo_path(path).exists()]
+    comparison_artifact = artifact_paths[0] if artifact_paths else None
     claim_ids = [str(claim_id) for claim_id in contract.get("claim_ids", [])]
     rows = [claim_rows[claim_id] for claim_id in claim_ids if claim_id in claim_rows]
     mode = contract.get("mode")
@@ -411,6 +418,37 @@ def _summarize_current_evidence(stage: dict[str, Any], claim_rows: dict[str, dic
             "next_required_artifact": contract.get("next_required_artifact"),
             "next_command": contract.get("next_command"),
         }
+    if mode == "comparison_manifest" and existing_artifacts:
+        comparison_path = _resolve_repo_path(comparison_artifact) if comparison_artifact else None
+        if comparison_path is not None and comparison_path.exists():
+            compared = _load_json(comparison_path)
+            metrics = compared.get("metrics") or {}
+            prefix = str(contract.get("comparison_metric_prefix") or "")
+            value_delta = float(metrics.get(f"{prefix}_value_delta_vs_direct_sql") or 0.0)
+            strict_delta = float(metrics.get(f"{prefix}_strict_delta_vs_direct_sql") or 0.0)
+            row_count = int(metrics.get(f"{prefix}_comparable_row_count") or compared.get("row_count") or 0)
+            value_text = f"{value_delta:+.2f}"
+            strict_text = f"{strict_delta:+.2f}"
+            return {
+                "status": "measured",
+                "summary": f"measured semantic proxy comparison exists; value delta vs direct SQL is {value_text} on {row_count} rows, while strict delta is {strict_text}.",
+                "claim_ids": claim_ids,
+                "artifact_paths": existing_artifacts,
+                "next_required_artifact": contract.get("next_required_artifact"),
+                "next_command": contract.get("next_command"),
+            }
+        remaining_artifacts = [
+            path for path in artifact_paths[1:] if _resolve_repo_path(path).exists()
+        ]
+        if remaining_artifacts:
+            return {
+                "status": "artifacts_ready",
+                "summary": str(contract.get("artifacts_ready_summary") or "prepared artifacts exist, but no checked-in result manifest yet."),
+                "claim_ids": claim_ids,
+                "artifact_paths": existing_artifacts,
+                "next_required_artifact": contract.get("next_required_artifact"),
+                "next_command": contract.get("next_command"),
+            }
     return {
         "status": "missing",
         "summary": "no checked-in evidence artifact found for this stage yet.",

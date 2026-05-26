@@ -1,0 +1,32 @@
+{
+  "benchmark": "prepared",
+  "command": [
+    "historical-result-rescore"
+  ],
+  "database_root": "data/raw/cosql_dataset/database",
+  "endpoint": "http://127.0.0.1:8000/v1",
+  "evaluation_mode": "non_oracle_generation",
+  "git_commit": "e47e982f693bd9e73661f002c2dbc7b30313082a",
+  "input_path": "data/processed/eval_100_each_semantic.jsonl",
+  "input_sha256": "4dee4ca1a65a157040e1cd30b0166b0e973b727e0b0ab3844bb07e16b9dec11f",
+  "metrics": {
+    "dialog_count": 32,
+    "direct_sql_comparison_run_id": "multiturn_sql_100_cosql_dev_100turns",
+    "direct_sql_model_name": "multiturn-sql-100",
+    "execution_accuracy": 0.64,
+    "semantic_proxy_comparable_row_count": 100,
+    "semantic_proxy_strict_delta_vs_direct_sql": -0.11000000000000004,
+    "semantic_proxy_value_delta_vs_direct_sql": 0.010000000000000009,
+    "strict_execution_accuracy": 0.42,
+    "syntax_accuracy": 1.0,
+    "value_execution_accuracy": 0.64
+  },
+  "model_name": "multiturn-sql-semantic-50",
+  "oracle_allowed": false,
+  "output_path": "results/rescored/minimal_executable.jsonl",
+  "output_sha256": "5abb84dcf80d5681233bfb90b2d80dfa9c641dca1088b2205d35a19509325f5f",
+  "prompt_variant": "minimal_executable",
+  "row_count": 100,
+  "run_id": "semantic_prompt_minimal_executable_cosql_dev_100turns",
+  "schema_version": 1
+}

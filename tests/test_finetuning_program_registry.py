@@ -39,9 +39,10 @@ def test_build_finetuning_program_registry_covers_blog_method_ideas() -> None:
     assert "no predicted_planner result manifest" in stage_by_key["predicted_planner_sql"]["current_evidence"]["summary"]
     assert stage_by_key["predicted_planner_sql"]["current_evidence"]["next_required_artifact"] == "same-protocol endpoint SQL result manifest"
     assert "uv run python -m eval.run_predicted_planner_comparison" in stage_by_key["predicted_planner_sql"]["current_evidence"]["next_command"]
-    assert stage_by_key["semantic_layer"]["current_evidence"]["status"] == "artifacts_ready"
-    assert "no checked-in same-row semantic comparison result manifest yet" in stage_by_key["semantic_layer"]["current_evidence"]["summary"]
-    assert stage_by_key["semantic_layer"]["current_evidence"]["next_required_artifact"] == "same-row semantic comparison result manifest"
+    assert stage_by_key["semantic_layer"]["current_evidence"]["status"] == "measured"
+    assert "value delta vs direct SQL is +0.01" in stage_by_key["semantic_layer"]["current_evidence"]["summary"]
+    assert "strict delta is -0.11" in stage_by_key["semantic_layer"]["current_evidence"]["summary"]
+    assert stage_by_key["semantic_layer"]["current_evidence"]["next_required_artifact"] == "stage-specific semantic comparison manifest from semantic training artifacts"
     assert "uv run python -m eval.run_local_semantic_layer_comparison" in stage_by_key["semantic_layer"]["current_evidence"]["next_command"]
     assert stage_by_key["semantic_layer"]["blog_idea"] == "semantic-layer state"
     assert stage_by_key["behavior_recovery"]["blog_idea"] == "generated-history recovery"
@@ -126,9 +127,9 @@ def test_build_finetuning_stage_scorecard_is_human_readable() -> None:
     assert "## Stage 3: Semantic-layer tuning" in scorecard
     assert "- Learns: governed entities, joins, grain, and value meaning that raw schema text misses." in scorecard
     assert "- Win condition: same-row comparison beats the direct SQL control without oracle pruning." in scorecard
-    assert "- Current evidence: prepared semantic artifacts exist, but no checked-in same-row semantic comparison result manifest yet." in scorecard
+    assert "- Current evidence: measured semantic proxy comparison exists; value delta vs direct SQL is +0.01 on 100 rows, while strict delta is -0.11." in scorecard
     assert "- Current evidence: prepared artifacts exist, but pending claim because no predicted_planner result manifest." in scorecard
-    assert "- Next evidence: same-row semantic comparison result manifest via `uv run python -m eval.run_local_semantic_layer_comparison`." in scorecard
+    assert "- Next evidence: stage-specific semantic comparison manifest from semantic training artifacts via `uv run python -m eval.run_local_semantic_layer_comparison`." in scorecard
     assert "- Next evidence: same-protocol endpoint SQL result manifest via `uv run python -m eval.run_predicted_planner_comparison`." in scorecard
     assert "## Stage 6: Hosted and BIRD-Interact comparison" in scorecard
     assert "- Control arm: best_local_candidate_from_stage_0_to_5" in scorecard

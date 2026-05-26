@@ -53,8 +53,8 @@ No wide summary table appears here on purpose.
 - Comparison gate: eval.run_local_semantic_layer_comparison, eval.run_local_semantic_proxy_comparison.
 - Win condition: same-row comparison beats the direct SQL control without oracle pruning.
 - Leakage to forbid: no_future_turn_content, no_reference_sql_in_prompt, no_expected_rows_in_prompt, no_gold_metric_dsl_in_prompt.
-- Current evidence: prepared semantic artifacts exist, but no checked-in same-row semantic comparison result manifest yet.
-- Next evidence: same-row semantic comparison result manifest via `uv run python -m eval.run_local_semantic_layer_comparison`.
+- Current evidence: measured semantic proxy comparison exists; value delta vs direct SQL is +0.01 on 100 rows, while strict delta is -0.11.
+- Next evidence: stage-specific semantic comparison manifest from semantic training artifacts via `uv run python -m eval.run_local_semantic_layer_comparison`.
 - Claim boundary: Semantic artifacts only matter if same-row comparison beats the direct control without oracle pruning.
 
 ## Stage 4: MEASURE()-preserving metric DSL
