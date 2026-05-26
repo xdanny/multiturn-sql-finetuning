@@ -112,6 +112,12 @@ with an explicit mixture manifest before claiming dataset-scale conclusions.
 Until then, every prepared artifact used for a claim should include the
 composition manifest produced by `data.prepare --manifest-output`.
 
+Intermediate-state artifacts need the same treatment. The current
+`data.value_artifacts` export writes a JSONL label file, summary, and manifest
+for gold SQL-derived value bindings on the fixed CoSQL proxy slice. Those labels
+can train or score value/entity grounding, but they cannot be placed in a
+production prompt unless a non-oracle retrieval or planning step produced them.
+
 ## Benchmark Methodology
 
 Every publishable number should have:

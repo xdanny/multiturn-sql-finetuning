@@ -18,11 +18,15 @@
     "schema_validation_findings_md": "schema-validation-findings.md",
     "shareable_lab_md": "shareable-lab.md",
     "target_comparison_md": "target-comparison.md",
-    "target_evidence_matrix_md": "target-evidence-matrix.md"
+    "target_evidence_matrix_md": "target-evidence-matrix.md",
+    "value_grounding_labels_md": "value-grounding-labels.md"
   },
   "schema_version": 1,
   "source_artifacts": [
     "docs/claim_ledgers/cosql_dev_100.jsonl",
+    "docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl",
+    "docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json",
+    "docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json",
     "docs/planner_baseline_cosql_dev_100_summary.json",
     "plots/rescored_vllm_semantic_prompt_iteration_100turns/summary.csv",
     "plots/failure_taxonomy/comparison/model_error_summary.csv",

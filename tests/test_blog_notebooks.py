@@ -28,6 +28,7 @@ from notebooks.blog_support import (
     shareable_lab_attachment,
     target_comparison,
     target_evidence_matrix,
+    value_grounding_label_summary,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -553,6 +554,20 @@ def test_notebook_support_loads_current_artifacts() -> None:
         "bird_interact_local_vs_hosted",
     } <= gate_claim_ids
 
+    value_summary = value_grounding_label_summary()
+    assert {
+        "artifact",
+        "metric",
+        "value",
+        "interpretation",
+    } <= set(value_summary.columns)
+    assert "value_grounding_labels_cosql_dev_100.jsonl" in set(value_summary["artifact"])
+    assert value_summary.loc[
+        value_summary["metric"] == "value_reference_count",
+        "value",
+    ].iloc[0] > 0
+    assert "missing_from_user_text_count" in set(value_summary["metric"])
+
     artifact_contract = data_artifact_contract()
     assert {
         "artifact",
@@ -651,6 +666,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "lab_method_scores_md",
         "lab_failure_trace_md",
         "data_engineering_gates_md",
+        "value_grounding_labels_md",
         "prompt_optimization_findings_md",
         "data_artifact_contract_md",
         "target_comparison_md",
@@ -661,6 +677,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     }
     assert set(manifest["source_artifacts"]) >= {
         "docs/claim_ledgers/cosql_dev_100.jsonl",
+        "docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json",
         "docs/planner_baseline_cosql_dev_100_summary.json",
     }
 
@@ -782,6 +799,13 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "hosted_sota_same_protocol" in data_gates_md
     assert "local_beats_hosted_same_protocol" in data_gates_md
     assert PUBLIC_LAB_NOTEBOOK in data_gates_md
+
+    value_labels_md = (
+        tmp_path / manifest["assets"]["value_grounding_labels_md"]
+    ).read_text()
+    assert "value_grounding_labels_cosql_dev_100.jsonl" in value_labels_md
+    assert "missing_from_user_text_count" in value_labels_md
+    assert "exact_in_history_count" in value_labels_md
 
     artifact_contract_md = (
         tmp_path / manifest["assets"]["data_artifact_contract_md"]

@@ -100,6 +100,15 @@ The next work is data engineering as much as model training. The repo needs a
 These artifacts should be versioned and referenced by manifests before the blog claims
 that a method learned the corresponding behavior.
 
+The first landed artifact is
+`docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl`, with a matching
+summary and manifest. It is intentionally narrow: it derives value-grounding
+labels from gold/reference SQL on the fixed CoSQL proxy slice. That makes it
+useful for supervision, coverage, and evaluation, but it does not prove a
+production system can find those values without the answer. The next step is to
+turn the labels into a non-oracle value index and entity-resolution task that a
+planner or semantic-state model must predict before SQL generation.
+
 ## Blog-Attached Marimo Lab Contract
 
 The public post should link to the attached codebase and one primary Marimo

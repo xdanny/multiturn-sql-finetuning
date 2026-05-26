@@ -66,6 +66,11 @@ Known constraints:
 - A `MEASURE()`-preserving metric-DSL evaluator is now wired for offline
   JSONL predictions; it scores semantic intent, compiles through a semantic
   model, optionally executes compiled SQL, and writes result manifests.
+- A first value-grounding label artifact is generated from the fixed CoSQL proxy
+  slice. It extracts gold SQL literal predicates into auditable rows for
+  current-turn values, history-carried values, and display-to-storage
+  normalization failures. This is a supervision/evaluation artifact, not a
+  production prompt hint.
 - Local execution scoring reports both strict label-aware accuracy and value-only accuracy. Treat older single `accuracy` numbers as strict-era results unless they come from `results/rescored/`.
 - Failure analysis now classifies every wrong rescored turn into actionable labels and compares adapters or prompt variants against a baseline under `plots/failure_taxonomy/`.
 - Schema-link label generation and semantic prompt pruning are available through `data.prepare --include-sql-labels --prune-semantic-model`. These flags now mark produced rows as `evaluation_mode=oracle_planner_diagnostic`. On the fixed 100-turn CoSQL slice, the best oracle prompt-only pruned-label run reaches `0.850` value accuracy, and training on that oracle-labelled format reaches `0.890`.
@@ -101,6 +106,7 @@ installation guide. The public site consumes generated evidence such as
 `docs/blog/generated/dataset-role-matrix.md`,
 `docs/blog/generated/lab-method-scores.md`,
 `docs/blog/generated/data-artifact-contract.md`,
+`docs/blog/generated/value-grounding-labels.md`,
 `docs/blog/generated/target-evidence-matrix.md`, and
 `docs/blog/generated/lab-failure-trace.md`.
 
@@ -252,6 +258,31 @@ model mismatches, wrong output modes, and row-identity mismatches. The claim
 ledger only clears the predicted-planner SQL execution claim when the compared
 predicted-planner run beats direct SQL on value accuracy and the referenced
 direct-SQL manifest is included in the ledger input.
+
+## Value Grounding Artifacts
+
+The first concrete data-engineering artifact turns reference SQL predicates into
+labels for value grounding:
+
+```bash
+python -m data.value_artifacts \
+  --input data/processed/eval_100_each.jsonl \
+  --output docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl \
+  --summary docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json \
+  --manifest docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json
+```
+
+The current artifact contains 291 SQL value references across 21 databases on
+the fixed CoSQL proxy slice. It separates values stated in the current user
+turn, values recovered from previous user turns, values carried by prior SQL,
+and stored literals that are missing from user text. Those missing-text rows are
+the practical seed for a value index and entity-resolution labels.
+
+The labels are derived from gold/reference SQL, so they are valid as
+supervision, scoring targets, and coverage diagnostics. They are not valid as
+production inference context unless a non-oracle retriever or planner predicts
+the same bindings from the question, history, schema, and allowed value/entity
+artifacts.
 
 ## Metric DSL Evaluation
 

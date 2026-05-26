@@ -17,6 +17,9 @@ from notebooks.labs.local_multiturn_sql_lab_support import run_multiturn_lab
 
 BLOG_EVIDENCE_SOURCES = (
     "docs/claim_ledgers/cosql_dev_100.jsonl",
+    "docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl",
+    "docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json",
+    "docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json",
     "docs/planner_baseline_cosql_dev_100_summary.json",
     "plots/rescored_vllm_semantic_prompt_iteration_100turns/summary.csv",
     "plots/failure_taxonomy/comparison/model_error_summary.csv",
@@ -146,6 +149,50 @@ def read_jsonl_artifact(relative_path: str, limit: int | None = None) -> list[di
 
 def claim_ledger() -> pd.DataFrame:
     return pd.DataFrame(read_jsonl_artifact("docs/claim_ledgers/cosql_dev_100.jsonl"))
+
+
+def value_grounding_label_summary() -> pd.DataFrame:
+    summary = read_json_artifact(
+        "docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json"
+    )
+    interpretations = {
+        "value_reference_count": (
+            "Gold SQL literal predicates turned into value-grounding labels on the "
+            "fixed CoSQL proxy slice."
+        ),
+        "exact_in_current_turn_count": (
+            "The user stated the stored value directly in the current turn."
+        ),
+        "exact_in_history_count": (
+            "The current SQL depends on a value mentioned in an earlier user turn."
+        ),
+        "carried_from_prior_sql_count": (
+            "The value is inherited from a prior assistant SQL turn rather than "
+            "the current user text."
+        ),
+        "missing_from_user_text_count": (
+            "The stored literal is not present in user text and needs a value index "
+            "or display-to-storage normalization."
+        ),
+        "requires_context_carryover_count": (
+            "Rows where the value-grounding target depends on previous turns."
+        ),
+        "requires_value_normalization_count": (
+            "Rows where exact text matching is not enough to recover the stored value."
+        ),
+        "database_count": "Number of databases touched by the value-label artifact.",
+        "dialog_turn_count": "Number of dialog turns with at least one value predicate.",
+    }
+    rows = [
+        {
+            "artifact": "value_grounding_labels_cosql_dev_100.jsonl",
+            "metric": metric,
+            "value": int(value),
+            "interpretation": interpretations.get(metric, "artifact summary metric"),
+        }
+        for metric, value in summary.items()
+    ]
+    return pd.DataFrame(rows)
 
 
 def accuracy_scorecard() -> pd.DataFrame:
@@ -584,6 +631,9 @@ def lab_failure_trace() -> pd.DataFrame:
 
 
 def data_engineering_gates() -> pd.DataFrame:
+    value_summary = read_json_artifact(
+        "docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json"
+    )
     return pd.DataFrame(
         [
             {
@@ -647,13 +697,19 @@ def data_engineering_gates() -> pd.DataFrame:
                     "The SQL can be syntactically right and still return zero rows "
                     "because the value grounding is wrong."
                 ),
-                "current_status": "pending: isolated in the lab, not yet a dataset artifact",
+                "current_status": (
+                    "partial: value-grounding labels now cover "
+                    f"{value_summary['value_reference_count']} SQL value references "
+                    f"across {value_summary['database_count']} databases"
+                ),
                 "next_repo_action": (
-                    "Build per-database value indexes and label entity resolutions "
-                    "for CoSQL/SParC rows before training."
+                    "Turn the value labels into per-database value indexes and add "
+                    "entity-resolution spans for CoSQL/SParC rows before training."
                 ),
                 "blocks_claim": "Blocks semantic grounding and recovery claims.",
                 "source_artifacts": (
+                    "docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl; "
+                    "docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json; "
                     "docs/claim_ledgers/cosql_dev_100.jsonl; "
                     "results/classified/minimal_executable.jsonl"
                 ),
@@ -809,8 +865,10 @@ def data_artifact_contract() -> pd.DataFrame:
                     "and metric-DSL filters"
                 ),
                 "verification_gate": (
-                    "same rows value-grounding accuracy plus manifest hashes for "
-                    "the value index used by the run"
+                    "docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl "
+                    "for gold SQL-derived labels; next gate is same rows "
+                    "value-grounding accuracy plus manifest hashes for the value "
+                    "index used by the run"
                 ),
                 "claim_ids": (
                     "semantic_prompt_minimal_executable_cosql_dev_100turns, "
@@ -1725,6 +1783,7 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     lab_scores = lab_method_scorecard()
     lab_trace = lab_failure_trace()
     data_gates = data_engineering_gates()
+    value_labels = value_grounding_label_summary()
     artifact_contract = data_artifact_contract()
     prompt_findings = prompt_optimization_findings()
     targets = target_comparison()
@@ -1790,6 +1849,10 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
         "data_engineering_gates_md": _write_text(
             output / "data-engineering-gates.md",
             _markdown_table(data_gates),
+        ),
+        "value_grounding_labels_md": _write_text(
+            output / "value-grounding-labels.md",
+            _markdown_table(value_labels),
         ),
         "data_artifact_contract_md": _write_text(
             output / "data-artifact-contract.md",

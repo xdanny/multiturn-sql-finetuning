@@ -70,6 +70,26 @@ and measure-preservation metrics.
 | Local 9B beats the hosted baseline on the same rows. | Pending | none | not run | No, until the local manifest references a hosted baseline and shows a positive value delta. |
 | Local 9B competes on real BIRD-Interact/Multi-BIRD. | Pending | none | not run | No. |
 
+## Data Artifact Evidence
+
+The value-grounding artifact is the first versioned intermediate-state artifact
+behind the semantic/value/entity work:
+
+- `docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl`
+- `docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json`
+- `docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json`
+
+It is generated from prepared CoSQL turns and gold/reference SQL, so it is
+allowed as a training label, scoring target, and coverage diagnostic. It is not
+allowed as production prompt context. A production-style value/entity claim
+still needs a non-oracle retriever or planner to recover the same bindings from
+question text, conversation history, schema, and versioned value/entity
+artifacts.
+
+Current coverage on the fixed proxy slice: 291 SQL value references across 21
+databases, 21 references that require conversation carryover, and 16 references
+where exact user-text matching cannot recover the stored SQL literal.
+
 ## Reproducible Proxy Commands
 
 Create a CoSQL-only prepared artifact:
