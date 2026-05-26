@@ -848,9 +848,10 @@ def prompt_optimization_findings() -> pd.DataFrame:
                 "using DSPy as evidence for a method claim."
             ),
             "next_program_target": (
-                "Optimize planner label F1, value accuracy, and failure-taxonomy "
-                "deltas on a development split before endpoint promotion; see "
-                "the shareable lab notebook and planner evaluation docs."
+                "Optimize planner label F1 with eval.planner_predict, then measure "
+                "value accuracy and failure-taxonomy deltas on a development split "
+                "before endpoint promotion; see the shareable lab notebook and "
+                "planner evaluation docs."
             ),
             "claim_boundary": "Planner program gate is not run yet; not a SOTA claim.",
         },
@@ -1155,7 +1156,8 @@ def method_priority_backlog() -> pd.DataFrame:
                     "beating direct SQL on the same rows"
                 ),
                 "build_next": (
-                    "DSPy planner program that predicts tables, columns, joins, "
+                    "Use eval.planner_predict as the endpoint harness for a DSPy "
+                    "or static planner program that predicts tables, columns, joins, "
                     "projection shape, duplicate policy, and value candidates without "
                     "gold SQL labels."
                 ),

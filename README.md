@@ -165,9 +165,20 @@ python -m eval.planner_eval \
   --summary-output results/planner_eval_cosql_dev_100_summary.json
 ```
 
-The same command can consume externally generated JSON planner predictions once
-an endpoint or DSPy program writes one JSONL row per expanded turn id
-(`dialog_id:turn_index`):
+The repo can now generate non-oracle planner JSON with the same OpenAI-compatible
+endpoint path used by SQL evaluation:
+
+```bash
+python -m eval.planner_predict \
+  --input data/processed/eval_cosql_dev_100.jsonl \
+  --limit 100 \
+  --model-name <planner-model> \
+  --endpoint http://localhost:8000/v1 \
+  --output results/planner_predictions/<run-id>.jsonl
+```
+
+Then score those predictions and write the matching `predicted_planner` prepared
+artifact:
 
 ```bash
 python -m eval.planner_eval \

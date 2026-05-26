@@ -154,8 +154,9 @@ and inspectable. Its purpose is to create a scoring surface before building a
 stronger planner, not to claim the planner problem is solved.
 
 Stronger planners should enter through the same contract rather than through
-ad hoc prompt edits. `eval.planner_eval` can read JSON planner predictions keyed
-by expanded turn id, score them against gold SQL-derived labels, and write a
+ad hoc prompt edits. `eval.planner_predict` now writes non-oracle JSON planner
+predictions keyed by expanded turn id. `eval.planner_eval` then reads those
+predictions, scores them against gold SQL-derived labels, and writes a
 `predicted_planner` prepared artifact for endpoint SQL evaluation. The loader
 checks raw planner output for oracle provenance before any normalized plan can
 enter the SQL prompt.

@@ -81,12 +81,25 @@ python -m data.prepare \
   --manifest-output data/processed/eval_cosql_dev_100.manifest.json
 ```
 
-Create the first 100-turn predicted-planner artifact:
+Generate non-oracle planner predictions with an OpenAI-compatible endpoint:
+
+```bash
+python -m eval.planner_predict \
+  --input data/processed/eval_cosql_dev_100.jsonl \
+  --limit 100 \
+  --model-name <planner-model> \
+  --endpoint http://localhost:8000/v1 \
+  --output results/planner_predictions/<run-id>.jsonl
+```
+
+Create the first 100-turn predicted-planner artifact from those predictions:
 
 ```bash
 python -m eval.planner_eval \
   --input data/processed/eval_cosql_dev_100.jsonl \
   --limit 100 \
+  --planner-source json_planner_predictions \
+  --planner-predictions results/planner_predictions/<run-id>.jsonl \
   --predicted-prepared-output data/processed/eval_cosql_dev_predicted_planner_100.jsonl \
   --output results/planner_eval_cosql_dev_100.jsonl \
   --summary-output results/planner_eval_cosql_dev_100_summary.json
