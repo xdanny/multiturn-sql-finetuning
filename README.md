@@ -548,6 +548,15 @@ CoSQL proxy, but they are labeled as `training_target=behavior_recovery` so the
 run manifest and rollout comparison path can treat Stage 5 as a distinct
 finetuning rung instead of a generic prepared run.
 
+The repo now also tracks the ready-to-run Stage 5 artifact chain:
+
+- `docs/data_artifacts/behavior_recovery_proxy_training_run.manifest.json`
+- `docs/behavior_recovery_rollout_preflight.json`
+
+That pair does not claim a rollout result. It just proves the prepared
+behavior/recovery manifest is valid and still points at a non-oracle prepared
+input before a fresh same-checkpoint rollout comparison is run.
+
 The first Stage 6 benchmark artifact is also checked in:
 
 - `docs/data_artifacts/hosted_baseline_rows.jsonl`

@@ -8,6 +8,7 @@ import pytest
 from eval.run_local_rollout_comparison import (
     run_local_rollout_comparison,
     validate_local_rollout_training_manifest,
+    write_rollout_comparison_preflight,
 )
 
 
@@ -200,3 +201,52 @@ def test_run_local_rollout_comparison_runs_teacher_forced_then_rollout_then_comp
             "repo_root": Path("."),
         }
     ]
+
+
+def test_write_rollout_comparison_preflight_records_ready_pair(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "training.manifest.json"
+    eval_path = tmp_path / "eval.jsonl"
+    output_path = tmp_path / "rollout_comparison_preflight.json"
+    _write_json(
+        manifest_path,
+        _training_manifest(
+            stage="behavior_recovery",
+            benchmark="prepared",
+            mode="non_oracle_generation",
+            eval_path=eval_path,
+        ),
+    )
+    eval_path.write_text(
+        json.dumps(
+            {
+                "dialog_id": "dialog-a",
+                "database_id": "music",
+                "source": "unit",
+                "history_policy": "gold_sql_teacher_forced",
+                "messages": [
+                    {"role": "system", "content": "sys"},
+                    {"role": "user", "content": "List singers."},
+                    {"role": "assistant", "content": "SELECT name FROM singer;"},
+                ],
+                "evaluation_mode": "non_oracle_generation",
+                "gold_plans": [{}],
+            }
+        )
+        + "\n"
+    )
+
+    payload = write_rollout_comparison_preflight(
+        training_manifest=manifest_path,
+        output_path=output_path,
+    )
+
+    assert payload["artifact_type"] == "rollout_comparison_preflight"
+    assert payload["status"] == "ready_for_local_rollout_pair"
+    assert payload["claim_boundary"] == "preflight only; no rollout execution claim"
+    assert payload["training_manifest_path"] == str(manifest_path)
+    assert payload["input_path"] == str(eval_path)
+    assert payload["stage"] == "behavior_recovery"
+    assert payload["benchmark"] == "prepared"
+    assert payload["evaluation_mode"] == "non_oracle_generation"
+    assert payload["row_count"] == 1
+    assert json.loads(output_path.read_text()) == payload

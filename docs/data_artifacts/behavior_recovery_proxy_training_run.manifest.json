@@ -1,0 +1,27 @@
+{
+  "benchmark": "prepared",
+  "command": [
+    "train.finetune",
+    "validate-data-only"
+  ],
+  "config_path": "configs/qwen35_9b_5090.yaml",
+  "config_sha256": "620bbe8bd76c89c892116c82634fd289b1d2b67217af097f24c8e33f87cbb1ed",
+  "eval_data_path": "docs/data_artifacts/behavior_recovery_proxy_eval.jsonl",
+  "eval_data_sha256": "da5ad7f8e230498194d09b7f51e65cdb7abbcb05989adf4af2c88920fa93062d",
+  "eval_row_count": 94,
+  "evaluation_mode": "non_oracle_generation",
+  "expected_benchmark": "prepared",
+  "expected_evaluation_mode": "non_oracle_generation",
+  "expected_training_target": "behavior_recovery",
+  "final_dir": "outputs/behavior_recovery_proxy/final",
+  "git_commit": "1816d79a00f0caa009a81aeeee1da41c1049f93d",
+  "output_dir": "outputs/behavior_recovery_proxy",
+  "run_id": "behavior-recovery-proxy",
+  "schema_version": 1,
+  "stage": "behavior_recovery",
+  "status": "validated",
+  "train_data_path": "docs/data_artifacts/behavior_recovery_proxy_train.jsonl",
+  "train_data_sha256": "970767f74bd16b5564f0970fbb9915b53d0455b6993938d24be49fb96e09ca50",
+  "train_row_count": 62,
+  "training_target": "behavior_recovery"
+}

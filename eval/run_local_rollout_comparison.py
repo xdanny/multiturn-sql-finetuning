@@ -10,6 +10,7 @@ from typing import Any
 from eval.compare_rollout_history import compare_rollout_manifest_files
 from eval.local_benchmark import run_local_benchmark
 from eval.local_rollout_benchmark import run_local_rollout_benchmark
+from eval.result_manifest import sha256_file
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -33,6 +34,33 @@ def validate_local_rollout_training_manifest(training_manifest: Path) -> dict[st
     }
 
 
+def write_rollout_comparison_preflight(
+    *,
+    training_manifest: Path,
+    output_path: Path,
+) -> dict[str, object]:
+    validated = validate_local_rollout_training_manifest(training_manifest)
+    input_path = Path(str(validated["input_path"]))
+    manifest = validated["manifest"]
+    payload = {
+        "schema_version": 1,
+        "artifact_type": "rollout_comparison_preflight",
+        "status": "ready_for_local_rollout_pair",
+        "claim_boundary": "preflight only; no rollout execution claim",
+        "training_manifest_path": str(training_manifest),
+        "training_manifest_sha256": sha256_file(training_manifest),
+        "input_path": str(input_path),
+        "input_sha256": sha256_file(input_path),
+        "stage": manifest["stage"],
+        "benchmark": manifest["benchmark"],
+        "evaluation_mode": manifest["evaluation_mode"],
+        "row_count": sum(1 for _ in input_path.open()),
+    }
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    return payload
+
+
 def run_local_rollout_comparison(
     *,
     training_manifest: Path,
@@ -44,9 +72,15 @@ def run_local_rollout_comparison(
     max_new_tokens: int,
     max_memory_gb: int | None,
     repo_root: Path = Path("."),
+    preflight_output: Path | None = None,
 ) -> int:
     validated = validate_local_rollout_training_manifest(training_manifest)
     output_dir.mkdir(parents=True, exist_ok=True)
+    if preflight_output is not None:
+        write_rollout_comparison_preflight(
+            training_manifest=training_manifest,
+            output_path=preflight_output,
+        )
 
     teacher_output = output_dir / f"{run_id}.teacher_forced.jsonl"
     teacher_manifest_output = output_dir / f"{run_id}.teacher_forced.manifest.json"
@@ -122,7 +156,17 @@ def main() -> int:
     parser.add_argument("--max-new-tokens", type=int, default=256)
     parser.add_argument("--max-memory-gb", type=int, default=30)
     parser.add_argument("--repo-root", type=Path, default=Path("."))
+    parser.add_argument("--preflight-output", type=Path, default=None)
+    parser.add_argument("--preflight-only", action="store_true")
     args = parser.parse_args()
+    if args.preflight_only:
+        if args.preflight_output is None:
+            raise SystemExit("--preflight-output is required with --preflight-only")
+        write_rollout_comparison_preflight(
+            training_manifest=args.training_manifest,
+            output_path=args.preflight_output,
+        )
+        return 0
 
     return run_local_rollout_comparison(
         training_manifest=args.training_manifest,
@@ -134,6 +178,7 @@ def main() -> int:
         max_new_tokens=args.max_new_tokens,
         max_memory_gb=args.max_memory_gb,
         repo_root=args.repo_root,
+        preflight_output=args.preflight_output,
     )
 
 

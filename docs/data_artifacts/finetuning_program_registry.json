@@ -340,7 +340,9 @@
       "current_evidence": {
         "artifact_paths": [
           "docs/data_artifacts/behavior_recovery_training_rows.manifest.json",
-          "docs/data_artifacts/behavior_recovery_proxy.manifest.json"
+          "docs/data_artifacts/behavior_recovery_proxy.manifest.json",
+          "docs/data_artifacts/behavior_recovery_proxy_training_run.manifest.json",
+          "docs/behavior_recovery_rollout_preflight.json"
         ],
         "claim_ids": [
           "model_generated_history_rollout",
@@ -354,7 +356,9 @@
       "evidence_contract": {
         "artifact_paths": [
           "docs/data_artifacts/behavior_recovery_training_rows.manifest.json",
-          "docs/data_artifacts/behavior_recovery_proxy.manifest.json"
+          "docs/data_artifacts/behavior_recovery_proxy.manifest.json",
+          "docs/data_artifacts/behavior_recovery_proxy_training_run.manifest.json",
+          "docs/behavior_recovery_rollout_preflight.json"
         ],
         "claim_ids": [
           "model_generated_history_rollout",

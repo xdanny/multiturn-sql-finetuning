@@ -1,0 +1,14 @@
+{
+  "artifact_type": "rollout_comparison_preflight",
+  "benchmark": "prepared",
+  "claim_boundary": "preflight only; no rollout execution claim",
+  "evaluation_mode": "non_oracle_generation",
+  "input_path": "docs/data_artifacts/behavior_recovery_proxy_eval.jsonl",
+  "input_sha256": "da5ad7f8e230498194d09b7f51e65cdb7abbcb05989adf4af2c88920fa93062d",
+  "row_count": 94,
+  "schema_version": 1,
+  "stage": "behavior_recovery",
+  "status": "ready_for_local_rollout_pair",
+  "training_manifest_path": "docs/data_artifacts/behavior_recovery_proxy_training_run.manifest.json",
+  "training_manifest_sha256": "6cf3f0fc0fde526cd413a73b39a10854ac0e4340d6254469b068f4c1f66120e8"
+}

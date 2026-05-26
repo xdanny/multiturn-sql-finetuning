@@ -277,6 +277,8 @@ def _stages() -> list[dict[str, Any]]:
                 "artifact_paths": [
                     "docs/data_artifacts/behavior_recovery_training_rows.manifest.json",
                     "docs/data_artifacts/behavior_recovery_proxy.manifest.json",
+                    "docs/data_artifacts/behavior_recovery_proxy_training_run.manifest.json",
+                    "docs/behavior_recovery_rollout_preflight.json",
                 ],
                 "mode": "pending_claim",
                 "next_required_artifact": "same-model rollout and teacher-forced comparison manifests",

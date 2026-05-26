@@ -93,6 +93,23 @@ The training manifest must point at `benchmark=prepared` and
 This is the local Stage 5 prepared-dialog contract: same checkpoint, same
 prepared input, different history policy.
 
+For endpoint-free validation, the same runner can also write a readiness
+artifact without loading a model:
+
+```bash
+uv run python -m eval.run_local_rollout_comparison \
+  --training-manifest docs/data_artifacts/behavior_recovery_proxy_training_run.manifest.json \
+  --output-dir /tmp/behavior-recovery-rollout-unused \
+  --run-id behavior-recovery-proxy \
+  --model-name unsloth/Qwen3.5-9B \
+  --preflight-output docs/behavior_recovery_rollout_preflight.json \
+  --preflight-only
+```
+
+That preflight is bounded to `preflight only; no rollout execution claim`. It
+proves the current prepared behavior/recovery manifest still points at a valid
+non-oracle prepared input before a fresh rollout comparison is run.
+
 ## Claim Boundary
 
 A generated-history rollout result can support only a proxy rollout claim until

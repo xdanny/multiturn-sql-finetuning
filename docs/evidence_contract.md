@@ -428,6 +428,32 @@ That path compares `benchmark=behavior_recovery` against
 writes deltas for value accuracy, strict accuracy, and `recovery_success_rate`.
 It is still a synthetic gate, not a rollout claim.
 
+For the prepared-dialog Stage 5 path, the repo now also carries a tracked
+validate-only training manifest plus a rollout preflight:
+
+- `docs/data_artifacts/behavior_recovery_proxy_training_run.manifest.json`
+- `docs/behavior_recovery_rollout_preflight.json`
+
+The training manifest comes from `uv run python -m train.finetune
+--validate-data-only` without loading a model. The checked-in preflight then
+proves the current prepared behavior/recovery manifest still points at a valid
+non-oracle prepared slice before a fresh same-checkpoint rollout run:
+
+```bash
+uv run python -m eval.run_local_rollout_comparison \
+  --training-manifest docs/data_artifacts/behavior_recovery_proxy_training_run.manifest.json \
+  --output-dir /tmp/behavior-recovery-rollout-unused \
+  --run-id behavior-recovery-proxy \
+  --model-name unsloth/Qwen3.5-9B \
+  --preflight-output docs/behavior_recovery_rollout_preflight.json \
+  --preflight-only
+```
+
+That artifact is bounded to `preflight only; no rollout execution claim`. The
+claim still stays pending until the same checkpoint is actually evaluated under
+both teacher-forced and generated-history rollout and then compared through
+`eval.compare_rollout_history`.
+
 ## Blog Rule
 
 A blog sentence can make a benchmark claim only if it names one of:

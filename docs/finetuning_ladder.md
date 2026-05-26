@@ -184,6 +184,11 @@ If you want the short version before reading the full stage details, see
   The synthetic pair now also uses the shared `eval.local_sql_pair` contract so
   recovery tuning follows the same local method-vs-control structure as
   semantic-layer tuning.
+  The prepared rollout path also has a tracked readiness artifact with
+  `--preflight-only --preflight-output docs/behavior_recovery_rollout_preflight.json`.
+  That checked-in preflight proves the current prepared behavior/recovery
+  manifest still points at a valid non-oracle prepared slice before a fresh
+  same-checkpoint rollout run.
 - Claim boundary:
   the synthetic pair can justify a narrow recovery-method comparison only. A
   behavior/recovery claim on the CoSQL proxy still requires same-model rollout
