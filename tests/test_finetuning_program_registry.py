@@ -6,7 +6,9 @@ from pathlib import Path
 from data.finetuning_program_registry import (
     DEFAULT_MANIFEST_OUTPUT,
     DEFAULT_OUTPUT,
+    DEFAULT_SCORECARD_OUTPUT,
     build_finetuning_program_registry,
+    build_finetuning_stage_scorecard,
     write_finetuning_program_registry,
 )
 
@@ -27,6 +29,8 @@ def test_build_finetuning_program_registry_covers_blog_method_ideas() -> None:
 
     stage_by_key = {entry["method_key"]: entry for entry in registry["stages"]}
     assert stage_by_key["metric_dsl"]["blog_idea"] == "MEASURE()-preserving DSL"
+    assert stage_by_key["metric_dsl"]["learning_focus"] == "preserve governed metric intent before SQL compilation"
+    assert stage_by_key["predicted_planner_sql"]["win_condition"] == "same-row SQL execution beats the direct SQL control"
     assert stage_by_key["semantic_layer"]["blog_idea"] == "semantic-layer state"
     assert stage_by_key["behavior_recovery"]["blog_idea"] == "generated-history recovery"
     assert stage_by_key["hosted_and_bird_benchmark"]["blog_idea"] == "hosted and BIRD-Interact benchmark gate"
@@ -59,15 +63,18 @@ def test_write_finetuning_program_registry_writes_checked_artifact_shape(
 ) -> None:
     output_path = tmp_path / "finetuning_program_registry.json"
     manifest_path = tmp_path / "finetuning_program_registry.manifest.json"
+    scorecard_path = tmp_path / "finetuning_stage_scorecard.md"
 
     manifest = write_finetuning_program_registry(
         output_path=output_path,
         manifest_path=manifest_path,
+        scorecard_output_path=scorecard_path,
         command=["uv", "run", "python", "-m", "data.finetuning_program_registry"],
     )
 
     payload = json.loads(output_path.read_text())
     written_manifest = json.loads(manifest_path.read_text())
+    scorecard = scorecard_path.read_text()
 
     assert payload["artifact_type"] == "finetuning_program_registry"
     assert payload["stage_count"] == 7
@@ -88,28 +95,53 @@ def test_write_finetuning_program_registry_writes_checked_artifact_shape(
     assert manifest["artifact_type"] == "finetuning_program_registry"
     assert manifest["stage_count"] == 7
     assert manifest["output_sha256"]
+    assert manifest["scorecard_output_path"] == str(scorecard_path)
+    assert manifest["scorecard_output_sha256"]
     assert manifest["command"] == ["uv", "run", "python", "-m", "data.finetuning_program_registry"]
     assert written_manifest == manifest
+    assert scorecard.startswith("# Finetuning Stage Scorecard")
+    assert "## Stage 4: MEASURE()-preserving metric DSL" in scorecard
+    assert "- Win condition: same-row compiled SQL beats the direct SQL control on metric-heavy rows." in scorecard
+    assert "No wide summary table appears here on purpose." in scorecard
+
+
+def test_build_finetuning_stage_scorecard_is_human_readable() -> None:
+    registry = build_finetuning_program_registry()
+
+    scorecard = build_finetuning_stage_scorecard(registry)
+
+    assert "# Finetuning Stage Scorecard" in scorecard
+    assert "## Stage 3: Semantic-layer tuning" in scorecard
+    assert "- Learns: governed entities, joins, grain, and value meaning that raw schema text misses." in scorecard
+    assert "- Win condition: same-row comparison beats the direct SQL control without oracle pruning." in scorecard
+    assert "## Stage 6: Hosted and BIRD-Interact comparison" in scorecard
+    assert "- Control arm: best_local_candidate_from_stage_0_to_5" in scorecard
+    assert "No wide summary table appears here on purpose." in scorecard
 
 
 def test_checked_in_finetuning_program_registry_is_current(tmp_path: Path) -> None:
     output_path = tmp_path / "finetuning_program_registry.json"
     manifest_path = tmp_path / "finetuning_program_registry.manifest.json"
+    scorecard_path = tmp_path / "finetuning_stage_scorecard.md"
 
     manifest = write_finetuning_program_registry(
         output_path=output_path,
         manifest_path=manifest_path,
+        scorecard_output_path=scorecard_path,
     )
 
     checked_in_payload = json.loads(DEFAULT_OUTPUT.read_text())
     checked_in_manifest = json.loads(DEFAULT_MANIFEST_OUTPUT.read_text())
+    checked_in_scorecard = DEFAULT_SCORECARD_OUTPUT.read_text()
 
     assert checked_in_payload == json.loads(output_path.read_text())
+    assert checked_in_scorecard == scorecard_path.read_text()
     for field in [
         "artifact_type",
         "stage_count",
         "blog_idea_count",
         "evaluation_modes",
         "benchmarks",
+        "scorecard_output_sha256",
     ]:
         assert checked_in_manifest[field] == manifest[field]

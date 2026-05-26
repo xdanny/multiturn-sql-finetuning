@@ -39,6 +39,8 @@ def test_root_docs_reference_finetuning_ladder() -> None:
     assert "docs/finetuning_ladder.md" in methodology
     assert "data.finetuning_program_registry" in readme
     assert "docs/data_artifacts/finetuning_program_registry.json" in methodology
+    assert "docs/data_artifacts/finetuning_stage_scorecard.md" in readme
+    assert "docs/data_artifacts/finetuning_stage_scorecard.md" in methodology
 
 
 def test_agents_guidance_exists_at_repo_and_domain_levels() -> None:
@@ -55,6 +57,7 @@ def test_agents_guidance_exists_at_repo_and_domain_levels() -> None:
             "oracle",
             "semantic",
             "finetuning_program_registry",
+            "stage scorecard",
         ],
         REPO_ROOT / "eval" / "AGENTS.md": [
             "manifest",
@@ -85,6 +88,7 @@ def test_agents_guidance_exists_at_repo_and_domain_levels() -> None:
             "finetuning ladder",
             "claim boundary",
             "finetuning_program_registry",
+            "finetuning_stage_scorecard",
         ],
     }
 

@@ -19,6 +19,10 @@ those ideas into named finetuning steps, evaluation gates, and claim boundaries.
 The machine-checkable cross-stage map for that ladder is
 `data.finetuning_program_registry`, which writes
 `docs/data_artifacts/finetuning_program_registry.json`.
+The short human-readable companion is
+`docs/data_artifacts/finetuning_stage_scorecard.md`, which answers the same
+questions for every stage in plain language: what it learns, what it is
+compared against, and what would count as a real win.
 For SQL-generating method-vs-control experiments, the shared local comparison
 contract now lives in `eval.local_sql_pair`. New methods in that family should
 add a small `SqlPairSpec` plus a method-specific comparer, not a bespoke local

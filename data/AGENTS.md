@@ -12,6 +12,8 @@ Primary responsibilities:
 - Keep the cross-stage registry current: `data.finetuning_program_registry`
   should reflect the actual training targets and benchmark surfaces that the
   repo supports.
+- Keep the generated stage scorecard aligned with that registry so the repo has
+  both a machine-checkable artifact and a short human-readable summary.
 
 Rules:
 

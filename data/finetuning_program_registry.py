@@ -13,6 +13,7 @@ from eval.result_manifest import sha256_file
 ARTIFACT_TYPE = "finetuning_program_registry"
 DEFAULT_OUTPUT = Path("docs/data_artifacts/finetuning_program_registry.json")
 DEFAULT_MANIFEST_OUTPUT = Path("docs/data_artifacts/finetuning_program_registry.manifest.json")
+DEFAULT_SCORECARD_OUTPUT = Path("docs/data_artifacts/finetuning_stage_scorecard.md")
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -27,6 +28,7 @@ def _stages() -> list[dict[str, Any]]:
             "stage_name": "Direct SQL control",
             "method_key": "direct_sql_control",
             "blog_idea": "direct SQL control",
+            "learning_focus": "direct SQL behavior with no planner or semantic shortcuts",
             "training_target": "direct_sql_control",
             "primary_benchmark": "prepared",
             "benchmark_surfaces": ["prepared"],
@@ -49,6 +51,7 @@ def _stages() -> list[dict[str, Any]]:
                 "no_oracle_planner_hints",
                 "no_oracle_pruned_semantic_context",
             ],
+            "win_condition": "establish a stable non-oracle control arm on the fixed prepared slice",
             "claim_boundary": "Proxy-only control arm until later same-row comparisons or Stage 6 benchmarks beat hosted baselines.",
         },
         {
@@ -56,6 +59,7 @@ def _stages() -> list[dict[str, Any]]:
             "stage_name": "Planner supervision",
             "method_key": "planner_supervision",
             "blog_idea": "planner-first intermediate state",
+            "learning_focus": "tables, columns, joins, projection shape, and duplicate policy before SQL generation",
             "training_target": "planner_supervision",
             "primary_benchmark": "prepared",
             "benchmark_surfaces": ["prepared"],
@@ -80,6 +84,7 @@ def _stages() -> list[dict[str, Any]]:
                 "gold_plan_allowed_only_as_label",
                 "no_reference_sql_in_prompt",
             ],
+            "win_condition": "planner-quality metrics improve before SQL generation is promoted",
             "claim_boundary": "Planner quality is a prerequisite surface, not a SQL win by itself.",
         },
         {
@@ -87,6 +92,7 @@ def _stages() -> list[dict[str, Any]]:
             "stage_name": "Predicted-planner SQL",
             "method_key": "predicted_planner_sql",
             "blog_idea": "planner-to-SQL execution",
+            "learning_focus": "SQL generation conditioned on a non-oracle predicted plan",
             "training_target": "predicted_planner",
             "primary_benchmark": "prepared",
             "benchmark_surfaces": ["prepared"],
@@ -109,6 +115,7 @@ def _stages() -> list[dict[str, Any]]:
                 "predicted_plan_must_be_non_oracle",
                 "same_row_pairing_against_direct_sql",
             ],
+            "win_condition": "same-row SQL execution beats the direct SQL control",
             "claim_boundary": "Only a positive same-row comparison against direct SQL can clear this method claim.",
         },
         {
@@ -116,6 +123,7 @@ def _stages() -> list[dict[str, Any]]:
             "stage_name": "Semantic-layer tuning",
             "method_key": "semantic_layer",
             "blog_idea": "semantic-layer state",
+            "learning_focus": "governed entities, joins, grain, and value meaning that raw schema text misses",
             "training_target": "semantic_layer",
             "primary_benchmark": "synthetic_semantic_layer",
             "benchmark_surfaces": ["synthetic_semantic_layer"],
@@ -140,6 +148,7 @@ def _stages() -> list[dict[str, Any]]:
                 "no_expected_rows_in_prompt",
                 "no_gold_metric_dsl_in_prompt",
             ],
+            "win_condition": "same-row comparison beats the direct SQL control without oracle pruning",
             "claim_boundary": "Semantic artifacts only matter if same-row comparison beats the direct control without oracle pruning.",
         },
         {
@@ -147,6 +156,7 @@ def _stages() -> list[dict[str, Any]]:
             "stage_name": "MEASURE()-preserving metric DSL",
             "method_key": "metric_dsl",
             "blog_idea": "MEASURE()-preserving DSL",
+            "learning_focus": "preserve governed metric intent before SQL compilation",
             "training_target": "metric_dsl",
             "primary_benchmark": "synthetic_metric_dsl_bootstrap",
             "benchmark_surfaces": [
@@ -175,6 +185,7 @@ def _stages() -> list[dict[str, Any]]:
                 "no_compiled_sql_in_prompt",
                 "measure_preservation_scored_separately_from_sql",
             ],
+            "win_condition": "same-row compiled SQL beats the direct SQL control on metric-heavy rows",
             "claim_boundary": "A DSL parse/compile win is not enough; compiled SQL must beat same-row direct SQL on metric-heavy rows.",
         },
         {
@@ -182,6 +193,7 @@ def _stages() -> list[dict[str, Any]]:
             "stage_name": "Generated-history recovery",
             "method_key": "behavior_recovery",
             "blog_idea": "generated-history recovery",
+            "learning_focus": "repair, retry, and recovery behavior after the model's own earlier SQL",
             "training_target": "behavior_recovery",
             "primary_benchmark": "synthetic_behavior_recovery",
             "benchmark_surfaces": ["synthetic_behavior_recovery", "prepared"],
@@ -207,6 +219,7 @@ def _stages() -> list[dict[str, Any]]:
                 "no_repair_labels_in_prompt",
                 "generated_history_claims_require_rollout_eval",
             ],
+            "win_condition": "rollout comparison beats the same checkpoint under teacher-forced history",
             "claim_boundary": "Teacher-forced history cannot support a recovery claim; rollout comparison is required.",
         },
         {
@@ -214,6 +227,7 @@ def _stages() -> list[dict[str, Any]]:
             "stage_name": "Hosted and BIRD-Interact comparison",
             "method_key": "hosted_and_bird_benchmark",
             "blog_idea": "hosted and BIRD-Interact benchmark gate",
+            "learning_focus": "none; this stage validates whether the best earlier local method transfers to real benchmark gates",
             "training_target": None,
             "primary_benchmark": "bird_interact_transfer",
             "benchmark_surfaces": ["prepared", "bird_interact_transfer"],
@@ -232,6 +246,7 @@ def _stages() -> list[dict[str, Any]]:
                 "non_oracle_generation_only",
                 "result_manifests_must_match_frozen_input_contract_hash",
             ],
+            "win_condition": "the best local candidate holds up against hosted or BIRD-Interact baselines on frozen contracts",
             "claim_boundary": "This is the only stage that can support local-vs-hosted or BIRD-Interact competitiveness language.",
         },
     ]
@@ -269,14 +284,49 @@ def build_finetuning_program_registry() -> dict[str, Any]:
     return registry
 
 
+def build_finetuning_stage_scorecard(registry: dict[str, Any] | None = None) -> str:
+    registry = registry or build_finetuning_program_registry()
+    lines = [
+        "# Finetuning Stage Scorecard",
+        "",
+        "This is the short companion to the finetuning ladder and the JSON registry.",
+        "Each stage answers the same practical questions: what the model learns,",
+        "what it is compared against, what benchmark surface it uses, and what",
+        "would count as a real win.",
+        "",
+        "No wide summary table appears here on purpose.",
+        "",
+    ]
+    for stage in registry["stages"]:
+        lines.extend(
+            [
+                f"## Stage {stage['stage_id']}: {stage['stage_name']}",
+                "",
+                f"- Learns: {stage['learning_focus']}.",
+                f"- Benchmark surfaces: {', '.join(stage['benchmark_surfaces'])}.",
+                f"- Control arm: {stage['control_arm'] or 'none; this is the control arm'}.",
+                f"- Prepared artifacts: {', '.join(stage['prepared_artifacts'])}.",
+                f"- Comparison gate: {', '.join(stage['comparison_contracts'])}.",
+                f"- Win condition: {stage['win_condition']}.",
+                f"- Leakage to forbid: {', '.join(stage['leakage_boundaries'])}.",
+                f"- Claim boundary: {stage['claim_boundary']}",
+                "",
+            ]
+        )
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def write_finetuning_program_registry(
     *,
     output_path: Path = DEFAULT_OUTPUT,
     manifest_path: Path = DEFAULT_MANIFEST_OUTPUT,
+    scorecard_output_path: Path = DEFAULT_SCORECARD_OUTPUT,
     command: list[str] | None = None,
 ) -> dict[str, Any]:
     registry = build_finetuning_program_registry()
     _write_json(output_path, registry)
+    scorecard_output_path.parent.mkdir(parents=True, exist_ok=True)
+    scorecard_output_path.write_text(build_finetuning_stage_scorecard(registry))
     manifest = {
         "artifact_type": ARTIFACT_TYPE,
         "source_docs": registry["source_docs"],
@@ -286,6 +336,8 @@ def write_finetuning_program_registry(
         "benchmarks": registry["benchmarks"],
         "output_path": str(output_path),
         "output_sha256": sha256_file(output_path),
+        "scorecard_output_path": str(scorecard_output_path),
+        "scorecard_output_sha256": sha256_file(scorecard_output_path),
         "command": command or sys.argv,
     }
     _write_json(manifest_path, manifest)
@@ -296,14 +348,17 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--manifest-output", type=Path, default=DEFAULT_MANIFEST_OUTPUT)
+    parser.add_argument("--scorecard-output", type=Path, default=DEFAULT_SCORECARD_OUTPUT)
     args = parser.parse_args()
 
     manifest = write_finetuning_program_registry(
         output_path=args.output,
         manifest_path=args.manifest_output,
+        scorecard_output_path=args.scorecard_output,
         command=sys.argv,
     )
     print(f"Wrote {manifest['stage_count']} finetuning stages to {args.output}")
+    print(f"Wrote stage scorecard to {args.scorecard_output}")
     print(f"Wrote manifest to {args.manifest_output}")
     return 0
 

@@ -37,6 +37,7 @@
         "no_oracle_planner_hints",
         "no_oracle_pruned_semantic_context"
       ],
+      "learning_focus": "direct SQL behavior with no planner or semantic shortcuts",
       "method_key": "direct_sql_control",
       "prepared_artifacts": [
         "data.prepare",
@@ -50,7 +51,8 @@
         "expected_benchmark": "prepared",
         "expected_training_target": "direct_sql_control"
       },
-      "training_target": "direct_sql_control"
+      "training_target": "direct_sql_control",
+      "win_condition": "establish a stable non-oracle control arm on the fixed prepared slice"
     },
     {
       "benchmark_surfaces": [
@@ -69,6 +71,7 @@
         "gold_plan_allowed_only_as_label",
         "no_reference_sql_in_prompt"
       ],
+      "learning_focus": "tables, columns, joins, projection shape, and duplicate policy before SQL generation",
       "method_key": "planner_supervision",
       "prepared_artifacts": [
         "data.prepare",
@@ -83,7 +86,8 @@
         "expected_benchmark": "prepared",
         "expected_training_target": "planner_supervision"
       },
-      "training_target": "planner_supervision"
+      "training_target": "planner_supervision",
+      "win_condition": "planner-quality metrics improve before SQL generation is promoted"
     },
     {
       "benchmark_surfaces": [
@@ -101,6 +105,7 @@
         "predicted_plan_must_be_non_oracle",
         "same_row_pairing_against_direct_sql"
       ],
+      "learning_focus": "SQL generation conditioned on a non-oracle predicted plan",
       "method_key": "predicted_planner_sql",
       "prepared_artifacts": [
         "eval.planner_eval",
@@ -114,7 +119,8 @@
         "expected_benchmark": "prepared",
         "expected_training_target": "predicted_planner"
       },
-      "training_target": "predicted_planner"
+      "training_target": "predicted_planner",
+      "win_condition": "same-row SQL execution beats the direct SQL control"
     },
     {
       "benchmark_surfaces": [
@@ -133,6 +139,7 @@
         "no_expected_rows_in_prompt",
         "no_gold_metric_dsl_in_prompt"
       ],
+      "learning_focus": "governed entities, joins, grain, and value meaning that raw schema text misses",
       "method_key": "semantic_layer",
       "prepared_artifacts": [
         "data.semantic_layer_dataset",
@@ -147,7 +154,8 @@
         "expected_benchmark": "synthetic_semantic_layer",
         "expected_training_target": "semantic_layer"
       },
-      "training_target": "semantic_layer"
+      "training_target": "semantic_layer",
+      "win_condition": "same-row comparison beats the direct SQL control without oracle pruning"
     },
     {
       "benchmark_surfaces": [
@@ -168,6 +176,7 @@
         "no_compiled_sql_in_prompt",
         "measure_preservation_scored_separately_from_sql"
       ],
+      "learning_focus": "preserve governed metric intent before SQL compilation",
       "method_key": "metric_dsl",
       "prepared_artifacts": [
         "data.metric_dsl_dataset",
@@ -182,7 +191,8 @@
         "expected_benchmark": "synthetic_metric_dsl_bootstrap",
         "expected_training_target": "metric_dsl"
       },
-      "training_target": "metric_dsl"
+      "training_target": "metric_dsl",
+      "win_condition": "same-row compiled SQL beats the direct SQL control on metric-heavy rows"
     },
     {
       "benchmark_surfaces": [
@@ -203,6 +213,7 @@
         "no_repair_labels_in_prompt",
         "generated_history_claims_require_rollout_eval"
       ],
+      "learning_focus": "repair, retry, and recovery behavior after the model's own earlier SQL",
       "method_key": "behavior_recovery",
       "prepared_artifacts": [
         "data.behavior_recovery_dataset",
@@ -217,7 +228,8 @@
         "expected_benchmark": "synthetic_behavior_recovery",
         "expected_training_target": "behavior_recovery"
       },
-      "training_target": "behavior_recovery"
+      "training_target": "behavior_recovery",
+      "win_condition": "rollout comparison beats the same checkpoint under teacher-forced history"
     },
     {
       "benchmark_surfaces": [
@@ -236,6 +248,7 @@
         "non_oracle_generation_only",
         "result_manifests_must_match_frozen_input_contract_hash"
       ],
+      "learning_focus": "none; this stage validates whether the best earlier local method transfers to real benchmark gates",
       "method_key": "hosted_and_bird_benchmark",
       "prepared_artifacts": [
         "data.hosted_baseline_dataset",
@@ -245,7 +258,8 @@
       "stage_id": 6,
       "stage_name": "Hosted and BIRD-Interact comparison",
       "trainer_contract": null,
-      "training_target": null
+      "training_target": null,
+      "win_condition": "the best local candidate holds up against hosted or BIRD-Interact baselines on frozen contracts"
     }
   ]
 }

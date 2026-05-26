@@ -9,6 +9,9 @@ Every stage below should be treated as a same-repo method comparison, not a
 free-form prompt hunt. If a stage cannot produce a prepared artifact, a trainer
 run, and a comparison manifest, it is not ready to be called a finetuning step.
 
+If you want the short version before reading the full stage details, see
+`docs/data_artifacts/finetuning_stage_scorecard.md`.
+
 ## Stage 0: Direct SQL control
 
 - Training target:
