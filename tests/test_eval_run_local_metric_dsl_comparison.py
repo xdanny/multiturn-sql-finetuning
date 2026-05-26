@@ -60,98 +60,16 @@ def test_run_local_metric_dsl_comparison_generates_scores_and_compares(tmp_path,
     _write_jsonl(metric_input, [{"fixture_id": "measure_preservation_metric", "reference_sql": "SELECT 1"}])
     _write_jsonl(direct_input, [{"fixture_id": "measure_preservation_metric", "reference_sql": "SELECT 1"}])
 
-    generation_calls: list[dict] = []
-    metric_eval_calls: list[dict] = []
-    direct_eval_calls: list[dict] = []
+    helper_calls: list[dict] = []
     compare_calls: list[dict] = []
 
-    def fake_run_local_metric_dsl_benchmark(**kwargs):
-        generation_calls.append(kwargs)
-        kwargs["output_path"].write_text(
-            json.dumps(
-                {
-                    "id": "metric-1",
-                    "fixture_id": "measure_preservation_metric",
-                    "reference_sql": "SELECT 1",
-                    kwargs["output_field"]: "MEASURE(revenue)"
-                    if kwargs["output_field"] == "generated_metric_dsl"
-                    else "SELECT 1",
-                }
-            )
-            + "\n"
-        )
-        return 0
-
-    def fake_run_metric_dsl_eval(**kwargs):
-        metric_eval_calls.append(kwargs)
-        kwargs["manifest_output"].write_text(
-            json.dumps(
-                {
-                    "run_id": kwargs["output_path"].stem,
-                    "output_path": str(kwargs["output_path"]),
-                    "row_count": 1,
-                    "benchmark": "metric_dsl",
-                    "evaluation_mode": "metric_dsl",
-                    "metrics": {
-                        "metric_dsl_parse_rate": 1.0,
-                        "metric_dsl_compile_rate": 1.0,
-                        "compiled_sql_execution_evaluated_rows": 1,
-                        "measure_preservation": 1.0,
-                        "value_execution_accuracy": 1.0,
-                        "strict_execution_accuracy": 1.0,
-                    },
-                }
-            )
-        )
-        kwargs["output_path"].write_text(
-            json.dumps(
-                {
-                    "id": "metric-1",
-                    "fixture_id": "measure_preservation_metric",
-                    "evaluation_mode": "metric_dsl",
-                    "reference_sql": "SELECT 1",
-                    "database_path": "metric.sqlite",
-                    "sql_execution_attempted": True,
-                    "value_execution_score": 1.0,
-                    "strict_execution_score": 1.0,
-                }
-            )
-            + "\n"
-        )
-        return 0
-
-    def fake_run_direct_sql_eval(**kwargs):
-        direct_eval_calls.append(kwargs)
-        kwargs["manifest_output"].write_text(
-            json.dumps(
-                {
-                    "run_id": kwargs["output_path"].stem,
-                    "output_path": str(kwargs["output_path"]),
-                    "row_count": 1,
-                    "benchmark": "metric_dsl_direct_sql",
-                    "evaluation_mode": "non_oracle_generation",
-                    "metrics": {
-                        "value_execution_accuracy": 0.0,
-                        "strict_execution_accuracy": 0.0,
-                    },
-                }
-            )
-        )
-        kwargs["output_path"].write_text(
-            json.dumps(
-                {
-                    "id": "metric-1",
-                    "fixture_id": "measure_preservation_metric",
-                    "evaluation_mode": "non_oracle_generation",
-                    "reference_sql": "SELECT 1",
-                    "database_path": "metric.sqlite",
-                    "value_execution_score": 0.0,
-                    "strict_execution_score": 0.0,
-                }
-            )
-            + "\n"
-        )
-        return 0
+    def fake_run_local_generation_pair(**kwargs):
+        helper_calls.append(kwargs)
+        return {
+            "method_manifest_output": output_dir / "metric-local.metric_dsl.manifest.json",
+            "direct_manifest_output": output_dir / "metric-local.direct_sql.manifest.json",
+            "compared_output": output_dir / "metric-local.compared.manifest.json",
+        }
 
     def fake_compare(**kwargs):
         compare_calls.append(kwargs)
@@ -159,11 +77,9 @@ def test_run_local_metric_dsl_comparison_generates_scores_and_compares(tmp_path,
         return {"compared": True}
 
     monkeypatch.setattr(
-        "eval.run_local_metric_dsl_comparison.run_local_metric_dsl_benchmark",
-        fake_run_local_metric_dsl_benchmark,
+        "eval.run_local_metric_dsl_comparison.run_local_generation_pair",
+        fake_run_local_generation_pair,
     )
-    monkeypatch.setattr("eval.run_local_metric_dsl_comparison.run_metric_dsl_eval", fake_run_metric_dsl_eval)
-    monkeypatch.setattr("eval.run_local_metric_dsl_comparison.run_direct_sql_eval", fake_run_direct_sql_eval)
     monkeypatch.setattr(
         "eval.run_local_metric_dsl_comparison.compare_metric_dsl_direct_sql_manifest_files",
         fake_compare,
@@ -182,14 +98,7 @@ def test_run_local_metric_dsl_comparison_generates_scores_and_compares(tmp_path,
     )
 
     assert exit_code == 0
-    assert [call["output_field"] for call in generation_calls] == [
-        "generated_metric_dsl",
-        "generated_sql",
-    ]
-    assert generation_calls[0]["adapter_path"] == tmp_path / "metric_adapter"
-    assert generation_calls[1]["adapter_path"] == tmp_path / "direct_adapter"
-    assert metric_eval_calls[0]["input_path"] == output_dir / "metric-local.metric_dsl.predictions.jsonl"
-    assert direct_eval_calls[0]["input_path"] == output_dir / "metric-local.direct_sql.predictions.jsonl"
+    assert helper_calls[0]["spec"].method_output_stem == "metric_dsl"
     assert compare_calls == [
         {
             "metric_dsl_manifest_path": output_dir / "metric-local.metric_dsl.manifest.json",

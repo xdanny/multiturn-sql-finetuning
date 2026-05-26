@@ -62,6 +62,7 @@ def test_agents_guidance_exists_at_repo_and_domain_levels() -> None:
             "claim",
             "same-model",
             "local_sql_pair",
+            "local_generation_pair",
         ],
         REPO_ROOT / "train" / "AGENTS.md": [
             "train.finetune",

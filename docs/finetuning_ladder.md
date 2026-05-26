@@ -133,7 +133,9 @@ run, and a comparison manifest, it is not ready to be called a finetuning step.
   `uv run python -m eval.run_metric_dsl_comparison` to validate the paired
   training manifests, score both offline sides, and write the comparison
   manifest in one path, plus `uv run python -m eval.run_local_metric_dsl_comparison`
-  for actual local checkpoint generation on the Stage 4 pair.
+  for actual local checkpoint generation on the Stage 4 pair. The local runner
+  now uses the shared `eval.local_generation_pair` contract instead of a
+  Stage-4-only orchestration path.
 - Claim boundary:
   a parseable DSL manifest is only a quality claim. The method wins only if the
   compiled SQL beats the direct SQL baseline on matching metric-heavy rows.

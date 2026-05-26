@@ -23,6 +23,9 @@ For SQL-generating method-vs-control experiments, the shared local comparison
 contract now lives in `eval.local_sql_pair`. New methods in that family should
 add a small `SqlPairSpec` plus a method-specific comparer, not a bespoke local
 runner from scratch.
+For mixed-output method-vs-control experiments, where the method side and the
+control side use different scorers, the shared orchestration now lives in
+`eval.local_generation_pair`. Stage 4 metric DSL uses that path.
 
 The first metric-DSL experiment surface is documented in
 `docs/metric_dsl_contract.md`, implemented in `data.metric_dsl`, and evaluated

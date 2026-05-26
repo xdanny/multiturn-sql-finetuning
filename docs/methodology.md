@@ -22,6 +22,11 @@ the direct-SQL control on the same rows, run local generation for both sides,
 score both sides the same way, then hand off to a method-specific comparer.
 That keeps semantic-layer and recovery experiments readable instead of growing a
 new mini-runner for every stage.
+For mixed-output method comparisons, where the method side is not scored by the
+same SQL path as the direct control, the repo now has a second narrow helper:
+`eval.local_generation_pair`. Stage 4 metric DSL uses it to keep the paired
+generation flow shared while still letting the method side go through
+`eval.metric_dsl_eval`.
 
 ## Experiment Taxonomy
 
