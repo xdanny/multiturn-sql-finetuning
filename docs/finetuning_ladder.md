@@ -92,7 +92,10 @@ run, and a comparison manifest, it is not ready to be called a finetuning step.
   example via `--run-id metric_dsl_bootstrap --training-manifest-output results/train/metric_dsl_bootstrap.manifest.json`.
 - Evaluation gate:
   `uv run python -m eval.metric_dsl_eval` followed by
-  `uv run python -m eval.compare_metric_dsl_direct_sql`.
+  `uv run python -m eval.compare_metric_dsl_direct_sql`. The repo also has
+  `uv run python -m eval.run_metric_dsl_comparison` to validate the paired
+  training manifests, score both offline sides, and write the comparison
+  manifest in one path.
 - Claim boundary:
   a parseable DSL manifest is only a quality claim. The method wins only if the
   compiled SQL beats the direct SQL baseline on matching metric-heavy rows.

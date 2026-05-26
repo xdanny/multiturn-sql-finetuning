@@ -183,3 +183,33 @@ This is intentionally small. It is not a full semantic-layer compiler yet. Its j
 to create a runnable experiment surface for the next fine-tuning question:
 
 > Is it better to train the local model to produce semantic intent first, then SQL?
+
+## Offline Paired Runner
+
+The repo now also has an offline Stage 4 comparison runner. It does not perform
+checkpoint inference by itself. Instead, it takes the paired training manifests
+for the Stage 4 metric-DSL run and the same-row direct-SQL control, validates
+that they point at comparable prepared inputs, scores both sides, and writes the
+comparison manifest:
+
+```bash
+uv run python -m eval.run_metric_dsl_comparison \
+  --metric-training-manifest results/train/metric_dsl_bootstrap.manifest.json \
+  --direct-training-manifest results/train/metric_dsl_direct_control.manifest.json \
+  --output-dir results/metric_dsl_pairs \
+  --run-id metric_dsl_bootstrap_pair \
+  --model-name local-9b
+```
+
+This produces:
+
+- `<run-id>.metric_dsl.jsonl`
+- `<run-id>.metric_dsl.manifest.json`
+- `<run-id>.direct_sql.jsonl`
+- `<run-id>.direct_sql.manifest.json`
+- `<run-id>.compared.manifest.json`
+
+The direct-SQL side is scored by `eval.direct_sql_eval`, which builds temporary
+SQLite databases from the synthetic fixture pack when the rows are fixture-backed.
+That keeps the Stage 4 pair runnable before the repo has a generalized
+checkpoint-inference harness for the DSL path.

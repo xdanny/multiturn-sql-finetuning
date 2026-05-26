@@ -17,6 +17,8 @@ Rules:
   the contract says; do not blur same-model and cross-method comparisons.
 - Keep comparison artifacts keyed to claim-ledger rows.
 - Prefer narrow, machine-checkable comparison outputs over prose summaries.
+- When a method comparison depends on prior training-stage contracts, validate
+  the training manifests before trusting the eval filenames.
 
 When editing here, inspect:
 
@@ -26,4 +28,5 @@ When editing here, inspect:
 - `eval/result_manifest.py`
 - `eval/compare_predicted_planner.py`
 - `eval/compare_metric_dsl_direct_sql.py`
+- `eval/run_metric_dsl_comparison.py`
 - `eval/compare_rollout_history.py`
