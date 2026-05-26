@@ -166,6 +166,26 @@ matching row identities. The claim ledger clears
 beats the direct-SQL value accuracy and the referenced direct-SQL manifest is
 present in the same ledger input.
 
+Use the paired runner for the actual endpoint experiment:
+
+```bash
+python -m eval.run_predicted_planner_comparison \
+  --direct-input data/processed/eval_cosql_dev_100.jsonl \
+  --predicted-input data/processed/eval_cosql_dev_predicted_planner_100.jsonl \
+  --output-dir results/predicted_planner \
+  --run-id lexical_planner_cosql_dev_100 \
+  --model-name <served-model> \
+  --endpoint http://localhost:8000/v1 \
+  --database-root data/raw/cosql_dataset/database \
+  --limit 100 \
+  --preflight-output docs/predicted_planner_comparison_preflight.json
+```
+
+`docs/predicted_planner_comparison_preflight.json` records that the current
+direct and predicted prepared inputs have matching row identities for the fixed
+100-turn proxy. This is only a readiness artifact. It cannot clear the claim
+without the endpoint result manifests and comparison metrics.
+
 For non-lexical planners, write JSONL predictions keyed by expanded turn id and
 run `eval.planner_eval --planner-source json_planner_predictions
 --planner-predictions <path>`. The planner loader preserves raw unknown fields

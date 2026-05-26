@@ -21,6 +21,7 @@ BLOG_EVIDENCE_SOURCES = (
     "docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json",
     "docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json",
     "docs/planner_baseline_cosql_dev_100_summary.json",
+    "docs/predicted_planner_comparison_preflight.json",
     "plots/rescored_vllm_semantic_prompt_iteration_100turns/summary.csv",
     "plots/failure_taxonomy/comparison/model_error_summary.csv",
     "plots/failure_taxonomy/comparison/pairwise_vs_baseline.csv",
@@ -1063,8 +1064,10 @@ def prompt_optimization_findings() -> pd.DataFrame:
             ),
             "next_program_target": (
                 "Run eval.planner_optimize with DSPy proposals, promote the best "
-                "planner policy into eval.planner_predict, then measure value "
-                "accuracy and failure-taxonomy deltas on a development split."
+                "planner policy into eval.planner_predict, then use "
+                "eval.run_predicted_planner_comparison to run direct SQL and "
+                "predicted-planner SQL with the same model, rows, scorer, and "
+                "oracle policy."
             ),
             "claim_boundary": (
                 "Planner optimizer exists, but no planner-search summary is "
@@ -1158,6 +1161,7 @@ def target_evidence_matrix() -> pd.DataFrame:
 
     ledger = claim_ledger().set_index("claim_id")
     planner = read_json_artifact("docs/planner_baseline_cosql_dev_100_summary.json")
+    preflight = read_json_artifact("docs/predicted_planner_comparison_preflight.json")
 
     def status(claim_id: str) -> str:
         return str(ledger.loc[claim_id, "claim_status"])
@@ -1191,15 +1195,24 @@ def target_evidence_matrix() -> pd.DataFrame:
                 "Planner quality is manifest-backed, not SQL-improvement backed: "
                 f"macro={float(planner['macro_planner_score']):.3f}, "
                 f"table_f1={float(planner['table_f1']):.3f}, "
-                f"column_f1={float(planner['column_f1']):.3f}."
+                f"column_f1={float(planner['column_f1']):.3f}. "
+                "The direct-vs-predicted input preflight is "
+                f"{preflight['status']} on {preflight['row_count']} turns "
+                f"across {preflight['dialog_count']} dialogs."
             ),
             "source_claim_ids": "planner_lexical_schema_baseline; predicted_planner_sql_execution",
             "evidence_level": (
                 f"{status('planner_lexical_schema_baseline')} + "
                 f"{status('predicted_planner_sql_execution')}"
             ),
-            "missing_gate": "Predicted-planner endpoint SQL manifest compared with direct SQL.",
-            "current_decision": "Highest-priority next build target because it attacks the oracle gap directly.",
+            "missing_gate": (
+                "Predicted-planner endpoint SQL manifest compared with direct SQL "
+                "through eval.run_predicted_planner_comparison."
+            ),
+            "current_decision": (
+                "Highest-priority next build target because it attacks the oracle "
+                "gap directly; the paired runner now prevents row/model/scorer drift."
+            ),
         },
         {
             "fine_tuning_target": "Semantic-layer tuning",
@@ -1288,7 +1301,9 @@ def method_decision_rules() -> pd.DataFrame:
                 ),
                 "current_blocker": (
                     "non-oracle planner-to-SQL execution is pending; current oracle "
-                    "planner rows are ceilings, not production evidence."
+                    "planner rows are ceilings, not production evidence. "
+                    "eval.run_predicted_planner_comparison is the required paired "
+                    "endpoint runner for the next manifest."
                 ),
                 "claim_ids": (
                     "planner_lexical_schema_baseline, "
@@ -1377,7 +1392,9 @@ def method_priority_backlog() -> pd.DataFrame:
                 "build_next": (
                     "Run eval.planner_optimize with DSPy proposals, then use "
                     "eval.planner_predict as the endpoint harness for the promoted "
-                    "planner program without gold SQL labels."
+                    "planner program without gold SQL labels. Execute the final "
+                    "direct-vs-predicted pair through "
+                    "eval.run_predicted_planner_comparison."
                 ),
                 "falsifies_if": (
                     "planner F1 improves but final SQL does not beat direct SQL on "

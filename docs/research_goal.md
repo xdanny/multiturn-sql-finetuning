@@ -70,6 +70,9 @@ rows, with the same scorer, the same prompt boundary, and the same oracle policy
   target must beat; it does not answer the hosted-SOTA question alone.
 - **Planner/DSL first, SQL second** wins only if a non-oracle planner improves
   planner labels and the resulting SQL beats direct SQL execution on matching rows.
+  The paired runner `eval.run_predicted_planner_comparison` is now the required
+  path for that endpoint comparison so the direct and predicted runs cannot drift
+  in row identity, model, scorer, or oracle policy.
 - **Semantic-layer tuning** wins only if versioned semantic artifacts improve value
   grounding, entity resolution, joins, and grain without simply flooding the prompt.
 - **MEASURE()-preserving metric DSL** wins only if generated DSL parses, compiles,

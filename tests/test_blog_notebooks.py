@@ -678,6 +678,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert set(manifest["source_artifacts"]) >= {
         "docs/claim_ledgers/cosql_dev_100.jsonl",
         "docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json",
+        "docs/predicted_planner_comparison_preflight.json",
         "docs/planner_baseline_cosql_dev_100_summary.json",
     }
 
@@ -833,6 +834,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "harness_ready" in prompt_findings_md
     assert "eval.planner_optimize" in prompt_findings_md
     assert "eval.planner_predict" in prompt_findings_md
+    assert "eval.run_predicted_planner_comparison" in prompt_findings_md
 
     target_md = (tmp_path / manifest["assets"]["target_comparison_md"]).read_text()
     assert "Direct SQL SFT" in target_md
@@ -846,7 +848,9 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     ).read_text()
     assert "Direct SQL SFT" in target_evidence_md
     assert "Planner/DSL first, SQL second" in target_evidence_md
+    assert "ready_for_endpoint_pair" in target_evidence_md
     assert "predicted_planner_sql_execution" in target_evidence_md
+    assert "eval.run_predicted_planner_comparison" in target_evidence_md
     assert "metric_dsl_beats_direct_sql" in target_evidence_md
     assert "hosted baseline" in target_evidence_md
     assert "notebooks/blog/" not in target_evidence_md

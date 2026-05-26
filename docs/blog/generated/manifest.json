@@ -28,6 +28,7 @@
     "docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json",
     "docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json",
     "docs/planner_baseline_cosql_dev_100_summary.json",
+    "docs/predicted_planner_comparison_preflight.json",
     "plots/rescored_vllm_semantic_prompt_iteration_100turns/summary.csv",
     "plots/failure_taxonomy/comparison/model_error_summary.csv",
     "plots/failure_taxonomy/comparison/pairwise_vs_baseline.csv",

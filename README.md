@@ -259,6 +259,41 @@ ledger only clears the predicted-planner SQL execution claim when the compared
 predicted-planner run beats direct SQL on value accuracy and the referenced
 direct-SQL manifest is included in the ledger input.
 
+The safer way to produce that pair is the paired runner, which preflights row
+identity before spending endpoint time, runs the direct-SQL control and
+predicted-planner path with the same model/scorer/database root, then writes the
+comparison manifest:
+
+```bash
+python -m eval.run_predicted_planner_comparison \
+  --direct-input data/processed/eval_cosql_dev_100.jsonl \
+  --predicted-input data/processed/eval_cosql_dev_predicted_planner_100.jsonl \
+  --output-dir results/predicted_planner \
+  --run-id lexical_planner_cosql_dev_100 \
+  --model-name <served-model> \
+  --endpoint http://localhost:8000/v1 \
+  --database-root data/raw/cosql_dataset/database \
+  --limit 100 \
+  --preflight-output docs/predicted_planner_comparison_preflight.json
+```
+
+For endpoint-free validation, run only the preflight:
+
+```bash
+python -m eval.run_predicted_planner_comparison \
+  --direct-input data/processed/eval_cosql_dev_100.jsonl \
+  --predicted-input data/processed/eval_cosql_dev_predicted_planner_100.jsonl \
+  --output-dir results/predicted_planner \
+  --run-id lexical_planner_cosql_dev_100 \
+  --model-name <served-model> \
+  --preflight-output docs/predicted_planner_comparison_preflight.json \
+  --preflight-only
+```
+
+The tracked preflight currently shows that the direct and predicted inputs align
+for 100 turns across 32 dialogs. It is a readiness artifact only; it does not
+support a SQL execution claim.
+
 ## Value Grounding Artifacts
 
 The first concrete data-engineering artifact turns reference SQL predicates into
