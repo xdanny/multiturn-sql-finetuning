@@ -217,3 +217,52 @@ def test_validate_data_only_manifest_records_behavior_recovery_stage(tmp_path: P
     assert manifest["training_target"] == "behavior_recovery"
     assert manifest["evaluation_mode"] == "non_oracle_generation"
     assert manifest["eval_row_count"] == 0
+
+
+def test_validate_data_only_manifest_records_behavior_recovery_prepared_proxy_stage(
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / "config.yaml"
+    train_path = tmp_path / "train.jsonl"
+    eval_path = tmp_path / "eval.jsonl"
+    output_dir = tmp_path / "outputs" / "behavior_recovery_proxy"
+    manifest_path = tmp_path / "training.manifest.json"
+    _write_config(config_path)
+    _write_rows(
+        train_path,
+        benchmark="prepared",
+        training_target="behavior_recovery",
+        evaluation_mode="non_oracle_generation",
+    )
+    _write_rows(
+        eval_path,
+        benchmark="prepared",
+        training_target="behavior_recovery",
+        evaluation_mode="non_oracle_generation",
+    )
+
+    train(
+        config_path=config_path,
+        data_path=train_path,
+        eval_data_path=eval_path,
+        dry_run=False,
+        validate_data_only=True,
+        max_steps=None,
+        output_dir=output_dir,
+        report_to="none",
+        allow_oracle_diagnostic_data=False,
+        expected_training_target="behavior_recovery",
+        expected_evaluation_mode="non_oracle_generation",
+        expected_benchmark="prepared",
+        training_manifest_output=manifest_path,
+        run_id="behavior-recovery-proxy",
+    )
+
+    manifest = json.loads(manifest_path.read_text())
+
+    assert manifest["status"] == "validated"
+    assert manifest["stage"] == "behavior_recovery"
+    assert manifest["benchmark"] == "prepared"
+    assert manifest["training_target"] == "behavior_recovery"
+    assert manifest["evaluation_mode"] == "non_oracle_generation"
+    assert manifest["eval_row_count"] == 1

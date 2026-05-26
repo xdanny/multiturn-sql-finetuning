@@ -1,0 +1,18 @@
+{
+  "artifact_type": "behavior_recovery_proxy_dataset",
+  "benchmark": "prepared",
+  "command": [
+    "/home/dan/docs/multiturn-sql-finetuning/data/behavior_recovery_proxy_dataset.py"
+  ],
+  "eval_input_path": "data/processed/eval_cosql_dev_100.jsonl",
+  "eval_input_sha256": "00886900e4faf539bc6a6428b8b699b77f169874a9bfb8a205b1beaa2785cf6e",
+  "eval_output_path": "docs/data_artifacts/behavior_recovery_proxy_eval.jsonl",
+  "eval_output_sha256": "da5ad7f8e230498194d09b7f51e65cdb7abbcb05989adf4af2c88920fa93062d",
+  "summary_path": "docs/data_artifacts/behavior_recovery_proxy_summary.json",
+  "summary_sha256": "a267be3b4a3f071edaad08010dfdee810fa126d8e516e7a0046fbd78de981d4e",
+  "train_input_path": "data/processed/train_64_each_semantic.jsonl",
+  "train_input_sha256": "03f64a126ac34e3fd62e08a5a06acea8ff3a189bd214979ab966a71bacb69158",
+  "train_output_path": "docs/data_artifacts/behavior_recovery_proxy_train.jsonl",
+  "train_output_sha256": "970767f74bd16b5564f0970fbb9915b53d0455b6993938d24be49fb96e09ca50",
+  "training_target": "behavior_recovery"
+}

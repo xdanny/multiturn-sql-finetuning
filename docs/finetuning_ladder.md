@@ -150,10 +150,16 @@ run, and a comparison manifest, it is not ready to be called a finetuning step.
   `data.behavior_recovery_dataset` and
   `data.behavior_recovery_direct_sql_dataset`. Those rows keep prior SQL and
   observed empty rows visible, but they do not copy scorer-only repair labels
-  into the prompt. Rollout-style prepared rows remain the higher-fidelity proxy
-  gate for later endpoint runs.
+  into the prompt. The prepared-dialog proxy package is
+  `data.behavior_recovery_proxy_dataset`, which packages the fixed semantic
+  CoSQL slice as `benchmark=prepared` with `training_target=behavior_recovery`
+  so the same checkpoint can be compared under teacher-forced and
+  generated-history evaluation.
 - Trainer invocation:
   `uv run python -m train.finetune --config configs/qwen35_9b_5090.yaml --data docs/data_artifacts/behavior_recovery_training_rows.jsonl --eval-data docs/data_artifacts/behavior_recovery_training_rows.jsonl --expected-training-target behavior_recovery --expected-evaluation-mode non_oracle_generation --expected-benchmark synthetic_behavior_recovery`
+  for the synthetic gate, or:
+  `uv run python -m train.finetune --config configs/qwen35_9b_5090.yaml --data docs/data_artifacts/behavior_recovery_proxy_train.jsonl --eval-data docs/data_artifacts/behavior_recovery_proxy_eval.jsonl --expected-training-target behavior_recovery --expected-evaluation-mode non_oracle_generation --expected-benchmark prepared`
+  for the prepared-dialog proxy gate.
 - Evaluation gate:
   first, `uv run python -m eval.run_local_behavior_recovery_comparison` for the
   synthetic same-row pair. Then, `uv run python -m eval.run_local_rollout_comparison`

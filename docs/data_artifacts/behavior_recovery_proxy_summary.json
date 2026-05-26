@@ -1,0 +1,10 @@
+{
+  "artifact_type": "behavior_recovery_proxy_dataset",
+  "benchmark": "prepared",
+  "eval_database_count": 20,
+  "eval_dialog_count": 20,
+  "eval_multi_turn_count": 94,
+  "eval_row_count": 94,
+  "train_row_count": 62,
+  "training_target": "behavior_recovery"
+}

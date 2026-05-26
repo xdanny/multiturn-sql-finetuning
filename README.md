@@ -505,6 +505,18 @@ manifest through `eval.compare_rollout_history`. This is the real Stage 5
 prepared-dialog gate; the synthetic recovery pair stays as the smaller diagnostic
 gate before spending GPU time on multi-turn rollout.
 
+The matching prepared training/eval package for that local rollout gate is now
+checked in:
+
+- `docs/data_artifacts/behavior_recovery_proxy_train.jsonl`
+- `docs/data_artifacts/behavior_recovery_proxy_eval.jsonl`
+- `docs/data_artifacts/behavior_recovery_proxy.manifest.json`
+
+Those rows stay on the same non-oracle semantic prepared slice as the current
+CoSQL proxy, but they are labeled as `training_target=behavior_recovery` so the
+run manifest and rollout comparison path can treat Stage 5 as a distinct
+finetuning rung instead of a generic prepared run.
+
 There is now a separate synthetic Stage 5 recovery pair for faster finetuning
 iteration before endpoint rollout:
 
