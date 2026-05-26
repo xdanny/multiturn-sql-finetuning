@@ -1,0 +1,19 @@
+{
+  "artifact_type": "non_oracle_value_index_v1",
+  "column_count": 411,
+  "database_count": 20,
+  "database_root": "data/raw/cosql_dataset/database",
+  "index_source": "database_contents",
+  "input_path": "data/processed/eval_cosql_dev_100.jsonl",
+  "input_sha256": "00886900e4faf539bc6a6428b8b699b77f169874a9bfb8a205b1beaa2785cf6e",
+  "label_source": "optional_gold_sql_coverage_eval",
+  "labels_path": "docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl",
+  "labels_sha256": "4af21f065222816096e181abd5010cd43b2c42b84ece2bd0ef79f9e634929dfc",
+  "output_path": "docs/data_artifacts/value_index_cosql_dev_100.jsonl",
+  "output_sha256": "7fbeee645021906ebb53239cdcbcb55f78d422c1c81269adb74ae8389d14e73a",
+  "row_count": 12661,
+  "schema_version": 1,
+  "summary_path": "docs/data_artifacts/value_index_cosql_dev_100_summary.json",
+  "summary_sha256": "a9f44192e0df5c445e28528f1551debd0d251d54e679d35fd2121dc3a0d45f6a",
+  "table_count": 80
+}

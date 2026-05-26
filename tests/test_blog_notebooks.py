@@ -30,6 +30,7 @@ from notebooks.blog_support import (
     target_comparison,
     target_evidence_matrix,
     value_grounding_label_summary,
+    value_index_summary,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -167,6 +168,17 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert "planner_readiness_cosql_dev_100.json" in set(readiness["artifact"])
     assert "column_zero_rate" in set(readiness["metric"])
     assert "recommendation" in set(readiness["metric"])
+
+    value_index = value_index_summary()
+    assert {
+        "artifact",
+        "metric",
+        "value",
+        "interpretation",
+    } <= set(value_index.columns)
+    assert "value_index_cosql_dev_100_summary.json" in set(value_index["artifact"])
+    assert "resolved_value_indexed_rate" in set(value_index["metric"])
+    assert "mention_alias_indexed_rate" in set(value_index["metric"])
 
     strategies = semantic_strategy_table()
     assert "Semantic layer / MEASURE() preservation" in set(strategies["strategy"])
@@ -679,6 +691,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "lab_failure_trace_md",
         "data_engineering_gates_md",
         "value_grounding_labels_md",
+        "value_index_md",
         "planner_readiness_md",
         "prompt_optimization_findings_md",
         "data_artifact_contract_md",
@@ -691,6 +704,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert set(manifest["source_artifacts"]) >= {
         "docs/claim_ledgers/cosql_dev_100.jsonl",
         "docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json",
+        "docs/data_artifacts/value_index_cosql_dev_100.manifest.json",
         "docs/predicted_planner_comparison_preflight.json",
         "docs/planner_readiness_cosql_dev_100.json",
         "docs/planner_baseline_cosql_dev_100_summary.json",
@@ -830,6 +844,13 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "value_grounding_labels_cosql_dev_100.jsonl" in value_labels_md
     assert "missing_from_user_text_count" in value_labels_md
     assert "exact_in_history_count" in value_labels_md
+
+    value_index_md = (tmp_path / manifest["assets"]["value_index_md"]).read_text()
+    assert "value_index_cosql_dev_100_summary.json" in value_index_md
+    assert "non_oracle_value_index_summary" in value_index_md
+    assert "resolved_value_indexed_rate" in value_index_md
+    assert "mention_alias_indexed_rate" in value_index_md
+    assert "database_contents" in value_index_md
 
     artifact_contract_md = (
         tmp_path / manifest["assets"]["data_artifact_contract_md"]

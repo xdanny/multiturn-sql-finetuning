@@ -20,6 +20,9 @@ BLOG_EVIDENCE_SOURCES = (
     "docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl",
     "docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json",
     "docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json",
+    "docs/data_artifacts/value_index_cosql_dev_100.jsonl",
+    "docs/data_artifacts/value_index_cosql_dev_100.manifest.json",
+    "docs/data_artifacts/value_index_cosql_dev_100_summary.json",
     "docs/planner_baseline_cosql_dev_100_summary.json",
     "docs/predicted_planner_comparison_preflight.json",
     "docs/planner_readiness_cosql_dev_100.json",
@@ -195,6 +198,54 @@ def value_grounding_label_summary() -> pd.DataFrame:
         for metric, value in summary.items()
     ]
     return pd.DataFrame(rows)
+
+
+def value_index_summary() -> pd.DataFrame:
+    summary = read_json_artifact("docs/data_artifacts/value_index_cosql_dev_100_summary.json")
+    coverage = summary.get("coverage") or {}
+    metrics = {
+        "artifact_type": summary.get("artifact_type"),
+        "index_source": summary.get("index_source"),
+        "entry_count": summary.get("entry_count"),
+        "database_count": summary.get("database_count"),
+        "table_count": summary.get("table_count"),
+        "column_count": summary.get("column_count"),
+        "alias_count": summary.get("alias_count"),
+        "resolved_value_indexed_rate": coverage.get("resolved_value_indexed_rate"),
+        "mention_alias_indexed_rate": coverage.get("mention_alias_indexed_rate"),
+        "resolved_value_indexed_count": coverage.get("resolved_value_indexed_count"),
+        "mention_alias_indexed_count": coverage.get("mention_alias_indexed_count"),
+        "label_count": coverage.get("label_count"),
+    }
+    interpretations = {
+        "artifact_type": "Summary type for the generated value-index artifact.",
+        "index_source": "Where index entries come from; database contents means no reference SQL.",
+        "entry_count": "Number of distinct database values indexed under the per-column cap.",
+        "database_count": "Number of CoSQL databases scanned from the fixed proxy input.",
+        "table_count": "Number of tables with indexed values.",
+        "column_count": "Number of columns with indexed values.",
+        "alias_count": "Raw and normalized aliases available before entity-resolution enrichment.",
+        "resolved_value_indexed_rate": (
+            "Share of gold SQL literal values present in the database-derived index."
+        ),
+        "mention_alias_indexed_rate": (
+            "Share of user-visible mentions already recoverable as value-index aliases."
+        ),
+        "resolved_value_indexed_count": "Count of gold resolved values found in the index.",
+        "mention_alias_indexed_count": "Count of user mentions found as index aliases.",
+        "label_count": "Gold value labels used only for coverage evaluation.",
+    }
+    return pd.DataFrame(
+        [
+            {
+                "artifact": "value_index_cosql_dev_100_summary.json",
+                "metric": metric,
+                "value": value,
+                "interpretation": interpretations[metric],
+            }
+            for metric, value in metrics.items()
+        ]
+    )
 
 
 def accuracy_scorecard() -> pd.DataFrame:
@@ -693,6 +744,10 @@ def data_engineering_gates() -> pd.DataFrame:
     value_summary = read_json_artifact(
         "docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json"
     )
+    value_index = read_json_artifact(
+        "docs/data_artifacts/value_index_cosql_dev_100_summary.json"
+    )
+    value_index_coverage = value_index.get("coverage") or {}
     return pd.DataFrame(
         [
             {
@@ -712,7 +767,7 @@ def data_engineering_gates() -> pd.DataFrame:
                 ),
                 "blocks_claim": "Blocks broad benchmark claims beyond the proxy slice.",
                 "source_artifacts": (
-                    "data/processed/eval_100_each.jsonl; "
+                    "data/processed/eval_cosql_dev_100.jsonl; "
                     "docs/claim_ledgers/cosql_dev_100.jsonl; "
                     "notebooks/labs/local_multiturn_sql_lab.ipynb"
                 ),
@@ -759,16 +814,22 @@ def data_engineering_gates() -> pd.DataFrame:
                 "current_status": (
                     "partial: value-grounding labels now cover "
                     f"{value_summary['value_reference_count']} SQL value references "
-                    f"across {value_summary['database_count']} databases"
+                    f"across {value_summary['database_count']} databases; the "
+                    f"database-derived value index has {value_index['entry_count']} "
+                    f"entries and covers "
+                    f"{float(value_index_coverage['mention_alias_indexed_rate']):.3f} "
+                    "of user mention aliases"
                 ),
                 "next_repo_action": (
-                    "Turn the value labels into per-database value indexes and add "
-                    "entity-resolution spans for CoSQL/SParC rows before training."
+                    "Add alias/entity expansion on top of the value index, then "
+                    "score value-grounding retrieval before SQL generation."
                 ),
                 "blocks_claim": "Blocks semantic grounding and recovery claims.",
                 "source_artifacts": (
                     "docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl; "
                     "docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json; "
+                    "docs/data_artifacts/value_index_cosql_dev_100.jsonl; "
+                    "docs/data_artifacts/value_index_cosql_dev_100_summary.json; "
                     "docs/claim_ledgers/cosql_dev_100.jsonl; "
                     "results/classified/minimal_executable.jsonl"
                 ),
@@ -925,9 +986,10 @@ def data_artifact_contract() -> pd.DataFrame:
                 ),
                 "verification_gate": (
                     "docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl "
-                    "for gold SQL-derived labels; next gate is same rows "
-                    "value-grounding accuracy plus manifest hashes for the value "
-                    "index used by the run"
+                    "for gold SQL-derived labels plus "
+                    "docs/data_artifacts/value_index_cosql_dev_100.jsonl for the "
+                    "database-derived non-oracle index; next gate is same rows "
+                    "value-grounding retrieval accuracy before SQL generation"
                 ),
                 "claim_ids": (
                     "semantic_prompt_minimal_executable_cosql_dev_100turns, "
@@ -1860,6 +1922,7 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     lab_trace = lab_failure_trace()
     data_gates = data_engineering_gates()
     value_labels = value_grounding_label_summary()
+    value_index = value_index_summary()
     artifact_contract = data_artifact_contract()
     prompt_findings = prompt_optimization_findings()
     targets = target_comparison()
@@ -1933,6 +1996,10 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
         "value_grounding_labels_md": _write_text(
             output / "value-grounding-labels.md",
             _markdown_table(value_labels),
+        ),
+        "value_index_md": _write_text(
+            output / "value-index.md",
+            _markdown_table(value_index),
         ),
         "data_artifact_contract_md": _write_text(
             output / "data-artifact-contract.md",

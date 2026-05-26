@@ -74,6 +74,9 @@ Known constraints:
   current-turn values, history-carried values, and display-to-storage
   normalization failures. This is a supervision/evaluation artifact, not a
   production prompt hint.
+- A first non-oracle value index is generated from the fixed-slice SQLite
+  database contents. Its coverage report separates stored-value coverage from
+  user-mention alias coverage, so value/entity work has a measurable next target.
 - Local execution scoring reports both strict label-aware accuracy and value-only accuracy. Treat older single `accuracy` numbers as strict-era results unless they come from `results/rescored/`.
 - Failure analysis now classifies every wrong rescored turn into actionable labels and compares adapters or prompt variants against a baseline under `plots/failure_taxonomy/`.
 - Schema-link label generation and semantic prompt pruning are available through `data.prepare --include-sql-labels --prune-semantic-model`. These flags now mark produced rows as `evaluation_mode=oracle_planner_diagnostic`. On the fixed 100-turn CoSQL slice, the best oracle prompt-only pruned-label run reaches `0.850` value accuracy, and training on that oracle-labelled format reaches `0.890`.
@@ -322,23 +325,41 @@ labels for value grounding:
 
 ```bash
 python -m data.value_artifacts \
-  --input data/processed/eval_100_each.jsonl \
+  --input data/processed/eval_cosql_dev_100.jsonl \
   --output docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl \
   --summary docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json \
   --manifest docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json
 ```
 
-The current artifact contains 291 SQL value references across 21 databases on
-the fixed CoSQL proxy slice. It separates values stated in the current user
+The current label artifact contains 106 SQL value references across 17 databases
+on the fixed CoSQL proxy slice. It separates values stated in the current user
 turn, values recovered from previous user turns, values carried by prior SQL,
 and stored literals that are missing from user text. Those missing-text rows are
-the practical seed for a value index and entity-resolution labels.
+the practical seed for entity-resolution labels and alias expansion.
 
 The labels are derived from gold/reference SQL, so they are valid as
 supervision, scoring targets, and coverage diagnostics. They are not valid as
 production inference context unless a non-oracle retriever or planner predicts
 the same bindings from the question, history, schema, and allowed value/entity
 artifacts.
+
+Build the corresponding non-oracle value index from database contents:
+
+```bash
+python -m data.value_index \
+  --input data/processed/eval_cosql_dev_100.jsonl \
+  --database-root data/raw/cosql_dataset/database \
+  --output docs/data_artifacts/value_index_cosql_dev_100.jsonl \
+  --summary docs/data_artifacts/value_index_cosql_dev_100_summary.json \
+  --manifest docs/data_artifacts/value_index_cosql_dev_100.manifest.json \
+  --labels docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl
+```
+
+The current index contains 12,661 database-derived entries across 20 CoSQL
+databases. Against the gold labels, it covers 81.1% of resolved stored values but
+only 78.3% of user-visible mention aliases. That gap is the next concrete
+semantic-layer problem: add alias/entity expansion, then score value retrieval
+before SQL generation.
 
 ## Metric DSL Evaluation
 

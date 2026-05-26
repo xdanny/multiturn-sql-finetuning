@@ -1,11 +1,11 @@
 {
   "carried_from_prior_sql_count": 0,
-  "database_count": 21,
-  "dialog_turn_count": 196,
-  "exact_in_current_turn_count": 254,
+  "database_count": 17,
+  "dialog_turn_count": 94,
+  "exact_in_current_turn_count": 82,
   "exact_in_history_count": 21,
-  "missing_from_user_text_count": 16,
+  "missing_from_user_text_count": 3,
   "requires_context_carryover_count": 21,
-  "requires_value_normalization_count": 16,
-  "value_reference_count": 291
+  "requires_value_normalization_count": 3,
+  "value_reference_count": 106
 }

@@ -1,0 +1,92 @@
+{
+  "alias_count": 19334,
+  "artifact_type": "non_oracle_value_index_summary",
+  "column_count": 411,
+  "coverage": {
+    "label_count": 106,
+    "label_source": "optional_gold_sql_coverage_eval",
+    "mention_alias_indexed_count": 83,
+    "mention_alias_indexed_rate": 0.7830188679245284,
+    "missing_mention_alias_examples": [
+      {
+        "database_id": "car_1",
+        "id": "car_1:17:0:0",
+        "mention_text": "3500",
+        "resolved_column": "t3.weight",
+        "resolved_value": "3500"
+      },
+      {
+        "database_id": "poker_player",
+        "id": "poker_player:41:1:0",
+        "mention_text": "200",
+        "resolved_column": "t1.height",
+        "resolved_value": "200"
+      },
+      {
+        "database_id": "poker_player",
+        "id": "poker_player:41:2:0",
+        "mention_text": "200",
+        "resolved_column": "t1.height",
+        "resolved_value": "200"
+      },
+      {
+        "database_id": "singer",
+        "id": "singer:50:1:0",
+        "mention_text": "300000",
+        "resolved_column": "t2.sales",
+        "resolved_value": "300000"
+      },
+      {
+        "database_id": "singer",
+        "id": "singer:50:2:0",
+        "mention_text": "300000",
+        "resolved_column": "t2.sales",
+        "resolved_value": "300000"
+      }
+    ],
+    "missing_resolved_value_examples": [
+      {
+        "database_id": "car_1",
+        "id": "car_1:17:0:0",
+        "mention_text": "3500",
+        "resolved_column": "t3.weight",
+        "resolved_value": "3500"
+      },
+      {
+        "database_id": "poker_player",
+        "id": "poker_player:41:1:0",
+        "mention_text": "200",
+        "resolved_column": "t1.height",
+        "resolved_value": "200"
+      },
+      {
+        "database_id": "poker_player",
+        "id": "poker_player:41:2:0",
+        "mention_text": "200",
+        "resolved_column": "t1.height",
+        "resolved_value": "200"
+      },
+      {
+        "database_id": "singer",
+        "id": "singer:50:1:0",
+        "mention_text": "300000",
+        "resolved_column": "t2.sales",
+        "resolved_value": "300000"
+      },
+      {
+        "database_id": "singer",
+        "id": "singer:50:2:0",
+        "mention_text": "300000",
+        "resolved_column": "t2.sales",
+        "resolved_value": "300000"
+      }
+    ],
+    "resolved_value_indexed_count": 86,
+    "resolved_value_indexed_rate": 0.8113207547169812
+  },
+  "database_count": 20,
+  "entry_count": 12661,
+  "index_source": "database_contents",
+  "schema_version": 1,
+  "table_count": 80
+}

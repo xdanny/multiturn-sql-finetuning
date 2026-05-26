@@ -78,6 +78,9 @@ behind the semantic/value/entity work:
 - `docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl`
 - `docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json`
 - `docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json`
+- `docs/data_artifacts/value_index_cosql_dev_100.jsonl`
+- `docs/data_artifacts/value_index_cosql_dev_100_summary.json`
+- `docs/data_artifacts/value_index_cosql_dev_100.manifest.json`
 
 It is generated from prepared CoSQL turns and gold/reference SQL, so it is
 allowed as a training label, scoring target, and coverage diagnostic. It is not
@@ -86,9 +89,16 @@ still needs a non-oracle retriever or planner to recover the same bindings from
 question text, conversation history, schema, and versioned value/entity
 artifacts.
 
-Current coverage on the fixed proxy slice: 291 SQL value references across 21
-databases, 21 references that require conversation carryover, and 16 references
-where exact user-text matching cannot recover the stored SQL literal.
+Current label coverage on the fixed proxy slice: 106 SQL value references across
+17 databases, 21 references that require conversation carryover, and 3
+references where exact user-text matching cannot recover the stored SQL literal.
+
+The non-oracle value index is generated from SQLite database contents, not from
+reference SQL. It currently has 12,661 entries across 20 fixed-slice CoSQL
+databases. Against the gold labels as a coverage evaluation only, it indexes
+81.1% of resolved stored values and 78.3% of user-visible mention aliases. That
+remaining gap is the artifact-backed reason to add alias/entity expansion before
+claiming semantic value grounding improved SQL.
 
 ## Reproducible Proxy Commands
 
