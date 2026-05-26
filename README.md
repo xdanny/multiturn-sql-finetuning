@@ -26,7 +26,8 @@ Its first finetuning-data bootstrap path is implemented in
 artifacts under `docs/data_artifacts/`. `train.finetune` can now also emit a
 training manifest for those stages, so eval and comparison artifacts can be
 traced back to exact prepared inputs and expected stage metadata. The offline
-paired evaluation path is `eval.run_metric_dsl_comparison`.
+paired evaluation path is `eval.run_metric_dsl_comparison`, and the local
+checkpoint experiment loop is `eval.run_local_metric_dsl_comparison`.
 Generated-history rollout evaluation is documented in
 `docs/rollout_eval_contract.md` and implemented in `eval.rollout_eval`.
 

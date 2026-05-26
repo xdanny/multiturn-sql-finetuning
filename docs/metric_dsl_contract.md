@@ -213,3 +213,31 @@ The direct-SQL side is scored by `eval.direct_sql_eval`, which builds temporary
 SQLite databases from the synthetic fixture pack when the rows are fixture-backed.
 That keeps the Stage 4 pair runnable before the repo has a generalized
 checkpoint-inference harness for the DSL path.
+
+## Local Checkpoint Loop
+
+The repo now also has a local checkpoint runner for the Stage 4 pair. This is
+the first path that takes actual adapters or checkpoints, generates outputs for
+both sides, scores them, and writes the compared manifest:
+
+```bash
+uv run python -m eval.run_local_metric_dsl_comparison \
+  --metric-training-manifest results/train/metric_dsl_bootstrap.manifest.json \
+  --direct-training-manifest results/train/metric_dsl_direct_control.manifest.json \
+  --output-dir results/metric_dsl_local \
+  --run-id metric_dsl_local_pair \
+  --model-name unsloth/Qwen3.5-9B \
+  --metric-adapter-path outputs/metric_dsl/final \
+  --direct-adapter-path outputs/direct_sql/final
+```
+
+Under the hood:
+
+1. `eval.local_metric_dsl_benchmark` generates `generated_metric_dsl` rows for
+   the DSL checkpoint and `generated_sql` rows for the direct-SQL checkpoint.
+2. `eval.metric_dsl_eval` scores the DSL side.
+3. `eval.direct_sql_eval` scores the direct-SQL side.
+4. `eval.compare_metric_dsl_direct_sql` writes the same-row comparison manifest.
+
+This keeps the experiment loop explicit: generation, scoring, and comparison are
+separate artifacts, but they can now be run as one local command family.

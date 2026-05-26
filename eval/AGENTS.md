@@ -19,6 +19,9 @@ Rules:
 - Prefer narrow, machine-checkable comparison outputs over prose summaries.
 - When a method comparison depends on prior training-stage contracts, validate
   the training manifests before trusting the eval filenames.
+- For local checkpoint experiments, keep the generation step separate from the
+  scorer, then feed the scored manifests into the same comparison path used by
+  offline or endpoint variants.
 
 When editing here, inspect:
 
@@ -29,4 +32,6 @@ When editing here, inspect:
 - `eval/compare_predicted_planner.py`
 - `eval/compare_metric_dsl_direct_sql.py`
 - `eval/run_metric_dsl_comparison.py`
+- `eval/local_metric_dsl_benchmark.py`
+- `eval/run_local_metric_dsl_comparison.py`
 - `eval/compare_rollout_history.py`
