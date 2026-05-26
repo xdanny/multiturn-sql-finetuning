@@ -19,15 +19,21 @@ def _write_jsonl(path: Path, rows: list[dict]) -> None:
 
 def test_extract_sql_value_references_keeps_column_operator_and_type() -> None:
     refs = extract_sql_value_references(
-        "SELECT first_name FROM Students WHERE country = 'Haiti' AND age >= 21"
+        "SELECT first_name FROM Students AS s WHERE s.country = 'Haiti' AND age >= 21"
     )
 
     assert {
-        (ref["column"], ref["operator"], ref["literal_value"], ref["literal_type"])
+        (
+            ref["table"],
+            ref["column"],
+            ref["operator"],
+            ref["literal_value"],
+            ref["literal_type"],
+        )
         for ref in refs
     } == {
-        ("country", "=", "Haiti", "string"),
-        ("age", ">=", "21", "number"),
+        ("students", "s.country", "=", "Haiti", "string"),
+        ("students", "age", ">=", "21", "number"),
     }
 
 
@@ -68,6 +74,7 @@ def test_value_grounding_artifacts_separate_current_history_and_normalization() 
     assert first_turn[0]["schema_version"] == 1
     assert first_turn[0]["label_source"] == "gold_reference_sql"
     assert first_turn[0]["turn_id"] == "customers:0:0"
+    assert first_turn[0]["resolved_table"] == "orders"
     assert first_turn[0]["resolved_column"] == "country"
     assert first_turn[0]["resolved_value"] == "FR"
     assert first_turn[0]["mention_text"] is None

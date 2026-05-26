@@ -72,12 +72,45 @@ def _operator(node: exp.Expression) -> str:
     }[type(node)]
 
 
-def _comparison_reference(node: exp.Expression) -> dict[str, Any] | None:
+def _table_aliases(expression: exp.Expression) -> tuple[dict[str, str], list[str]]:
+    aliases: dict[str, str] = {}
+    table_names: list[str] = []
+    for table in expression.find_all(exp.Table):
+        table_name = str(table.name).strip("`\"[]").lower()
+        if not table_name:
+            continue
+        table_names.append(table_name)
+        aliases[table_name] = table_name
+        alias = str(table.alias_or_name or "").strip("`\"[]").lower()
+        if alias:
+            aliases[alias] = table_name
+    return aliases, sorted(set(table_names))
+
+
+def _resolved_table(
+    column: exp.Column,
+    aliases: dict[str, str],
+    table_names: list[str],
+) -> str | None:
+    qualifier = str(column.table or "").strip("`\"[]").lower()
+    if qualifier:
+        return aliases.get(qualifier, qualifier)
+    if len(table_names) == 1:
+        return table_names[0]
+    return None
+
+
+def _comparison_reference(
+    node: exp.Expression,
+    aliases: dict[str, str],
+    table_names: list[str],
+) -> dict[str, Any] | None:
     left = getattr(node, "left", None)
     right = getattr(node, "right", None)
     if isinstance(left, exp.Column) and isinstance(right, exp.Literal):
         value, literal_type = _literal_payload(right)
         return {
+            "table": _resolved_table(left, aliases, table_names),
             "column": _column_name(left),
             "operator": _operator(node),
             "literal_value": value,
@@ -86,6 +119,7 @@ def _comparison_reference(node: exp.Expression) -> dict[str, Any] | None:
     if isinstance(left, exp.Literal) and isinstance(right, exp.Column):
         value, literal_type = _literal_payload(left)
         return {
+            "table": _resolved_table(right, aliases, table_names),
             "column": _column_name(right),
             "operator": _operator(node),
             "literal_value": value,
@@ -101,21 +135,24 @@ def extract_sql_value_references(sql: str) -> list[dict[str, Any]]:
     if expression is None:
         return []
 
+    aliases, table_names = _table_aliases(expression)
     references: list[dict[str, Any]] = []
     for node_type in COMPARISON_OPERATORS:
         for node in expression.find_all(node_type):
-            reference = _comparison_reference(node)
+            reference = _comparison_reference(node, aliases, table_names)
             if reference:
                 references.append(reference)
     for node in expression.find_all(exp.In):
         if not isinstance(node.this, exp.Column):
             continue
         column = _column_name(node.this)
+        table = _resolved_table(node.this, aliases, table_names)
         for item in node.expressions:
             if isinstance(item, exp.Literal):
                 value, literal_type = _literal_payload(item)
                 references.append(
                     {
+                        "table": table,
                         "column": column,
                         "operator": "in",
                         "literal_value": value,
@@ -197,6 +234,7 @@ def build_value_grounding_artifacts(records: list[dict[str, Any]]) -> list[dict[
                         "database_id": database_id,
                         "source": source,
                         "column": reference["column"],
+                        "resolved_table": reference["table"],
                         "resolved_column": reference["column"],
                         "operator": reference["operator"],
                         "literal_value": reference["literal_value"],
@@ -272,6 +310,7 @@ def build_value_grounding_manifest(
                 "operator",
                 "resolved_value",
                 "literal_type",
+                "resolved_table",
                 "mention_status",
                 "mention_text",
                 "prior_turn_reference",
@@ -314,7 +353,11 @@ def run_value_grounding_export(
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", type=Path, default=Path("data/processed/eval_100_each.jsonl"))
+    parser.add_argument(
+        "--input",
+        type=Path,
+        default=Path("data/processed/eval_cosql_dev_100.jsonl"),
+    )
     parser.add_argument(
         "--output",
         type=Path,

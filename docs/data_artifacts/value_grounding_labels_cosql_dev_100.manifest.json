@@ -17,7 +17,7 @@
     "value_reference_count": 106
   },
   "output_path": "docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl",
-  "output_sha256": "4af21f065222816096e181abd5010cd43b2c42b84ece2bd0ef79f9e634929dfc",
+  "output_sha256": "0aec01eb13586c6de0eccf2f9024ec97e28c885bacd0cd9076e81234c0eaabd8",
   "row_count": 106,
   "row_schema": {
     "artifact_type": "value_grounding_label",
@@ -31,6 +31,7 @@
       "operator",
       "resolved_value",
       "literal_type",
+      "resolved_table",
       "mention_status",
       "mention_text",
       "prior_turn_reference",

@@ -356,8 +356,8 @@ python -m data.value_index \
 ```
 
 The current index contains 12,661 database-derived entries across 20 CoSQL
-databases. Against the gold labels, it covers 81.1% of resolved stored values but
-only 78.3% of user-visible mention aliases. That gap is the next concrete
+databases. Against the gold labels, it covers 78.3% of resolved stored values but
+only 75.5% of user-visible mention aliases. That gap is the next concrete
 semantic-layer problem: add alias/entity expansion, then score value retrieval
 before SQL generation.
 

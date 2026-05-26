@@ -5,14 +5,15 @@
   "coverage": {
     "label_count": 106,
     "label_source": "optional_gold_sql_coverage_eval",
-    "mention_alias_indexed_count": 83,
-    "mention_alias_indexed_rate": 0.7830188679245284,
+    "mention_alias_indexed_count": 80,
+    "mention_alias_indexed_rate": 0.7547169811320755,
     "missing_mention_alias_examples": [
       {
         "database_id": "car_1",
         "id": "car_1:17:0:0",
         "mention_text": "3500",
         "resolved_column": "t3.weight",
+        "resolved_table": "cars_data",
         "resolved_value": "3500"
       },
       {
@@ -20,6 +21,7 @@
         "id": "poker_player:41:1:0",
         "mention_text": "200",
         "resolved_column": "t1.height",
+        "resolved_table": "people",
         "resolved_value": "200"
       },
       {
@@ -27,6 +29,7 @@
         "id": "poker_player:41:2:0",
         "mention_text": "200",
         "resolved_column": "t1.height",
+        "resolved_table": "people",
         "resolved_value": "200"
       },
       {
@@ -34,6 +37,7 @@
         "id": "singer:50:1:0",
         "mention_text": "300000",
         "resolved_column": "t2.sales",
+        "resolved_table": "song",
         "resolved_value": "300000"
       },
       {
@@ -41,6 +45,7 @@
         "id": "singer:50:2:0",
         "mention_text": "300000",
         "resolved_column": "t2.sales",
+        "resolved_table": "song",
         "resolved_value": "300000"
       }
     ],
@@ -50,6 +55,7 @@
         "id": "car_1:17:0:0",
         "mention_text": "3500",
         "resolved_column": "t3.weight",
+        "resolved_table": "cars_data",
         "resolved_value": "3500"
       },
       {
@@ -57,6 +63,7 @@
         "id": "poker_player:41:1:0",
         "mention_text": "200",
         "resolved_column": "t1.height",
+        "resolved_table": "people",
         "resolved_value": "200"
       },
       {
@@ -64,6 +71,7 @@
         "id": "poker_player:41:2:0",
         "mention_text": "200",
         "resolved_column": "t1.height",
+        "resolved_table": "people",
         "resolved_value": "200"
       },
       {
@@ -71,6 +79,7 @@
         "id": "singer:50:1:0",
         "mention_text": "300000",
         "resolved_column": "t2.sales",
+        "resolved_table": "song",
         "resolved_value": "300000"
       },
       {
@@ -78,11 +87,12 @@
         "id": "singer:50:2:0",
         "mention_text": "300000",
         "resolved_column": "t2.sales",
+        "resolved_table": "song",
         "resolved_value": "300000"
       }
     ],
-    "resolved_value_indexed_count": 86,
-    "resolved_value_indexed_rate": 0.8113207547169812
+    "resolved_value_indexed_count": 83,
+    "resolved_value_indexed_rate": 0.7830188679245284
   },
   "database_count": 20,
   "entry_count": 12661,

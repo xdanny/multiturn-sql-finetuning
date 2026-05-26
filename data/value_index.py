@@ -25,6 +25,10 @@ def _load_jsonl(path: Path) -> list[dict[str, Any]]:
         return [json.loads(line) for line in handle if line.strip()]
 
 
+def _load_json(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text())
+
+
 def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(json.dumps(row, sort_keys=True) for row in rows) + "\n")
@@ -164,15 +168,39 @@ def _column_tail(column: Any) -> str:
     return text.split(".")[-1].strip('"`[]')
 
 
-def _coverage_keys(index_rows: list[dict[str, Any]]) -> set[tuple[str, str, str]]:
-    keys: set[tuple[str, str, str]] = set()
+def _table_name(value: Any) -> str | None:
+    text = str(value or "").strip().strip('"`[]').lower()
+    return text or None
+
+
+def _table_hint_from_column(column: Any) -> str | None:
+    text = str(column or "").strip().strip('"`[]').lower()
+    if "." not in text:
+        return None
+    table_hint = text.split(".", 1)[0].strip('"`[]')
+    if re.fullmatch(r"t\d+", table_hint):
+        return None
+    return table_hint or None
+
+
+def _label_table(label: dict[str, Any]) -> str | None:
+    return _table_name(label.get("resolved_table")) or _table_hint_from_column(
+        label.get("resolved_column") or label.get("column")
+    )
+
+
+def _coverage_keys(index_rows: list[dict[str, Any]]) -> set[tuple[str, str, str, str]]:
+    keys: set[tuple[str, str, str, str]] = set()
     for row in index_rows:
         database_id = str(row.get("database_id") or "")
+        table = _table_name(row.get("table"))
+        if table is None:
+            continue
         column = _column_tail(row.get("column"))
         for alias in row.get("aliases") or []:
             normalized = normalize_value_token(alias)
             if normalized:
-                keys.add((database_id, column, normalized))
+                keys.add((database_id, table, column, normalized))
     return keys
 
 
@@ -180,6 +208,7 @@ def _label_payload(row: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": row.get("id"),
         "database_id": row.get("database_id"),
+        "resolved_table": row.get("resolved_table"),
         "resolved_column": row.get("resolved_column") or row.get("column"),
         "resolved_value": row.get("resolved_value") or row.get("literal_value"),
         "mention_text": row.get("mention_text"),
@@ -200,11 +229,22 @@ def evaluate_value_index_coverage(
 
     for label in label_rows:
         database_id = str(label.get("database_id") or "")
+        table = _label_table(label)
         column = _column_tail(label.get("resolved_column") or label.get("column"))
         resolved_value = label.get("resolved_value") or label.get("literal_value")
         mention_text = label.get("mention_text")
-        resolved_key = (database_id, column, normalize_value_token(resolved_value))
-        mention_key = (database_id, column, normalize_value_token(mention_text))
+        resolved_key = (
+            database_id,
+            table or "",
+            column,
+            normalize_value_token(resolved_value),
+        )
+        mention_key = (
+            database_id,
+            table or "",
+            column,
+            normalize_value_token(mention_text),
+        )
 
         if resolved_key in keys:
             resolved_hits += 1
@@ -259,6 +299,7 @@ def build_value_index_manifest(
     summary_path: Path,
     summary: dict[str, Any],
     labels_path: Path | None = None,
+    labels_manifest_path: Path | None = None,
 ) -> dict[str, Any]:
     manifest = {
         "schema_version": 1,
@@ -280,6 +321,25 @@ def build_value_index_manifest(
         manifest["label_source"] = "optional_gold_sql_coverage_eval"
         manifest["labels_path"] = str(labels_path)
         manifest["labels_sha256"] = sha256_file(labels_path)
+    if labels_manifest_path:
+        manifest["labels_manifest_path"] = str(labels_manifest_path)
+        manifest["labels_manifest_sha256"] = sha256_file(labels_manifest_path)
+    return manifest
+
+
+def _validate_label_manifest(
+    *,
+    input_path: Path,
+    labels_manifest_path: Path,
+) -> dict[str, Any]:
+    manifest = _load_json(labels_manifest_path)
+    expected_input_sha = sha256_file(input_path)
+    if manifest.get("input_sha256") != expected_input_sha:
+        raise ValueError(
+            "value-index labels manifest must reference the same prepared input "
+            f"as the index: expected input_sha256 {expected_input_sha}, "
+            f"found {manifest.get('input_sha256')}"
+        )
     return manifest
 
 
@@ -291,6 +351,7 @@ def run_value_index_export(
     summary_path: Path,
     manifest_path: Path | None = None,
     labels_path: Path | None = None,
+    labels_manifest_path: Path | None = None,
     max_values_per_column: int = 200,
     max_value_length: int = 120,
 ) -> int:
@@ -307,6 +368,16 @@ def run_value_index_export(
         )
     summary = summarize_value_index(rows)
     if labels_path:
+        if labels_manifest_path is None:
+            labels_manifest_path = labels_path.with_suffix(".manifest.json")
+        if not labels_manifest_path.exists():
+            raise FileNotFoundError(
+                f"Value-index coverage requires label manifest {labels_manifest_path}"
+            )
+        _validate_label_manifest(
+            input_path=input_path,
+            labels_manifest_path=labels_manifest_path,
+        )
         summary["coverage"] = evaluate_value_index_coverage(rows, _load_jsonl(labels_path))
     _write_jsonl(output_path, rows)
     _write_json(summary_path, summary)
@@ -321,6 +392,7 @@ def run_value_index_export(
             summary_path=summary_path,
             summary=summary,
             labels_path=labels_path,
+            labels_manifest_path=labels_manifest_path,
         ),
     )
     print(f"Wrote {len(rows)} non-oracle value-index rows to {output_path}")
@@ -331,7 +403,11 @@ def run_value_index_export(
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", type=Path, default=Path("data/processed/eval_100_each.jsonl"))
+    parser.add_argument(
+        "--input",
+        type=Path,
+        default=Path("data/processed/eval_cosql_dev_100.jsonl"),
+    )
     parser.add_argument(
         "--database-root",
         type=Path,
@@ -357,10 +433,18 @@ def main() -> int:
         type=Path,
         default=Path("docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl"),
     )
+    parser.add_argument(
+        "--labels-manifest",
+        type=Path,
+        default=Path("docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json"),
+    )
     parser.add_argument("--max-values-per-column", type=int, default=200)
     parser.add_argument("--max-value-length", type=int, default=120)
     args = parser.parse_args()
     labels_path = args.labels if args.labels and args.labels.exists() else None
+    labels_manifest_path = (
+        args.labels_manifest if labels_path and args.labels_manifest.exists() else None
+    )
     return run_value_index_export(
         input_path=args.input,
         database_root=args.database_root,
@@ -368,6 +452,7 @@ def main() -> int:
         summary_path=args.summary,
         manifest_path=args.manifest,
         labels_path=labels_path,
+        labels_manifest_path=labels_manifest_path,
         max_values_per_column=args.max_values_per_column,
         max_value_length=args.max_value_length,
     )

@@ -978,7 +978,7 @@ def data_artifact_contract() -> pd.DataFrame:
                 ),
                 "labels_or_fields": (
                     "database_id, table, column, raw_value, normalized_value, "
-                    "aliases, source_frequency, confidence, source_rows"
+                    "aliases, source_frequency, index_source, schema_version"
                 ),
                 "consumer": (
                     "semantic-layer prompts, planner value slots, recovery prompts, "

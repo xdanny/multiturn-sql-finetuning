@@ -11,6 +11,7 @@ from data.value_index import (
     run_value_index_export,
     summarize_value_index,
 )
+from eval.result_manifest import sha256_file
 
 
 def _sqlite_db(path: Path) -> Path:
@@ -115,6 +116,7 @@ def test_evaluate_value_index_coverage_separates_resolved_values_from_user_alias
         {
             "id": "turn:0",
             "database_id": "store",
+            "resolved_table": "customers",
             "resolved_column": "customers.country_code",
             "resolved_value": "FR",
             "mention_text": "France",
@@ -122,6 +124,7 @@ def test_evaluate_value_index_coverage_separates_resolved_values_from_user_alias
         {
             "id": "turn:1",
             "database_id": "store",
+            "resolved_table": "customers",
             "resolved_column": "customer_name",
             "resolved_value": "Alice Smith",
             "mention_text": "Alice Smith",
@@ -139,6 +142,7 @@ def test_evaluate_value_index_coverage_separates_resolved_values_from_user_alias
         {
             "id": "turn:0",
             "database_id": "store",
+            "resolved_table": "customers",
             "resolved_column": "customers.country_code",
             "resolved_value": "FR",
             "mention_text": "France",
@@ -163,11 +167,22 @@ def test_run_value_index_export_writes_index_summary_and_manifest(tmp_path) -> N
             {
                 "id": "turn:0",
                 "database_id": "store",
+                "resolved_table": "customers",
                 "resolved_column": "customers.country_code",
                 "resolved_value": "FR",
                 "mention_text": "France",
             }
         ],
+    )
+    labels_manifest_path = labels_path.with_suffix(".manifest.json")
+    labels_manifest_path.write_text(
+        json.dumps(
+            {
+                "input_path": str(input_path),
+                "input_sha256": sha256_file(input_path),
+            }
+        )
+        + "\n"
     )
 
     exit_code = run_value_index_export(
@@ -191,3 +206,30 @@ def test_run_value_index_export_writes_index_summary_and_manifest(tmp_path) -> N
     assert manifest["artifact_type"] == "non_oracle_value_index_v1"
     assert manifest["index_source"] == "database_contents"
     assert manifest["label_source"] == "optional_gold_sql_coverage_eval"
+
+
+def test_value_index_coverage_requires_table_identity() -> None:
+    index_rows = [
+        {
+            "database_id": "store",
+            "table": "billing_addresses",
+            "column": "country_code",
+            "raw_value": "FR",
+            "aliases": ["FR", "fr"],
+        }
+    ]
+    label_rows = [
+        {
+            "id": "turn:0",
+            "database_id": "store",
+            "resolved_table": "shipping_addresses",
+            "resolved_column": "country_code",
+            "resolved_value": "FR",
+            "mention_text": "FR",
+        }
+    ]
+
+    summary = evaluate_value_index_coverage(index_rows, label_rows)
+
+    assert summary["resolved_value_indexed_count"] == 0
+    assert summary["mention_alias_indexed_count"] == 0

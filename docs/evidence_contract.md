@@ -96,7 +96,7 @@ references where exact user-text matching cannot recover the stored SQL literal.
 The non-oracle value index is generated from SQLite database contents, not from
 reference SQL. It currently has 12,661 entries across 20 fixed-slice CoSQL
 databases. Against the gold labels as a coverage evaluation only, it indexes
-81.1% of resolved stored values and 78.3% of user-visible mention aliases. That
+78.3% of resolved stored values and 75.5% of user-visible mention aliases. That
 remaining gap is the artifact-backed reason to add alias/entity expansion before
 claiming semantic value grounding improved SQL.
 
