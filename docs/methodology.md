@@ -1,9 +1,13 @@
 # Methodology
 
-This project asks whether a local Qwen 3.5 9B model can become competitive on
-data-analysis work that requires database reasoning, not just one-shot SQL
-completion. The current evidence is a CoSQL proxy loop. It is not yet a
-BIRD-Interact score and not yet a hosted-model comparison.
+This project asks whether a local Qwen 3.5 9B model can become competitive with
+state-of-the-art general models on data-analysis work that requires database
+reasoning, not just one-shot SQL completion. The sharper research question is
+whether a small specialized model can learn behavior and semantic concepts that
+matter specifically for multi-turn analytical SQL.
+
+The current evidence is a CoSQL proxy loop. It is not yet a BIRD-Interact score
+and not yet a hosted-model comparison.
 
 ## Experiment Taxonomy
 
@@ -38,6 +42,14 @@ contains prior reference SQL from the dialog, not the model's own earlier output
 source counts, evaluation modes, turn formats, history policies, assistant-turn
 totals, and configured dataset weights.
 
+Generated-history rollout evaluation is separate from this teacher-forced path.
+`eval.rollout_eval` runs dialog turns sequentially and writes
+`history_policy=model_generated_sql_rollout` output rows, where each later turn
+sees the model's generated SQL from earlier turns. This is the required surface
+for behavior/recovery claims. A rollout result alone is not enough; it must be
+compared against the same model and input under teacher-forced history before
+claiming recovery behavior improved.
+
 ## Dataset Decomposition
 
 The fixed proxy result is intentionally decomposed before making broader claims:
@@ -65,7 +77,33 @@ The repo currently distinguishes these training strategies:
 | Plain non-oracle LoRA | CoSQL/SParC/synthetic-style chat rows without gold planning hints in the prompt. | Production-style proxy. |
 | Semantic-context LoRA | Non-oracle rows with schema/semantic model context. | Production-style proxy if no gold pruning is used. |
 | Oracle-labelled LoRA | Rows with gold SQL-derived planning hints or semantic pruning by gold tables. | Diagnostic only; useful for testing whether the SQL generator can consume a correct plan. |
-| Predicted-planner-to-SQL LoRA | Rows or prompts where the plan is produced without reference SQL. | Target production path; SQL execution results are still pending. |
+| Predicted-planner-to-SQL LoRA | Rows or prompts where the plan is produced without reference SQL. | Target production path; it supports an improvement claim only after same-model direct-SQL comparison metrics show a positive value-accuracy delta. |
+
+The next strategy table should be more ambitious than these early runs:
+
+| Strategy | Question it answers |
+| --- | --- |
+| Direct SQL SFT | Can small-model SQL behavior be improved with ordinary supervised fine-tuning? |
+| Planner/DSL first, SQL second | Is it easier to learn a typed intermediate representation than raw SQL directly? |
+| Semantic-layer tuning | Does a governed model of entities, dimensions, measures, grain, and joins reduce errors that raw schema text cannot? |
+| `MEASURE()`-preserving metric DSL | Should the model preserve governed metrics until a compiler expands them to SQL? |
+| Behavior/recovery tuning | Can the model learn when to clarify, inspect values, repair SQL, and recover after its own previous mistakes under generated-history rollout? |
+
+The first `MEASURE()` experiment surface is implemented in `data.metric_dsl`,
+documented in `docs/metric_dsl_contract.md`, and evaluated by
+`eval.metric_dsl_eval`. It scores semantic intent before SQL execution so metric
+preservation can be measured separately from whether the compiled SQL happens to
+return the right values. Compiled-SQL execution accuracy is reported only over
+rows with a database-backed execution attempt, and oracle-derived semantic
+models make the metric-DSL manifest diagnostic.
+
+A valid `metric_dsl` manifest supports a metric-intent quality claim, not a
+superiority claim. The repo requires `eval.compare_metric_dsl_direct_sql`, a
+`benchmark=metric_dsl_direct_sql` direct-SQL baseline, matching row identities,
+and a positive value-accuracy delta before clearing the metric-DSL-vs-direct-SQL
+claim. Unlike the predicted-planner comparison, the metric-DSL and direct-SQL
+models may differ; that is a method comparison, so the writeup must state which
+models and training targets were compared.
 
 The `weight` field in dataset configs is metadata for experiment design today;
 current preparation caps each configured source with `--limit` and does not yet
@@ -73,6 +111,12 @@ perform weighted sampling. A larger training run should replace per-source caps
 with an explicit mixture manifest before claiming dataset-scale conclusions.
 Until then, every prepared artifact used for a claim should include the
 composition manifest produced by `data.prepare --manifest-output`.
+
+Intermediate-state artifacts need the same treatment. The current
+`data.value_artifacts` export writes a JSONL label file, summary, and manifest
+for gold SQL-derived value bindings on the fixed CoSQL proxy slice. Those labels
+can train or score value/entity grounding, but they cannot be placed in a
+production prompt unless a non-oracle retrieval or planning step produced them.
 
 ## Benchmark Methodology
 
@@ -115,6 +159,24 @@ The first implemented planner is a lexical baseline. It is intentionally weak
 and inspectable. Its purpose is to create a scoring surface before building a
 stronger planner, not to claim the planner problem is solved.
 
+Stronger planners should enter through the same contract rather than through
+ad hoc prompt edits. `eval.planner_optimize` screens static and DSPy-proposed
+planner policies before endpoint SQL generation. Its ranking treats parse rate
+as a gate before planner F1, because malformed JSON is not a deployable planner
+even when empty fields can look superficially close. The promoted policy then
+flows through `eval.planner_predict`, which writes non-oracle JSON planner
+predictions keyed by expanded turn id. `eval.planner_eval` reads those
+predictions, scores them against gold SQL-derived labels, and writes a
+`predicted_planner` prepared artifact for endpoint SQL evaluation. The loader
+checks raw planner output for oracle provenance before any normalized plan can
+enter the SQL prompt.
+
+Predicted-planner SQL execution is compared against direct SQL, not judged in
+isolation. A raw `predicted_planner` manifest proves only that the planner path
+ran. The repo requires a comparison artifact from `eval.compare_predicted_planner`
+and the referenced direct-SQL manifest in the ledger input before clearing the
+planner-to-SQL improvement claim.
+
 ## Current Claim Boundary
 
 Supported:
@@ -131,4 +193,5 @@ Not supported yet:
 - local 9B competes with hosted state-of-the-art systems;
 - local 9B is competitive on BIRD-Interact;
 - the predicted planner improves SQL execution;
+- metric-DSL generation beats direct SQL;
 - current dataset mixing is optimal.

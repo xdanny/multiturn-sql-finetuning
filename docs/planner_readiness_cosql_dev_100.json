@@ -1,0 +1,33 @@
+{
+  "artifact_type": "predicted_planner_readiness_report",
+  "claim_boundary": "readiness only; no SQL execution claim",
+  "column_zero_count": 79,
+  "column_zero_rate": 0.79,
+  "database_count": 15,
+  "dialog_count": 32,
+  "empty_projection_expression_count": 100,
+  "empty_projection_expression_rate": 1.0,
+  "endpoint_pair_ready": true,
+  "group_by_zero_when_gold_group_by_count": 17,
+  "group_by_zero_when_gold_group_by_rate": 0.17,
+  "join_zero_when_gold_join_count": 21,
+  "join_zero_when_gold_join_rate": 0.21,
+  "macro_below_0_50_count": 26,
+  "macro_below_0_50_rate": 0.26,
+  "prediction_sources": {
+    "lexical_schema_baseline": 100
+  },
+  "preflight_row_count": 100,
+  "preflight_status": "ready_for_endpoint_pair",
+  "recommendation": "improve_planner_before_claim",
+  "row_count": 100,
+  "schema_version": 1,
+  "selected_count_mismatch_count": 82,
+  "selected_count_mismatch_rate": 0.82,
+  "top_risks": [
+    "empty_projection_expression",
+    "projection_shape",
+    "column_linking",
+    "low_macro_score"
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "artifact_type": "value_entity_artifact_v1",
+  "database_count": 17,
+  "dialog_turn_count": 94,
+  "input_path": "data/processed/eval_cosql_dev_100.jsonl",
+  "input_sha256": "00886900e4faf539bc6a6428b8b699b77f169874a9bfb8a205b1beaa2785cf6e",
+  "label_source": "gold_reference_sql",
+  "metrics": {
+    "carried_from_prior_sql_count": 0,
+    "database_count": 17,
+    "dialog_turn_count": 94,
+    "exact_in_current_turn_count": 82,
+    "exact_in_history_count": 21,
+    "missing_from_user_text_count": 3,
+    "requires_context_carryover_count": 21,
+    "requires_value_normalization_count": 3,
+    "value_reference_count": 106
+  },
+  "output_path": "docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl",
+  "output_sha256": "0aec01eb13586c6de0eccf2f9024ec97e28c885bacd0cd9076e81234c0eaabd8",
+  "row_count": 106,
+  "row_schema": {
+    "artifact_type": "value_grounding_label",
+    "required_fields": [
+      "id",
+      "dialog_id",
+      "turn_id",
+      "turn_index",
+      "database_id",
+      "resolved_column",
+      "operator",
+      "resolved_value",
+      "literal_type",
+      "resolved_table",
+      "mention_status",
+      "mention_text",
+      "prior_turn_reference",
+      "requires_context_carryover",
+      "requires_value_normalization",
+      "label_source"
+    ],
+    "schema_version": 1
+  },
+  "schema_version": 1
+}

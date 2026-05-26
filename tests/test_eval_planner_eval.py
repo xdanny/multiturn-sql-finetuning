@@ -7,9 +7,11 @@ import pytest
 from data.plan_contract import PREDICTED_PLANNER
 from eval.planner_eval import (
     annotate_prepared_records_with_lexical_plans,
+    annotate_prepared_records_with_plans,
     evaluate_planner_records,
     extract_schema_inventory,
     lexical_planner,
+    parse_json_plan_prediction,
     run_planner_eval,
     score_plans,
     summarize_planner_scores,
@@ -259,4 +261,232 @@ def test_annotate_prepared_records_with_lexical_plans_writes_predicted_mode(tmp_
     assert row["uses_oracle_planning_hints"] is False
     assert row["semantic_context_pruned_by_oracle_labels"] is False
     assert row["predicted_plans"][0]["prediction_source"] == "lexical_schema_baseline"
+    assert row["predicted_plans"][0]["relevant_tables"] == ["airlines"]
+
+
+def test_parse_json_plan_prediction_extracts_normalized_plan() -> None:
+    plan = parse_json_plan_prediction(
+        """```json
+        {
+          "relevant_tables": ["Airlines"],
+          "relevant_columns": ["Airlines.Name"],
+          "query_skeleton": {"select": true},
+          "projection_shape": {
+            "selected_count": 1,
+            "selected_expressions": ["Airlines.Name"],
+            "preserve_duplicates": true
+          }
+        }
+        ```""",
+        prediction_source="json_planner_predictions",
+    )
+
+    assert plan["parseable"] is True
+    assert plan["prediction_source"] == "json_planner_predictions"
+    assert plan["relevant_tables"] == ["airlines"]
+    assert plan["relevant_columns"] == ["airlines.name"]
+    assert plan["projection_shape"]["selected_count"] == 1
+
+
+def test_parse_json_plan_prediction_records_malformed_output() -> None:
+    plan = parse_json_plan_prediction(
+        "not json at all",
+        prediction_source="json_planner_predictions",
+    )
+
+    assert plan["parseable"] is False
+    assert plan["prediction_source"] == "json_planner_predictions"
+    assert "no JSON object" in plan["planner_parse_error"]
+
+
+def test_parse_json_plan_prediction_preserves_oracle_markers_for_validation(tmp_path) -> None:
+    plan = parse_json_plan_prediction(
+        json.dumps(
+            {
+                "relevant_tables": ["airlines"],
+                "query_skeleton": {"select": True},
+                "projection_shape": {"selected_count": 1},
+                "notes": "derived from reference sql",
+            }
+        ),
+        prediction_source="json_planner_predictions",
+    )
+
+    assert "derived from reference sql" in plan["notes"]
+    input_path = tmp_path / "prepared.jsonl"
+    predictions_path = tmp_path / "planner_predictions.jsonl"
+    output_path = tmp_path / "predicted.jsonl"
+    input_path.write_text(
+        json.dumps(
+            {
+                "dialog_id": "dialog-a",
+                "messages": [
+                    {"role": "user", "content": "Question:\nList airline names."},
+                    {"role": "assistant", "content": "SELECT name FROM airlines;"},
+                ],
+                "gold_plans": [{"relevant_tables": ["airlines"]}],
+            }
+        )
+        + "\n"
+    )
+    predictions_path.write_text(
+        json.dumps(
+            {
+                "id": "dialog-a:0",
+                "raw_planner_output": json.dumps(
+                    {
+                        "relevant_tables": ["airlines"],
+                        "query_skeleton": {"select": True},
+                        "projection_shape": {"selected_count": 1},
+                        "notes": "derived from reference sql",
+                    }
+                ),
+            }
+        )
+        + "\n"
+    )
+
+    with pytest.raises(ValueError, match="oracle"):
+        annotate_prepared_records_with_plans(
+            input_path,
+            output_path,
+            limit=None,
+            planner_source="json_planner_predictions",
+            planner_predictions_path=predictions_path,
+        )
+
+
+@pytest.mark.parametrize(
+    "prediction_row",
+    [
+        {
+            "id": "dialog-a:0",
+            "predicted_plan": {
+                "relevant_tables": ["airlines"],
+                "query_skeleton": {"select": True},
+                "projection_shape": {"selected_count": 1},
+                "uses_oracle_planning_hints": True,
+            },
+        },
+        {
+            "id": "dialog-a:0",
+            "relevant_tables": ["airlines"],
+            "query_skeleton": {"select": True},
+            "projection_shape": {"selected_count": 1},
+            "notes": "gold_reference_sql",
+        },
+        {
+            "id": "dialog-a:0",
+            "uses_oracle_planning_hints": True,
+            "raw_planner_output": json.dumps(
+                {
+                    "relevant_tables": ["airlines"],
+                    "query_skeleton": {"select": True},
+                    "projection_shape": {"selected_count": 1},
+                }
+            ),
+        },
+    ],
+)
+def test_json_plan_prediction_loader_rejects_oracle_markers_before_stripping(
+    tmp_path,
+    prediction_row,
+) -> None:
+    input_path = tmp_path / "prepared.jsonl"
+    predictions_path = tmp_path / "planner_predictions.jsonl"
+    output_path = tmp_path / "predicted.jsonl"
+    input_path.write_text(
+        json.dumps(
+            {
+                "dialog_id": "dialog-a",
+                "messages": [
+                    {"role": "user", "content": "Question:\nList airline names."},
+                    {"role": "assistant", "content": "SELECT name FROM airlines;"},
+                ],
+                "gold_plans": [{"relevant_tables": ["airlines"]}],
+            }
+        )
+        + "\n"
+    )
+    predictions_path.write_text(json.dumps(prediction_row) + "\n")
+
+    with pytest.raises(ValueError, match="oracle"):
+        annotate_prepared_records_with_plans(
+            input_path,
+            output_path,
+            limit=None,
+            planner_source="json_planner_predictions",
+            planner_predictions_path=predictions_path,
+        )
+
+
+def test_annotate_prepared_records_with_json_plan_predictions(tmp_path) -> None:
+    input_path = tmp_path / "prepared.jsonl"
+    predictions_path = tmp_path / "planner_predictions.jsonl"
+    output_path = tmp_path / "predicted.jsonl"
+    input_path.write_text(
+        json.dumps(
+            {
+                "dialog_id": "dialog-a",
+                "messages": [
+                    {"role": "system", "content": "sys"},
+                    {
+                        "role": "user",
+                        "content": (
+                            "Schema/context:\n"
+                            "airlines(airline_id int, name text, country text)\n\n"
+                            "Question:\nList airline names."
+                        ),
+                    },
+                    {"role": "assistant", "content": "SELECT name FROM airlines;"},
+                ],
+                "gold_plans": [
+                    {
+                        "relevant_tables": ["airlines"],
+                        "relevant_columns": ["airlines.name"],
+                        "join_path": [],
+                        "query_skeleton": {"select": True},
+                        "projection_shape": {"selected_count": 1, "preserve_duplicates": True},
+                    }
+                ],
+            }
+        )
+        + "\n"
+    )
+    predictions_path.write_text(
+        json.dumps(
+            {
+                "id": "dialog-a:0",
+                "raw_planner_output": json.dumps(
+                    {
+                        "relevant_tables": ["airlines"],
+                        "relevant_columns": ["airlines.name"],
+                        "query_skeleton": {"select": True},
+                        "projection_shape": {
+                            "selected_count": 1,
+                            "selected_expressions": ["airlines.name"],
+                            "preserve_duplicates": True,
+                        },
+                    }
+                ),
+            }
+        )
+        + "\n"
+    )
+
+    assert (
+        annotate_prepared_records_with_plans(
+            input_path,
+            output_path,
+            limit=None,
+            planner_source="json_planner_predictions",
+            planner_predictions_path=predictions_path,
+        )
+        == 1
+    )
+
+    row = json.loads(output_path.read_text())
+    assert row["evaluation_mode"] == PREDICTED_PLANNER
+    assert row["predicted_plan_source"] == "json_planner_predictions"
+    assert row["predicted_plans"][0]["prediction_source"] == "json_planner_predictions"
     assert row["predicted_plans"][0]["relevant_tables"] == ["airlines"]

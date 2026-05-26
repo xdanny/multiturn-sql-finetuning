@@ -21,6 +21,7 @@ from eval.run_eval import (
     database_path_for_record,
     enforce_sql_only_instruction,
     load_benchmark_records,
+    messages_for_generation,
     write_results,
 )
 
@@ -113,7 +114,7 @@ def run_local_benchmark(
         raw_generation, generation_latency_ms = generate_local_sql(
             model,
             tokenizer,
-            messages=record["messages"],
+            messages=messages_for_generation(record),
             max_new_tokens=max_new_tokens,
         )
         generated_sql = extract_sql(raw_generation)

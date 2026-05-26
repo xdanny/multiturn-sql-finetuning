@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" role="img">
+<title>Planner baseline scores</title>
+<rect width="100%" height="100%" fill="#fff"/>
+<text x="34" y="38" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#111">Planner baseline scores</text>
+<text x="34" y="64" font-family="Arial, sans-serif" font-size="14" fill="#555">Lexical non-oracle planner on the same CoSQL proxy slice.</text>
+<line x1="78" y1="332" x2="864" y2="332" stroke="#222"/>
+<line x1="78" y1="94" x2="78" y2="332" stroke="#222"/>
+<line x1="78" y1="273" x2="864" y2="273" stroke="#e8e8e8"/>
+<text x="34" y="277" font-family="Arial, sans-serif" font-size="12" fill="#777">0.25</text>
+<line x1="78" y1="213" x2="864" y2="213" stroke="#e8e8e8"/>
+<text x="34" y="217" font-family="Arial, sans-serif" font-size="12" fill="#777">0.50</text>
+<line x1="78" y1="154" x2="864" y2="154" stroke="#e8e8e8"/>
+<text x="34" y="158" font-family="Arial, sans-serif" font-size="12" fill="#777">0.75</text>
+<line x1="78" y1="94" x2="864" y2="94" stroke="#e8e8e8"/>
+<text x="34" y="98" font-family="Arial, sans-serif" font-size="12" fill="#777">1.00</text>
+<rect x="112" y="197" width="73" height="135" fill="#222"/>
+<text x="112" y="189" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#111">0.571</text>
+<text x="112" y="356" font-family="Arial, sans-serif" font-size="12" fill="#222">macro_planner_score</text>
+<rect x="211" y="190" width="73" height="142" fill="#222"/>
+<text x="211" y="182" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#111">0.599</text>
+<text x="211" y="356" font-family="Arial, sans-serif" font-size="12" fill="#222">table_f1</text>
+<rect x="310" y="305" width="73" height="27" fill="#222"/>
+<text x="310" y="297" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#111">0.117</text>
+<text x="310" y="356" font-family="Arial, sans-serif" font-size="12" fill="#222">column_f1</text>
+<rect x="409" y="144" width="73" height="188" fill="#bdbdbd"/>
+<text x="409" y="136" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#111">0.790</text>
+<text x="409" y="356" font-family="Arial, sans-serif" font-size="12" fill="#222">join_f1</text>
+<rect x="508" y="178" width="73" height="154" fill="#bdbdbd"/>
+<text x="508" y="170" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#111">0.648</text>
+<text x="508" y="356" font-family="Arial, sans-serif" font-size="12" fill="#222">skeleton_f1</text>
+<rect x="607" y="135" width="73" height="197" fill="#bdbdbd"/>
+<text x="607" y="127" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#111">0.830</text>
+<text x="607" y="356" font-family="Arial, sans-serif" font-size="12" fill="#222">group_by_f1</text>
+<rect x="706" y="290" width="73" height="42" fill="#bdbdbd"/>
+<text x="706" y="282" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#111">0.180</text>
+<text x="706" y="356" font-family="Arial, sans-serif" font-size="12" fill="#222">selected_count_match</text>
+<rect x="805" y="125" width="73" height="207" fill="#bdbdbd"/>
+<text x="805" y="117" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#111">0.870</text>
+<text x="805" y="356" font-family="Arial, sans-serif" font-size="12" fill="#222">duplicate_policy_match</text>
+</svg>

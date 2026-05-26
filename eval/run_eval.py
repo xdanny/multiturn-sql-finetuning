@@ -115,6 +115,9 @@ def expand_prepared_record(record: dict[str, Any], *, index: int) -> list[dict[s
     turn_count = len(assistant_indices)
     expanded = []
     for turn_index, assistant_index in enumerate(assistant_indices):
+        predicted_plan = (
+            predicted_plans[turn_index] if turn_index < len(predicted_plans) else None
+        )
         expanded.append(
             {
                 "id": f"{dialog_id}:{turn_index}",
@@ -132,9 +135,12 @@ def expand_prepared_record(record: dict[str, Any], *, index: int) -> list[dict[s
                 "semantic_context_pruned_by_oracle_labels": semantic_context_pruned_by_oracle_labels,
                 "oracle_diagnostic_warning": record.get("oracle_diagnostic_warning"),
                 "gold_plan": gold_plans[turn_index] if turn_index < len(gold_plans) else None,
-                "predicted_plan": predicted_plans[turn_index]
-                if turn_index < len(predicted_plans)
-                else None,
+                "predicted_plan": predicted_plan,
+                "predicted_plan_source": (
+                    predicted_plan.get("prediction_source")
+                    if isinstance(predicted_plan, dict) and predicted_plan.get("prediction_source")
+                    else record.get("predicted_plan_source")
+                ),
                 "schema_link_labels": schema_link_labels[turn_index]
                 if turn_index < len(schema_link_labels)
                 else None,
@@ -268,6 +274,9 @@ def summarize_eval_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
 
     if not results:
         return {}
+    mean_generation_latency_ms = sum(
+        float(result.get("generation_latency_ms") or 0.0) for result in results
+    ) / len(results)
     metrics = {
         "execution_accuracy": sum(result["execution_score"] for result in results) / len(results),
         "strict_execution_accuracy": sum(
@@ -280,15 +289,22 @@ def summarize_eval_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
         / len(results),
         "syntax_accuracy": sum(float(bool(result.get("syntax_valid"))) for result in results)
         / len(results),
-        "mean_generation_latency_ms": sum(
-            float(result.get("generation_latency_ms") or 0.0) for result in results
-        )
-        / len(results),
+        "mean_generation_latency_ms": mean_generation_latency_ms,
+        "mean_latency_ms": mean_generation_latency_ms,
         "sources": dict(Counter(str(result.get("source", "unknown")) for result in results)),
         "evaluation_modes": dict(
             Counter(str(result.get("evaluation_mode", "unknown")) for result in results)
         ),
     }
+    history_policies = Counter(
+        str(result.get("history_policy"))
+        for result in results
+        if result.get("history_policy")
+    )
+    if history_policies:
+        metrics["history_policies"] = dict(history_policies)
+        if len(history_policies) == 1:
+            metrics["history_policy"] = next(iter(history_policies))
     if any(result.get("dialog_id") for result in results):
         metrics["dialog_count"] = len({result.get("dialog_id") for result in results})
         per_dialog: dict[str, list[float]] = {}

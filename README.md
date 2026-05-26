@@ -1,14 +1,25 @@
 # Multi-Turn SQL Fine-Tuning
 
-Fine-tune Qwen 3.5 9B on SQL interaction data, serve it locally on an RTX 5090,
-and test whether a small local model can become useful enough on
-BIRD-Interact-style multi-turn SQL tasks to compete with much larger hosted
-models.
+Fine-tune and evaluate a small specialized local model for multi-turn analytical
+SQL. The research question is whether a 9B-class local model can learn the
+behavior and semantic concepts needed to outperform much larger state-of-the-art
+general models on multi-turn data-analysis tasks.
 
 The project target is not "make CoSQL go up" in isolation. CoSQL is the first
 small, reproducible multi-turn proxy slice. The longer benchmark direction is a
 BIRD-Interact-style comparison with the same interaction protocol, SQL execution
 checks, cost accounting, and larger-model baselines.
+
+See `docs/research_goal.md` for the explicit research program, including the
+fine-tuning methods this repo should compare: direct SQL SFT, planner/DSL first
+then SQL, semantic-layer tuning, `MEASURE()`-preserving metric DSLs, and
+behavior/recovery tuning.
+
+The first metric-DSL experiment surface is documented in
+`docs/metric_dsl_contract.md`, implemented in `data.metric_dsl`, and evaluated
+offline through `eval.metric_dsl_eval`.
+Generated-history rollout evaluation is documented in
+`docs/rollout_eval_contract.md` and implemented in `eval.rollout_eval`.
 
 > Oracle diagnostic: the `0.890` schema-pruned result uses gold SQL-derived
 > planning hints in the eval prompt. It is an upper bound for the
@@ -27,6 +38,13 @@ This repo is now organized around verified, runnable gates:
 - Training consumes prepared JSONL and supports bounded smoke tests with `--max-steps`.
 - Evaluation compares base and fine-tuned models through either a local Transformers runner or an OpenAI-compatible endpoint.
 - Endpoint evaluation writes a manifest that records the input hash, output hash, model, mode, command, and metrics behind each reported number.
+- The claim ledger in `docs/claim_ledgers/` verifies those manifests, marks
+  non-oracle CoSQL results as proxy-only, marks oracle rows as diagnostics, and
+  keeps predicted-planner SQL, metric-DSL-vs-direct-SQL, hosted baselines,
+  local-vs-hosted wins, and BIRD-Interact claims pending until matching artifacts
+  and positive comparison deltas exist.
+- Generated-history rollout evaluation is now wired so behavior/recovery can be
+  tested without teacher-forcing prior gold SQL into later turns.
 - Tests cover dataset formatting, training-data validation, SQL scoring, result loading, and plotting.
 - vLLM serving is verified in a separate `.venv-vllm` environment on WSL2 + RTX 5090.
 - The best oracle-conditioned endpoint run is the schema-pruned 100-step LoRA adapter at `0.890` value accuracy, `0.820` strict accuracy, and `1.000` syntax accuracy on the fixed 100-turn CoSQL dev slice. That run is a diagnostic upper bound because the planning hints are derived from gold/reference SQL.
@@ -45,11 +63,68 @@ Known constraints:
 - Semantic model context increases prompt length. The current semantic endpoint run shows this cost directly, so future semantic prompts need retrieval and pruning.
 - DSPy-backed prompt search is available through `eval.prompt_optimize`; it can propose and score prompt variants against execution accuracy.
 - A non-oracle `predicted_planner` path is now wired: lexical planner output can be written back into prepared JSONL and injected into the SQL-generation prompt without reference SQL.
+- A planner-readiness report now checks the paired input before endpoint time and
+  records why the current lexical planner should be improved before treating the
+  predicted-planner path as a likely SQL win.
+- A `MEASURE()`-preserving metric-DSL evaluator is now wired for offline
+  JSONL predictions; it scores semantic intent, compiles through a semantic
+  model, optionally executes compiled SQL, and writes result manifests.
+- A first value-grounding label artifact is generated from the fixed CoSQL proxy
+  slice. It extracts gold SQL literal predicates into auditable rows for
+  current-turn values, history-carried values, and display-to-storage
+  normalization failures. This is a supervision/evaluation artifact, not a
+  production prompt hint.
+- A first non-oracle value index is generated from the fixed-slice SQLite
+  database contents. Its coverage report separates stored-value coverage from
+  user-mention alias coverage, so value/entity work has a measurable next target.
+- A first synthetic schema-rich fixture pack is generated under
+  `docs/data_artifacts/synthetic_method_fixtures.jsonl`. It turns value
+  normalization, entity resolution, grain/fanout, `MEASURE()` preservation, and
+  recovery into curated rows with expected outputs before spending endpoint time.
 - Local execution scoring reports both strict label-aware accuracy and value-only accuracy. Treat older single `accuracy` numbers as strict-era results unless they come from `results/rescored/`.
 - Failure analysis now classifies every wrong rescored turn into actionable labels and compares adapters or prompt variants against a baseline under `plots/failure_taxonomy/`.
 - Schema-link label generation and semantic prompt pruning are available through `data.prepare --include-sql-labels --prune-semantic-model`. These flags now mark produced rows as `evaluation_mode=oracle_planner_diagnostic`. On the fixed 100-turn CoSQL slice, the best oracle prompt-only pruned-label run reaches `0.850` value accuracy, and training on that oracle-labelled format reaches `0.890`.
 - The end-to-end methodology, dataset roles, training strategy boundaries, and
   benchmark claim rules are documented in `docs/methodology.md`.
+- The public post now has one attached codebase, a published HTML lab, and generated evidence
+  assets; see `docs/blog/README.md`.
+
+## Blog-Attached Lab
+
+The blog post should point readers to the attached codebase and a published HTML
+lab at `/labs/local-multiturn-sql-finetuning/`. The same lab can be rerun from
+the source code with Marimo:
+
+```bash
+marimo edit notebooks/labs/local_multiturn_sql_lab.py
+```
+
+A portable Jupyter export remains available for readers who prefer notebooks:
+
+```bash
+jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb
+```
+
+The lab compares five fine-tuning targets: direct SQL, planner-first SQL,
+semantic-layer state, `MEASURE()`-preserving DSL, and behavior/recovery tuning.
+It also separates dataset roles for BIRD-Interact, BIRD mini-dev, CoSQL, SParC,
+synthetic schema-rich SQL, and the tiny SQLite lab so the repo does not treat
+every SQL row as interchangeable training data.
+It auto-selects CUDA, MPS, or XPU when PyTorch can see an accelerator and falls
+back to CPU. It should stay a portable lab, not a serving or dependency
+installation guide. The public site consumes generated evidence such as
+`docs/blog/generated/shareable-lab.md`,
+`docs/blog/generated/dataset-role-matrix.md`,
+`docs/blog/generated/lab-method-scores.md`,
+`docs/blog/generated/data-artifact-contract.md`,
+`docs/blog/generated/value-grounding-labels.md`,
+`docs/blog/generated/synthetic-method-fixtures.md`,
+`docs/blog/generated/target-evidence-matrix.md`, and
+`docs/blog/generated/lab-failure-trace.md`.
+
+Deeper evidence maintenance stays separate from the public reader path. Expensive
+GPU training, vLLM serving, and local setup notes stay in scripts and docs outside
+the public lab flow.
 
 ## Leakage Policy
 
@@ -59,7 +134,7 @@ This repo separates three different claims that are easy to blur:
 | --- | --- | --- |
 | `non_oracle_generation` | Question, conversation history, schema, semantic context, and any non-oracle retrieval artifacts | A deployable text-to-SQL path can work under those inputs. |
 | `oracle_planner_diagnostic` | The same inputs plus planning hints extracted from reference SQL, or semantic context pruned by those hints | An upper bound: SQL generation becomes easier when schema linking, join choice, projection shape, and duplicate policy are already solved. |
-| `predicted_planner` | Planner output predicted from question, history, schema, and optional value indexes | The real production claim: a system can create its own plan before generating SQL. |
+| `predicted_planner` | Planner output predicted from question, history, schema, and optional value indexes | A production-style planner-to-SQL proxy: the system creates its own plan before generating SQL. |
 
 Any row prepared with `--include-sql-labels` or `--prune-semantic-model` is
 teacher-forced by gold SQL. The code writes `uses_oracle_planning_hints`,
@@ -111,6 +186,55 @@ python -m eval.planner_eval \
   --summary-output results/planner_eval_cosql_dev_100_summary.json
 ```
 
+The repo can now generate non-oracle planner JSON with the same OpenAI-compatible
+endpoint path used by SQL evaluation:
+
+```bash
+python -m eval.planner_predict \
+  --input data/processed/eval_cosql_dev_100.jsonl \
+  --limit 100 \
+  --model-name <planner-model> \
+  --endpoint http://localhost:8000/v1 \
+  --output results/planner_predictions/<run-id>.jsonl
+```
+
+Before promoting a planner prompt or DSPy program to full SQL generation, score
+planner variants directly:
+
+```bash
+python -m eval.planner_optimize \
+  --input data/processed/eval_cosql_dev_100.jsonl \
+  --limit 100 \
+  --model-name <planner-model> \
+  --endpoint http://localhost:8000/v1 \
+  --output-dir results/planner_prompt_search/<run-id> \
+  --dspy-proposals 2
+```
+
+This writes one JSONL file per planner variant plus `summary.csv`, ranked by
+parse rate first and planner F1 after that. Malformed JSON receives no planner
+credit. The scores use SQL-derived planner labels, so this is a
+planner-quality screen, not a SQL execution claim.
+
+Then score those predictions and write the matching `predicted_planner` prepared
+artifact:
+
+```bash
+python -m eval.planner_eval \
+  --input data/processed/eval_cosql_dev_100.jsonl \
+  --limit 100 \
+  --planner-source json_planner_predictions \
+  --planner-predictions results/planner_predictions/<run-id>.jsonl \
+  --predicted-prepared-output data/processed/eval_cosql_dev_predicted_planner_100.jsonl \
+  --output results/planner_eval_cosql_dev_100.jsonl \
+  --summary-output results/planner_eval_cosql_dev_100_summary.json
+```
+
+JSON planner predictions are normalized into the same plan contract, but raw
+unknown fields are still scanned before prompt injection so oracle provenance
+such as `gold_reference_sql` or `derived from reference sql` cannot be hidden by
+normalization.
+
 This produces:
 
 - `gold_plan`: normalized labels extracted from reference SQL, used only for
@@ -129,6 +253,201 @@ The generated `data/processed/eval_cosql_dev_predicted_planner_100.jsonl`
 contains the first 100 CoSQL turns across 32 dialogs with `evaluation_mode` set
 to `predicted_planner`. It is ready for endpoint SQL evaluation, but it is not
 itself an execution result.
+
+After running endpoint SQL evaluation on both the direct prepared input and the
+predicted-planner prepared input, compare the manifests before claiming the
+planner path helped:
+
+```bash
+python -m eval.compare_predicted_planner \
+  --predicted-manifest results/predicted_planner/multiturn_sql_100_cosql_dev_predicted.manifest.json \
+  --direct-manifest results/direct_sql/multiturn_sql_100_cosql_dev_direct.manifest.json \
+  --output results/predicted_planner/multiturn_sql_100_cosql_dev_predicted.compared.manifest.json
+```
+
+The comparison command refuses oracle diagnostics, non-prepared manifests,
+model mismatches, wrong output modes, and row-identity mismatches. The claim
+ledger only clears the predicted-planner SQL execution claim when the compared
+predicted-planner run beats direct SQL on value accuracy and the referenced
+direct-SQL manifest is included in the ledger input.
+
+The safer way to produce that pair is the paired runner, which preflights row
+identity before spending endpoint time, runs the direct-SQL control and
+predicted-planner path with the same model/scorer/database root, then writes the
+comparison manifest:
+
+```bash
+python -m eval.run_predicted_planner_comparison \
+  --direct-input data/processed/eval_cosql_dev_100.jsonl \
+  --predicted-input data/processed/eval_cosql_dev_predicted_planner_100.jsonl \
+  --output-dir results/predicted_planner \
+  --run-id lexical_planner_cosql_dev_100 \
+  --model-name <served-model> \
+  --endpoint http://localhost:8000/v1 \
+  --database-root data/raw/cosql_dataset/database \
+  --limit 100 \
+  --preflight-output docs/predicted_planner_comparison_preflight.json
+```
+
+For endpoint-free validation, run only the preflight:
+
+```bash
+python -m eval.run_predicted_planner_comparison \
+  --direct-input data/processed/eval_cosql_dev_100.jsonl \
+  --predicted-input data/processed/eval_cosql_dev_predicted_planner_100.jsonl \
+  --output-dir results/predicted_planner \
+  --run-id lexical_planner_cosql_dev_100 \
+  --model-name <served-model> \
+  --preflight-output docs/predicted_planner_comparison_preflight.json \
+  --preflight-only
+```
+
+The tracked preflight currently shows that the direct and predicted inputs align
+for 100 turns across 32 dialogs. It is a readiness artifact only; it does not
+support a SQL execution claim.
+
+Before running that endpoint pair, summarize whether the planner is ready enough
+to make the endpoint spend useful:
+
+```bash
+python -m eval.planner_readiness \
+  --planner-input results/planner_eval_cosql_dev_100.jsonl \
+  --preflight-input docs/predicted_planner_comparison_preflight.json \
+  --output docs/planner_readiness_cosql_dev_100.json
+```
+
+The current tracked report is deliberately conservative. It says the paired
+direct/predicted inputs are row-matched, but the lexical planner still has
+`0.790` zero-column-F1 turns, `0.820` selected-count mismatches, and `1.000`
+empty projection-expression turns on the 100-turn CoSQL proxy. The recommendation
+is `improve_planner_before_claim`. That is not a SQL execution score; it is the
+reason to improve column linking and projection shape before making the endpoint
+comparison the next public claim.
+
+## Value Grounding Artifacts
+
+The first concrete data-engineering artifact turns reference SQL predicates into
+labels for value grounding:
+
+```bash
+python -m data.value_artifacts \
+  --input data/processed/eval_cosql_dev_100.jsonl \
+  --output docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl \
+  --summary docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json \
+  --manifest docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json
+```
+
+The current label artifact contains 106 SQL value references across 17 databases
+on the fixed CoSQL proxy slice. It separates values stated in the current user
+turn, values recovered from previous user turns, values carried by prior SQL,
+and stored literals that are missing from user text. Those missing-text rows are
+the practical seed for entity-resolution labels and alias expansion.
+
+The labels are derived from gold/reference SQL, so they are valid as
+supervision, scoring targets, and coverage diagnostics. They are not valid as
+production inference context unless a non-oracle retriever or planner predicts
+the same bindings from the question, history, schema, and allowed value/entity
+artifacts.
+
+Build the corresponding non-oracle value index from database contents:
+
+```bash
+python -m data.value_index \
+  --input data/processed/eval_cosql_dev_100.jsonl \
+  --database-root data/raw/cosql_dataset/database \
+  --output docs/data_artifacts/value_index_cosql_dev_100.jsonl \
+  --summary docs/data_artifacts/value_index_cosql_dev_100_summary.json \
+  --manifest docs/data_artifacts/value_index_cosql_dev_100.manifest.json \
+  --labels docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl
+```
+
+The current index contains 12,661 database-derived entries across 20 CoSQL
+databases. Against the gold labels, it covers 78.3% of resolved stored values but
+only 75.5% of user-visible mention aliases. That gap is the next concrete
+semantic-layer problem: add alias/entity expansion, then score value retrieval
+before SQL generation.
+
+## Metric DSL Evaluation
+
+Metric-DSL evaluation is the first runnable gate for testing whether a model
+should produce semantic intent before SQL. Input rows contain a predicted DSL, a
+reference DSL, a semantic model, and optional reference SQL/database path:
+
+```json
+{
+  "id": "metric-1",
+  "generated_metric_dsl": "MEASURE(revenue) BY customer_country",
+  "reference_metric_dsl": "MEASURE(revenue) BY customer_country",
+  "semantic_model": {"base_table": "orders", "measures": {}, "dimensions": {}},
+  "reference_sql": "SELECT ...",
+  "database_path": "data/raw/metric_fixtures/store.sqlite"
+}
+```
+
+Run the offline evaluator:
+
+```bash
+python -m eval.metric_dsl_eval \
+  --input results/metric_dsl/<run-id>.predictions.jsonl \
+  --output results/metric_dsl/<run-id>.jsonl \
+  --manifest-output results/metric_dsl/<run-id>.manifest.json \
+  --model-name <served-or-offline-model-name>
+```
+
+The manifest reports parse rate, compile rate, measure preservation, measure F1,
+dimension F1, filter F1, database-backed compiled-SQL value accuracy, and the
+semantic-model hashes used by the run. Execution accuracy is computed only over
+rows with both `reference_sql` and `database_path`. A row that expands
+`SUM(orders.amount)` instead of emitting `MEASURE(revenue)` fails the metric-DSL
+parse gate, so it cannot be hidden by a compiled SQL score.
+
+Before claiming DSL-first generation is better than direct SQL, run a direct-SQL
+baseline on the same metric-heavy rows and compare manifests:
+
+```bash
+python -m eval.compare_metric_dsl_direct_sql \
+  --metric-dsl-manifest results/metric_dsl/<run-id>.manifest.json \
+  --direct-sql-manifest results/direct_sql/<run-id>.manifest.json \
+  --output results/metric_dsl/<run-id>.compared.manifest.json
+```
+
+The direct baseline must use `benchmark=metric_dsl_direct_sql` and
+`evaluation_mode=non_oracle_generation`. The metric-DSL and direct-SQL models may
+differ, but the output rows must have matching identities and no oracle markers.
+The claim ledger clears `metric_dsl_beats_direct_sql` only when the compared
+metric-DSL manifest references the direct manifest, preserves `MEASURE(...)`,
+covers every row with database-backed execution, and has a positive value delta.
+
+## Generated-History Rollout
+
+Teacher-forced CoSQL evaluation answers a narrow question: can the model produce
+the current SQL when prior turns are clean reference SQL? Rollout evaluation asks
+the harder multi-turn question: what happens when the model has to continue from
+its own earlier SQL?
+
+```bash
+python -m eval.rollout_eval \
+  --model-name multiturn-sql-100 \
+  --endpoint http://127.0.0.1:8000/v1 \
+  --input data/processed/eval_cosql_dev_100.jsonl \
+  --database-root data/raw/cosql_dataset/database \
+  --output results/rollout/multiturn_sql_100_cosql_dev_100_rollout.jsonl
+```
+
+The runner writes `history_policy=model_generated_sql_rollout` rows and a result
+manifest. The claim ledger keeps the behavior/recovery improvement claim pending
+until a rollout result is compared against the same model and input under
+teacher-forced history.
+
+```bash
+python -m eval.compare_rollout_history \
+  --rollout-manifest results/rollout/multiturn_sql_100_cosql_dev_100_rollout.manifest.json \
+  --teacher-forced-manifest results/teacher_forced/multiturn_sql_100_cosql_dev_100.manifest.json \
+  --output results/rollout/multiturn_sql_100_cosql_dev_100_rollout.compared.manifest.json
+```
+
+The comparison command refuses mismatched models, mismatched input hashes, oracle
+diagnostics, and non-rollout manifests.
 
 The optional `data.prepare --manifest-output` file records dataset composition:
 source counts, evaluation modes, turn formats, history policies, assistant-turn

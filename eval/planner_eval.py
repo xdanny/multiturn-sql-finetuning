@@ -16,7 +16,13 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-from data.plan_contract import PREDICTED_PLANNER, normalize_plan, validate_prepared_record_contract
+from data.plan_contract import (
+    PREDICTED_PLANNER,
+    normalize_plan,
+    predicted_plan_uses_oracle_markers,
+    validate_predicted_plan_for_prompt,
+    validate_prepared_record_contract,
+)
 from eval.run_eval import (
     assistant_turn_indices,
     load_prepared_records,
@@ -35,6 +41,9 @@ PLAN_FIELDS = (
     "duplicate_policy_match",
     "macro_planner_score",
 )
+LEXICAL_PLANNER_SOURCE = "lexical_schema_baseline"
+JSON_PLANNER_PREDICTIONS_SOURCE = "json_planner_predictions"
+PLANNER_SOURCES = (LEXICAL_PLANNER_SOURCE, JSON_PLANNER_PREDICTIONS_SOURCE)
 
 
 def _normalize_identifier(value: Any) -> str:
@@ -232,7 +241,7 @@ def lexical_planner(messages: list[dict[str, str]]) -> dict[str, Any]:
     aggregations = sorted({value for token, value in aggregation_words.items() if token in question_tokens})
     return {
         "parseable": True,
-        "prediction_source": "lexical_schema_baseline",
+        "prediction_source": LEXICAL_PLANNER_SOURCE,
         "relevant_tables": sorted(selected_tables),
         "relevant_columns": sorted(selected_columns),
         "join_path": [],
@@ -246,11 +255,113 @@ def lexical_planner(messages: list[dict[str, str]]) -> dict[str, Any]:
     }
 
 
-def evaluate_planner_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _plan_with_source(plan: dict[str, Any], prediction_source: str) -> dict[str, Any]:
+    normalized = normalize_plan(plan)
+    for key, value in plan.items():
+        if key not in normalized and key != "prediction_source":
+            normalized[key] = value
+    normalized["prediction_source"] = str(plan.get("prediction_source") or prediction_source)
+    if plan.get("planner_parse_error"):
+        normalized["planner_parse_error"] = str(plan["planner_parse_error"])
+    return normalized
+
+
+def _json_payload_from_text(text: str) -> str:
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        lines = stripped.splitlines()
+        if lines and lines[0].strip().startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip().startswith("```"):
+            lines = lines[:-1]
+        stripped = "\n".join(lines).strip()
+
+    start = stripped.find("{")
+    end = stripped.rfind("}")
+    if start == -1 or end == -1 or end < start:
+        raise ValueError("no JSON object found in planner output")
+    return stripped[start : end + 1]
+
+
+def parse_json_plan_prediction(raw_output: str, *, prediction_source: str) -> dict[str, Any]:
+    """Parse model-produced JSON planner output into the stable plan contract."""
+
+    try:
+        parsed = json.loads(_json_payload_from_text(raw_output))
+        if not isinstance(parsed, dict):
+            raise ValueError("planner output JSON must be an object")
+        return _plan_with_source(parsed, prediction_source)
+    except Exception as exc:
+        return {
+            **normalize_plan({"parseable": False}),
+            "parseable": False,
+            "prediction_source": prediction_source,
+            "planner_parse_error": str(exc),
+        }
+
+
+def _load_json_plan_predictions(path: Path, *, prediction_source: str) -> dict[str, dict[str, Any]]:
+    predictions = {}
+    with path.open() as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            row_id = row.get("id")
+            if not row_id:
+                raise ValueError("planner prediction row is missing id")
+            if predicted_plan_uses_oracle_markers(row):
+                raise ValueError("planner prediction row contains oracle provenance markers")
+            source = str(row.get("prediction_source") or prediction_source)
+            if isinstance(row.get("predicted_plan"), dict):
+                plan = _plan_with_source(row["predicted_plan"], source)
+            elif row.get("raw_planner_output") is not None:
+                plan = parse_json_plan_prediction(str(row["raw_planner_output"]), prediction_source=source)
+            else:
+                plan = _plan_with_source(row, source)
+            if str(row_id) in predictions:
+                raise ValueError(f"duplicate planner prediction id: {row_id}")
+            predictions[str(row_id)] = plan
+    return predictions
+
+
+def _record_dialog_id(record: dict[str, Any], index: int) -> str:
+    return str(record.get("dialog_id") or record.get("id") or f"prepared-{index}")
+
+
+def _predicted_plan_for_turn(
+    *,
+    planner_source: str,
+    messages: list[dict[str, str]],
+    turn_id: str,
+    planner_predictions: dict[str, dict[str, Any]] | None,
+) -> dict[str, Any]:
+    if planner_source == LEXICAL_PLANNER_SOURCE:
+        return lexical_planner(messages)
+    if planner_source == JSON_PLANNER_PREDICTIONS_SOURCE:
+        if planner_predictions is None:
+            raise ValueError("--planner-predictions is required for json_planner_predictions")
+        if turn_id not in planner_predictions:
+            raise ValueError(f"missing planner prediction for turn id: {turn_id}")
+        return planner_predictions[turn_id]
+    raise ValueError(f"unknown planner source: {planner_source}")
+
+
+def evaluate_planner_records(
+    records: list[dict[str, Any]],
+    *,
+    planner_source: str = LEXICAL_PLANNER_SOURCE,
+    planner_predictions: dict[str, dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
     evaluated = []
     for record in records:
         gold_plan = record.get("gold_plan") or record.get("schema_link_labels") or {}
-        predicted_plan = record.get("predicted_plan") or lexical_planner(record["messages"])
+        predicted_plan = record.get("predicted_plan") or _predicted_plan_for_turn(
+            planner_source=planner_source,
+            messages=record["messages"],
+            turn_id=str(record["id"]),
+            planner_predictions=planner_predictions,
+        )
         planner_scores = score_plans(gold_plan, predicted_plan)
         evaluated.append(
             {
@@ -258,6 +369,7 @@ def evaluate_planner_records(records: list[dict[str, Any]]) -> list[dict[str, An
                 "gold_plan": normalize_plan(gold_plan),
                 "predicted_plan": normalize_plan(predicted_plan),
                 "predicted_plan_source": predicted_plan.get("prediction_source", "unknown"),
+                "planner_parse_error": predicted_plan.get("planner_parse_error"),
                 "planner_scores": planner_scores,
             }
         )
@@ -299,9 +411,20 @@ def run_planner_eval(
     summary_output: Path,
     limit: int | None,
     allow_oracle_plan: bool,
+    planner_source: str = LEXICAL_PLANNER_SOURCE,
+    planner_predictions_path: Path | None = None,
 ) -> int:
     records = load_prepared_records(input_path, limit=limit, allow_oracle_plan=allow_oracle_plan)
-    evaluated = evaluate_planner_records(records)
+    planner_predictions = (
+        _load_json_plan_predictions(planner_predictions_path, prediction_source=planner_source)
+        if planner_predictions_path
+        else None
+    )
+    evaluated = evaluate_planner_records(
+        records,
+        planner_source=planner_source,
+        planner_predictions=planner_predictions,
+    )
     write_results(evaluated, output)
     summary = summarize_planner_scores(evaluated)
     summary_output.parent.mkdir(parents=True, exist_ok=True)
@@ -325,19 +448,26 @@ def _gold_plans_for_record(record: dict[str, Any], assistant_count: int) -> list
     return [normalize_plan({}) for _ in range(assistant_count)]
 
 
-def annotate_prepared_records_with_lexical_plans(
+def annotate_prepared_records_with_plans(
     input_path: Path,
     output_path: Path,
     *,
     limit: int | None,
+    planner_source: str = LEXICAL_PLANNER_SOURCE,
+    planner_predictions_path: Path | None = None,
 ) -> int:
-    """Write dialog records with non-oracle lexical predicted planner output."""
+    """Write dialog records with non-oracle predicted planner output."""
 
+    planner_predictions = (
+        _load_json_plan_predictions(planner_predictions_path, prediction_source=planner_source)
+        if planner_predictions_path
+        else None
+    )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     written = 0
     expanded_turns = 0
     with input_path.open() as source, output_path.open("w") as target:
-        for line in source:
+        for line_index, line in enumerate(source):
             if not line.strip():
                 continue
             if limit is not None and expanded_turns >= limit:
@@ -353,11 +483,20 @@ def annotate_prepared_records_with_lexical_plans(
             if not assistant_indices:
                 continue
 
+            dialog_id = _record_dialog_id(record, line_index)
             predicted_plans = []
-            for assistant_index in assistant_indices:
+            for turn_index, assistant_index in enumerate(assistant_indices):
                 if limit is not None and expanded_turns >= limit:
                     break
-                predicted_plans.append(lexical_planner(messages[:assistant_index]))
+                turn_id = f"{dialog_id}:{turn_index}"
+                plan = _predicted_plan_for_turn(
+                    planner_source=planner_source,
+                    messages=messages[:assistant_index],
+                    turn_id=turn_id,
+                    planner_predictions=planner_predictions,
+                )
+                validate_predicted_plan_for_prompt(plan)
+                predicted_plans.append(plan)
                 expanded_turns += 1
 
             if not predicted_plans:
@@ -373,11 +512,27 @@ def annotate_prepared_records_with_lexical_plans(
             updated["evaluation_mode"] = PREDICTED_PLANNER
             updated["uses_oracle_planning_hints"] = False
             updated["semantic_context_pruned_by_oracle_labels"] = False
-            updated["predicted_plan_source"] = "lexical_schema_baseline"
+            updated["predicted_plan_source"] = planner_source
             validate_prepared_record_contract(updated)
             target.write(json.dumps(updated, ensure_ascii=False) + "\n")
             written += 1
     return written
+
+
+def annotate_prepared_records_with_lexical_plans(
+    input_path: Path,
+    output_path: Path,
+    *,
+    limit: int | None,
+) -> int:
+    """Write dialog records with non-oracle lexical predicted planner output."""
+
+    return annotate_prepared_records_with_plans(
+        input_path,
+        output_path,
+        limit=limit,
+        planner_source=LEXICAL_PLANNER_SOURCE,
+    )
 
 
 def main() -> int:
@@ -395,14 +550,28 @@ def main() -> int:
         "--predicted-prepared-output",
         type=Path,
         default=None,
-        help="Also write prepared JSONL with non-oracle lexical predicted_plans.",
+        help="Also write prepared JSONL with non-oracle predicted_plans.",
+    )
+    parser.add_argument(
+        "--planner-source",
+        choices=PLANNER_SOURCES,
+        default=LEXICAL_PLANNER_SOURCE,
+        help="Planner source used for evaluation and predicted prepared output.",
+    )
+    parser.add_argument(
+        "--planner-predictions",
+        type=Path,
+        default=None,
+        help="JSONL predictions keyed by expanded turn id when --planner-source json_planner_predictions.",
     )
     args = parser.parse_args()
     if args.predicted_prepared_output:
-        count = annotate_prepared_records_with_lexical_plans(
+        count = annotate_prepared_records_with_plans(
             args.input,
             args.predicted_prepared_output,
             limit=args.limit,
+            planner_source=args.planner_source,
+            planner_predictions_path=args.planner_predictions,
         )
         print(f"Wrote {count} predicted-planner prepared records to {args.predicted_prepared_output}")
     return run_planner_eval(
@@ -411,6 +580,8 @@ def main() -> int:
         summary_output=args.summary_output,
         limit=args.limit,
         allow_oracle_plan=args.allow_oracle_plan,
+        planner_source=args.planner_source,
+        planner_predictions_path=args.planner_predictions,
     )
 
 

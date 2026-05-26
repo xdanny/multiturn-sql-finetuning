@@ -46,6 +46,8 @@ dev = [
     "pytest>=8.0.0",
     "ruff>=0.8.0",
     "ipykernel>=6.29.0",
+    "jupyterlab>=4.2.0",
+    "marimo[recommended]>=0.17.0",
 ]
 
 [tool.ruff]

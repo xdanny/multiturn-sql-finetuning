@@ -1,0 +1,16 @@
+{
+  "artifact_type": "predicted_planner_comparison_preflight",
+  "claim_boundary": "preflight only; no SQL execution claim",
+  "database_count": 15,
+  "dialog_count": 32,
+  "direct_evaluation_mode": "non_oracle_generation",
+  "direct_input_path": "data/processed/eval_cosql_dev_100.jsonl",
+  "direct_input_sha256": "00886900e4faf539bc6a6428b8b699b77f169874a9bfb8a205b1beaa2785cf6e",
+  "limit": 100,
+  "predicted_evaluation_mode": "predicted_planner",
+  "predicted_input_path": "data/processed/eval_cosql_dev_predicted_planner_100.jsonl",
+  "predicted_input_sha256": "e4a0bd43f8969ed09282382dd95087d0d202e5669f0f2c9a10f5a1cdd6b9c2dd",
+  "row_count": 100,
+  "schema_version": 1,
+  "status": "ready_for_endpoint_pair"
+}
