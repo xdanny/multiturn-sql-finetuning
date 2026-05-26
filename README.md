@@ -19,6 +19,10 @@ those ideas into named finetuning steps, evaluation gates, and claim boundaries.
 The machine-checkable cross-stage map for that ladder is
 `data.finetuning_program_registry`, which writes
 `docs/data_artifacts/finetuning_program_registry.json`.
+For SQL-generating method-vs-control experiments, the shared local comparison
+contract now lives in `eval.local_sql_pair`. New methods in that family should
+add a small `SqlPairSpec` plus a method-specific comparer, not a bespoke local
+runner from scratch.
 
 The first metric-DSL experiment surface is documented in
 `docs/metric_dsl_contract.md`, implemented in `data.metric_dsl`, and evaluated

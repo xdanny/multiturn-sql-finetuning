@@ -24,6 +24,9 @@ Rules:
 - For local checkpoint experiments, keep the generation step separate from the
   scorer, then feed the scored manifests into the same comparison path used by
   offline or endpoint variants.
+- For SQL-generating method-vs-direct-control pairs, prefer
+  `eval.local_sql_pair` plus a small method spec over writing a new local
+  runner from scratch.
 - If a local comparison runner exists, it should reuse `eval.local_benchmark`
   or another manifest-writing generator rather than inventing a second result
   format.
@@ -43,6 +46,7 @@ When editing here, inspect:
 - `eval/compare_semantic_layer_direct_sql.py`
 - `eval/compare_semantic_proxy_direct_sql.py`
 - `eval/compare_behavior_recovery_direct_sql.py`
+- `eval/local_sql_pair.py`
 - `eval/run_metric_dsl_comparison.py`
 - `eval/local_metric_dsl_benchmark.py`
 - `eval/local_text_benchmark.py`

@@ -16,6 +16,12 @@ The generated `docs/data_artifacts/finetuning_program_registry.json` is the
 machine-checkable cross-stage registry for that ladder: it maps each blog idea
 to a training target, benchmark surface, evaluation mode, comparison contract,
 and leakage boundary.
+For methods that still generate SQL directly, the repo now has one shared local
+comparison pattern in `eval.local_sql_pair`: validate the method manifest and
+the direct-SQL control on the same rows, run local generation for both sides,
+score both sides the same way, then hand off to a method-specific comparer.
+That keeps semantic-layer and recovery experiments readable instead of growing a
+new mini-runner for every stage.
 
 ## Experiment Taxonomy
 

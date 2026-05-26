@@ -94,7 +94,9 @@ run, and a comparison manifest, it is not ready to be called a finetuning step.
   loop is `uv run python -m eval.run_local_semantic_layer_comparison`, which
   pairs a `semantic_layer` manifest with a row-matched
   `synthetic_semantic_layer_direct_sql` control and writes the compared
-  manifest only after both sides are scored on the same fixture rows.
+  manifest only after both sides are scored on the same fixture rows. This
+  runner now uses the shared `eval.local_sql_pair` contract rather than a
+  stage-specific local workflow.
   The corresponding proxy loop on prepared CoSQL rows is
   `uv run python -m eval.run_local_semantic_proxy_comparison`, which reuses the
   packaged semantic/direct eval slices and compares the resulting prepared
@@ -166,6 +168,9 @@ run, and a comparison manifest, it is not ready to be called a finetuning step.
   for the same-checkpoint teacher-forced vs generated-history comparison on
   prepared dialogs. The endpoint path remains `uv run python -m eval.rollout_eval`
   followed by `uv run python -m eval.compare_rollout_history`.
+  The synthetic pair now also uses the shared `eval.local_sql_pair` contract so
+  recovery tuning follows the same local method-vs-control structure as
+  semantic-layer tuning.
 - Claim boundary:
   the synthetic pair can justify a narrow recovery-method comparison only. A
   behavior/recovery claim on the CoSQL proxy still requires same-model rollout

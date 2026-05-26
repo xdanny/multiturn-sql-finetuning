@@ -117,63 +117,16 @@ def test_run_local_semantic_layer_comparison_runs_generation_eval_then_compares(
     _write_jsonl(semantic_input, [_record(fixture_id="value_normalization_france")])
     _write_jsonl(direct_input, [_record(fixture_id="value_normalization_france")])
 
-    generation_calls: list[dict] = []
-    eval_calls: list[dict] = []
+    helper_calls: list[dict] = []
     compare_calls: list[dict] = []
 
-    def fake_run_local_text_benchmark(**kwargs):
-        generation_calls.append(kwargs)
-        kwargs["output_path"].write_text(
-            json.dumps(
-                {
-                    "id": "value_normalization_france",
-                    "fixture_id": "value_normalization_france",
-                    "reference_sql": "SELECT name FROM singer;",
-                    "evaluation_mode": "non_oracle_generation",
-                    "generated_sql": "SELECT name FROM singer;",
-                }
-            )
-            + "\n"
-        )
-        return 0
-
-    def fake_run_direct_sql_eval(**kwargs):
-        eval_calls.append(kwargs)
-        kwargs["manifest_output"].write_text(
-            json.dumps(
-                {
-                    "run_id": kwargs["output_path"].stem,
-                    "output_path": str(kwargs["output_path"]),
-                    "row_count": 1,
-                    "benchmark": kwargs["benchmark"],
-                    "evaluation_mode": "non_oracle_generation",
-                    "model_name": kwargs["model_name"],
-                    "metrics": {
-                        "value_execution_accuracy": 1.0
-                        if kwargs["benchmark"] == "synthetic_semantic_layer"
-                        else 0.5,
-                        "strict_execution_accuracy": 1.0
-                        if kwargs["benchmark"] == "synthetic_semantic_layer"
-                        else 0.5,
-                        "execution_evaluated_rows": 1,
-                    },
-                }
-            )
-        )
-        kwargs["output_path"].write_text(
-            json.dumps(
-                {
-                    "id": "value_normalization_france",
-                    "fixture_id": "value_normalization_france",
-                    "reference_sql": "SELECT name FROM singer;",
-                    "evaluation_mode": "non_oracle_generation",
-                    "value_execution_score": 1.0,
-                    "strict_execution_score": 1.0,
-                }
-            )
-            + "\n"
-        )
-        return 0
+    def fake_run_local_sql_pair_generation_and_eval(**kwargs):
+        helper_calls.append(kwargs)
+        return {
+            "method_manifest_output": output_dir / "semantic-local.semantic_layer.manifest.json",
+            "direct_manifest_output": output_dir / "semantic-local.direct_sql.manifest.json",
+            "compared_output": output_dir / "semantic-local.compared.manifest.json",
+        }
 
     def fake_compare(**kwargs):
         compare_calls.append(kwargs)
@@ -181,12 +134,8 @@ def test_run_local_semantic_layer_comparison_runs_generation_eval_then_compares(
         return {"compared": True}
 
     monkeypatch.setattr(
-        "eval.run_local_semantic_layer_comparison.run_local_text_benchmark",
-        fake_run_local_text_benchmark,
-    )
-    monkeypatch.setattr(
-        "eval.run_local_semantic_layer_comparison.run_direct_sql_eval",
-        fake_run_direct_sql_eval,
+        "eval.run_local_semantic_layer_comparison.run_local_sql_pair_generation_and_eval",
+        fake_run_local_sql_pair_generation_and_eval,
     )
     monkeypatch.setattr(
         "eval.run_local_semantic_layer_comparison.compare_semantic_layer_direct_sql_manifest_files",
@@ -206,13 +155,10 @@ def test_run_local_semantic_layer_comparison_runs_generation_eval_then_compares(
     )
 
     assert exit_code == 0
-    assert [call["input_path"] for call in generation_calls] == [semantic_input, direct_input]
-    assert generation_calls[0]["adapter_path"] == tmp_path / "semantic_adapter"
-    assert generation_calls[1]["adapter_path"] == tmp_path / "direct_adapter"
-    assert [call["benchmark"] for call in eval_calls] == [
-        "synthetic_semantic_layer",
-        "synthetic_semantic_layer_direct_sql",
-    ]
+    assert helper_calls[0]["validated"]["method_input_path"] == semantic_input
+    assert helper_calls[0]["validated"]["direct_input_path"] == direct_input
+    assert helper_calls[0]["method_adapter_path"] == tmp_path / "semantic_adapter"
+    assert helper_calls[0]["direct_adapter_path"] == tmp_path / "direct_adapter"
     assert compare_calls == [
         {
             "semantic_manifest_path": output_dir / "semantic-local.semantic_layer.manifest.json",

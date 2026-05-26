@@ -61,69 +61,22 @@ def test_run_local_behavior_recovery_comparison_generates_scores_and_compares(
         "id": "recovery-1",
         "fixture_id": "recovery_empty_result",
         "reference_sql": "SELECT 1",
+        "oracle_policy": "non_oracle_inputs_only",
         "messages": [{"role": "user", "content": "repair it"}],
     }
     _write_jsonl(recovery_input, [row])
     _write_jsonl(direct_input, [row])
 
-    generation_calls: list[dict] = []
-    eval_calls: list[dict] = []
+    helper_calls: list[dict] = []
     compare_calls: list[dict] = []
 
-    def fake_run_local_text_benchmark(**kwargs):
-        generation_calls.append(kwargs)
-        kwargs["output_path"].write_text(
-            json.dumps(
-                {
-                    "id": "recovery-1",
-                    "fixture_id": "recovery_empty_result",
-                    "reference_sql": "SELECT 1",
-                    "evaluation_mode": "non_oracle_generation",
-                    "generated_sql": "SELECT 1",
-                }
-            )
-            + "\n"
-        )
-        return 0
-
-    def fake_run_direct_sql_eval(**kwargs):
-        eval_calls.append(kwargs)
-        benchmark = kwargs["benchmark"]
-        success = benchmark == "behavior_recovery"
-        kwargs["manifest_output"].write_text(
-            json.dumps(
-                {
-                    "run_id": kwargs["output_path"].stem,
-                    "output_path": str(kwargs["output_path"]),
-                    "row_count": 1,
-                    "benchmark": benchmark,
-                    "evaluation_mode": "non_oracle_generation",
-                    "metrics": {
-                        "value_execution_accuracy": 1.0 if success else 0.0,
-                        "strict_execution_accuracy": 1.0 if success else 0.0,
-                        "recovery_evaluated_rows": 1,
-                        "recovery_success_rate": 1.0 if success else 0.0,
-                    },
-                }
-            )
-        )
-        kwargs["output_path"].write_text(
-            json.dumps(
-                {
-                    "id": "recovery-1",
-                    "fixture_id": "recovery_empty_result",
-                    "evaluation_mode": "non_oracle_generation",
-                    "reference_sql": "SELECT 1",
-                    "database_path": "recovery.sqlite",
-                    "value_execution_score": 1.0 if success else 0.0,
-                    "strict_execution_score": 1.0 if success else 0.0,
-                    "recovery_required": True,
-                    "recovery_success": success,
-                }
-            )
-            + "\n"
-        )
-        return 0
+    def fake_run_local_sql_pair_generation_and_eval(**kwargs):
+        helper_calls.append(kwargs)
+        return {
+            "method_manifest_output": output_dir / "behavior-local.behavior_recovery.manifest.json",
+            "direct_manifest_output": output_dir / "behavior-local.direct_sql.manifest.json",
+            "compared_output": output_dir / "behavior-local.compared.manifest.json",
+        }
 
     def fake_compare(**kwargs):
         compare_calls.append(kwargs)
@@ -131,12 +84,8 @@ def test_run_local_behavior_recovery_comparison_generates_scores_and_compares(
         return {"compared": True}
 
     monkeypatch.setattr(
-        "eval.run_local_behavior_recovery_comparison.run_local_text_benchmark",
-        fake_run_local_text_benchmark,
-    )
-    monkeypatch.setattr(
-        "eval.run_local_behavior_recovery_comparison.run_direct_sql_eval",
-        fake_run_direct_sql_eval,
+        "eval.run_local_behavior_recovery_comparison.run_local_sql_pair_generation_and_eval",
+        fake_run_local_sql_pair_generation_and_eval,
     )
     monkeypatch.setattr(
         "eval.run_local_behavior_recovery_comparison.compare_behavior_recovery_direct_sql_manifest_files",
@@ -156,14 +105,10 @@ def test_run_local_behavior_recovery_comparison_generates_scores_and_compares(
     )
 
     assert exit_code == 0
-    assert [call["adapter_path"] for call in generation_calls] == [
-        tmp_path / "recovery_adapter",
-        tmp_path / "direct_adapter",
-    ]
-    assert [call["benchmark"] for call in eval_calls] == [
-        "behavior_recovery",
-        "behavior_recovery_direct_sql",
-    ]
+    assert helper_calls[0]["validated"]["method_input_path"] == recovery_input
+    assert helper_calls[0]["validated"]["direct_input_path"] == direct_input
+    assert helper_calls[0]["method_adapter_path"] == tmp_path / "recovery_adapter"
+    assert helper_calls[0]["direct_adapter_path"] == tmp_path / "direct_adapter"
     assert compare_calls == [
         {
             "behavior_recovery_manifest_path": output_dir
