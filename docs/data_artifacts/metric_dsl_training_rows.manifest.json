@@ -1,0 +1,14 @@
+{
+  "artifact_type": "metric_dsl_training_rows",
+  "command": [
+    "/home/dan/docs/multiturn-sql-finetuning/data/metric_dsl_dataset.py"
+  ],
+  "fixture_source_path": "docs/data_artifacts/synthetic_method_fixtures.jsonl",
+  "fixture_source_sha256": "bb25bac6e3c8161ed31f8461884b6bd2d1181d668aceb841f09d29bf381bbfea",
+  "output_path": "docs/data_artifacts/metric_dsl_training_rows.jsonl",
+  "output_sha256": "f900f9bdb744cacafed1878e71baec6c07c4b262867a0fe515a00139622c35bd",
+  "row_count": 2,
+  "summary_path": "docs/data_artifacts/metric_dsl_training_rows_summary.json",
+  "summary_sha256": "15f37f66a08ce6a9ad8937c06410d332439cae1ad9a966680c160048e6859160",
+  "training_target": "metric_dsl"
+}

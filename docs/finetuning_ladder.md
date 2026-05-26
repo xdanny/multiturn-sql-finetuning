@@ -81,9 +81,11 @@ run, and a comparison manifest, it is not ready to be called a finetuning step.
   a DSL that preserves governed `MEASURE()` intent until compilation.
 - Prepared data:
   metric-heavy rows with `reference_metric_dsl` or `gold_dsl`, semantic model
-  context, and optional database-backed execution targets.
+  context, and optional database-backed execution targets. The first bootstrap
+  surface is `uv run python -m data.metric_dsl_dataset`, which derives
+  finetuning rows from the curated synthetic fixtures.
 - Trainer invocation:
-  `uv run python -m train.finetune --config configs/qwen35_9b_5090.yaml --data <metric-dsl-train.jsonl> --eval-data <metric-dsl-eval.jsonl>`
+  `uv run python -m train.finetune --config configs/qwen35_9b_5090.yaml --data docs/data_artifacts/metric_dsl_training_rows.jsonl --eval-data docs/data_artifacts/metric_dsl_training_rows.jsonl`
 - Evaluation gate:
   `uv run python -m eval.metric_dsl_eval` followed by
   `uv run python -m eval.compare_metric_dsl_direct_sql`.

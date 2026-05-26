@@ -61,12 +61,29 @@ The implementation lives in `data.metric_dsl`:
 - `score_metric_query(...)` scores measure preservation, measure F1, dimension F1,
   and filter F1.
 
+The first finetuning-data surface lives in `data.metric_dsl_dataset`. It turns
+the curated synthetic method fixtures into bootstrap chat-format training rows
+for Stage 4:
+
+```bash
+uv run python -m data.metric_dsl_dataset
+```
+
+That command writes:
+
+- `docs/data_artifacts/metric_dsl_training_rows.jsonl`
+- `docs/data_artifacts/metric_dsl_training_rows_summary.json`
+- `docs/data_artifacts/metric_dsl_training_rows.manifest.json`
+
+These rows are intentionally small. They are a bootstrap contract for metric
+DSL finetuning, not a sufficient dataset for a broad superiority claim.
+
 The evaluation runner lives in `eval.metric_dsl_eval`. It reads JSONL rows with
 `generated_metric_dsl` or `predicted_dsl`, `reference_metric_dsl` or `gold_dsl`,
 an inline `semantic_model`, and optional `reference_sql`/`database_path`.
 
 ```bash
-python -m eval.metric_dsl_eval \
+uv run python -m eval.metric_dsl_eval \
   --input results/metric_dsl/<run-id>.predictions.jsonl \
   --output results/metric_dsl/<run-id>.jsonl \
   --manifest-output results/metric_dsl/<run-id>.manifest.json \
@@ -110,7 +127,7 @@ To make that stronger claim, run a direct-SQL baseline on the same metric-heavy
 rows and compare manifests:
 
 ```bash
-python -m eval.compare_metric_dsl_direct_sql \
+uv run python -m eval.compare_metric_dsl_direct_sql \
   --metric-dsl-manifest results/metric_dsl/<run-id>.manifest.json \
   --direct-sql-manifest results/direct_sql/<run-id>.manifest.json \
   --output results/metric_dsl/<run-id>.compared.manifest.json
