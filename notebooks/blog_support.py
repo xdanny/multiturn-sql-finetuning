@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
 from collections import Counter
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +15,7 @@ import pandas as pd
 
 from data.metric_dsl import compile_metric_query, parse_metric_query, score_metric_query
 from eval.classify_errors import validate_sql_against_visible_schema
+from eval.method_readiness import build_method_readiness
 from notebooks.labs.local_multiturn_sql_lab_support import run_multiturn_lab
 
 BLOG_EVIDENCE_SOURCES = (
@@ -35,6 +38,127 @@ BLOG_EVIDENCE_SOURCES = (
     "results/prompt_search_semantic50_limit30/summary.csv",
     "results/prompt_search_schema_pruned_projection_schemafix_100/summary.csv",
 )
+
+BLOG_POST_SLUG = "local-multiturn-sql-finetuning"
+FORBIDDEN_PUBLIC_SUBSTRINGS = (
+    "notebooks/blog/",
+    "notebook-contracts.md",
+    "notebook-series.md",
+    "notebook-walkthrough.md",
+)
+ASSET_CLAIM_IDS = {
+    "accuracy_ladder_svg": (
+        "qwen35_9b_base_cosql_dev_100turns",
+        "multiturn_sql_100_cosql_dev_100turns",
+        "semantic_prompt_minimal_executable_cosql_dev_100turns",
+        "schema_pruned_minimal_schemafix_oracle_cosql_dev_100turns",
+        "schema_pruned_trained100_oracle_cosql_dev_100turns",
+    ),
+    "planner_baseline_svg": ("planner_lexical_schema_baseline",),
+    "claim_table_md": (
+        "hosted_sota_same_protocol",
+        "local_beats_hosted_same_protocol",
+    ),
+    "metric_dsl_contract_md": (
+        "metric_dsl_evaluation_manifest",
+        "metric_dsl_beats_direct_sql",
+    ),
+    "method_decision_rules_md": (
+        "hosted_sota_same_protocol",
+        "local_beats_hosted_same_protocol",
+        "metric_dsl_beats_direct_sql",
+        "rollout_beats_teacher_forced_history",
+    ),
+    "method_priority_backlog_md": (
+        "predicted_planner_sql_execution",
+        "metric_dsl_beats_direct_sql",
+        "rollout_beats_teacher_forced_history",
+    ),
+    "data_engineering_gates_md": (
+        "hosted_sota_same_protocol",
+        "local_beats_hosted_same_protocol",
+        "bird_interact_local_vs_hosted",
+        "metric_dsl_evaluation_manifest",
+        "rollout_beats_teacher_forced_history",
+    ),
+    "target_comparison_md": (
+        "predicted_planner_sql_execution",
+        "metric_dsl_beats_direct_sql",
+        "rollout_beats_teacher_forced_history",
+    ),
+    "target_evidence_matrix_md": (
+        "predicted_planner_sql_execution",
+        "metric_dsl_beats_direct_sql",
+        "hosted_sota_same_protocol",
+    ),
+    "experiment_ladder_md": (
+        "predicted_planner_sql_execution",
+        "metric_dsl_evaluation_manifest",
+        "metric_dsl_beats_direct_sql",
+        "rollout_beats_teacher_forced_history",
+        "hosted_sota_same_protocol",
+        "local_beats_hosted_same_protocol",
+        "bird_interact_local_vs_hosted",
+    ),
+    "single_to_multiturn_gap_md": (
+        "qwen35_9b_base_cosql_dev_100turns",
+        "semantic_prompt_minimal_executable_cosql_dev_100turns",
+        "rollout_beats_teacher_forced_history",
+        "metric_dsl_evaluation_manifest",
+        "bird_interact_local_vs_hosted",
+    ),
+    "hosted_comparison_protocol_md": (
+        "hosted_sota_same_protocol",
+        "local_beats_hosted_same_protocol",
+        "bird_interact_local_vs_hosted",
+        "rollout_beats_teacher_forced_history",
+    ),
+    "evaluation_harness_map_md": (
+        "predicted_planner_sql_execution",
+        "metric_dsl_evaluation_manifest",
+        "metric_dsl_beats_direct_sql",
+        "rollout_beats_teacher_forced_history",
+        "hosted_sota_same_protocol",
+        "local_beats_hosted_same_protocol",
+    ),
+    "method_readiness_report_md": (
+        "predicted_planner_sql_execution",
+        "metric_dsl_evaluation_manifest",
+        "metric_dsl_beats_direct_sql",
+        "rollout_beats_teacher_forced_history",
+        "hosted_sota_same_protocol",
+        "local_beats_hosted_same_protocol",
+        "bird_interact_local_vs_hosted",
+    ),
+}
+ASSET_REQUIRED_IN_POST = {
+    "accuracy_ladder_svg",
+    "planner_baseline_svg",
+}
+ASSET_REQUIRED_REFERENCE = {
+    "claim_table_md",
+    "dataset_role_matrix_md",
+    "metric_dsl_contract_md",
+    "method_decision_rules_md",
+    "method_priority_backlog_md",
+    "data_engineering_gates_md",
+    "experiment_ladder_md",
+    "evaluation_harness_map_md",
+    "method_readiness_report_md",
+    "hosted_comparison_protocol_md",
+    "single_to_multiturn_gap_md",
+    "synthetic_method_fixtures_md",
+    "value_grounding_labels_md",
+    "value_index_md",
+    "data_artifact_contract_md",
+    "prompt_optimization_findings_md",
+    "target_comparison_md",
+    "target_evidence_matrix_md",
+    "endpoint_run_scorecard_md",
+    "failure_taxonomy_delta_md",
+    "schema_validation_findings_md",
+    "planner_readiness_md",
+}
 
 
 LAB_NOTEBOOK = "notebooks/labs/local_multiturn_sql_lab.ipynb"
@@ -128,6 +252,10 @@ def repo_root() -> Path:
 
 def artifact_path(relative_path: str) -> Path:
     return repo_root() / relative_path
+
+
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def read_csv_artifact(relative_path: str) -> pd.DataFrame:
@@ -680,6 +808,452 @@ def dataset_role_matrix() -> pd.DataFrame:
     )
 
 
+def single_to_multiturn_gap() -> pd.DataFrame:
+    """Explain why single-turn SQL competence does not transfer automatically."""
+
+    return pd.DataFrame(
+        [
+            {
+                "mechanism": "state carryover",
+                "single_turn_assumption": (
+                    "A BIRD-style one-shot request contains the whole task in one "
+                    "question plus schema text."
+                ),
+                "multi_turn_breakage": (
+                    "A follow-up such as 'now by month' depends on the prior metric "
+                    "and filters, but the current utterance no longer states them."
+                ),
+                "dataset_surface": (
+                    "CoSQL fixed proxy and SParC context-dependent turns expose "
+                    "filter and projection carryover."
+                ),
+                "repo_artifact_needed": (
+                    "resolved standalone question, carried filter labels, and "
+                    "planner state deltas before SQL generation"
+                ),
+            },
+            {
+                "mechanism": "value grounding",
+                "single_turn_assumption": (
+                    "The question literal is usually usable directly or the model can "
+                    "guess the stored value from schema names."
+                ),
+                "multi_turn_breakage": (
+                    "The user says France while the database stores FR; the "
+                    "France -> FR mapping is missing, so the SQL can execute and "
+                    "still return empty rows."
+                ),
+                "dataset_surface": (
+                    "CoSQL value labels, the database-derived value index, and "
+                    "Synthetic schema-rich SQL alias fixtures."
+                ),
+                "repo_artifact_needed": (
+                    "value index, entity-resolution labels, alias coverage, and "
+                    "value-retrieval accuracy before final SQL"
+                ),
+            },
+            {
+                "mechanism": "grain shift",
+                "single_turn_assumption": (
+                    "The requested grouping and projection are stated once and can "
+                    "be compiled directly."
+                ),
+                "multi_turn_breakage": (
+                    "A follow-up changes country totals into monthly totals while "
+                    "the model must preserve the measure and avoid duplicated rows."
+                ),
+                "dataset_surface": (
+                    "CoSQL/SParC follow-ups plus Synthetic schema-rich SQL bridge "
+                    "tables and fanout fixtures."
+                ),
+                "repo_artifact_needed": (
+                    "grain labels, duplicate-row policy, join-path labels, and "
+                    "fanout-safe value checks"
+                ),
+            },
+            {
+                "mechanism": "metric intent",
+                "single_turn_assumption": (
+                    "A raw SQL expression is enough because the benchmark asks for "
+                    "one executable query."
+                ),
+                "multi_turn_breakage": (
+                    "Once the user keeps editing the analysis, expanding the metric "
+                    "too early hides whether revenue means MEASURE(revenue), a "
+                    "governed expression, or an ad hoc SUM."
+                ),
+                "dataset_surface": (
+                    "Synthetic schema-rich SQL metric rows now, then metric-heavy "
+                    "CoSQL/SParC/BIRD-Interact transfers."
+                ),
+                "repo_artifact_needed": (
+                    "semantic model manifest, MEASURE() preservation score, DSL "
+                    "parse/compile rate, and compiled-SQL execution delta"
+                ),
+            },
+            {
+                "mechanism": "result-aware recovery",
+                "single_turn_assumption": (
+                    "The model is scored on the first answer, so it never has to "
+                    "use an empty result or error as feedback."
+                ),
+                "multi_turn_breakage": (
+                    "If a previous turn returned no rows, the next turn may require "
+                    "repairing the value, inspecting the database, or asking a "
+                    "clarifying question instead of retrying the same SQL."
+                ),
+                "dataset_surface": (
+                    "Tiny SQLite lab for the visible example; Synthetic schema-rich "
+                    "SQL and BIRD-Interact for real repair pressure."
+                ),
+                "repo_artifact_needed": (
+                    "execution-result trace, repair action labels, clarification "
+                    "policy, and recovery-success scoring"
+                ),
+            },
+            {
+                "mechanism": "generated-history drift",
+                "single_turn_assumption": (
+                    "There is no history, or evaluation gives the model clean "
+                    "reference history for every turn."
+                ),
+                "multi_turn_breakage": (
+                    "Teacher-forced history hides compounding failures; production "
+                    "agents must continue after their own bad SQL and result state."
+                ),
+                "dataset_surface": (
+                    "CoSQL generated-history rollout first, then BIRD-Interact "
+                    "same-protocol local-vs-hosted runs."
+                ),
+                "repo_artifact_needed": (
+                    "generated-history manifest, same-model teacher-forced control, "
+                    "latency/cost trace, and local-vs-hosted comparison"
+                ),
+            },
+        ]
+    )
+
+
+def hosted_comparison_protocol() -> pd.DataFrame:
+    """Define the evidence required before making local-vs-hosted claims."""
+
+    return pd.DataFrame(
+        [
+            {
+                "protocol_gate": "same input rows",
+                "required_evidence": (
+                    "A frozen prepared-input manifest with row IDs, dialog IDs, "
+                    "database hashes, schema text hashes, prompt template hashes, "
+                    "and no model-specific filtering."
+                ),
+                "why_it_matters": (
+                    "A hosted/local comparison is meaningless if the models answer "
+                    "different questions or see different schema context."
+                ),
+                "minimum_acceptance": (
+                    "The hosted model manifest and local model manifest must cover "
+                    "the same input rows with matching hashes."
+                ),
+                "claim_ids": (
+                    "hosted_sota_same_protocol, local_beats_hosted_same_protocol"
+                ),
+            },
+            {
+                "protocol_gate": "same scorer and output schema",
+                "required_evidence": (
+                    "One execution scorer version, one value-normalized result "
+                    "schema, scorer hash, and per-row failure classification."
+                ),
+                "why_it_matters": (
+                    "Strict SQL string differences, alias labels, and harmless "
+                    "column names should not decide the hosted/SOTA claim."
+                ),
+                "minimum_acceptance": (
+                    "Both manifests report strict accuracy, value accuracy, syntax "
+                    "accuracy, and classified failures from the same scorer build."
+                ),
+                "claim_ids": (
+                    "hosted_sota_same_protocol, local_beats_hosted_same_protocol"
+                ),
+            },
+            {
+                "protocol_gate": "same oracle boundary",
+                "required_evidence": (
+                    "Explicit flags for oracle planner hints, teacher-forced "
+                    "history, schema pruning, semantic artifacts, and value indexes."
+                ),
+                "why_it_matters": (
+                    "Oracle planner diagnostics are useful ceilings, but they cannot "
+                    "be mixed into a production-style hosted comparison."
+                ),
+                "minimum_acceptance": (
+                    "Any run using labels derived from reference SQL is excluded "
+                    "from local-vs-hosted win claims."
+                ),
+                "claim_ids": (
+                    "hosted_sota_same_protocol, local_beats_hosted_same_protocol"
+                ),
+            },
+            {
+                "protocol_gate": "hosted model manifest",
+                "required_evidence": (
+                    "Hosted model name, provider, model version/date, prompt "
+                    "hashes, decoding settings, retry policy, raw outputs, parsed "
+                    "SQL, execution results, and per-row latency."
+                ),
+                "why_it_matters": (
+                    "The phrase hosted SOTA is too vague unless the exact models "
+                    "and settings are reproducible."
+                ),
+                "minimum_acceptance": (
+                    "At least one strong hosted baseline is run through the same "
+                    "pipeline before the local model is compared."
+                ),
+                "claim_ids": "hosted_sota_same_protocol",
+            },
+            {
+                "protocol_gate": "local model manifest",
+                "required_evidence": (
+                    "Local base model, adapter hash, training data manifest, "
+                    "checkpoint hash, prompt hash, decoding settings, raw outputs, "
+                    "parsed SQL, execution results, and per-row latency."
+                ),
+                "why_it_matters": (
+                    "A local win should identify the exact specialized model, not "
+                    "only the endpoint or repo branch used for the run."
+                ),
+                "minimum_acceptance": (
+                    "The local model manifest must show a positive local-vs-hosted "
+                    "delta on value accuracy before the post can claim competition."
+                ),
+                "claim_ids": "local_beats_hosted_same_protocol",
+            },
+            {
+                "protocol_gate": "generated-history rollout",
+                "required_evidence": (
+                    "A rollout manifest where each turn consumes the model's own "
+                    "previous SQL and result state, plus a same-model teacher-forced "
+                    "control."
+                ),
+                "why_it_matters": (
+                    "Multi-turn analysis breaks through compounding mistakes; clean "
+                    "history can hide exactly the behavior being evaluated."
+                ),
+                "minimum_acceptance": (
+                    "Report generated-history value accuracy and recovery delta "
+                    "beside the teacher-forced run."
+                ),
+                "claim_ids": (
+                    "rollout_beats_teacher_forced_history, "
+                    "bird_interact_local_vs_hosted"
+                ),
+            },
+            {
+                "protocol_gate": "latency and cost",
+                "required_evidence": (
+                    "Per-row latency, total tokens or local throughput, hosted API "
+                    "cost, local hardware, and batch/concurrency settings."
+                ),
+                "why_it_matters": (
+                    "A small local model can be useful even when accuracy is close, "
+                    "but only if latency and cost are measured on the same rows."
+                ),
+                "minimum_acceptance": (
+                    "The comparison reports accuracy, latency and cost together; "
+                    "none of them can be inferred from model names."
+                ),
+                "claim_ids": (
+                    "hosted_sota_same_protocol, local_beats_hosted_same_protocol"
+                ),
+            },
+            {
+                "protocol_gate": "BIRD-Interact transfer",
+                "required_evidence": (
+                    "A BIRD-Interact transfer manifest with the same scorer, row "
+                    "identity contract, non-oracle boundary, rollout policy, and "
+                    "hosted/local model manifests."
+                ),
+                "why_it_matters": (
+                    "CoSQL is a fast proxy; the final question is whether the method "
+                    "survives a richer interactive analysis benchmark."
+                ),
+                "minimum_acceptance": (
+                    "A BIRD-Interact transfer run exists before making broad "
+                    "multi-turn data-analysis claims."
+                ),
+                "claim_ids": "bird_interact_local_vs_hosted",
+            },
+        ]
+    )
+
+
+def evaluation_harness_map() -> pd.DataFrame:
+    """Map research targets to executable repo surfaces."""
+
+    return pd.DataFrame(
+        [
+            {
+                "research_target": "direct SQL control",
+                "module_path": "eval/run_eval.py",
+                "command_surface": (
+                    "python -m eval.run_eval --input data/processed/eval_cosql_dev_100.jsonl "
+                    "--output results/<run-id>.jsonl --manifest-output results/<run-id>.manifest.json"
+                ),
+                "implemented_gate": (
+                    "same rows and same scorer through result manifests; direct SQL "
+                    "is the control every structured target must beat"
+                ),
+                "current_status": "implemented: proxy manifests exist; hosted/BIRD transfer pending",
+                "claim_ids": (
+                    "qwen35_9b_base_cosql_dev_100turns, "
+                    "multiturn_sql_100_cosql_dev_100turns"
+                ),
+            },
+            {
+                "research_target": "planner quality before SQL",
+                "module_path": "eval/planner_eval.py",
+                "command_surface": (
+                    "python -m eval.planner_eval --input data/processed/eval_cosql_dev_planner_100.jsonl "
+                    "--output results/planner_eval_cosql_dev_100.jsonl "
+                    "--summary-output results/planner_eval_cosql_dev_100_summary.json"
+                ),
+                "implemented_gate": (
+                    "planner labels are scored before SQL so planner movement is "
+                    "not confused with execution movement"
+                ),
+                "current_status": "implemented: lexical planner summary and readiness report exist",
+                "claim_ids": "planner_lexical_schema_baseline",
+            },
+            {
+                "research_target": "predicted-planner SQL",
+                "module_path": "eval/run_predicted_planner_comparison.py",
+                "command_surface": (
+                    "python -m eval.planner_optimize ...; python -m eval.planner_predict ...; "
+                    "python -m eval.run_predicted_planner_comparison --direct-input ... "
+                    "--predicted-input ..."
+                ),
+                "implemented_gate": (
+                    "same rows, same scorer, same model, and same oracle policy for "
+                    "direct SQL versus predicted-planner SQL"
+                ),
+                "current_status": (
+                    "paired runner implemented; current planner readiness says "
+                    "improve_planner_before_claim"
+                ),
+                "claim_ids": "predicted_planner_sql_execution",
+            },
+            {
+                "research_target": "semantic/value artifacts",
+                "module_path": "data/value_artifacts.py",
+                "command_surface": (
+                    "python -m data.value_artifacts ...; python -m data.value_index ...; "
+                    "python -m eval.classify_errors ..."
+                ),
+                "implemented_gate": (
+                    "value labels, database-derived value index, and schema diagnostics "
+                    "make value/entity and alias failures visible before more tuning"
+                ),
+                "current_status": "implemented: value labels, value index, and schema findings are generated",
+                "claim_ids": (
+                    "semantic_prompt_minimal_executable_cosql_dev_100turns, "
+                    "predicted_planner_sql_execution"
+                ),
+            },
+            {
+                "research_target": "MEASURE()-preserving DSL",
+                "module_path": "eval/metric_dsl_eval.py",
+                "command_surface": (
+                    "python -m eval.metric_dsl_eval --input results/metric_dsl/<run-id>.predictions.jsonl "
+                    "--manifest-output results/metric_dsl/<run-id>.manifest.json; "
+                    "python -m eval.compare_metric_dsl_direct_sql ..."
+                ),
+                "implemented_gate": (
+                    "DSL parse, compile, MEASURE() preservation, semantic model hashes, "
+                    "and compiled SQL execution are compared with direct SQL"
+                ),
+                "current_status": "implemented evaluator; prediction/comparison manifest still pending",
+                "claim_ids": "metric_dsl_evaluation_manifest, metric_dsl_beats_direct_sql",
+            },
+            {
+                "research_target": "generated-history rollout",
+                "module_path": "eval/rollout_eval.py",
+                "command_surface": (
+                    "python -m eval.rollout_eval --input data/processed/eval_cosql_dev_100.jsonl "
+                    "--manifest-output results/rollout/<run-id>.manifest.json; "
+                    "python -m eval.compare_rollout_history ..."
+                ),
+                "implemented_gate": (
+                    "model-generated prior SQL and result state are compared with "
+                    "same-model teacher-forced history"
+                ),
+                "current_status": "implemented evaluator; rollout comparison artifact still pending",
+                "claim_ids": (
+                    "model_generated_history_rollout, "
+                    "rollout_beats_teacher_forced_history"
+                ),
+            },
+            {
+                "research_target": "hosted/local comparison",
+                "module_path": "eval/compare_hosted_baseline.py",
+                "command_surface": (
+                    "python -m eval.compare_hosted_baseline --hosted-manifest ... "
+                    "--local-manifest ... --output ..."
+                ),
+                "implemented_gate": (
+                    "same rows, same scorer, latency/cost fields, and positive "
+                    "local-vs-hosted delta before public comparison claims"
+                ),
+                "current_status": "implemented comparator; hosted baseline manifest still pending",
+                "claim_ids": (
+                    "hosted_sota_same_protocol, "
+                    "local_beats_hosted_same_protocol"
+                ),
+            },
+        ]
+    )
+
+
+def method_readiness_report() -> pd.DataFrame:
+    """Summarize which method comparisons are supported, blocked, or rankable."""
+
+    rows = build_method_readiness(
+        ledger_path=artifact_path("docs/claim_ledgers/cosql_dev_100.jsonl"),
+        repo_root=repo_root(),
+    )
+    frame = pd.DataFrame(rows)
+    frame["control_ready_now"] = frame["control_ready_now"].astype(object)
+    frame["rankable_now"] = frame["rankable_now"].astype(object)
+    return frame[
+        [
+            "method",
+            "readiness_level",
+            "control_ready_now",
+            "rankable_now",
+            "supported_claim_ids",
+            "blocking_claim_ids",
+            "module_path",
+            "next_command",
+            "next_artifact",
+            "claim_boundary",
+        ]
+    ]
+
+
+def _manifest_json_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): _manifest_json_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_manifest_json_value(item) for item in value]
+    if hasattr(value, "item"):
+        with suppress(AttributeError, TypeError, ValueError):
+            value = value.item()
+    if value is None:
+        return None
+    if isinstance(value, float) and pd.isna(value):
+        return None
+    return value
+
+
 def shareable_lab_attachment() -> pd.DataFrame:
     reader_flow = " -> ".join(
         [
@@ -737,6 +1311,132 @@ def lab_reader_flow() -> pd.DataFrame:
             }
         )
     return pd.DataFrame(rows)
+
+
+def experiment_ladder() -> pd.DataFrame:
+    """Define the ordered experiments required before a broad comparison claim."""
+
+    return pd.DataFrame(
+        [
+            {
+                "rung": 1,
+                "experiment": "Direct SQL control",
+                "question": (
+                    "Does ordinary direct-SQL tuning help on the same rows, same "
+                    "local endpoint path, same scorer, and no oracle hints?"
+                ),
+                "required_artifact": (
+                    "direct-SQL endpoint manifest on the fixed CoSQL proxy and, "
+                    "later, the BIRD-Interact transfer rows"
+                ),
+                "claim_gate": (
+                    "This is the control arm. It can support a proxy movement "
+                    "claim, but every structured target must beat it before being "
+                    "called better."
+                ),
+            },
+            {
+                "rung": 2,
+                "experiment": "Planner quality before SQL",
+                "question": (
+                    "Can a non-oracle planner recover tables, columns, joins, "
+                    "projection shape, grouping, and duplicate policy before "
+                    "the generator writes SQL?"
+                ),
+                "required_artifact": (
+                    "planner scorecard with row identities, planner labels, and "
+                    "planner-readiness diagnostics"
+                ),
+                "claim_gate": (
+                    "First score the plan before SQL. Do not turn planner movement "
+                    "into an execution claim until the plan is good enough to feed."
+                ),
+            },
+            {
+                "rung": 3,
+                "experiment": "Predicted-planner SQL",
+                "question": (
+                    "Do non-oracle predicted plans improve generated SQL against "
+                    "the direct-SQL control on identical rows?"
+                ),
+                "required_artifact": (
+                    "paired direct-vs-predicted endpoint manifest from "
+                    "eval.run_predicted_planner_comparison"
+                ),
+                "claim_gate": (
+                    "The predicted-planner path must beat direct SQL with the same "
+                    "model, rows, scorer, prompt boundary, and oracle policy."
+                ),
+            },
+            {
+                "rung": 4,
+                "experiment": "Semantic-layer target",
+                "question": (
+                    "Can the model or retrieval layer recover governed entities, "
+                    "dimensions, measures, grain, joins, and value aliases without "
+                    "flooding the prompt?"
+                ),
+                "required_artifact": (
+                    "versioned semantic artifacts, value/entity retrieval scores, "
+                    "and row-matched SQL deltas"
+                ),
+                "claim_gate": (
+                    "Semantic context must reduce value, entity, and grain errors "
+                    "on the same rows without hiding cost or latency."
+                ),
+            },
+            {
+                "rung": 5,
+                "experiment": "MEASURE()-preserving DSL",
+                "question": (
+                    "Can the model preserve MEASURE() intent and compile it through "
+                    "a semantic model before comparing value execution?"
+                ),
+                "required_artifact": (
+                    "metric-DSL prediction manifest with parse, compile, "
+                    "MEASURE() preservation, semantic-model hashes, and compiled "
+                    "SQL execution"
+                ),
+                "claim_gate": (
+                    "Metric DSL must parse, compile, preserve governed measures, "
+                    "and match or beat direct SQL on the same metric-heavy rows."
+                ),
+            },
+            {
+                "rung": 6,
+                "experiment": "Generated-history rollout",
+                "question": (
+                    "Can the system continue after its own previous SQL, empty "
+                    "results, and repair attempts instead of reading clean history?"
+                ),
+                "required_artifact": (
+                    "model-generated history rollout manifest with execution "
+                    "results, repair actions, stop reasons, and same-model controls"
+                ),
+                "claim_gate": (
+                    "Generated-history rollout must beat or explain teacher-forced "
+                    "history on the same model and rows before recovery claims count."
+                ),
+            },
+            {
+                "rung": 7,
+                "experiment": "Hosted and BIRD-Interact comparison",
+                "question": (
+                    "Can the small specialized local model challenge hosted models "
+                    "on the richer interactive analysis setting?"
+                ),
+                "required_artifact": (
+                    "same-protocol hosted baselines, local-vs-hosted manifest, "
+                    "latency/cost report, and BIRD-Interact transfer manifest"
+                ),
+                "claim_gate": (
+                    "Only compare with hosted SOTA after the local protocol is "
+                    "stable, non-oracle, row-matched, and transferred to "
+                    "BIRD-Interact-style tasks."
+                ),
+            },
+        ]
+    )
 
 
 def lab_method_scorecard() -> pd.DataFrame:
@@ -1320,6 +2020,12 @@ def target_comparison() -> pd.DataFrame:
             "strict_execution_accuracy",
         ]
     )
+    direct_value = float(
+        ledger.loc[
+            "multiturn_sql_100_cosql_dev_100turns",
+            "value_execution_accuracy",
+        ]
+    )
     semantic_status = str(
         ledger.loc[
             "semantic_prompt_minimal_executable_cosql_dev_100turns",
@@ -1339,8 +2045,8 @@ def target_comparison() -> pd.DataFrame:
                 "hypothesis": "A small model can learn conversational SQL directly from chat-format SQL rows.",
                 "current_evidence": (
                     f"Supported proxy: 100-step LoRA reached {direct_strict:.3f} strict "
-                    f"accuracy; best non-oracle prompt reached {best_non_oracle:.3f} "
-                    "value accuracy on the fixed CoSQL slice."
+                    f"accuracy and {direct_value:.3f} value accuracy on the fixed "
+                    "CoSQL slice."
                 ),
                 "claim_status": "supported_proxy",
                 "next_gate": "Run the same target on hosted baselines and BIRD-Interact-style tasks.",
@@ -2021,9 +2727,14 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     planner_readiness = planner_readiness_summary()
     claims = claim_table()
     dataset_roles = dataset_role_matrix()
+    gap = single_to_multiturn_gap()
+    hosted_protocol = hosted_comparison_protocol()
+    harness = evaluation_harness_map()
+    method_readiness = method_readiness_report()
     metric_contract = metric_dsl_eval_contract()
     shareable_lab = shareable_lab_attachment()
     reader_flow = lab_reader_flow()
+    ladder = experiment_ladder()
     decision_rules = method_decision_rules()
     method_priority = method_priority_backlog()
     lab_scores = lab_method_scorecard()
@@ -2070,6 +2781,22 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
             output / "dataset-role-matrix.md",
             _markdown_table(dataset_roles),
         ),
+        "single_to_multiturn_gap_md": _write_text(
+            output / "single-to-multiturn-gap.md",
+            _markdown_table(gap),
+        ),
+        "hosted_comparison_protocol_md": _write_text(
+            output / "hosted-comparison-protocol.md",
+            _markdown_table(hosted_protocol),
+        ),
+        "evaluation_harness_map_md": _write_text(
+            output / "evaluation-harness-map.md",
+            _markdown_table(harness),
+        ),
+        "method_readiness_report_md": _write_text(
+            output / "method-readiness-report.md",
+            _markdown_table(method_readiness),
+        ),
         "metric_dsl_contract_md": _write_text(
             output / "metric-dsl-contract.md",
             _markdown_table(metric_contract),
@@ -2081,6 +2808,10 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
         "lab_reader_flow_md": _write_text(
             output / "lab-reader-flow.md",
             _markdown_table(reader_flow),
+        ),
+        "experiment_ladder_md": _write_text(
+            output / "experiment-ladder.md",
+            _markdown_table(ladder),
         ),
         "method_decision_rules_md": _write_text(
             output / "method-decision-rules.md",
@@ -2143,11 +2874,40 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
             _markdown_table(schema_findings),
         ),
     }
+    asset_contracts = [
+        {
+            "id": asset_id,
+            "path": asset_path,
+            "kind": "svg" if asset_path.endswith(".svg") else "markdown",
+            "required_in_post": asset_id in ASSET_REQUIRED_IN_POST,
+            "required_reference": asset_id in ASSET_REQUIRED_REFERENCE,
+            "sha256": sha256_file(output / asset_path),
+            "claim_ids": list(ASSET_CLAIM_IDS.get(asset_id, ())),
+        }
+        for asset_id, asset_path in assets.items()
+    ]
+    source_contracts = [
+        {
+            "path": source_path,
+            "sha256": sha256_file(artifact_path(source_path)),
+        }
+        for source_path in BLOG_EVIDENCE_SOURCES
+    ]
+    claim_snapshot = {
+        str(row["claim_id"]): {
+            str(field): _manifest_json_value(value)
+            for field, value in row.items()
+        }
+        for row in read_jsonl_artifact("docs/claim_ledgers/cosql_dev_100.jsonl")
+    }
     manifest = {
-        "schema_version": 1,
+        "schema_version": 2,
         "source_repo": "multiturn-sql-finetuning",
-        "source_artifacts": list(BLOG_EVIDENCE_SOURCES),
-        "assets": assets,
+        "post_slug": BLOG_POST_SLUG,
+        "source_artifacts": source_contracts,
+        "assets": asset_contracts,
+        "claim_snapshot": claim_snapshot,
+        "forbidden_public_substrings": list(FORBIDDEN_PUBLIC_SUBSTRINGS),
     }
     (output / "manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     return manifest
