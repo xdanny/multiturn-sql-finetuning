@@ -12,6 +12,7 @@ from notebooks.blog_support import (
     dataset_role_matrix,
     endpoint_run_scorecard,
     export_blog_evidence,
+    failure_taxonomy_delta,
     lab_failure_trace,
     lab_method_scorecard,
     lab_reader_flow,
@@ -21,6 +22,7 @@ from notebooks.blog_support import (
     metric_dsl_eval_contract,
     planner_scorecard,
     prompt_optimization_findings,
+    schema_validation_findings,
     semantic_strategy_table,
     shareable_lab_attachment,
     target_comparison,
@@ -70,6 +72,8 @@ def test_public_blog_artifacts_are_one_shareable_lab_notebook() -> None:
     assert "MPS" in text
     assert "XPU" in text
     assert "endpoint_run_scorecard" in text
+    assert "failure_taxonomy_delta" in text
+    assert "schema_validation_findings" in text
     assert "dataset_role_matrix" in text
     assert "planner_scorecard" in text
     assert "target_evidence_matrix" in text
@@ -447,6 +451,37 @@ def test_notebook_support_loads_current_artifacts() -> None:
         == "0.530"
     )
 
+    failure_delta = failure_taxonomy_delta()
+    assert {
+        "candidate",
+        "baseline",
+        "value_accuracy",
+        "fixed_turns",
+        "regressed_turns",
+        "net_fixed",
+        "fixed_error_primary",
+        "regressed_error_primary",
+        "takeaway",
+    } <= set(failure_delta.columns)
+    best_delta = failure_delta[failure_delta["candidate"] == "multiturn-sql-semantic-50[minimal_executable]"].iloc[0]
+    assert best_delta["net_fixed"] == 5
+    assert "value grounding" in best_delta["takeaway"]
+    assert "projection" in best_delta["takeaway"]
+
+    schema_findings = schema_validation_findings()
+    assert {
+        "run",
+        "source_artifact",
+        "schema_mismatch_rows",
+        "unknown_column",
+        "wrong_table_column",
+        "ambiguous_unqualified_column",
+        "example_turn",
+        "example_diagnostic",
+    } <= set(schema_findings.columns)
+    assert any(schema_findings["wrong_table_column"] > 0)
+    assert any("repairable" in diagnostic for diagnostic in schema_findings["example_diagnostic"])
+
     gates = data_engineering_gates()
     assert {
         "gate",
@@ -552,6 +587,8 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "target_comparison_md",
         "target_evidence_matrix_md",
         "endpoint_run_scorecard_md",
+        "failure_taxonomy_delta_md",
+        "schema_validation_findings_md",
     }
     assert set(manifest["source_artifacts"]) >= {
         "docs/claim_ledgers/cosql_dev_100.jsonl",
@@ -708,6 +745,21 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "100-step LoRA" in endpoint_md
     assert "0.530" in endpoint_md
     assert "0.640" in endpoint_md
+
+    failure_delta_md = (
+        tmp_path / manifest["assets"]["failure_taxonomy_delta_md"]
+    ).read_text()
+    assert "multiturn-sql-semantic-50[minimal_executable]" in failure_delta_md
+    assert "net_fixed" in failure_delta_md
+    assert "value grounding" in failure_delta_md
+    assert "projection" in failure_delta_md
+
+    schema_findings_md = (
+        tmp_path / manifest["assets"]["schema_validation_findings_md"]
+    ).read_text()
+    assert "schema_mismatch_rows" in schema_findings_md
+    assert "wrong_table_column" in schema_findings_md
+    assert "repairable" in schema_findings_md
 
 
 def test_checked_in_blog_evidence_assets_are_current(tmp_path) -> None:

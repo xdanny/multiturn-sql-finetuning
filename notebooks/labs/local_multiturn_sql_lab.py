@@ -14,6 +14,7 @@ def _():
         data_engineering_gates,
         dataset_role_matrix,
         endpoint_run_scorecard,
+        failure_taxonomy_delta,
         lab_failure_trace,
         lab_method_scorecard,
         method_decision_rules,
@@ -22,6 +23,7 @@ def _():
         metric_dsl_eval_contract,
         planner_scorecard,
         prompt_optimization_findings,
+        schema_validation_findings,
         target_comparison,
         target_evidence_matrix,
     )
@@ -33,6 +35,7 @@ def _():
         data_engineering_gates,
         dataset_role_matrix,
         endpoint_run_scorecard,
+        failure_taxonomy_delta,
         lab_failure_trace,
         lab_method_scorecard,
         method_decision_rules,
@@ -43,6 +46,7 @@ def _():
         planner_scorecard,
         prompt_optimization_findings,
         run_multiturn_lab,
+        schema_validation_findings,
         target_comparison,
         target_evidence_matrix,
     )
@@ -357,7 +361,15 @@ def _(lab_failure_trace, mo):
 
 
 @app.cell
-def _(accuracy_scorecard, claim_table, endpoint_run_scorecard, mo, planner_scorecard):
+def _(
+    accuracy_scorecard,
+    claim_table,
+    endpoint_run_scorecard,
+    failure_taxonomy_delta,
+    mo,
+    planner_scorecard,
+    schema_validation_findings,
+):
     mo.vstack(
         [
             mo.md(
@@ -372,6 +384,14 @@ def _(accuracy_scorecard, claim_table, endpoint_run_scorecard, mo, planner_score
                 """
             ),
             mo.ui.table(endpoint_run_scorecard(), label="Endpoint runs on the fixed CoSQL slice"),
+            mo.ui.table(
+                failure_taxonomy_delta(),
+                label="Failure taxonomy deltas versus base model",
+            ),
+            mo.ui.table(
+                schema_validation_findings(),
+                label="Pre-execution schema validation findings",
+            ),
             mo.ui.table(accuracy_scorecard(), label="Accuracy ladder and oracle boundary"),
             mo.ui.table(planner_scorecard(), label="Non-oracle planner baseline"),
             mo.ui.table(claim_table(), label="Claim ledger boundary"),

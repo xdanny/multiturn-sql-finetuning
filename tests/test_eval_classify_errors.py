@@ -3,7 +3,13 @@ from __future__ import annotations
 import csv
 import json
 
-from eval.classify_errors import classify_failure, classify_file, extract_sql_features
+from eval.classify_errors import (
+    classify_failure,
+    classify_file,
+    classify_row,
+    extract_sql_features,
+    validate_sql_against_visible_schema,
+)
 
 
 def test_extract_sql_features_collects_tables_columns_and_clauses() -> None:
@@ -172,6 +178,84 @@ def test_classify_failure_detects_case_sensitive_literal_mismatch() -> None:
 
     assert primary == "value_grounding"
     assert secondary == []
+
+
+def test_validate_sql_against_visible_schema_detects_wrong_table_column() -> None:
+    messages = [
+        {
+            "role": "user",
+            "content": (
+                "Schema/context:\n"
+                "customers(id int, name text, country text)\n"
+                "orders(id int, customer_id int, amount real)\n\n"
+                "Question:\nShow customer names and order amounts."
+            ),
+        }
+    ]
+
+    diagnostics = validate_sql_against_visible_schema(
+        "SELECT o.name, o.amount FROM orders o;",
+        messages,
+    )
+
+    assert diagnostics["schema_validation_status"] == "schema_mismatch"
+    assert diagnostics["schema_validation_errors"] == ["wrong_table_column"]
+    assert diagnostics["wrong_table_columns"] == ["orders.name"]
+    assert diagnostics["unknown_columns"] == []
+
+
+def test_validate_sql_against_visible_schema_detects_unknown_and_ambiguous_columns() -> None:
+    messages = [
+        {
+            "role": "user",
+            "content": (
+                "Schema/context:\n"
+                "customers(id int, name text, country text)\n"
+                "orders(id int, customer_id int, amount real)\n\n"
+                "Question:\nShow ids and totals."
+            ),
+        }
+    ]
+
+    diagnostics = validate_sql_against_visible_schema(
+        "SELECT id, total FROM customers JOIN orders ON customers.id = orders.customer_id;",
+        messages,
+    )
+
+    assert diagnostics["schema_validation_status"] == "schema_mismatch"
+    assert diagnostics["schema_validation_errors"] == [
+        "unknown_column",
+        "ambiguous_unqualified_column",
+    ]
+    assert diagnostics["unknown_columns"] == ["total"]
+    assert diagnostics["ambiguous_unqualified_columns"] == ["id"]
+
+
+def test_classify_row_attaches_visible_schema_diagnostics() -> None:
+    row = classify_row(
+        {
+            "value_execution_score": 0.0,
+            "syntax_valid": True,
+            "turn_index": 0,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": (
+                        "Schema/context:\n"
+                        "customers(id int, name text)\n"
+                        "orders(id int, customer_id int, amount real)\n\n"
+                        "Question:\nShow order names."
+                    ),
+                }
+            ],
+            "reference_sql": "SELECT customers.name FROM customers;",
+            "generated_sql": "SELECT orders.name FROM orders;",
+        }
+    )
+
+    assert row["schema_validation_status"] == "schema_mismatch"
+    assert row["schema_validation_errors"] == ["wrong_table_column"]
+    assert row["wrong_table_columns"] == ["orders.name"]
 
 
 def test_classify_file_writes_jsonl_and_summary(tmp_path) -> None:

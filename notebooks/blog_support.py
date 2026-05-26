@@ -5,18 +5,22 @@ from __future__ import annotations
 import argparse
 import html
 import json
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
 from data.metric_dsl import compile_metric_query, parse_metric_query, score_metric_query
+from eval.classify_errors import validate_sql_against_visible_schema
 from notebooks.labs.local_multiturn_sql_lab_support import run_multiturn_lab
 
 BLOG_EVIDENCE_SOURCES = (
     "docs/claim_ledgers/cosql_dev_100.jsonl",
     "docs/planner_baseline_cosql_dev_100_summary.json",
     "plots/rescored_vllm_semantic_prompt_iteration_100turns/summary.csv",
+    "plots/failure_taxonomy/comparison/model_error_summary.csv",
+    "plots/failure_taxonomy/comparison/pairwise_vs_baseline.csv",
     "results/prompt_search_semantic50_limit30/summary.csv",
     "results/prompt_search_schema_pruned_projection_schemafix_100/summary.csv",
 )
@@ -694,10 +698,13 @@ def data_engineering_gates() -> pd.DataFrame:
                     "A repair loop needs to know whether the miss was planning, "
                     "aliasing, dialect, value grounding, or execution."
                 ),
-                "current_status": "pending: planner metrics exist, validator is not complete",
+                "current_status": (
+                    "partial: pre-execution schema validator now emits "
+                    "wrong-table, unknown-column, and ambiguous-column diagnostics"
+                ),
                 "next_repo_action": (
-                    "Validate predicted columns against table roles and emit a "
-                    "repairable failure label before execution scoring."
+                    "Promote schema diagnostics into repair prompts and retrain "
+                    "planner/generator rows where the error is repairable."
                 ),
                 "blocks_claim": "Blocks precise planner-versus-generator attribution.",
                 "source_artifacts": (
@@ -1301,6 +1308,130 @@ def endpoint_run_scorecard() -> pd.DataFrame:
     return pd.DataFrame(sorted(rows, key=lambda item: order.get(item["run"], 99)))
 
 
+def _format_error_counts(value: Any) -> str:
+    if isinstance(value, str):
+        counts = json.loads(value)
+    elif isinstance(value, dict):
+        counts = value
+    else:
+        counts = {}
+    if not counts:
+        return "none"
+    return ", ".join(
+        f"{str(label).replace('_', ' ')} {int(count)}"
+        for label, count in sorted(
+            counts.items(),
+            key=lambda item: (-int(item[1]), str(item[0])),
+        )
+    )
+
+
+def failure_taxonomy_delta() -> pd.DataFrame:
+    """Summarize what non-oracle methods fixed and regressed on the proxy slice."""
+
+    summary_path = "plots/failure_taxonomy/comparison/model_error_summary.csv"
+    pairwise_path = "plots/failure_taxonomy/comparison/pairwise_vs_baseline.csv"
+    summary = read_csv_artifact(summary_path).set_index("run")
+    pairwise = read_csv_artifact(pairwise_path)
+    rows: list[dict[str, Any]] = []
+    for _, row in pairwise.iterrows():
+        candidate = str(row["candidate"])
+        fixed = _format_error_counts(row["fixed_error_primary"])
+        regressed = _format_error_counts(row["regressed_error_primary"])
+        net_fixed = int(row["net_fixed"])
+        rows.append(
+            {
+                "candidate": candidate,
+                "baseline": str(row["baseline"]),
+                "value_accuracy": float(summary.loc[candidate, "value_accuracy"]),
+                "fixed_turns": int(row["fixed_turns"]),
+                "regressed_turns": int(row["regressed_turns"]),
+                "net_fixed": net_fixed,
+                "fixed_error_primary": fixed,
+                "regressed_error_primary": regressed,
+                "takeaway": (
+                    f"Net {net_fixed:+d}: fixes concentrate in {fixed}; "
+                    f"regressions concentrate in {regressed}. This turns the "
+                    "score movement into a training-target diagnostic."
+                ),
+            }
+        )
+    return pd.DataFrame(
+        sorted(rows, key=lambda item: (-item["net_fixed"], -item["value_accuracy"], item["candidate"]))
+    )
+
+
+def schema_validation_findings() -> pd.DataFrame:
+    """Run pre-execution schema diagnostics over representative result files."""
+
+    artifacts = [
+        (
+            "Base Qwen 3.5 9B",
+            "results/rescored/vllm_qwen35_9b_base_cosql_dev_100turns.jsonl",
+        ),
+        (
+            "100-step LoRA",
+            "results/rescored/vllm_qwen35_9b_lora100_cosql_dev_100turns.jsonl",
+        ),
+        (
+            "Semantic 50-step + minimal executable",
+            "results/rescored/minimal_executable.jsonl",
+        ),
+    ]
+    rows = []
+    for label, relative_path in artifacts:
+        counts: Counter[str] = Counter()
+        mismatch_rows = 0
+        first_example: tuple[str, dict[str, Any]] | None = None
+        for row in read_jsonl_artifact(relative_path):
+            diagnostics = validate_sql_against_visible_schema(
+                str(row.get("generated_sql", "")),
+                row.get("messages", []),
+            )
+            if not diagnostics["schema_validation_errors"]:
+                continue
+            mismatch_rows += 1
+            counts.update(diagnostics["schema_validation_errors"])
+            if first_example is None or (
+                not first_example[1]["wrong_table_columns"] and diagnostics["wrong_table_columns"]
+            ):
+                first_example = (str(row.get("id", "")), diagnostics)
+
+        example_turn = ""
+        example_diagnostic = ""
+        if first_example is not None:
+            example_turn, diagnostics = first_example
+            details = []
+            for key in (
+                "wrong_table_columns",
+                "unknown_columns",
+                "ambiguous_unqualified_columns",
+                "unknown_tables",
+            ):
+                if diagnostics[key]:
+                    details.append(f"{key}={', '.join(diagnostics[key])}")
+            example_diagnostic = (
+                "repairable: "
+                + ", ".join(diagnostics["schema_validation_errors"])
+                + ("; " + "; ".join(details) if details else "")
+            )
+
+        rows.append(
+            {
+                "run": label,
+                "source_artifact": relative_path,
+                "schema_mismatch_rows": mismatch_rows,
+                "unknown_column": int(counts["unknown_column"]),
+                "wrong_table_column": int(counts["wrong_table_column"]),
+                "ambiguous_unqualified_column": int(counts["ambiguous_unqualified_column"]),
+                "unknown_table": int(counts["unknown_table"]),
+                "example_turn": example_turn,
+                "example_diagnostic": example_diagnostic,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 def _write_text(path: Path, text: str) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text)
@@ -1434,6 +1565,8 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     targets = target_comparison()
     target_evidence = target_evidence_matrix()
     endpoint_runs = endpoint_run_scorecard()
+    failure_delta = failure_taxonomy_delta()
+    schema_findings = schema_validation_findings()
 
     assets = {
         "accuracy_ladder_svg": _write_text(
@@ -1508,6 +1641,14 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
         "endpoint_run_scorecard_md": _write_text(
             output / "endpoint-run-scorecard.md",
             _markdown_table(endpoint_runs),
+        ),
+        "failure_taxonomy_delta_md": _write_text(
+            output / "failure-taxonomy-delta.md",
+            _markdown_table(failure_delta),
+        ),
+        "schema_validation_findings_md": _write_text(
+            output / "schema-validation-findings.md",
+            _markdown_table(schema_findings),
         ),
     }
     manifest = {

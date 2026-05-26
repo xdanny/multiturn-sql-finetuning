@@ -60,6 +60,10 @@ def _repair_cosql_spacing(sql: str) -> str:
     return repaired
 
 
+def _norm_identifier(value: Any) -> str:
+    return " ".join(str(value).strip().strip("`\"[]").lower().split())
+
+
 def _norm_sql(value: Any) -> str:
     return " ".join(str(value).lower().split())
 
@@ -100,6 +104,152 @@ def _column_name(column: exp.Column, aliases: dict[str, str]) -> str:
     table = aliases.get(table, table)
     name = column.name.lower()
     return f"{table}.{name}" if table else name
+
+
+def _split_schema_columns(raw_columns: str) -> list[str]:
+    columns = []
+    depth = 0
+    current = []
+    for char in raw_columns:
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            depth = max(0, depth - 1)
+        if char == "," and depth == 0:
+            columns.append("".join(current).strip())
+            current = []
+        else:
+            current.append(char)
+    if current:
+        columns.append("".join(current).strip())
+    return columns
+
+
+def _schema_column_name(raw_column: str) -> str | None:
+    cleaned = raw_column.strip()
+    if not cleaned:
+        return None
+    lowered = cleaned.lower()
+    if lowered.startswith(("primary key", "foreign key", "constraint", "unique", "check")):
+        return None
+    return _norm_identifier(cleaned.split()[0])
+
+
+def extract_visible_schema_inventory(messages: list[dict[str, str]]) -> dict[str, list[str]]:
+    """Extract prompt-visible table and column names for pre-execution validation."""
+
+    inventory: dict[str, set[str]] = {}
+    user_text = "\n".join(
+        message.get("content", "") for message in messages if message.get("role") == "user"
+    )
+    for match in re.finditer(r"(?im)^\s*([A-Za-z_][\w]*)\(([^;\n]+)\)\s*$", user_text):
+        table = _norm_identifier(match.group(1))
+        for raw_column in _split_schema_columns(match.group(2)):
+            column = _schema_column_name(raw_column)
+            if column:
+                inventory.setdefault(table, set()).add(column)
+
+    for match in re.finditer(
+        r"(?is)\bCREATE\s+TABLE\s+[`\"]?([A-Za-z_][\w]*)[`\"]?\s*\((.*?)\)\s*;",
+        user_text,
+    ):
+        table = _norm_identifier(match.group(1))
+        for raw_column in _split_schema_columns(match.group(2)):
+            column = _schema_column_name(raw_column)
+            if column:
+                inventory.setdefault(table, set()).add(column)
+
+    return {table: sorted(columns) for table, columns in sorted(inventory.items())}
+
+
+def validate_sql_against_visible_schema(
+    sql: str,
+    messages: list[dict[str, str]],
+) -> dict[str, Any]:
+    """Return repairable schema/alias diagnostics before execution scoring."""
+
+    inventory = {
+        table: set(columns)
+        for table, columns in extract_visible_schema_inventory(messages).items()
+    }
+    empty = {
+        "schema_validation_status": "no_visible_schema",
+        "schema_validation_errors": [],
+        "unknown_tables": [],
+        "unknown_columns": [],
+        "wrong_table_columns": [],
+        "ambiguous_unqualified_columns": [],
+    }
+    if not inventory:
+        return empty
+
+    try:
+        expression = sqlglot.parse_one(_repair_cosql_spacing(sql), dialect="sqlite")
+    except Exception:
+        return {
+            **empty,
+            "schema_validation_status": "invalid_sql",
+            "schema_validation_errors": ["invalid_sql"],
+        }
+
+    aliases = _alias_map(expression)
+    referenced_tables = {
+        _norm_identifier(table.name)
+        for table in expression.find_all(exp.Table)
+        if table.name
+    }
+    known_referenced_tables = referenced_tables & set(inventory)
+    unknown_tables = referenced_tables - set(inventory)
+    column_to_tables: dict[str, set[str]] = defaultdict(set)
+    for table, columns in inventory.items():
+        for column in columns:
+            column_to_tables[column].add(table)
+
+    unknown_columns: set[str] = set()
+    wrong_table_columns: set[str] = set()
+    ambiguous_unqualified_columns: set[str] = set()
+    for column in expression.find_all(exp.Column):
+        column_name = _norm_identifier(column.name)
+        if not column_name or column_name == "*":
+            continue
+        qualifier = _norm_identifier(column.table) if column.table else ""
+        if qualifier:
+            table_name = _norm_identifier(aliases.get(qualifier, qualifier))
+            if table_name not in inventory:
+                continue
+            if column_name not in inventory[table_name]:
+                qualified = f"{table_name}.{column_name}"
+                if column_name in column_to_tables:
+                    wrong_table_columns.add(qualified)
+                else:
+                    unknown_columns.add(qualified)
+            continue
+
+        candidate_tables = column_to_tables.get(column_name, set())
+        scoped_candidates = candidate_tables & known_referenced_tables
+        if not candidate_tables:
+            unknown_columns.add(column_name)
+        elif len(scoped_candidates) > 1:
+            ambiguous_unqualified_columns.add(column_name)
+
+    errors = []
+    if unknown_tables:
+        errors.append("unknown_table")
+    if unknown_columns:
+        errors.append("unknown_column")
+    if wrong_table_columns:
+        errors.append("wrong_table_column")
+    if ambiguous_unqualified_columns:
+        errors.append("ambiguous_unqualified_column")
+
+    return {
+        "schema_validation_status": "schema_mismatch" if errors else "valid",
+        "schema_validation_errors": errors,
+        "unknown_tables": sorted(unknown_tables),
+        "unknown_columns": sorted(unknown_columns),
+        "wrong_table_columns": sorted(wrong_table_columns),
+        "ambiguous_unqualified_columns": sorted(ambiguous_unqualified_columns),
+    }
 
 
 def extract_sql_features(sql: str) -> SqlFeatures:
@@ -267,6 +417,12 @@ def classify_row(row: dict[str, Any]) -> dict[str, Any]:
     classified["extra_columns"] = sorted(generated.columns - reference.columns)
     classified["table_diff_count"] = len(_symmetric_difference(reference.tables, generated.tables))
     classified["column_diff_count"] = len(_symmetric_difference(reference.columns, generated.columns))
+    classified.update(
+        validate_sql_against_visible_schema(
+            str(row.get("generated_sql", "")),
+            row.get("messages", []),
+        )
+    )
     return classified
 
 

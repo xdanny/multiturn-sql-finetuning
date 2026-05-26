@@ -5,6 +5,7 @@
     "data_engineering_gates_md": "data-engineering-gates.md",
     "dataset_role_matrix_md": "dataset-role-matrix.md",
     "endpoint_run_scorecard_md": "endpoint-run-scorecard.md",
+    "failure_taxonomy_delta_md": "failure-taxonomy-delta.md",
     "lab_failure_trace_md": "lab-failure-trace.md",
     "lab_method_scores_md": "lab-method-scores.md",
     "lab_reader_flow_md": "lab-reader-flow.md",
@@ -13,6 +14,7 @@
     "metric_dsl_contract_md": "metric-dsl-contract.md",
     "planner_baseline_svg": "planner-baseline.svg",
     "prompt_optimization_findings_md": "prompt-optimization-findings.md",
+    "schema_validation_findings_md": "schema-validation-findings.md",
     "shareable_lab_md": "shareable-lab.md",
     "target_comparison_md": "target-comparison.md",
     "target_evidence_matrix_md": "target-evidence-matrix.md"
@@ -22,6 +24,8 @@
     "docs/claim_ledgers/cosql_dev_100.jsonl",
     "docs/planner_baseline_cosql_dev_100_summary.json",
     "plots/rescored_vllm_semantic_prompt_iteration_100turns/summary.csv",
+    "plots/failure_taxonomy/comparison/model_error_summary.csv",
+    "plots/failure_taxonomy/comparison/pairwise_vs_baseline.csv",
     "results/prompt_search_semantic50_limit30/summary.csv",
     "results/prompt_search_schema_pruned_projection_schemafix_100/summary.csv"
   ],

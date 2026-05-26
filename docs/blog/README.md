@@ -47,6 +47,8 @@ Tracked outputs:
 - `docs/blog/generated/target-comparison.md`
 - `docs/blog/generated/target-evidence-matrix.md`
 - `docs/blog/generated/endpoint-run-scorecard.md`
+- `docs/blog/generated/failure-taxonomy-delta.md`
+- `docs/blog/generated/schema-validation-findings.md`
 - `docs/blog/generated/manifest.json`
 
 The intended pattern is:
