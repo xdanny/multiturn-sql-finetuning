@@ -20,6 +20,8 @@ win.
 See `docs/finetuning_smoke_matrix.md` for the current-main smoke commands and
 the checked-in method rows that make metric-DSL and recovery finetuning smokes
 runnable.
+See `docs/finetuning_measurement_plan.md` for the metrics, controls, and
+comparison artifacts required before any smoke run becomes a benchmark claim.
 
 The first metric-DSL experiment surface is documented in
 `docs/metric_dsl_contract.md`, implemented in `data.metric_dsl`, and evaluated
