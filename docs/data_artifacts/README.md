@@ -29,6 +29,23 @@ grain/fanout, `MEASURE()` preservation, and recovery behavior.
 The JSONL file is the useful input. The summary and manifest explain what was
 generated and how to verify that the fixture file has not drifted.
 
+### Metric DSL Finetuning Rows
+
+- `metric_dsl_training_rows.jsonl`
+- `metric_dsl_direct_sql_training_rows.jsonl`
+- `metric_dsl_training_rows_summary.json`
+- `metric_dsl_training_rows.manifest.json`
+
+These rows project the metric-heavy synthetic fixtures into two same-fixture
+training targets: metric DSL output and a direct SQL control. They are tiny on
+purpose. Their job is to make the first DSL-vs-SQL finetuning smoke test
+runnable before the project spends GPU time on a larger benchmark slice.
+
+The model input contains schema, conversation, and semantic-model context. It
+does not include reference SQL in the metric-DSL prompt. The labels are
+synthetic curated answers, so use them for method smoke tests and controls, not
+for claims about CoSQL, SParC, or BIRD performance.
+
 ### Value Grounding Labels
 
 - `value_grounding_labels_cosql_dev_100.jsonl`

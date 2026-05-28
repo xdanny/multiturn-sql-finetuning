@@ -1,0 +1,16 @@
+{
+  "artifact_type": "metric_dsl_finetuning_rows",
+  "command": [
+    "/home/dan/docs/multiturn-sql-finetuning/data/metric_dsl_training_rows.py"
+  ],
+  "direct_sql_control_row_count": 2,
+  "direct_sql_output_path": "docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl",
+  "direct_sql_output_sha256": "27e7ce5ab3c855cae3a5f08c75820d3298c4dcc01dc399049a0ab8686a9b56ef",
+  "metric_dsl_output_path": "docs/data_artifacts/metric_dsl_training_rows.jsonl",
+  "metric_dsl_output_sha256": "1bd4f21f6b668583eef7545c8561a9c04eeedd932dc11d1540a7bd78fc8c5ba0",
+  "metric_dsl_row_count": 2,
+  "oracle_policy": "synthetic_curated_label",
+  "schema_version": 1,
+  "summary_path": "docs/data_artifacts/metric_dsl_training_rows_summary.json",
+  "summary_sha256": "3d823abdcbd847f703029c983d4e7ddca0a8ea5a5fc6fbef0609261965dc1a2a"
+}
