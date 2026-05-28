@@ -35,6 +35,7 @@ When editing here, inspect:
 - `docs/methodology.md`
 - `docs/evidence_contract.md`
 - `docs/finetuning_ladder.md`
+- `docs/finetuning_method_runbook.md`
 - `docs/finetuning_smoke_matrix.md`
 - `docs/finetuning_measurement_plan.md`
 - `docs/data_artifacts/README.md`

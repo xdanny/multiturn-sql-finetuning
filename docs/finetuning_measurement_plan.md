@@ -155,8 +155,10 @@ Evidence gate:
 
 - generated-history rollout input from `data.behavior_recovery_rollout_inputs`,
 - `eval.run_behavior_recovery_comparison` output containing the generated-history
-  rollout manifest, same-input teacher-forced control manifest, and comparison
-  manifest.
+  rollout manifest, same-input teacher-forced diagnostic manifest, and
+  comparison manifest,
+- generated-history recovery-adapter outputs compared with the direct-SQL
+  control adapter on the same row identities before claiming the method wins.
 
 What it means:
 

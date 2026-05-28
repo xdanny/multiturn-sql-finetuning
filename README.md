@@ -22,6 +22,9 @@ the checked-in method rows that make metric-DSL and recovery finetuning smokes
 runnable.
 See `docs/finetuning_measurement_plan.md` for the metrics, controls, and
 comparison artifacts required before any smoke run becomes a benchmark claim.
+See `docs/finetuning_method_runbook.md` for the practical runbook that turns
+planner, semantic-layer, metric-DSL, behavior/recovery, and hosted benchmark
+ideas into finetuning steps with controls and evidence gates.
 The machine-readable method registry is `configs/finetuning_methods.yaml`; it
 drives `eval.method_readiness` so method arms, controls, gates, and next
 commands are reviewed as config rather than hidden in evaluator code.
@@ -458,8 +461,8 @@ uv run --active --no-sync python -m eval.run_behavior_recovery_comparison \
   --run-id multiturn_sql_100_behavior_recovery
 ```
 
-The paired runner writes generated-history rollout rows, a teacher-forced control
-on the same input rows, and one comparison manifest. The comparison refuses
+The paired runner writes generated-history rollout rows, a teacher-forced
+diagnostic on the same input rows, and one comparison manifest. The comparison refuses
 mismatched models, mismatched input hashes, oracle diagnostics, and non-rollout
 manifests.
 

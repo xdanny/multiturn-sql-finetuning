@@ -263,6 +263,7 @@ def test_build_claim_ledger_separates_proxy_diagnostic_and_pending_claims(tmp_pa
     assert "predicted_planner_sql_execution" in pending
     assert "model_generated_history_rollout" in pending
     assert "rollout_beats_teacher_forced_history" in pending
+    assert "behavior_recovery_beats_direct_sql" in pending
     assert "hosted_sota_same_protocol" in pending
     assert "bird_interact_local_vs_hosted" in pending
     assert pending["predicted_planner_sql_execution"]["blocking_reason"] == (
@@ -273,6 +274,9 @@ def test_build_claim_ledger_separates_proxy_diagnostic_and_pending_claims(tmp_pa
     )
     assert pending["rollout_beats_teacher_forced_history"]["blocking_reason"] == (
         "no side-by-side rollout-vs-teacher-forced comparison"
+    )
+    assert pending["behavior_recovery_beats_direct_sql"]["blocking_reason"] == (
+        "no generated-history recovery-vs-direct-SQL comparison"
     )
 
     planner = next(row for row in rows if row["claim_id"] == "planner_lexical_schema_baseline")

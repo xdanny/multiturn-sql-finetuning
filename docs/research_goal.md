@@ -94,7 +94,7 @@ The repo should compare training methods as first-class hypotheses:
 | Planner/DSL first, SQL second | The model should first predict a typed plan or DSL, then compile or generate SQL. | Planner F1 improves and predicted-plan SQL execution beats direct SQL. |
 | Semantic-layer tuning | The model should learn governed entities, dimensions, measures, grain, and allowed joins. | Semantic artifact retrieval and use improves metric and join correctness. |
 | MEASURE()-preserving metric DSL | The model should preserve governed metrics such as `MEASURE(revenue)` instead of expanding metric SQL too early. | Metric DSL accuracy and compiled SQL execution beat raw SQL generation on metric-heavy tasks. |
-| Behavior/recovery tuning | The model should learn to clarify, inspect values, repair failures, and recover after its own earlier errors. | Rollout evaluation with model-generated history beats teacher-forced history evaluation. |
+| Behavior/recovery tuning | The model should learn to clarify, inspect values, repair failures, and recover after its own earlier errors. | Recovery-adapter rollout beats the direct-SQL control under generated-history evaluation; rollout-vs-teacher-forced remains a diagnostic gate. |
 
 ## Why The Current Work Is Incomplete
 

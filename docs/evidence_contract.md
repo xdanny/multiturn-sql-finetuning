@@ -65,7 +65,8 @@ and measure-preservation metrics.
 | A metric-DSL result exists with parse, compile, execution, and measure-preservation metrics. | Pending | `eval.metric_dsl_eval` is implemented | `metric_dsl` | No, until a valid metric-DSL manifest exists. |
 | Metric-DSL generation beats direct SQL on metric-heavy rows. | Pending | `eval.compare_metric_dsl_direct_sql` is implemented | `metric_dsl` | No, until the compared manifest has a positive value delta and references the direct-SQL manifest. |
 | A generated-history rollout result exists for the fixed CoSQL proxy. | Pending | `eval.rollout_eval` is implemented | `non_oracle_generation` | No, until a rollout result manifest exists. |
-| Generated-history rollout beats teacher-forced history for the same model/input. | Pending | none | not run | No, until side-by-side comparison metrics exist. |
+| Generated-history rollout beats teacher-forced history for the same model/input. | Pending | none | not run | No, diagnostic only until side-by-side comparison metrics exist. |
+| Behavior/recovery tuning beats direct SQL under generated-history rollout. | Pending | none | not run | No, until recovery and direct-SQL control adapters are compared on the same rollout rows. |
 | A same-protocol hosted baseline exists. | Pending | `eval.compare_hosted_baseline` is implemented | not run | No, this only proves the comparison protocol exists. |
 | Local 9B beats the hosted baseline on the same rows. | Pending | none | not run | No, until the local manifest references a hosted baseline and shows a positive value delta. |
 | Local 9B competes on real BIRD-Interact/Multi-BIRD. | Pending | none | not run | No. |
@@ -256,8 +257,9 @@ uv run --active --no-sync python -m eval.rollout_eval \
 ```
 
 Rollout rows use `history_policy=model_generated_sql_rollout`. A rollout result
-can support a proxy rollout claim, but not a behavior/recovery improvement claim
-until the ledger also has same-model teacher-forced comparison metrics.
+can support a proxy rollout claim, but not a behavior/recovery method win.
+Teacher-forced comparison metrics are a diagnostic gate that show whether clean
+history was hiding generated-history failure.
 
 Create those comparison metrics with:
 
@@ -269,11 +271,15 @@ uv run --active --no-sync python -m eval.compare_rollout_history \
 ```
 
 For behavior/recovery smoke inputs, `eval.run_behavior_recovery_comparison`
-produces the rollout, teacher-forced control, and comparison manifest together.
+produces the rollout, teacher-forced diagnostic, and comparison manifest
+together.
 
-The comparison command requires the same model, same input hash, non-oracle
-manifests, and a positive rollout value delta before the claim ledger can clear
-`rollout_beats_teacher_forced_history`.
+The comparison command requires the same model, same input hash, and non-oracle
+manifests before the claim ledger can clear the diagnostic
+`rollout_beats_teacher_forced_history` gate. The separate
+`behavior_recovery_beats_direct_sql` claim still requires recovery-adapter
+generations compared with the direct-SQL control adapter under generated-history
+rollout.
 
 ## Blog Rule
 

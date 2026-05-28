@@ -85,14 +85,18 @@ manifest with:
 ## Claim Boundary
 
 A generated-history rollout result can support only a proxy rollout claim until
-there is a side-by-side comparison against the same model and input under
-teacher-forced history. The claim ledger tracks these separately:
+there is a side-by-side diagnostic comparison against the same model and input
+under teacher-forced history. A recovery method win is separate: it requires the
+recovery adapter to beat its direct-SQL control under generated-history rollout.
+The claim ledger tracks these separately:
 
 - `model_generated_history_rollout`: pending until a valid rollout manifest
   exists.
 - `rollout_beats_teacher_forced_history`: pending until comparison metrics show
-  a same-model, same-input, same-row rollout result beating the referenced
-  teacher-forced manifest with a positive value-accuracy delta.
+  a same-model, same-input, same-row rollout result against the referenced
+  teacher-forced manifest.
+- `behavior_recovery_beats_direct_sql`: pending until recovery-adapter rollout
+  beats the direct-SQL control adapter on identical generated-history rows.
 
 Oracle inputs are rejected by default. `--allow-oracle-plan` is diagnostic only
 and sets `oracle_allowed=true` in the manifest, so those rows cannot become a

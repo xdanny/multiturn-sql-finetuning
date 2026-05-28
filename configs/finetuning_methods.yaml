@@ -116,6 +116,11 @@ methods:
       --input docs/data_artifacts/metric_dsl_direct_sql_prediction_inputs.jsonl
       --output results/metric_dsl/<run-id>.direct_predictions.jsonl
       --model-name <direct-sql-adapter>;
+      uv run --active --no-sync python -m eval.metric_dsl_eval
+      --input results/metric_dsl/<run-id>.metric_predictions.jsonl
+      --output results/metric_dsl/<run-id>.metric_results.jsonl
+      --manifest-output results/metric_dsl/<run-id>.metric.manifest.json
+      --model-name <metric-dsl-adapter>;
       uv run --active --no-sync python -m eval.run_metric_dsl_comparison
       --metric-dsl-predictions results/metric_dsl/<run-id>.metric_predictions.jsonl
       --direct-sql-predictions results/metric_dsl/<run-id>.direct_predictions.jsonl
@@ -133,6 +138,7 @@ methods:
     blocking_claim_ids:
       - model_generated_history_rollout
       - rollout_beats_teacher_forced_history
+      - behavior_recovery_beats_direct_sql
     module_path: eval/rollout_eval.py
     training_rows:
       - docs/data_artifacts/behavior_recovery_training_rows.jsonl
@@ -151,14 +157,24 @@ methods:
       - eval/run_behavior_recovery_comparison.py
     next_command: >-
       uv run --active --no-sync python -m data.behavior_recovery_rollout_inputs;
+      uv run --active --no-sync python -m eval.rollout_eval
+      --input docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl
+      --output results/rollout/<run-id>.rollout.jsonl
+      --manifest-output results/rollout/<run-id>.rollout.manifest.json
+      --model-name <served-model-name>;
       uv run --active --no-sync python -m eval.run_behavior_recovery_comparison
       --input docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl
       --output-dir results/rollout
       --run-id <run-id>
       --model-name <served-model-name>
-    next_artifact: generated-history rollout manifest compared with teacher-forced history
-    claim_boundary: Teacher-forced proxy scores do not prove recovery behavior.
-    rankable_when: Rank after generated-history rollout improves over teacher-forced control.
+    next_artifact: generated-history recovery-vs-direct-SQL comparison manifest
+    claim_boundary: >-
+      Rollout-vs-teacher-forced history is diagnostic; recovery tuning is not a
+      method win until it beats the direct-SQL control under generated-history
+      rollout.
+    rankable_when: >-
+      Rank after the recovery adapter beats the direct-SQL control adapter on
+      identical generated-history rollout rows.
 
   - method: Hosted and BIRD-Interact comparison
     readiness_level: needs_hosted_protocol_run
