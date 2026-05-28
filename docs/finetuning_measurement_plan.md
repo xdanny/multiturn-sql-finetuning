@@ -203,3 +203,14 @@ answer these questions:
 
 If any of those answers are missing, the run can still be useful exploration,
 but it should not clear a claim in the ledger.
+
+To see the current method readiness state from the claim ledger and checked-in
+row artifacts, run:
+
+```bash
+uv run --active --no-sync python -m eval.method_readiness \
+  --output results/method_readiness/<run-id>.json
+```
+
+This report is a status summary. It does not replace scored generations or the
+comparison manifests listed above.

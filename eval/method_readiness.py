@@ -21,8 +21,14 @@ METHODS: tuple[dict[str, Any], ...] = (
             "bird_interact_local_vs_hosted",
         ),
         "module_path": "eval/run_eval.py",
+        "training_rows": ("data/processed/train_smoke.jsonl",),
+        "smoke_rows_required": True,
+        "control_rows": (),
+        "control_rows_required": False,
+        "evaluator_paths": ("eval/run_eval.py", "eval/local_benchmark.py"),
         "next_command": (
-            "python -m eval.run_eval --input data/processed/eval_cosql_dev_100.jsonl "
+            "uv run --active --no-sync python -m eval.run_eval "
+            "--input data/processed/eval_cosql_dev_100.jsonl "
             "--output results/direct_sql/<run-id>.jsonl"
         ),
         "next_artifact": "same-protocol direct SQL manifest on fixed proxy and BIRD-Interact rows",
@@ -38,9 +44,20 @@ METHODS: tuple[dict[str, Any], ...] = (
         "supported_claim_ids": ("planner_lexical_schema_baseline",),
         "blocking_claim_ids": ("predicted_planner_sql_execution",),
         "module_path": "eval/run_predicted_planner_comparison.py",
+        "training_rows": (),
+        "smoke_rows_required": False,
+        "control_rows": ("data/processed/eval_cosql_dev_100.jsonl",),
+        "control_rows_required": True,
+        "evaluator_paths": (
+            "eval/planner_eval.py",
+            "eval/run_predicted_planner_comparison.py",
+            "eval/compare_predicted_planner.py",
+        ),
         "next_command": (
-            "python -m eval.planner_optimize ...; python -m eval.planner_predict ...; "
-            "python -m eval.run_predicted_planner_comparison --direct-input ... "
+            "uv run --active --no-sync python -m eval.planner_optimize ...; "
+            "uv run --active --no-sync python -m eval.planner_predict ...; "
+            "uv run --active --no-sync python -m eval.run_predicted_planner_comparison "
+            "--direct-input ... "
             "--predicted-input ..."
         ),
         "next_artifact": "predicted-planner SQL manifest compared against direct SQL",
@@ -56,9 +73,15 @@ METHODS: tuple[dict[str, Any], ...] = (
             "local_beats_hosted_same_protocol",
         ),
         "module_path": "data/value_artifacts.py",
+        "training_rows": ("data/processed/train_semantic_smoke.jsonl",),
+        "smoke_rows_required": True,
+        "control_rows": ("data/processed/train_cosql_smoke.jsonl",),
+        "control_rows_required": True,
+        "evaluator_paths": ("eval/run_eval.py", "eval/classify_errors.py"),
         "next_command": (
-            "python -m data.value_artifacts ...; python -m data.value_index ...; "
-            "python -m eval.classify_errors ..."
+            "uv run --active --no-sync python -m data.value_artifacts ...; "
+            "uv run --active --no-sync python -m data.value_index ...; "
+            "uv run --active --no-sync python -m eval.classify_errors ..."
         ),
         "next_artifact": "value/entity retrieval manifest and row-matched semantic delta",
         "claim_boundary": "Semantic prompt movement is proxy evidence, not a proven method win.",
@@ -73,10 +96,19 @@ METHODS: tuple[dict[str, Any], ...] = (
             "metric_dsl_beats_direct_sql",
         ),
         "module_path": "eval/metric_dsl_eval.py",
+        "training_rows": ("docs/data_artifacts/metric_dsl_training_rows.jsonl",),
+        "smoke_rows_required": True,
+        "control_rows": ("docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl",),
+        "control_rows_required": True,
+        "evaluator_paths": (
+            "eval/metric_dsl_eval.py",
+            "eval/compare_metric_dsl_direct_sql.py",
+        ),
         "next_command": (
-            "python -m eval.metric_dsl_eval --input results/metric_dsl/<run-id>.predictions.jsonl "
+            "uv run --active --no-sync python -m eval.metric_dsl_eval "
+            "--input results/metric_dsl/<run-id>.predictions.jsonl "
             "--manifest-output results/metric_dsl/<run-id>.manifest.json; "
-            "python -m eval.compare_metric_dsl_direct_sql ..."
+            "uv run --active --no-sync python -m eval.compare_metric_dsl_direct_sql ..."
         ),
         "next_artifact": "metric-DSL prediction manifest plus direct-SQL comparison",
         "claim_boundary": "Parser/compiler exist; no metric-DSL method win yet.",
@@ -91,10 +123,18 @@ METHODS: tuple[dict[str, Any], ...] = (
             "rollout_beats_teacher_forced_history",
         ),
         "module_path": "eval/rollout_eval.py",
+        "training_rows": ("docs/data_artifacts/behavior_recovery_training_rows.jsonl",),
+        "smoke_rows_required": True,
+        "control_rows": (
+            "docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl",
+        ),
+        "control_rows_required": True,
+        "evaluator_paths": ("eval/rollout_eval.py", "eval/compare_rollout_history.py"),
         "next_command": (
-            "python -m eval.rollout_eval --input data/processed/eval_cosql_dev_100.jsonl "
+            "uv run --active --no-sync python -m eval.rollout_eval "
+            "--input data/processed/eval_cosql_dev_100.jsonl "
             "--manifest-output results/rollout/<run-id>.manifest.json; "
-            "python -m eval.compare_rollout_history ..."
+            "uv run --active --no-sync python -m eval.compare_rollout_history ..."
         ),
         "next_artifact": "generated-history rollout manifest compared with teacher-forced history",
         "claim_boundary": "Teacher-forced proxy scores do not prove recovery behavior.",
@@ -110,8 +150,14 @@ METHODS: tuple[dict[str, Any], ...] = (
             "bird_interact_local_vs_hosted",
         ),
         "module_path": "eval/compare_hosted_baseline.py",
+        "training_rows": (),
+        "smoke_rows_required": False,
+        "control_rows": (),
+        "control_rows_required": False,
+        "evaluator_paths": ("eval/compare_hosted_baseline.py",),
         "next_command": (
-            "python -m eval.compare_hosted_baseline --hosted-manifest ... "
+            "uv run --active --no-sync python -m eval.compare_hosted_baseline "
+            "--hosted-manifest ... "
             "--local-manifest ... --output ..."
         ),
         "next_artifact": "hosted/local comparison manifest plus BIRD-Interact transfer manifest",
@@ -171,6 +217,16 @@ def _open_blocking_claim_ids(
     return open_claim_ids
 
 
+def _path_status(repo_root: Path, paths: tuple[str, ...]) -> dict[str, bool]:
+    return {path: (repo_root / path).exists() for path in paths}
+
+
+def _paths_ready(path_status: dict[str, bool], *, required: bool) -> bool:
+    if not required:
+        return True
+    return bool(path_status) and all(path_status.values())
+
+
 def build_method_readiness(*, ledger_path: Path, repo_root: Path) -> list[dict[str, Any]]:
     """Return deterministic method-readiness rows from the claim ledger."""
 
@@ -198,12 +254,38 @@ def build_method_readiness(*, ledger_path: Path, repo_root: Path) -> list[dict[s
             _all_supported(claims, supported_claim_ids)
             and not open_blocking_claim_ids
         )
+        training_row_status = _path_status(
+            repo_root,
+            tuple(method["training_rows"]),
+        )
+        control_row_status = _path_status(
+            repo_root,
+            tuple(method["control_rows"]),
+        )
+        evaluator_status = _path_status(
+            repo_root,
+            tuple(method["evaluator_paths"]),
+        )
         rows.append(
             {
                 "method": method["method"],
                 "readiness_level": method["readiness_level"],
                 "control_ready_now": control_ready_now,
                 "rankable_now": rankable_now,
+                "smoke_rows_required": method["smoke_rows_required"],
+                "smoke_rows_ready": _paths_ready(
+                    training_row_status,
+                    required=bool(method["smoke_rows_required"]),
+                ),
+                "control_rows_required": method["control_rows_required"],
+                "control_rows_ready": _paths_ready(
+                    control_row_status,
+                    required=bool(method["control_rows_required"]),
+                ),
+                "evaluators_ready": _paths_ready(evaluator_status, required=True),
+                "training_rows": training_row_status,
+                "control_rows": control_row_status,
+                "evaluator_paths": evaluator_status,
                 "supported_claim_ids": supported_claim_ids,
                 "blocking_claim_ids": blocking_claim_ids,
                 "open_blocking_claim_ids": open_blocking_claim_ids,
