@@ -69,7 +69,12 @@ def _existing_claim_ids(claims: dict[str, dict[str, Any]], claim_ids: tuple[str,
 
 
 def _all_supported(claims: dict[str, dict[str, Any]], claim_ids: list[str]) -> bool:
-    supported_statuses = {"supported_proxy", "supported_planner_quality"}
+    supported_statuses = {
+        "supported_method_control",
+        "supported_metric_dsl_quality",
+        "supported_planner_quality",
+        "supported_proxy",
+    }
     return bool(claim_ids) and all(
         claims[claim_id].get("claim_status") in supported_statuses
         for claim_id in claim_ids

@@ -966,6 +966,27 @@ def test_metric_dsl_positive_comparison_clears_direct_sql_pending(tmp_path) -> N
     assert "metric_dsl_beats_direct_sql" not in pending
 
 
+def test_claim_ledger_can_read_metric_dsl_from_separate_manifest_file(tmp_path) -> None:
+    combined_manifest_path = _write_metric_dsl_comparison_case(tmp_path)
+    manifests = json.loads(combined_manifest_path.read_text())
+    direct_manifest_path = tmp_path / "direct_manifest.json"
+    metric_manifest_path = tmp_path / "metric_manifest.json"
+    direct_manifest_path.write_text(json.dumps(manifests[0]))
+    metric_manifest_path.write_text(json.dumps(manifests[1]))
+
+    rows = build_claim_ledger(
+        manifest_paths=(direct_manifest_path, metric_manifest_path),
+        repo_root=tmp_path,
+    )
+
+    direct = next(row for row in rows if row["claim_id"] == "direct_sql")
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert direct["claim_status"] == "supported_method_control"
+    assert direct["production_claim_allowed"] is False
+    assert "metric_dsl_evaluation_manifest" not in pending
+    assert "metric_dsl_beats_direct_sql" not in pending
+
+
 def _write_hosted_manifest_case(
     tmp_path: Path,
     *,

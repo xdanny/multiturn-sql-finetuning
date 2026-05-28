@@ -175,10 +175,8 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
         "docs/data_artifacts/metric_dsl_direct_sql_prediction_inputs.jsonl": True,
     }
     assert metric["prediction_input_rows_ready"] is True
-    assert metric["blocking_claim_ids"] == [
-        "metric_dsl_evaluation_manifest",
-        "metric_dsl_beats_direct_sql",
-    ]
+    assert metric["supported_claim_ids"] == ["metric-dsl-bootstrap.metric_dsl"]
+    assert metric["blocking_claim_ids"] == ["metric_dsl_beats_direct_sql"]
     assert "eval.generate_metric_dsl_predictions" in metric["next_command"]
     assert "eval.run_metric_dsl_comparison" in metric["next_command"]
     assert metric["evaluator_paths"]["eval/generate_metric_dsl_predictions.py"] is True

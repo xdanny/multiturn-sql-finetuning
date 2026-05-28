@@ -60,7 +60,7 @@ ASSET_CLAIM_IDS = {
         "local_beats_hosted_same_protocol",
     ),
     "metric_dsl_contract_md": (
-        "metric_dsl_evaluation_manifest",
+        "metric-dsl-bootstrap.metric_dsl",
         "metric_dsl_beats_direct_sql",
     ),
     "method_decision_rules_md": (
@@ -78,7 +78,7 @@ ASSET_CLAIM_IDS = {
         "hosted_sota_same_protocol",
         "local_beats_hosted_same_protocol",
         "bird_interact_local_vs_hosted",
-        "metric_dsl_evaluation_manifest",
+        "metric-dsl-bootstrap.metric_dsl",
         "rollout_beats_teacher_forced_history",
     ),
     "target_comparison_md": (
@@ -93,7 +93,7 @@ ASSET_CLAIM_IDS = {
     ),
     "experiment_ladder_md": (
         "predicted_planner_sql_execution",
-        "metric_dsl_evaluation_manifest",
+        "metric-dsl-bootstrap.metric_dsl",
         "metric_dsl_beats_direct_sql",
         "rollout_beats_teacher_forced_history",
         "hosted_sota_same_protocol",
@@ -104,7 +104,7 @@ ASSET_CLAIM_IDS = {
         "qwen35_9b_base_cosql_dev_100turns",
         "semantic_prompt_minimal_executable_cosql_dev_100turns",
         "rollout_beats_teacher_forced_history",
-        "metric_dsl_evaluation_manifest",
+        "metric-dsl-bootstrap.metric_dsl",
         "bird_interact_local_vs_hosted",
     ),
     "hosted_comparison_protocol_md": (
@@ -115,7 +115,7 @@ ASSET_CLAIM_IDS = {
     ),
     "evaluation_harness_map_md": (
         "predicted_planner_sql_execution",
-        "metric_dsl_evaluation_manifest",
+        "metric-dsl-bootstrap.metric_dsl",
         "metric_dsl_beats_direct_sql",
         "rollout_beats_teacher_forced_history",
         "hosted_sota_same_protocol",
@@ -123,7 +123,7 @@ ASSET_CLAIM_IDS = {
     ),
     "method_readiness_report_md": (
         "predicted_planner_sql_execution",
-        "metric_dsl_evaluation_manifest",
+        "metric-dsl-bootstrap.metric_dsl",
         "metric_dsl_beats_direct_sql",
         "rollout_beats_teacher_forced_history",
         "hosted_sota_same_protocol",
@@ -569,7 +569,7 @@ def claim_table() -> pd.DataFrame:
                 "multiturn_sql_100_cosql_dev_100turns",
                 "semantic_prompt_minimal_executable_cosql_dev_100turns",
                 "schema_pruned_trained100_oracle_cosql_dev_100turns",
-                "metric_dsl_evaluation_manifest",
+                "metric-dsl-bootstrap.metric_dsl",
                 "metric_dsl_beats_direct_sql",
                 "model_generated_history_rollout",
                 "rollout_beats_teacher_forced_history",
@@ -1172,7 +1172,7 @@ def evaluation_harness_map() -> pd.DataFrame:
                     "and compiled SQL execution are compared with direct SQL"
                 ),
                 "current_status": "implemented evaluator; prediction/comparison manifest still pending",
-                "claim_ids": "metric_dsl_evaluation_manifest, metric_dsl_beats_direct_sql",
+                "claim_ids": "metric-dsl-bootstrap.metric_dsl, metric_dsl_beats_direct_sql",
             },
             {
                 "research_target": "generated-history rollout",
@@ -1720,7 +1720,7 @@ def data_engineering_gates() -> pd.DataFrame:
                     "docs/claim_ledgers/cosql_dev_100.jsonl"
                 ),
                 "claim_ids": (
-                    "metric_dsl_evaluation_manifest, "
+                    "metric-dsl-bootstrap.metric_dsl, "
                     "metric_dsl_beats_direct_sql"
                 ),
             },
@@ -1869,7 +1869,7 @@ def data_artifact_contract() -> pd.DataFrame:
                     "comparison with semantic model hashes"
                 ),
                 "claim_ids": (
-                    "metric_dsl_evaluation_manifest, "
+                    "metric-dsl-bootstrap.metric_dsl, "
                     "metric_dsl_beats_direct_sql"
                 ),
             },
@@ -2165,15 +2165,16 @@ def target_evidence_matrix() -> pd.DataFrame:
             "fine_tuning_target": "MEASURE()-preserving metric DSL",
             "lab_behavior": "Keeps governed metric intent as MEASURE(revenue) before SQL expansion.",
             "manifest_backed_evidence": (
-                "Parser, compiler, and offline evaluator exist, but the claim ledger "
-                "has no valid metric-DSL prediction/comparison manifest yet."
+                "The bootstrap metric-DSL manifest is ledger-backed for parse, "
+                "compile, execution, and measure preservation; it does not beat "
+                "the direct-SQL control yet."
             ),
-            "source_claim_ids": "metric_dsl_evaluation_manifest; metric_dsl_beats_direct_sql",
+            "source_claim_ids": "metric-dsl-bootstrap.metric_dsl; metric_dsl_beats_direct_sql",
             "evidence_level": (
-                f"{status('metric_dsl_evaluation_manifest')} + "
+                f"{status('metric-dsl-bootstrap.metric_dsl')} + "
                 f"{status('metric_dsl_beats_direct_sql')}"
             ),
-            "missing_gate": "Metric-DSL prediction manifest plus direct-SQL comparison on the same rows.",
+            "missing_gate": "Positive metric-DSL value delta against direct SQL on the same rows.",
             "current_decision": "Promising for metric-heavy tasks; not rankable against direct SQL yet.",
         },
         {
@@ -2282,7 +2283,7 @@ def method_decision_rules() -> pd.DataFrame:
                     "metric-DSL prediction manifest and direct-SQL delta are pending."
                 ),
                 "claim_ids": (
-                    "metric_dsl_evaluation_manifest, "
+                    "metric-dsl-bootstrap.metric_dsl, "
                     "metric_dsl_beats_direct_sql"
                 ),
             },
@@ -2381,7 +2382,7 @@ def method_priority_backlog() -> pd.DataFrame:
                     "MEASURE() preservation is high but compiled execution does not "
                     "match or beat direct SQL"
                 ),
-                "claim_ids": "metric_dsl_evaluation_manifest, metric_dsl_beats_direct_sql",
+                "claim_ids": "metric-dsl-bootstrap.metric_dsl, metric_dsl_beats_direct_sql",
             },
             {
                 "priority": 4,

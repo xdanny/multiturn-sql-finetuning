@@ -45,7 +45,7 @@
       "path": "claim-table.md",
       "required_in_post": false,
       "required_reference": true,
-      "sha256": "fd9afe90242a1eaf6e480fc9046e2ca29bc747d9578b4b278c0321c09dccec3d"
+      "sha256": "0f61f89eadbee7020b4a5002d6d8e6ae33c3115b67b418afc0b1617f40ba58b3"
     },
     {
       "claim_ids": [],
@@ -61,7 +61,7 @@
         "qwen35_9b_base_cosql_dev_100turns",
         "semantic_prompt_minimal_executable_cosql_dev_100turns",
         "rollout_beats_teacher_forced_history",
-        "metric_dsl_evaluation_manifest",
+        "metric-dsl-bootstrap.metric_dsl",
         "bird_interact_local_vs_hosted"
       ],
       "id": "single_to_multiturn_gap_md",
@@ -88,7 +88,7 @@
     {
       "claim_ids": [
         "predicted_planner_sql_execution",
-        "metric_dsl_evaluation_manifest",
+        "metric-dsl-bootstrap.metric_dsl",
         "metric_dsl_beats_direct_sql",
         "rollout_beats_teacher_forced_history",
         "hosted_sota_same_protocol",
@@ -99,12 +99,12 @@
       "path": "evaluation-harness-map.md",
       "required_in_post": false,
       "required_reference": true,
-      "sha256": "4a12adb9b3ad2bab54c41e9bea0cd3704fdbbffc9660bff12ca02cb06b87ebed"
+      "sha256": "7b8b1163ab45f926b5951ca1ed134254c17cc4cd7c2776737b82c01a2a8ce8a8"
     },
     {
       "claim_ids": [
         "predicted_planner_sql_execution",
-        "metric_dsl_evaluation_manifest",
+        "metric-dsl-bootstrap.metric_dsl",
         "metric_dsl_beats_direct_sql",
         "rollout_beats_teacher_forced_history",
         "hosted_sota_same_protocol",
@@ -116,11 +116,11 @@
       "path": "method-readiness-report.md",
       "required_in_post": false,
       "required_reference": true,
-      "sha256": "5c129e449be31be2e435599ce3fca74820b230202cb3761bc001bd680aa38a2a"
+      "sha256": "f6ddf33ec531cb04fdad176d82827928913f91632be1a7fd6c052273712ba768"
     },
     {
       "claim_ids": [
-        "metric_dsl_evaluation_manifest",
+        "metric-dsl-bootstrap.metric_dsl",
         "metric_dsl_beats_direct_sql"
       ],
       "id": "metric_dsl_contract_md",
@@ -151,7 +151,7 @@
     {
       "claim_ids": [
         "predicted_planner_sql_execution",
-        "metric_dsl_evaluation_manifest",
+        "metric-dsl-bootstrap.metric_dsl",
         "metric_dsl_beats_direct_sql",
         "rollout_beats_teacher_forced_history",
         "hosted_sota_same_protocol",
@@ -177,7 +177,7 @@
       "path": "method-decision-rules.md",
       "required_in_post": false,
       "required_reference": true,
-      "sha256": "698cab437e050756d8743edf495744194b44fd9ad69ca68bacdf5c64cf4053bb"
+      "sha256": "b774db33bff63ccec9e3c233f2d9becc64ac1154341250a18b7a7de6e9662c23"
     },
     {
       "claim_ids": [
@@ -190,7 +190,7 @@
       "path": "method-priority-backlog.md",
       "required_in_post": false,
       "required_reference": true,
-      "sha256": "f95e520f6c67e763b9caf91e58df4bdb4cd81e19500d690cddb6ca17e7c90b1f"
+      "sha256": "04608a5827e2fdfd8d3e55cfe43d4199cbf6fcc8be17427886fec491a4bdf4ff"
     },
     {
       "claim_ids": [],
@@ -215,7 +215,7 @@
         "hosted_sota_same_protocol",
         "local_beats_hosted_same_protocol",
         "bird_interact_local_vs_hosted",
-        "metric_dsl_evaluation_manifest",
+        "metric-dsl-bootstrap.metric_dsl",
         "rollout_beats_teacher_forced_history"
       ],
       "id": "data_engineering_gates_md",
@@ -223,7 +223,7 @@
       "path": "data-engineering-gates.md",
       "required_in_post": false,
       "required_reference": true,
-      "sha256": "eed8157f17742ab8c8352544548d23e93df8be5271a9d8a51efa16fcbe0e295b"
+      "sha256": "616ceb996ae6495470724f3e8e1d01ef63bba80f29721ef14ec72cac2825fc32"
     },
     {
       "claim_ids": [],
@@ -259,7 +259,7 @@
       "path": "data-artifact-contract.md",
       "required_in_post": false,
       "required_reference": true,
-      "sha256": "69535ce319f166909357867dbf3995ea0a4ac5b30628d1ea2ff0d74994f6c9bf"
+      "sha256": "5ae57a3df6dbd4ca5b4dcce6099d595be258094f53ecc90bafb16eb27a87986c"
     },
     {
       "claim_ids": [],
@@ -294,7 +294,7 @@
       "path": "target-evidence-matrix.md",
       "required_in_post": false,
       "required_reference": true,
-      "sha256": "cd1cc37c9f9a2dcb0abd68c381f98bd3d145ba1ccbbc73c7980b0de5c17d111f"
+      "sha256": "7196b0002370b2d556c4519a243c4999bd261419c69445a76f6a97d644c92271"
     },
     {
       "claim_ids": [],
@@ -373,29 +373,261 @@
       "production_claim_allowed": false,
       "required_artifact": "compared local result manifest with hosted baseline"
     },
+    "metric-dsl-bootstrap.direct_sql": {
+      "allowed_public_claim": "method control only, not a benchmark result",
+      "artifact_type": "result_manifest",
+      "artifact_valid": true,
+      "benchmark": "metric_dsl_direct_sql",
+      "blocking_reason": null,
+      "can_support_sota_claim": false,
+      "claim_id": "metric-dsl-bootstrap.direct_sql",
+      "claim_status": "supported_method_control",
+      "classified_exists": false,
+      "classified_path": "/home/dan/docs/multiturn-sql-finetuning/results/classified/metric-dsl-bootstrap.direct_sql.jsonl",
+      "classified_rows": 0,
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--no-sync",
+        "python",
+        "-m",
+        "eval.run_metric_dsl_comparison",
+        "--run-id",
+        "metric-dsl-bootstrap",
+        "# direct_sql_control"
+      ],
+      "compiled_sql_execution_evaluated_rows": null,
+      "cost_usd": null,
+      "dialog_count": null,
+      "direct_sql_comparable_row_count": null,
+      "direct_sql_comparison_run_id": null,
+      "direct_sql_input_sha256": null,
+      "direct_sql_model_name": null,
+      "direct_sql_output_sha256": null,
+      "direct_sql_strict_execution_accuracy": null,
+      "direct_sql_value_execution_accuracy": null,
+      "endpoint": "offline",
+      "estimated_cost_usd": null,
+      "evaluation_mode": "non_oracle_generation",
+      "history_policy": null,
+      "hosted_comparable_row_count": null,
+      "hosted_comparison_run_id": null,
+      "hosted_input_sha256": null,
+      "hosted_mean_latency_ms": null,
+      "hosted_model_name": null,
+      "hosted_output_sha256": null,
+      "hosted_strict_execution_accuracy": null,
+      "hosted_total_cost_usd": null,
+      "hosted_value_execution_accuracy": null,
+      "input_contract_status": "legacy_missing_contract_fields",
+      "input_evaluation_modes": {
+        "non_oracle_generation": 2
+      },
+      "input_exists": true,
+      "input_oracle_rows": 0,
+      "input_path": "results/metric_dsl_bootstrap/.prepared/metric-dsl-bootstrap.direct_sql.input.jsonl",
+      "input_rows": 2,
+      "input_sha256": "fc943a2af643033fc52a4c6d6e9341c9340ea2281ce17db8388951a355b2ccaf",
+      "input_sha256_matches": true,
+      "latency_ms": null,
+      "local_strict_delta_vs_hosted": null,
+      "local_value_delta_vs_hosted": null,
+      "mean_generation_latency_ms": null,
+      "mean_latency_ms": null,
+      "measure_preservation": null,
+      "metric_dsl_comparable_row_count": null,
+      "metric_dsl_compile_rate": null,
+      "metric_dsl_measure_preservation": null,
+      "metric_dsl_parse_rate": null,
+      "metric_dsl_strict_delta_vs_direct_sql": null,
+      "metric_dsl_value_delta_vs_direct_sql": null,
+      "metric_keys": [
+        "execution_evaluated_rows",
+        "recovery_evaluated_rows",
+        "recovery_success_rate",
+        "rows",
+        "strict_execution_accuracy",
+        "syntax_accuracy",
+        "value_execution_accuracy"
+      ],
+      "model_name": "metric_dsl_bootstrap_labels",
+      "oracle_allowed": false,
+      "output_evaluation_modes": {
+        "non_oracle_generation": 2
+      },
+      "output_exists": true,
+      "output_oracle_rows": 0,
+      "output_path": "results/metric_dsl_bootstrap/metric-dsl-bootstrap.direct_sql.jsonl",
+      "output_rows": 2,
+      "output_sha256": "444e652bccb5650ba740f2ae80b0b89428c9856bfe6dcd0f2e413d405c978a78",
+      "output_sha256_matches": true,
+      "output_strict_scored_rows": 2,
+      "output_value_scored_rows": 2,
+      "p50_latency_ms": null,
+      "predicted_planner_value_delta_vs_direct_sql": null,
+      "primary_error_counts": {},
+      "production_claim_allowed": false,
+      "prompt_variant": "direct_sql_control",
+      "required_artifact": null,
+      "result_history_policy": null,
+      "rollout_value_delta_vs_teacher_forced": null,
+      "row_count": 2,
+      "strict_execution_accuracy": 1.0,
+      "syntax_accuracy": 1.0,
+      "teacher_forced_comparable_row_count": null,
+      "teacher_forced_comparison_run_id": null,
+      "teacher_forced_history": false,
+      "teacher_forced_input_sha256": null,
+      "teacher_forced_model_name": null,
+      "teacher_forced_value_execution_accuracy": null,
+      "total_cost_usd": null,
+      "turn_format": null,
+      "value_execution_accuracy": 1.0
+    },
+    "metric-dsl-bootstrap.metric_dsl": {
+      "allowed_public_claim": "metric-DSL quality only, not direct SQL superiority",
+      "artifact_type": "result_manifest",
+      "artifact_valid": true,
+      "benchmark": "metric_dsl",
+      "blocking_reason": null,
+      "can_support_sota_claim": false,
+      "claim_id": "metric-dsl-bootstrap.metric_dsl",
+      "claim_status": "supported_metric_dsl_quality",
+      "classified_exists": false,
+      "classified_path": "/home/dan/docs/multiturn-sql-finetuning/results/classified/metric-dsl-bootstrap.metric_dsl.jsonl",
+      "classified_rows": 0,
+      "command": [
+        "uv",
+        "run",
+        "--active",
+        "--no-sync",
+        "python",
+        "-m",
+        "eval.run_metric_dsl_comparison",
+        "--run-id",
+        "metric-dsl-bootstrap",
+        "# metric_dsl",
+        "# compared-with-direct-sql",
+        "metric-dsl-bootstrap.direct_sql"
+      ],
+      "compiled_sql_execution_evaluated_rows": 2,
+      "cost_usd": null,
+      "dialog_count": null,
+      "direct_sql_comparable_row_count": null,
+      "direct_sql_comparison_run_id": "metric-dsl-bootstrap.direct_sql",
+      "direct_sql_input_sha256": "fc943a2af643033fc52a4c6d6e9341c9340ea2281ce17db8388951a355b2ccaf",
+      "direct_sql_model_name": "metric_dsl_bootstrap_labels",
+      "direct_sql_output_sha256": "444e652bccb5650ba740f2ae80b0b89428c9856bfe6dcd0f2e413d405c978a78",
+      "direct_sql_strict_execution_accuracy": 1.0,
+      "direct_sql_value_execution_accuracy": 1.0,
+      "endpoint": "offline",
+      "estimated_cost_usd": null,
+      "evaluation_mode": "metric_dsl",
+      "history_policy": null,
+      "hosted_comparable_row_count": null,
+      "hosted_comparison_run_id": null,
+      "hosted_input_sha256": null,
+      "hosted_mean_latency_ms": null,
+      "hosted_model_name": null,
+      "hosted_output_sha256": null,
+      "hosted_strict_execution_accuracy": null,
+      "hosted_total_cost_usd": null,
+      "hosted_value_execution_accuracy": null,
+      "input_contract_status": "legacy_missing_contract_fields",
+      "input_evaluation_modes": {
+        "metric_dsl": 2
+      },
+      "input_exists": true,
+      "input_oracle_rows": 0,
+      "input_path": "results/metric_dsl_bootstrap/.prepared/metric-dsl-bootstrap.metric_dsl.input.jsonl",
+      "input_rows": 2,
+      "input_sha256": "4fd05ad396ad29aaede9b7b4d27d647bf33342d659bdb445cf473851fbb122c6",
+      "input_sha256_matches": true,
+      "latency_ms": null,
+      "local_strict_delta_vs_hosted": null,
+      "local_value_delta_vs_hosted": null,
+      "mean_generation_latency_ms": null,
+      "mean_latency_ms": null,
+      "measure_preservation": 1.0,
+      "metric_dsl_comparable_row_count": 2,
+      "metric_dsl_compile_rate": 1.0,
+      "metric_dsl_measure_preservation": 1.0,
+      "metric_dsl_parse_rate": 1.0,
+      "metric_dsl_strict_delta_vs_direct_sql": -1.0,
+      "metric_dsl_value_delta_vs_direct_sql": 0.0,
+      "metric_keys": [
+        "compiled_sql_execution_attempt_rate",
+        "compiled_sql_execution_evaluated_rows",
+        "dimension_f1",
+        "direct_sql_comparison_run_id",
+        "direct_sql_input_sha256",
+        "direct_sql_model_name",
+        "direct_sql_output_sha256",
+        "direct_sql_strict_execution_accuracy",
+        "direct_sql_value_execution_accuracy",
+        "filter_f1",
+        "measure_f1",
+        "measure_preservation",
+        "metric_dsl_comparable_row_count",
+        "metric_dsl_compile_rate",
+        "metric_dsl_measure_preservation",
+        "metric_dsl_parse_rate",
+        "metric_dsl_strict_delta_vs_direct_sql",
+        "metric_dsl_value_delta_vs_direct_sql",
+        "rows",
+        "semantic_model_oracle_derived_rows",
+        "semantic_model_sha256s",
+        "semantic_model_sources",
+        "strict_execution_accuracy",
+        "syntax_accuracy",
+        "value_execution_accuracy"
+      ],
+      "model_name": "metric_dsl_bootstrap_labels",
+      "oracle_allowed": false,
+      "output_evaluation_modes": {
+        "metric_dsl": 2
+      },
+      "output_exists": true,
+      "output_oracle_rows": 0,
+      "output_path": "results/metric_dsl_bootstrap/metric-dsl-bootstrap.metric_dsl.jsonl",
+      "output_rows": 2,
+      "output_sha256": "0392151ec5aedbb33d9bc5ec664836483b05176533729390f64228e9274d9048",
+      "output_sha256_matches": true,
+      "output_strict_scored_rows": 2,
+      "output_value_scored_rows": 2,
+      "p50_latency_ms": null,
+      "predicted_planner_value_delta_vs_direct_sql": null,
+      "primary_error_counts": {},
+      "production_claim_allowed": false,
+      "prompt_variant": null,
+      "required_artifact": null,
+      "result_history_policy": null,
+      "rollout_value_delta_vs_teacher_forced": null,
+      "row_count": 2,
+      "strict_execution_accuracy": 0.0,
+      "syntax_accuracy": 1.0,
+      "teacher_forced_comparable_row_count": null,
+      "teacher_forced_comparison_run_id": null,
+      "teacher_forced_history": false,
+      "teacher_forced_input_sha256": null,
+      "teacher_forced_model_name": null,
+      "teacher_forced_value_execution_accuracy": null,
+      "total_cost_usd": null,
+      "turn_format": null,
+      "value_execution_accuracy": 1.0
+    },
     "metric_dsl_beats_direct_sql": {
       "allowed_public_claim": "no metric-DSL vs direct-SQL improvement claim yet",
       "artifact_type": "pending_claim",
       "artifact_valid": false,
-      "blocking_reason": "no side-by-side metric-DSL-vs-direct-SQL comparison",
+      "blocking_reason": "no non-oracle direct-SQL comparison with positive metric-DSL value delta",
       "can_support_sota_claim": false,
       "claim_id": "metric_dsl_beats_direct_sql",
       "claim_status": "pending",
       "evaluation_mode": "metric_dsl",
       "production_claim_allowed": false,
-      "required_artifact": "compared metric_dsl manifest with direct-SQL baseline"
-    },
-    "metric_dsl_evaluation_manifest": {
-      "allowed_public_claim": "no metric-DSL evaluation result yet",
-      "artifact_type": "pending_claim",
-      "artifact_valid": false,
-      "blocking_reason": "no valid metric_dsl result manifest",
-      "can_support_sota_claim": false,
-      "claim_id": "metric_dsl_evaluation_manifest",
-      "claim_status": "pending",
-      "evaluation_mode": "metric_dsl",
-      "production_claim_allowed": false,
-      "required_artifact": "metric_dsl result manifest with parse, compile, execution, and measure-preservation metrics"
+      "required_artifact": "compared metric_dsl manifest plus matching direct-SQL manifest"
     },
     "model_generated_history_rollout": {
       "allowed_public_claim": "no generated-history rollout result yet",
@@ -1095,7 +1327,7 @@
   "source_artifacts": [
     {
       "path": "docs/claim_ledgers/cosql_dev_100.jsonl",
-      "sha256": "053b5c374be89cde8657d7f05feaa50bd87638c5f70ad6bcc4798256714c51b6"
+      "sha256": "5469ff4e02186c24f20042586ee38f13faa4238756b07be0a770dd50dd4b4c98"
     },
     {
       "path": "docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl",
