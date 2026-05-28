@@ -18,6 +18,13 @@ LIST_FIELDS = {
     "prediction_input_rows",
     "evaluator_paths",
 }
+REQUIRED_TEXT_FIELDS = {
+    "finetuning_objective",
+    "benchmark_scope",
+    "primary_metric",
+    "leakage_boundary",
+    "evidence_gate",
+}
 
 
 def load_method_configs(path: Path = DEFAULT_METHOD_CONFIG) -> tuple[dict[str, Any], ...]:
@@ -32,6 +39,16 @@ def load_method_configs(path: Path = DEFAULT_METHOD_CONFIG) -> tuple[dict[str, A
     normalized = []
     for method in methods:
         row = dict(method)
+        missing_text_fields = [
+            field
+            for field in sorted(REQUIRED_TEXT_FIELDS)
+            if not str(row.get(field) or "").strip()
+        ]
+        if missing_text_fields:
+            method_name = row.get("method") or "<unknown method>"
+            raise ValueError(
+                f"{method_name}: missing {', '.join(missing_text_fields)}"
+            )
         for field in LIST_FIELDS:
             row[field] = tuple(row.get(field) or ())
         normalized.append(row)
@@ -226,6 +243,11 @@ def build_method_readiness(
                 "next_artifact": method["next_artifact"],
                 "claim_boundary": method["claim_boundary"],
                 "rankable_when": method["rankable_when"],
+                "finetuning_objective": method["finetuning_objective"],
+                "benchmark_scope": method["benchmark_scope"],
+                "primary_metric": method["primary_metric"],
+                "leakage_boundary": method["leakage_boundary"],
+                "evidence_gate": method["evidence_gate"],
             }
         )
     return rows

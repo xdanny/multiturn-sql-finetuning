@@ -26,6 +26,21 @@ Runtime outputs belong under `results/` or `outputs/experiments/`. Checked-in
 files under `docs/data_artifacts/` should be small canonical inputs, summaries,
 or manifests that another developer can regenerate and inspect.
 
+`configs/finetuning_methods.yaml` carries the machine-readable version of this
+contract. Every method arm must define:
+
+- `finetuning_objective`
+- `benchmark_scope`
+- `primary_metric`
+- `leakage_boundary`
+- `evidence_gate`
+
+Those fields are emitted by `eval.method_readiness` so method status can be
+reviewed without reading this runbook first. Keep them concrete: name the
+behavior being trained, the benchmark rows or fixture family, the metric that
+settles the comparison, the fields that must not enter prompts, and the artifact
+that would clear the gate.
+
 ## Direct SQL SFT
 
 Hypothesis: ordinary supervised SQL chat finetuning is the control arm for the
