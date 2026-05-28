@@ -3,7 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from eval.method_readiness import build_method_readiness, write_method_readiness_report
+from eval.method_readiness import (
+    build_method_readiness,
+    required_readiness_failures,
+    write_method_readiness_report,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -147,3 +151,36 @@ def test_write_method_readiness_report_is_deterministic(tmp_path) -> None:
     assert payload == {"schema_version": 1, "methods": rows}
     assert payload["methods"][0]["method"] == "Direct SQL SFT"
     assert payload["methods"][-1]["method"] == "Hosted and BIRD-Interact comparison"
+
+
+def test_required_readiness_failures_only_reports_required_missing_inputs() -> None:
+    rows = [
+        {
+            "method": "Optional rows method",
+            "smoke_rows_required": False,
+            "smoke_rows_ready": True,
+            "control_rows_required": False,
+            "control_rows_ready": True,
+            "evaluators_ready": True,
+            "training_rows": {},
+            "control_rows": {},
+            "evaluator_paths": {"eval/example.py": True},
+        },
+        {
+            "method": "Missing required rows",
+            "smoke_rows_required": True,
+            "smoke_rows_ready": False,
+            "control_rows_required": True,
+            "control_rows_ready": False,
+            "evaluators_ready": False,
+            "training_rows": {"data/missing_train.jsonl": False},
+            "control_rows": {"data/missing_control.jsonl": False},
+            "evaluator_paths": {"eval/missing_eval.py": False},
+        },
+    ]
+
+    assert required_readiness_failures(rows) == [
+        "Missing required rows: missing smoke rows: data/missing_train.jsonl",
+        "Missing required rows: missing control rows: data/missing_control.jsonl",
+        "Missing required rows: missing evaluators: eval/missing_eval.py",
+    ]
