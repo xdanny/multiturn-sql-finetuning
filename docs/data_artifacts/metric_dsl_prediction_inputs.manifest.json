@@ -1,0 +1,17 @@
+{
+  "artifact_type": "metric_dsl_prediction_inputs",
+  "command": [
+    "/home/dan/docs/multiturn-sql-finetuning/data/metric_dsl_prediction_inputs.py"
+  ],
+  "direct_output_path": "docs/data_artifacts/metric_dsl_direct_sql_prediction_inputs.jsonl",
+  "direct_output_sha256": "ff8cb8e5e9e303a67a50892e0964fe02165781de058d891bafbaba09c1759a31",
+  "direct_sql_prediction_input_count": 2,
+  "evaluation_gate": "eval.run_metric_dsl_comparison",
+  "metric_dsl_prediction_input_count": 2,
+  "metric_output_path": "docs/data_artifacts/metric_dsl_prediction_inputs.jsonl",
+  "metric_output_sha256": "3ffe2c0dc618d698d97096f1f3804dff7e2986b2c84af522024df1ff9a4a5f56",
+  "oracle_policy": "non_oracle_prompt_with_held_out_scorer_fields",
+  "schema_version": 1,
+  "summary_path": "docs/data_artifacts/metric_dsl_prediction_inputs_summary.json",
+  "summary_sha256": "0daa777be520095414d93e4dbb7868c537eef71f561c7bc2c62fba2adf7d2047"
+}

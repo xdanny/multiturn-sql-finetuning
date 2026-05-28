@@ -46,6 +46,23 @@ does not include reference SQL in the metric-DSL prompt. The labels are
 synthetic curated answers, so use them for method smoke tests and controls, not
 for claims about CoSQL, SParC, or BIRD performance.
 
+### Metric DSL Prediction Inputs
+
+- `metric_dsl_prediction_inputs.jsonl`
+- `metric_dsl_direct_sql_prediction_inputs.jsonl`
+- `metric_dsl_prediction_inputs_summary.json`
+- `metric_dsl_prediction_inputs.manifest.json`
+
+These rows are the paired generation inputs for the first metric-DSL comparison
+gate. The prompt messages contain only schema, conversation, and semantic-model
+context. The scorer fields, including reference SQL and gold DSL, are held out
+from the prompt and carried only so generated outputs can be scored later by
+`eval.run_metric_dsl_comparison`.
+
+Use these files to generate same-row predictions for the metric-DSL adapter and
+the direct-SQL control. The generated outputs still belong under `results/`, not
+in this directory.
+
 ### Behavior Recovery Finetuning Rows
 
 - `behavior_recovery_training_rows.jsonl`

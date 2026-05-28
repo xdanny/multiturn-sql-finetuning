@@ -65,11 +65,19 @@ direct-SQL control rows:
 
 - `docs/data_artifacts/metric_dsl_training_rows.jsonl`
 - `docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl`
+- `docs/data_artifacts/metric_dsl_prediction_inputs.jsonl`
+- `docs/data_artifacts/metric_dsl_direct_sql_prediction_inputs.jsonl`
 
-Generate them with:
+Generate the training rows with:
 
 ```bash
 uv run --active --no-sync python -m data.metric_dsl_training_rows
+```
+
+Generate the paired prediction input rows with:
+
+```bash
+uv run --active --no-sync python -m data.metric_dsl_prediction_inputs
 ```
 
 Metric DSL smoke:

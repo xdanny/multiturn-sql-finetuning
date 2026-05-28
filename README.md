@@ -34,7 +34,9 @@ Generated-history rollout evaluation is documented in
 `docs/rollout_eval_contract.md` and implemented in `eval.rollout_eval`.
 The checked-in files under `docs/data_artifacts/` are explained in
 `docs/data_artifacts/README.md`; use that guide before adding new generated
-files to the repo.
+files to the repo. Metric DSL now has separate training rows and prediction
+input rows, so generation-time prompts can stay separate from scorer-only
+reference fields.
 
 > Oracle diagnostic: the `0.890` schema-pruned result uses gold SQL-derived
 > planning hints in the eval prompt. It is an upper bound for the
