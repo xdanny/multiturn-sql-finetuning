@@ -209,7 +209,8 @@ row artifacts, run:
 
 ```bash
 uv run --active --no-sync python -m eval.method_readiness \
-  --output results/method_readiness/<run-id>.json
+  --output results/method_readiness/<run-id>.json \
+  --fail-on-missing-required
 ```
 
 This report is a status summary. It does not replace scored generations or the

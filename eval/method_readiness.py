@@ -227,6 +227,36 @@ def _paths_ready(path_status: dict[str, bool], *, required: bool) -> bool:
     return bool(path_status) and all(path_status.values())
 
 
+def required_readiness_failures(rows: list[dict[str, Any]]) -> list[str]:
+    """Return missing required path checks from method-readiness rows."""
+
+    failures = []
+    for row in rows:
+        method = row["method"]
+        if row["smoke_rows_required"] and not row["smoke_rows_ready"]:
+            missing = [
+                path
+                for path, exists in row["training_rows"].items()
+                if not exists
+            ]
+            failures.append(f"{method}: missing smoke rows: {', '.join(missing)}")
+        if row["control_rows_required"] and not row["control_rows_ready"]:
+            missing = [
+                path
+                for path, exists in row["control_rows"].items()
+                if not exists
+            ]
+            failures.append(f"{method}: missing control rows: {', '.join(missing)}")
+        if not row["evaluators_ready"]:
+            missing = [
+                path
+                for path, exists in row["evaluator_paths"].items()
+                if not exists
+            ]
+            failures.append(f"{method}: missing evaluators: {', '.join(missing)}")
+    return failures
+
+
 def build_method_readiness(*, ledger_path: Path, repo_root: Path) -> list[dict[str, Any]]:
     """Return deterministic method-readiness rows from the claim ledger."""
 
@@ -328,6 +358,11 @@ def main() -> int:
         type=Path,
         default=Path("docs/method_readiness_report.json"),
     )
+    parser.add_argument(
+        "--fail-on-missing-required",
+        action="store_true",
+        help="Exit non-zero if a required smoke row, control row, or evaluator path is missing.",
+    )
     args = parser.parse_args()
     repo_root = Path.cwd()
     rows = write_method_readiness_report(
@@ -336,6 +371,12 @@ def main() -> int:
         repo_root=repo_root,
     )
     print(f"Wrote {len(rows)} method readiness rows to {args.output}")
+    if args.fail_on_missing_required:
+        failures = required_readiness_failures(rows)
+        for failure in failures:
+            print(f"Missing required readiness input: {failure}")
+        if failures:
+            return 1
     return 0
 
 
