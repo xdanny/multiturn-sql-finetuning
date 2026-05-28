@@ -274,19 +274,25 @@ def summarize_eval_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
 
     if not results:
         return {}
+    strict_scores = [
+        result["execution_score"]
+        if result.get("strict_execution_score") is None
+        else result["strict_execution_score"]
+        for result in results
+    ]
+    value_scores = [
+        result["execution_score"]
+        if result.get("value_execution_score") is None
+        else result["value_execution_score"]
+        for result in results
+    ]
     mean_generation_latency_ms = sum(
         float(result.get("generation_latency_ms") or 0.0) for result in results
     ) / len(results)
     metrics = {
         "execution_accuracy": sum(result["execution_score"] for result in results) / len(results),
-        "strict_execution_accuracy": sum(
-            result.get("strict_execution_score", result["execution_score"]) for result in results
-        )
-        / len(results),
-        "value_execution_accuracy": sum(
-            result.get("value_execution_score", result["execution_score"]) for result in results
-        )
-        / len(results),
+        "strict_execution_accuracy": sum(strict_scores) / len(results),
+        "value_execution_accuracy": sum(value_scores) / len(results),
         "syntax_accuracy": sum(float(bool(result.get("syntax_valid"))) for result in results)
         / len(results),
         "mean_generation_latency_ms": mean_generation_latency_ms,

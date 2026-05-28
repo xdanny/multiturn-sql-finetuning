@@ -28,7 +28,7 @@ clean-history conditioning.
 ## Command
 
 ```bash
-python -m eval.rollout_eval \
+uv run --active --no-sync python -m eval.rollout_eval \
   --model-name <served-model-name> \
   --endpoint http://127.0.0.1:8000/v1 \
   --input data/processed/eval_cosql_dev_100.jsonl \
@@ -39,6 +39,21 @@ python -m eval.rollout_eval \
 The runner writes a result manifest next to the output unless
 `--manifest-output` is supplied.
 
+For the behavior/recovery smoke path, use the paired runner so the rollout and
+teacher-forced control are produced from the same input file and run id:
+
+```bash
+uv run --active --no-sync python -m eval.run_behavior_recovery_comparison \
+  --model-name <served-model-name> \
+  --endpoint http://127.0.0.1:8000/v1 \
+  --input docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl \
+  --output-dir results/rollout \
+  --run-id <run-id>
+```
+
+It writes `<run-id>.rollout.jsonl`, `<run-id>.teacher_forced.jsonl`, and
+`<run-id>.comparison.manifest.json`.
+
 ## Compare Against Teacher-Forced History
 
 Rollout accuracy by itself does not prove behavior or recovery improved. The
@@ -46,7 +61,7 @@ comparison must use the same model and exact same prepared input hash under the
 teacher-forced evaluator:
 
 ```bash
-python -m eval.compare_rollout_history \
+uv run --active --no-sync python -m eval.compare_rollout_history \
   --rollout-manifest results/rollout/<run-id>.manifest.json \
   --teacher-forced-manifest results/teacher_forced/<run-id>.manifest.json \
   --output results/rollout/<run-id>.compared.manifest.json

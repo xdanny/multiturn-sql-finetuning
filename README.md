@@ -33,8 +33,8 @@ offline through `eval.generate_metric_dsl_predictions`, `eval.metric_dsl_eval`, 
 Generated-history rollout evaluation is documented in
 `docs/rollout_eval_contract.md`, seeded by
 `data.behavior_recovery_rollout_inputs`, and implemented in
-`eval.rollout_eval` with `eval.behavior_recovery_teacher_forced` as the
-teacher-forced comparison arm.
+`eval.run_behavior_recovery_comparison`, which writes rollout, teacher-forced,
+and comparison artifacts from one run id.
 The checked-in files under `docs/data_artifacts/` are explained in
 `docs/data_artifacts/README.md`; use that guide before adding new generated
 files to the repo. Metric DSL now has separate training rows and prediction
@@ -445,29 +445,23 @@ the current SQL when prior turns are clean reference SQL? Rollout evaluation ask
 the harder multi-turn question: what happens when the model has to continue from
 its own earlier SQL?
 
+The behavior/recovery smoke path uses a small synthetic rollout input first, so
+the paired control can be checked before spending endpoint time on the larger
+CoSQL proxy slice:
+
 ```bash
-python -m eval.rollout_eval \
+uv run --active --no-sync python -m eval.run_behavior_recovery_comparison \
   --model-name multiturn-sql-100 \
   --endpoint http://127.0.0.1:8000/v1 \
-  --input data/processed/eval_cosql_dev_100.jsonl \
-  --database-root data/raw/cosql_dataset/database \
-  --output results/rollout/multiturn_sql_100_cosql_dev_100_rollout.jsonl
+  --input docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl \
+  --output-dir results/rollout \
+  --run-id multiturn_sql_100_behavior_recovery
 ```
 
-The runner writes `history_policy=model_generated_sql_rollout` rows and a result
-manifest. The claim ledger keeps the behavior/recovery improvement claim pending
-until a rollout result is compared against the same model and input under
-teacher-forced history.
-
-```bash
-python -m eval.compare_rollout_history \
-  --rollout-manifest results/rollout/multiturn_sql_100_cosql_dev_100_rollout.manifest.json \
-  --teacher-forced-manifest results/teacher_forced/multiturn_sql_100_cosql_dev_100.manifest.json \
-  --output results/rollout/multiturn_sql_100_cosql_dev_100_rollout.compared.manifest.json
-```
-
-The comparison command refuses mismatched models, mismatched input hashes, oracle
-diagnostics, and non-rollout manifests.
+The paired runner writes generated-history rollout rows, a teacher-forced control
+on the same input rows, and one comparison manifest. The comparison refuses
+mismatched models, mismatched input hashes, oracle diagnostics, and non-rollout
+manifests.
 
 The optional `data.prepare --manifest-output` file records dataset composition:
 source counts, evaluation modes, turn formats, history policies, assistant-turn

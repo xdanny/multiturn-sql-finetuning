@@ -154,11 +154,9 @@ Supporting measurements:
 Evidence gate:
 
 - generated-history rollout input from `data.behavior_recovery_rollout_inputs`,
-- `eval.rollout_eval` manifest with
-  `history_policy=model_generated_sql_rollout`,
-- `eval.behavior_recovery_teacher_forced` manifest on the same input when
-  checking rollout-vs-teacher-forced behavior,
-- `eval.compare_rollout_history` comparison manifest.
+- `eval.run_behavior_recovery_comparison` output containing the generated-history
+  rollout manifest, same-input teacher-forced control manifest, and comparison
+  manifest.
 
 What it means:
 

@@ -247,7 +247,7 @@ provenance marker must match before the ledger can clear
 Run generated-history rollout without teacher-forcing prior gold SQL:
 
 ```bash
-python -m eval.rollout_eval \
+uv run --active --no-sync python -m eval.rollout_eval \
   --model-name <served-model-name> \
   --endpoint http://127.0.0.1:8000/v1 \
   --input data/processed/eval_cosql_dev_100.jsonl \
@@ -262,11 +262,14 @@ until the ledger also has same-model teacher-forced comparison metrics.
 Create those comparison metrics with:
 
 ```bash
-python -m eval.compare_rollout_history \
+uv run --active --no-sync python -m eval.compare_rollout_history \
   --rollout-manifest results/rollout/<run-id>.manifest.json \
   --teacher-forced-manifest results/teacher_forced/<run-id>.manifest.json \
   --output results/rollout/<run-id>.compared.manifest.json
 ```
+
+For behavior/recovery smoke inputs, `eval.run_behavior_recovery_comparison`
+produces the rollout, teacher-forced control, and comparison manifest together.
 
 The comparison command requires the same model, same input hash, non-oracle
 manifests, and a positive rollout value delta before the claim ledger can clear
