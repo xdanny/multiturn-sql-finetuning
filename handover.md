@@ -12,7 +12,10 @@ Date: 2026-05-26
 
 ## Working finetune recipe
 
-The successful 5-step smoke run used:
+The original successful 5-step smoke run used a local Stage 3 artifact from a
+temporary branch. Current `main` should use the smoke matrix in
+`docs/finetuning_smoke_matrix.md` instead. The equivalent current-main semantic
+smoke command is:
 
 ```bash
 CC=/home/dan/.local/bin/cc \
@@ -20,16 +23,11 @@ ZIG_LOCAL_CACHE_DIR=/tmp/zig-cache \
 ZIG_GLOBAL_CACHE_DIR=/tmp/zig-global-cache \
 uv run --active --no-sync python -m train.finetune \
   --config configs/qwen35_9b_5090.yaml \
-  --data docs/data_artifacts/semantic_layer_training_rows.jsonl \
-  --eval-data docs/data_artifacts/semantic_layer_training_rows.jsonl \
-  --output-dir outputs/experiments/semantic_layer_5steps \
+  --data data/processed/train_semantic_smoke.jsonl \
+  --eval-data data/processed/train_semantic_smoke.jsonl \
+  --output-dir outputs/experiments/semantic_context_smoke \
   --max-steps 5 \
-  --report-to none \
-  --expected-training-target semantic_layer \
-  --expected-evaluation-mode non_oracle_generation \
-  --expected-benchmark synthetic_semantic_layer \
-  --training-manifest-output outputs/experiments/semantic_layer_5steps/training.manifest.json \
-  --run-id semantic-layer-5steps
+  --report-to none
 ```
 
 ## Observed result
@@ -53,42 +51,7 @@ uv run --active --no-sync python -m train.finetune \
 
 ## Recommended next runs
 
-1. Metric DSL smoke:
+See `docs/finetuning_smoke_matrix.md`.
 
-```bash
-CC=/home/dan/.local/bin/cc \
-ZIG_LOCAL_CACHE_DIR=/tmp/zig-cache \
-ZIG_GLOBAL_CACHE_DIR=/tmp/zig-global-cache \
-uv run --active --no-sync python -m train.finetune \
-  --config configs/qwen35_9b_5090.yaml \
-  --data docs/data_artifacts/metric_dsl_training_rows.jsonl \
-  --eval-data docs/data_artifacts/metric_dsl_training_rows.jsonl \
-  --output-dir outputs/experiments/metric_dsl_5steps \
-  --max-steps 5 \
-  --report-to none \
-  --expected-training-target metric_dsl \
-  --expected-evaluation-mode metric_dsl \
-  --expected-benchmark synthetic_metric_dsl_bootstrap \
-  --training-manifest-output outputs/experiments/metric_dsl_5steps/training.manifest.json \
-  --run-id metric-dsl-5steps
-```
-
-2. Behavior recovery proxy smoke:
-
-```bash
-CC=/home/dan/.local/bin/cc \
-ZIG_LOCAL_CACHE_DIR=/tmp/zig-cache \
-ZIG_GLOBAL_CACHE_DIR=/tmp/zig-global-cache \
-uv run --active --no-sync python -m train.finetune \
-  --config configs/qwen35_9b_5090.yaml \
-  --data docs/data_artifacts/behavior_recovery_proxy_train.jsonl \
-  --eval-data docs/data_artifacts/behavior_recovery_proxy_eval.jsonl \
-  --output-dir outputs/experiments/behavior_recovery_proxy_5steps \
-  --max-steps 5 \
-  --report-to none \
-  --expected-training-target behavior_recovery \
-  --expected-evaluation-mode non_oracle_generation \
-  --expected-benchmark prepared \
-  --training-manifest-output outputs/experiments/behavior_recovery_proxy_5steps/training.manifest.json \
-  --run-id behavior-recovery-proxy-5steps
-```
+Metric DSL and behavior/recovery still need small canonical finetuning-row PRs
+before they can run as training targets on current `main`.

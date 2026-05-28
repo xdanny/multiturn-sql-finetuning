@@ -17,6 +17,9 @@ behavior/recovery tuning.
 See `docs/finetuning_ladder.md` for the compact step-by-step map of those
 methods, their controls, and the evidence needed before a method can be called a
 win.
+See `docs/finetuning_smoke_matrix.md` for the current-main smoke commands and
+the method rows that still need to be added before metric-DSL or recovery
+finetuning can run.
 
 The first metric-DSL experiment surface is documented in
 `docs/metric_dsl_contract.md`, implemented in `data.metric_dsl`, and evaluated
