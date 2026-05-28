@@ -103,9 +103,9 @@ Supporting measurements:
 
 Evidence gate:
 
-- `eval.metric_dsl_eval` manifest for metric-DSL predictions,
-- direct-SQL result manifest on the same row identities,
-- `eval.compare_metric_dsl_direct_sql` comparison manifest.
+- `eval.run_metric_dsl_comparison` output under `results/metric_dsl/`,
+  containing the metric-DSL result manifest, the direct-SQL control manifest,
+  and the same-row comparison manifest.
 
 What it means:
 

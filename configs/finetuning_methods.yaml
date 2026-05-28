@@ -95,11 +95,15 @@ methods:
     evaluator_paths:
       - eval/metric_dsl_eval.py
       - eval/compare_metric_dsl_direct_sql.py
+      - eval/run_metric_dsl_comparison.py
     next_command: >-
-      uv run --active --no-sync python -m eval.metric_dsl_eval
-      --input results/metric_dsl/<run-id>.predictions.jsonl
-      --manifest-output results/metric_dsl/<run-id>.manifest.json;
-      uv run --active --no-sync python -m eval.compare_metric_dsl_direct_sql ...
+      uv run --active --no-sync python -m eval.run_metric_dsl_comparison
+      --metric-dsl-predictions results/metric_dsl/<run-id>.metric_predictions.jsonl
+      --direct-sql-predictions results/metric_dsl/<run-id>.direct_predictions.jsonl
+      --output-dir results/metric_dsl
+      --run-id <run-id>
+      --metric-dsl-model-name <metric-dsl-adapter>
+      --direct-sql-model-name <direct-sql-adapter>
     next_artifact: metric-DSL prediction manifest plus direct-SQL comparison
     claim_boundary: Parser/compiler exist; no metric-DSL method win yet.
     rankable_when: Rank after compiled metric DSL beats direct SQL on same metric-heavy rows.
