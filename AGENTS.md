@@ -30,5 +30,6 @@ When editing broadly, inspect:
 - `docs/research_goal.md`
 - `docs/methodology.md`
 - `docs/finetuning_ladder.md`
+- `docs/finetuning_measurement_plan.md`
 - `docs/data_artifacts/README.md`
 - `train/AGENTS.md`

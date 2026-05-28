@@ -2,7 +2,8 @@
 
 This file is the short operational map for the SQL finetuning program. The
 research narrative lives in `docs/research_goal.md`; the broader evaluation
-rules live in `docs/methodology.md` and `docs/evidence_contract.md`.
+rules live in `docs/methodology.md`, `docs/evidence_contract.md`, and
+`docs/finetuning_measurement_plan.md`.
 
 The ladder exists so new work does not turn into a pile of unrelated runs. Each
 step says what the model is supposed to learn, what it should be compared

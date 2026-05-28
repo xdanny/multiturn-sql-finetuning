@@ -7,6 +7,8 @@ benchmark result table. Its job is to answer one practical question:
 > without crossing an oracle boundary?
 
 Use these commands before scaling a method or writing a benchmark claim.
+Use `docs/finetuning_measurement_plan.md` to decide which scored outputs and
+comparison manifests are required after a smoke run.
 
 ## WSL GPU Environment
 
