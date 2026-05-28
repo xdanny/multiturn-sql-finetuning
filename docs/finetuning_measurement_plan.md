@@ -108,6 +108,8 @@ Supporting measurements:
 
 Evidence gate:
 
+- generated prediction JSONL for both arms from
+  `eval.generate_metric_dsl_predictions`,
 - `eval.run_metric_dsl_comparison` output under `results/metric_dsl/`,
   containing the metric-DSL result manifest, the direct-SQL control manifest,
   and the same-row comparison manifest.

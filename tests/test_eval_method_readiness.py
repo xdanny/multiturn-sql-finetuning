@@ -130,7 +130,9 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
         "metric_dsl_evaluation_manifest",
         "metric_dsl_beats_direct_sql",
     ]
+    assert "eval.generate_metric_dsl_predictions" in metric["next_command"]
     assert "eval.run_metric_dsl_comparison" in metric["next_command"]
+    assert metric["evaluator_paths"]["eval/generate_metric_dsl_predictions.py"] is True
     assert metric["evaluator_paths"]["eval/run_metric_dsl_comparison.py"] is True
 
     recovery = methods["Behavior/recovery tuning"]

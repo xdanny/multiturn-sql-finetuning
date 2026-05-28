@@ -103,10 +103,19 @@ methods:
       - docs/data_artifacts/metric_dsl_direct_sql_prediction_inputs.jsonl
     prediction_input_rows_required: true
     evaluator_paths:
+      - eval/generate_metric_dsl_predictions.py
       - eval/metric_dsl_eval.py
       - eval/compare_metric_dsl_direct_sql.py
       - eval/run_metric_dsl_comparison.py
     next_command: >-
+      uv run --active --no-sync python -m eval.generate_metric_dsl_predictions
+      --input docs/data_artifacts/metric_dsl_prediction_inputs.jsonl
+      --output results/metric_dsl/<run-id>.metric_predictions.jsonl
+      --model-name <metric-dsl-adapter>;
+      uv run --active --no-sync python -m eval.generate_metric_dsl_predictions
+      --input docs/data_artifacts/metric_dsl_direct_sql_prediction_inputs.jsonl
+      --output results/metric_dsl/<run-id>.direct_predictions.jsonl
+      --model-name <direct-sql-adapter>;
       uv run --active --no-sync python -m eval.run_metric_dsl_comparison
       --metric-dsl-predictions results/metric_dsl/<run-id>.metric_predictions.jsonl
       --direct-sql-predictions results/metric_dsl/<run-id>.direct_predictions.jsonl
