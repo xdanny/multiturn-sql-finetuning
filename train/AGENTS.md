@@ -9,10 +9,8 @@ Primary responsibilities:
 - Reject misleading training inputs before GPU time is spent.
 - Make run naming, stage naming, and mixture intent explicit in documentation
   and command examples.
-- Emit a machine-checkable training manifest before and after runs so later
-  eval artifacts can be tied back to an exact training input.
-- Keep `data.finetuning_program_registry` aligned with any new training target
-  or benchmark contract added here.
+- Keep command examples aligned with the actual `train.finetune` CLI on
+  current `main`.
 
 Rules:
 
@@ -28,11 +26,10 @@ Rules:
 - Before committing generated data under `docs/data_artifacts/`, check
   `docs/data_artifacts/README.md`. Most run-specific files belong under
   `outputs/` or `results/`, not in the source tree.
-- When a finetuning stage has a fixed contract, pass
-  `--expected-training-target`, `--expected-evaluation-mode`, and
-  `--expected-benchmark` so mislabeled datasets fail before training.
-- Use `--run-id` and `--training-manifest-output` when a run is intended to
-  feed a benchmark claim or a same-row method comparison.
+- Current `train.finetune` supports `--validate-data-only`, `--dry-run`,
+  `--max-steps`, `--output-dir`, `--report-to`, and
+  `--allow-oracle-diagnostic-data`. Do not document unimplemented flags as if
+  they already exist.
 - If a new finetuning target is added, document which control it is expected to
   beat and which eval command clears that claim.
 
@@ -40,6 +37,6 @@ When editing here, inspect:
 
 - `train/finetune.py`
 - `docs/finetuning_ladder.md`
-- `data/finetuning_program_registry.py`
+- `docs/finetuning_smoke_matrix.md`
 - `docs/research_goal.md`
 - `tests/test_train_finetune.py`
