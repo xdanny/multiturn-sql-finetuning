@@ -16,9 +16,9 @@ Primary responsibilities:
 Rules:
 
 - Use `uv run ...` for Python commands in docs and local verification.
-- Do not expose future turns, reference SQL, gold plans, repair labels, or
-  expected rows to model prompts unless the run is explicitly labeled as an
-  oracle diagnostic.
+- Do not expose future turns, reference SQL, gold plans, gold metric DSL, repair
+  labels, or expected rows to model prompts unless the run is explicitly labeled
+  as an oracle diagnostic.
 - Keep contract tests focused. Add tests for shared behavior or leakage
   prevention, not broad generated-file freshness checks.
 - Before adding files under `docs/data_artifacts/`, read
@@ -35,3 +35,9 @@ When editing broadly, inspect:
 - `docs/AGENTS.md`
 - `configs/AGENTS.md`
 - `train/AGENTS.md`
+- `eval/AGENTS.md`
+- `data/AGENTS.md`
+- `tests/AGENTS.md`
+- `notebooks/AGENTS.md`
+- `scripts/AGENTS.md`
+- `serve/AGENTS.md`
