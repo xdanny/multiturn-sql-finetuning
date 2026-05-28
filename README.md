@@ -31,7 +31,9 @@ The first metric-DSL experiment surface is documented in
 offline through `eval.generate_metric_dsl_predictions`, `eval.metric_dsl_eval`, and
 `eval.run_metric_dsl_comparison`.
 Generated-history rollout evaluation is documented in
-`docs/rollout_eval_contract.md` and implemented in `eval.rollout_eval`.
+`docs/rollout_eval_contract.md`, seeded by
+`data.behavior_recovery_rollout_inputs`, and implemented in
+`eval.rollout_eval`.
 The checked-in files under `docs/data_artifacts/` are explained in
 `docs/data_artifacts/README.md`; use that guide before adding new generated
 files to the repo. Metric DSL now has separate training rows and prediction

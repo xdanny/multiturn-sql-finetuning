@@ -141,11 +141,17 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
     assert recovery["smoke_rows_required"] is True
     assert recovery["control_rows_required"] is True
     assert recovery["control_rows_ready"] is True
+    assert recovery["prediction_input_rows_required"] is True
+    assert recovery["prediction_input_rows"] == {
+        "docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl": True
+    }
+    assert recovery["prediction_input_rows_ready"] is True
     assert recovery["evaluators_ready"] is True
     assert recovery["training_rows"] == {
         "docs/data_artifacts/behavior_recovery_training_rows.jsonl": True
     }
     assert "rollout_beats_teacher_forced_history" in recovery["blocking_claim_ids"]
+    assert recovery["evaluator_paths"]["data/behavior_recovery_rollout_inputs.py"] is True
     assert "eval.rollout_eval" in recovery["next_command"]
 
     hosted = methods["Hosted and BIRD-Interact comparison"]

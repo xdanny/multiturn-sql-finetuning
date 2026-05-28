@@ -79,6 +79,17 @@ Use these rows to smoke-test whether the training path can learn from generated
 history and repair context. A behavior/recovery claim still needs generated
 predictions evaluated under rollout, not teacher-forced history.
 
+### Behavior Recovery Rollout Inputs
+
+- `behavior_recovery_rollout_inputs.jsonl`
+- `behavior_recovery_rollout_inputs_summary.json`
+- `behavior_recovery_rollout_inputs.manifest.json`
+
+These rows seed a tiny generated-history recovery dialog. The previous failed
+SQL is visible as prior assistant history, while the repair SQL remains a
+held-out assistant label for the final turn. Use this artifact to smoke the
+rollout path before spending endpoint time on the larger CoSQL proxy slice.
+
 ### Value Grounding Labels
 
 - `value_grounding_labels_cosql_dev_100.jsonl`
