@@ -33,4 +33,5 @@ When editing broadly, inspect:
 - `docs/finetuning_measurement_plan.md`
 - `docs/data_artifacts/README.md`
 - `docs/AGENTS.md`
+- `configs/AGENTS.md`
 - `train/AGENTS.md`
