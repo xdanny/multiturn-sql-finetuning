@@ -5,11 +5,31 @@ from pathlib import Path
 
 from eval.method_readiness import (
     build_method_readiness,
+    load_method_configs,
     required_readiness_failures,
     write_method_readiness_report,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_method_readiness_loads_method_arms_from_config() -> None:
+    configs = load_method_configs(REPO_ROOT / "configs" / "finetuning_methods.yaml")
+
+    assert [config["method"] for config in configs] == [
+        "Direct SQL SFT",
+        "Planner/DSL first, SQL second",
+        "Semantic-layer tuning",
+        "MEASURE()-preserving metric DSL",
+        "Behavior/recovery tuning",
+        "Hosted and BIRD-Interact comparison",
+    ]
+    assert configs[0]["training_rows"] == ("data/processed/train_smoke.jsonl",)
+    assert configs[0]["smoke_rows_required"] is True
+    assert configs[0]["control_rows"] == ()
+    assert configs[0]["control_rows_required"] is False
+    assert configs[0]["next_command"].startswith("uv run --active --no-sync")
+    assert "reference SQL" not in configs[0]["next_command"].lower()
 
 
 def test_method_readiness_maps_claims_to_next_actions() -> None:

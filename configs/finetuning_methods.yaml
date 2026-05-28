@@ -1,0 +1,152 @@
+schema_version: 1
+methods:
+  - method: Direct SQL SFT
+    readiness_level: control_ready
+    supported_claim_ids:
+      - qwen35_9b_base_cosql_dev_100turns
+      - multiturn_sql_100_cosql_dev_100turns
+    blocking_claim_ids:
+      - hosted_sota_same_protocol
+      - local_beats_hosted_same_protocol
+      - bird_interact_local_vs_hosted
+    module_path: eval/run_eval.py
+    training_rows:
+      - data/processed/train_smoke.jsonl
+    smoke_rows_required: true
+    control_rows: []
+    control_rows_required: false
+    evaluator_paths:
+      - eval/run_eval.py
+      - eval/local_benchmark.py
+    next_command: >-
+      uv run --active --no-sync python -m eval.run_eval
+      --input data/processed/eval_cosql_dev_100.jsonl
+      --output results/direct_sql/<run-id>.jsonl
+    next_artifact: same-protocol direct SQL manifest on fixed proxy and BIRD-Interact rows
+    claim_boundary: Control arm only; proxy movement is not a hosted/SOTA win.
+    rankable_when: >-
+      Use as the direct-SQL control now; rank against hosted/SOTA only after
+      same-protocol hosted and BIRD-Interact blockers clear.
+
+  - method: Planner/DSL first, SQL second
+    readiness_level: needs_endpoint_comparison
+    supported_claim_ids:
+      - planner_lexical_schema_baseline
+    blocking_claim_ids:
+      - predicted_planner_sql_execution
+    module_path: eval/run_predicted_planner_comparison.py
+    training_rows: []
+    smoke_rows_required: false
+    control_rows:
+      - data/processed/eval_cosql_dev_100.jsonl
+    control_rows_required: true
+    evaluator_paths:
+      - eval/planner_eval.py
+      - eval/run_predicted_planner_comparison.py
+      - eval/compare_predicted_planner.py
+    next_command: >-
+      uv run --active --no-sync python -m eval.planner_optimize ...;
+      uv run --active --no-sync python -m eval.planner_predict ...;
+      uv run --active --no-sync python -m eval.run_predicted_planner_comparison
+      --direct-input ...
+      --predicted-input ...
+    next_artifact: predicted-planner SQL manifest compared against direct SQL
+    claim_boundary: Planner F1 is supported; SQL improvement is still pending.
+    rankable_when: Rank only after predicted-planner SQL beats direct SQL on identical rows.
+
+  - method: Semantic-layer tuning
+    readiness_level: needs_value_entity_retrieval
+    supported_claim_ids:
+      - semantic_prompt_minimal_executable_cosql_dev_100turns
+    blocking_claim_ids:
+      - hosted_sota_same_protocol
+      - local_beats_hosted_same_protocol
+    module_path: data/value_artifacts.py
+    training_rows:
+      - data/processed/train_semantic_smoke.jsonl
+    smoke_rows_required: true
+    control_rows:
+      - data/processed/train_cosql_smoke.jsonl
+    control_rows_required: true
+    evaluator_paths:
+      - eval/run_eval.py
+      - eval/classify_errors.py
+    next_command: >-
+      uv run --active --no-sync python -m data.value_artifacts ...;
+      uv run --active --no-sync python -m data.value_index ...;
+      uv run --active --no-sync python -m eval.classify_errors ...
+    next_artifact: value/entity retrieval manifest and row-matched semantic delta
+    claim_boundary: Semantic prompt movement is proxy evidence, not a proven method win.
+    rankable_when: Rank after value/entity artifacts improve same-row SQL outcomes.
+
+  - method: MEASURE()-preserving metric DSL
+    readiness_level: needs_prediction_manifest
+    supported_claim_ids: []
+    blocking_claim_ids:
+      - metric_dsl_evaluation_manifest
+      - metric_dsl_beats_direct_sql
+    module_path: eval/metric_dsl_eval.py
+    training_rows:
+      - docs/data_artifacts/metric_dsl_training_rows.jsonl
+    smoke_rows_required: true
+    control_rows:
+      - docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl
+    control_rows_required: true
+    evaluator_paths:
+      - eval/metric_dsl_eval.py
+      - eval/compare_metric_dsl_direct_sql.py
+    next_command: >-
+      uv run --active --no-sync python -m eval.metric_dsl_eval
+      --input results/metric_dsl/<run-id>.predictions.jsonl
+      --manifest-output results/metric_dsl/<run-id>.manifest.json;
+      uv run --active --no-sync python -m eval.compare_metric_dsl_direct_sql ...
+    next_artifact: metric-DSL prediction manifest plus direct-SQL comparison
+    claim_boundary: Parser/compiler exist; no metric-DSL method win yet.
+    rankable_when: Rank after compiled metric DSL beats direct SQL on same metric-heavy rows.
+
+  - method: Behavior/recovery tuning
+    readiness_level: needs_rollout_manifest
+    supported_claim_ids: []
+    blocking_claim_ids:
+      - model_generated_history_rollout
+      - rollout_beats_teacher_forced_history
+    module_path: eval/rollout_eval.py
+    training_rows:
+      - docs/data_artifacts/behavior_recovery_training_rows.jsonl
+    smoke_rows_required: true
+    control_rows:
+      - docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl
+    control_rows_required: true
+    evaluator_paths:
+      - eval/rollout_eval.py
+      - eval/compare_rollout_history.py
+    next_command: >-
+      uv run --active --no-sync python -m eval.rollout_eval
+      --input data/processed/eval_cosql_dev_100.jsonl
+      --manifest-output results/rollout/<run-id>.manifest.json;
+      uv run --active --no-sync python -m eval.compare_rollout_history ...
+    next_artifact: generated-history rollout manifest compared with teacher-forced history
+    claim_boundary: Teacher-forced proxy scores do not prove recovery behavior.
+    rankable_when: Rank after generated-history rollout improves over teacher-forced control.
+
+  - method: Hosted and BIRD-Interact comparison
+    readiness_level: needs_hosted_protocol_run
+    supported_claim_ids: []
+    blocking_claim_ids:
+      - hosted_sota_same_protocol
+      - local_beats_hosted_same_protocol
+      - bird_interact_local_vs_hosted
+    module_path: eval/compare_hosted_baseline.py
+    training_rows: []
+    smoke_rows_required: false
+    control_rows: []
+    control_rows_required: false
+    evaluator_paths:
+      - eval/compare_hosted_baseline.py
+    next_command: >-
+      uv run --active --no-sync python -m eval.compare_hosted_baseline
+      --hosted-manifest ...
+      --local-manifest ... --output ...
+    next_artifact: hosted/local comparison manifest plus BIRD-Interact transfer manifest
+    claim_boundary: No hosted/SOTA or BIRD-Interact win is currently supported.
+    rankable_when: Rank after local rows beat hosted rows under the same protocol.

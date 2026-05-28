@@ -215,3 +215,8 @@ uv run --active --no-sync python -m eval.method_readiness \
 
 This report is a status summary. It does not replace scored generations or the
 comparison manifests listed above.
+
+The method arms in that report are loaded from `configs/finetuning_methods.yaml`.
+When adding a new finetuning approach, put its training rows, control rows,
+evaluator paths, next command, and claim boundary there first. Then update the
+matching section in this plan only if the measurement rule itself changes.

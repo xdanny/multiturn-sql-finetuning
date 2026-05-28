@@ -9,6 +9,10 @@ The ladder exists so new work does not turn into a pile of unrelated runs. Each
 step says what the model is supposed to learn, what it should be compared
 against, and what evidence would make the step useful.
 
+The executable registry for these method arms is
+`configs/finetuning_methods.yaml`. Keep that config aligned with this ladder
+when adding a method, changing a control arm, or tightening an evidence gate.
+
 ## Ground Rules
 
 - Direct SQL is the control arm.
