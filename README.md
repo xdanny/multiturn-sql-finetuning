@@ -28,7 +28,8 @@ commands are reviewed as config rather than hidden in evaluator code.
 
 The first metric-DSL experiment surface is documented in
 `docs/metric_dsl_contract.md`, implemented in `data.metric_dsl`, and evaluated
-offline through `eval.metric_dsl_eval`.
+offline through `eval.metric_dsl_eval` and
+`eval.run_metric_dsl_comparison`.
 Generated-history rollout evaluation is documented in
 `docs/rollout_eval_contract.md` and implemented in `eval.rollout_eval`.
 The checked-in files under `docs/data_artifacts/` are explained in

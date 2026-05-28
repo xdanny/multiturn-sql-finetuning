@@ -96,21 +96,24 @@ uv run --active --no-sync python -m train.finetune \
   --report-to none
 ```
 
-The parser and evaluator are available for generated predictions:
+After both adapters generate predictions for the same metric-heavy row
+identities, use the paired runner to score and compare the arms:
 
 ```bash
-uv run --active --no-sync python -m eval.metric_dsl_eval \
-  --input results/metric_dsl/<run-id>.predictions.jsonl \
-  --output results/metric_dsl/<run-id>.jsonl \
-  --manifest-output results/metric_dsl/<run-id>.manifest.json \
+uv run --active --no-sync python -m eval.run_metric_dsl_comparison \
+  --metric-dsl-predictions results/metric_dsl/<run-id>.metric_predictions.jsonl \
+  --direct-sql-predictions results/metric_dsl/<run-id>.direct_predictions.jsonl \
+  --output-dir results/metric_dsl \
   --run-id <run-id> \
-  --model-name <model-or-adapter>
+  --metric-dsl-model-name <metric-dsl-adapter> \
+  --direct-sql-model-name <direct-sql-adapter>
 ```
 
 What this proves: the metric-DSL and same-fixture direct-SQL training targets
 both load through the current SFT path. It does not prove the DSL path wins.
 That claim needs generated predictions from both adapters, database-backed
-execution scoring, and `eval.compare_metric_dsl_direct_sql`.
+execution scoring, and a positive comparison manifest from
+`eval.run_metric_dsl_comparison`.
 
 ## Behavior And Recovery Status
 
