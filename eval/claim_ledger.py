@@ -18,6 +18,10 @@ from typing import Any
 from eval.result_manifest import sha256_file
 
 PRODUCTION_MODES = {"non_oracle_generation", "predicted_planner"}
+DEFAULT_MANIFEST_PATHS = (
+    Path("docs/result_manifests/cosql_dev_100_proxy.json"),
+    Path("docs/result_manifests/metric_dsl_bootstrap.json"),
+)
 HOSTED_ENDPOINT_PREFIXES = ("https://", "anthropic:", "google:")
 HOSTED_LATENCY_KEYS = (
     "mean_latency_ms",
@@ -146,6 +150,17 @@ PENDING_CLAIMS = (
 
 def _load_json(path: Path) -> Any:
     return json.loads(path.read_text())
+
+
+def _load_manifests(paths: Iterable[Path]) -> list[dict[str, Any]]:
+    manifests = []
+    for path in paths:
+        payload = _load_json(path)
+        if isinstance(payload, dict):
+            manifests.append(payload)
+        else:
+            manifests.extend(payload)
+    return manifests
 
 
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -290,6 +305,8 @@ def _classified_path_for_output(repo_root: Path, classified_dir: Path | None, ou
 
 def _claim_status(manifest: dict[str, Any]) -> str:
     mode = manifest.get("evaluation_mode")
+    if manifest.get("benchmark") == METRIC_DSL_DIRECT_SQL:
+        return "supported_method_control"
     if mode == "oracle_planner_diagnostic" or manifest.get("oracle_allowed"):
         return "diagnostic_upper_bound"
     if mode == METRIC_DSL and manifest.get("benchmark") == METRIC_DSL:
@@ -302,6 +319,7 @@ def _claim_status(manifest: dict[str, Any]) -> str:
 def _allowed_public_claim(status: str) -> str:
     return {
         "diagnostic_upper_bound": "oracle planner diagnostic only",
+        "supported_method_control": "method control only, not a benchmark result",
         "supported_metric_dsl_quality": "metric-DSL quality only, not direct SQL superiority",
         "supported_proxy": "local proxy result only",
         "pending": "pending until required artifacts are present",
@@ -695,7 +713,7 @@ def _has_matching_metric_dsl_direct_sql_row(
             continue
         if row.get("artifact_type") != "result_manifest" or not row.get("artifact_valid"):
             return False
-        if not row.get("production_claim_allowed"):
+        if row.get("claim_status") != "supported_method_control":
             return False
         if row.get("evaluation_mode") != NON_ORACLE_GENERATION:
             return False
@@ -994,7 +1012,8 @@ def _has_matching_teacher_forced_row(
 
 def build_claim_ledger(
     *,
-    manifest_path: Path,
+    manifest_path: Path | None = None,
+    manifest_paths: Iterable[Path] | None = None,
     repo_root: Path = Path("."),
     classified_dir: Path | None = Path("results/classified"),
     planner_summary_path: Path | None = None,
@@ -1002,9 +1021,11 @@ def build_claim_ledger(
     """Build claim ledger rows from tracked manifests and analysis artifacts."""
 
     repo_root = repo_root.resolve()
-    manifests = _load_json(manifest_path)
-    if isinstance(manifests, dict):
-        manifests = [manifests]
+    if manifest_paths is None:
+        if manifest_path is None:
+            raise ValueError("build_claim_ledger requires at least one manifest path")
+        manifest_paths = (manifest_path,)
+    manifests = _load_manifests(manifest_paths)
     resolved_classified_dir = _repo_path(repo_root, str(classified_dir)) if classified_dir else None
     rows = [
         _manifest_row(manifest, repo_root=repo_root, classified_dir=resolved_classified_dir)
@@ -1083,11 +1104,7 @@ def write_claim_summary(rows: Iterable[dict[str, Any]], output_path: Path) -> No
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--manifest",
-        type=Path,
-        default=Path("docs/result_manifests/cosql_dev_100_proxy.json"),
-    )
+    parser.add_argument("--manifest", type=Path, action="append", dest="manifests")
     parser.add_argument("--repo-root", type=Path, default=Path("."))
     parser.add_argument("--classified-dir", type=Path, default=Path("results/classified"))
     parser.add_argument(
@@ -1106,9 +1123,10 @@ def main() -> int:
         default=Path("docs/claim_ledgers/cosql_dev_100_summary.csv"),
     )
     args = parser.parse_args()
+    manifests = args.manifests or list(DEFAULT_MANIFEST_PATHS)
 
     rows = build_claim_ledger(
-        manifest_path=args.manifest,
+        manifest_paths=manifests,
         repo_root=args.repo_root,
         classified_dir=args.classified_dir,
         planner_summary_path=args.planner_summary,

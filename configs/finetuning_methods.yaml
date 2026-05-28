@@ -123,9 +123,9 @@ methods:
     evidence_gate: >-
       eval.run_metric_dsl_comparison manifests with parse, compile,
       measure-preservation, and positive value-delta metrics
-    supported_claim_ids: []
+    supported_claim_ids:
+      - metric-dsl-bootstrap.metric_dsl
     blocking_claim_ids:
-      - metric_dsl_evaluation_manifest
       - metric_dsl_beats_direct_sql
     module_path: eval/metric_dsl_eval.py
     training_rows:

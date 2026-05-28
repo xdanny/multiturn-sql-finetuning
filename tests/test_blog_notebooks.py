@@ -156,7 +156,7 @@ def test_notebook_support_loads_current_artifacts() -> None:
 
     claims = claim_table()
     assert "rollout_beats_teacher_forced_history" in set(claims["claim_id"])
-    assert "metric_dsl_evaluation_manifest" in set(claims["claim_id"])
+    assert "metric-dsl-bootstrap.metric_dsl" in set(claims["claim_id"])
     assert "metric_dsl_beats_direct_sql" in set(claims["claim_id"])
     assert "local_beats_hosted_same_protocol" in set(claims["claim_id"])
     rollout = claims[claims["claim_id"] == "rollout_beats_teacher_forced_history"].iloc[0]
@@ -165,6 +165,8 @@ def test_notebook_support_loads_current_artifacts() -> None:
     metric_comparison = claims[claims["claim_id"] == "metric_dsl_beats_direct_sql"].iloc[0]
     assert metric_comparison["claim_status"] == "pending"
     assert "metric-DSL" in metric_comparison["allowed_public_claim"]
+    metric_quality = claims[claims["claim_id"] == "metric-dsl-bootstrap.metric_dsl"].iloc[0]
+    assert metric_quality["claim_status"] == "supported_metric_dsl_quality"
 
     planner = planner_scorecard()
     assert "column_f1" in set(planner["metric"])
@@ -685,7 +687,8 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert "macro=0.571" in planner_row["manifest_backed_evidence"]
     assert "predicted_planner_sql_execution" in planner_row["source_claim_ids"]
     assert "pending" in planner_row["evidence_level"]
-    assert "metric-DSL prediction/comparison manifest" in metric_row["manifest_backed_evidence"]
+    assert "bootstrap metric-DSL manifest" in metric_row["manifest_backed_evidence"]
+    assert "supported_metric_dsl_quality" in metric_row["evidence_level"]
     assert "0.530 strict" in direct_row["manifest_backed_evidence"]
     assert "baseline every structured target must beat" in direct_row["current_decision"]
 
@@ -799,7 +802,7 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert gate_claim_ids <= known_claim_ids
     assert {
         "rollout_beats_teacher_forced_history",
-        "metric_dsl_evaluation_manifest",
+        "metric-dsl-bootstrap.metric_dsl",
         "hosted_sota_same_protocol",
         "local_beats_hosted_same_protocol",
         "bird_interact_local_vs_hosted",

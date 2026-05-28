@@ -40,10 +40,13 @@ The current ledger is intentionally conservative:
 - oracle-planner rows are `diagnostic_upper_bound`;
 - planner summaries are `supported_planner_quality`, not SQL accuracy;
 - generated-history rollout existence, rollout-vs-teacher-forced improvement,
-  predicted-planner SQL execution, metric-DSL evaluation, metric-DSL-vs-direct-SQL
-  improvement, hosted baseline existence, local-vs-hosted outperformance, and
-  BIRD-Interact comparison remain `pending` until same-protocol result manifests
-  and positive comparison deltas exist.
+  predicted-planner SQL execution, metric-DSL-vs-direct-SQL improvement, hosted
+  baseline existence, local-vs-hosted outperformance, and BIRD-Interact
+  comparison remain `pending` until same-protocol result manifests and positive
+  comparison deltas exist;
+- the metric-DSL bootstrap is supported as metric-DSL quality evidence only. It
+  is not direct-SQL superiority because its value delta versus direct SQL is
+  `0.000`.
 
 Any hash mismatch, missing manifest field, non-oracle oracle marker, or
 predicted-planner manifest whose output rows are not also marked
@@ -62,7 +65,7 @@ and measure-preservation metrics.
 | Gold SQL-derived planning hints can push the best diagnostic run to `0.890` value accuracy. | `diagnostic_upper_bound` | `docs/result_manifests/cosql_dev_100_proxy.json` | `oracle_planner_diagnostic` | Yes, only as a ceiling test. |
 | The lexical planner baseline has macro score `0.571`, table F1 `0.599`, column F1 `0.117`, and skeleton F1 `0.648`. | `supported_planner_quality` | `docs/planner_baseline_cosql_dev_100_summary.json` | planner scoring | Yes, as planner quality, not SQL accuracy. |
 | A non-oracle predicted planner improves SQL execution. | Pending | `data/processed/eval_cosql_dev_predicted_planner_100.jsonl` can now be generated | `predicted_planner` | No, until same-model direct-SQL comparison metrics show a positive value-accuracy delta. |
-| A metric-DSL result exists with parse, compile, execution, and measure-preservation metrics. | Pending | `eval.metric_dsl_eval` is implemented | `metric_dsl` | No, until a valid metric-DSL manifest exists. |
+| A metric-DSL result exists with parse, compile, execution, and measure-preservation metrics. | `supported_metric_dsl_quality` | `docs/result_manifests/metric_dsl_bootstrap.json` | `metric_dsl` | Yes, as metric-DSL quality only. |
 | Metric-DSL generation beats direct SQL on metric-heavy rows. | Pending | `eval.compare_metric_dsl_direct_sql` is implemented | `metric_dsl` | No, until the compared manifest has a positive value delta and references the direct-SQL manifest. |
 | A generated-history rollout result exists for the fixed CoSQL proxy. | Pending | `eval.rollout_eval` is implemented | `non_oracle_generation` | No, until a rollout result manifest exists. |
 | Generated-history rollout beats teacher-forced history for the same model/input. | Pending | none | not run | No, diagnostic only until side-by-side comparison metrics exist. |
