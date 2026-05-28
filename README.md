@@ -14,6 +14,9 @@ See `docs/research_goal.md` for the explicit research program, including the
 fine-tuning methods this repo should compare: direct SQL SFT, planner/DSL first
 then SQL, semantic-layer tuning, `MEASURE()`-preserving metric DSLs, and
 behavior/recovery tuning.
+See `docs/finetuning_ladder.md` for the compact step-by-step map of those
+methods, their controls, and the evidence needed before a method can be called a
+win.
 
 The first metric-DSL experiment surface is documented in
 `docs/metric_dsl_contract.md`, implemented in `data.metric_dsl`, and evaluated
