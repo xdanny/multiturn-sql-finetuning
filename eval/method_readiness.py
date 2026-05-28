@@ -15,6 +15,7 @@ LIST_FIELDS = {
     "blocking_claim_ids",
     "training_rows",
     "control_rows",
+    "prediction_input_rows",
     "evaluator_paths",
 }
 
@@ -117,6 +118,18 @@ def required_readiness_failures(rows: list[dict[str, Any]]) -> list[str]:
                 if not exists
             ]
             failures.append(f"{method}: missing control rows: {', '.join(missing)}")
+        if row.get("prediction_input_rows_required") and not row.get(
+            "prediction_input_rows_ready",
+            True,
+        ):
+            missing = [
+                path
+                for path, exists in row.get("prediction_input_rows", {}).items()
+                if not exists
+            ]
+            failures.append(
+                f"{method}: missing prediction input rows: {', '.join(missing)}"
+            )
         if not row["evaluators_ready"]:
             missing = [
                 path
@@ -172,6 +185,11 @@ def build_method_readiness(
             repo_root,
             tuple(method["evaluator_paths"]),
         )
+        prediction_input_status = _path_status(
+            repo_root,
+            tuple(method["prediction_input_rows"]),
+        )
+        prediction_input_required = bool(method.get("prediction_input_rows_required"))
         rows.append(
             {
                 "method": method["method"],
@@ -188,9 +206,15 @@ def build_method_readiness(
                     control_row_status,
                     required=bool(method["control_rows_required"]),
                 ),
+                "prediction_input_rows_required": prediction_input_required,
+                "prediction_input_rows_ready": _paths_ready(
+                    prediction_input_status,
+                    required=prediction_input_required,
+                ),
                 "evaluators_ready": _paths_ready(evaluator_status, required=True),
                 "training_rows": training_row_status,
                 "control_rows": control_row_status,
+                "prediction_input_rows": prediction_input_status,
                 "evaluator_paths": evaluator_status,
                 "supported_claim_ids": supported_claim_ids,
                 "blocking_claim_ids": blocking_claim_ids,

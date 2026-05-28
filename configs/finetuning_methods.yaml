@@ -15,6 +15,8 @@ methods:
     smoke_rows_required: true
     control_rows: []
     control_rows_required: false
+    prediction_input_rows: []
+    prediction_input_rows_required: false
     evaluator_paths:
       - eval/run_eval.py
       - eval/local_benchmark.py
@@ -40,6 +42,8 @@ methods:
     control_rows:
       - data/processed/eval_cosql_dev_100.jsonl
     control_rows_required: true
+    prediction_input_rows: []
+    prediction_input_rows_required: false
     evaluator_paths:
       - eval/planner_eval.py
       - eval/run_predicted_planner_comparison.py
@@ -68,6 +72,8 @@ methods:
     control_rows:
       - data/processed/train_cosql_smoke.jsonl
     control_rows_required: true
+    prediction_input_rows: []
+    prediction_input_rows_required: false
     evaluator_paths:
       - eval/run_eval.py
       - eval/classify_errors.py
@@ -92,6 +98,10 @@ methods:
     control_rows:
       - docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl
     control_rows_required: true
+    prediction_input_rows:
+      - docs/data_artifacts/metric_dsl_prediction_inputs.jsonl
+      - docs/data_artifacts/metric_dsl_direct_sql_prediction_inputs.jsonl
+    prediction_input_rows_required: true
     evaluator_paths:
       - eval/metric_dsl_eval.py
       - eval/compare_metric_dsl_direct_sql.py
@@ -121,6 +131,8 @@ methods:
     control_rows:
       - docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl
     control_rows_required: true
+    prediction_input_rows: []
+    prediction_input_rows_required: false
     evaluator_paths:
       - eval/rollout_eval.py
       - eval/compare_rollout_history.py
@@ -145,6 +157,8 @@ methods:
     smoke_rows_required: false
     control_rows: []
     control_rows_required: false
+    prediction_input_rows: []
+    prediction_input_rows_required: false
     evaluator_paths:
       - eval/compare_hosted_baseline.py
     next_command: >-

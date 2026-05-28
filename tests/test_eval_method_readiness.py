@@ -120,6 +120,12 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
     assert metric["control_rows"] == {
         "docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl": True
     }
+    assert metric["prediction_input_rows_required"] is True
+    assert metric["prediction_input_rows"] == {
+        "docs/data_artifacts/metric_dsl_prediction_inputs.jsonl": True,
+        "docs/data_artifacts/metric_dsl_direct_sql_prediction_inputs.jsonl": True,
+    }
+    assert metric["prediction_input_rows_ready"] is True
     assert metric["blocking_claim_ids"] == [
         "metric_dsl_evaluation_manifest",
         "metric_dsl_beats_direct_sql",
@@ -193,9 +199,12 @@ def test_required_readiness_failures_only_reports_required_missing_inputs() -> N
             "smoke_rows_ready": False,
             "control_rows_required": True,
             "control_rows_ready": False,
+            "prediction_input_rows_required": True,
+            "prediction_input_rows_ready": False,
             "evaluators_ready": False,
             "training_rows": {"data/missing_train.jsonl": False},
             "control_rows": {"data/missing_control.jsonl": False},
+            "prediction_input_rows": {"data/missing_prediction.jsonl": False},
             "evaluator_paths": {"eval/missing_eval.py": False},
         },
     ]
@@ -203,5 +212,6 @@ def test_required_readiness_failures_only_reports_required_missing_inputs() -> N
     assert required_readiness_failures(rows) == [
         "Missing required rows: missing smoke rows: data/missing_train.jsonl",
         "Missing required rows: missing control rows: data/missing_control.jsonl",
+        "Missing required rows: missing prediction input rows: data/missing_prediction.jsonl",
         "Missing required rows: missing evaluators: eval/missing_eval.py",
     ]

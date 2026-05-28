@@ -83,6 +83,11 @@ Training inputs:
 - `docs/data_artifacts/metric_dsl_training_rows.jsonl`
 - `docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl`
 
+Generation inputs:
+
+- `docs/data_artifacts/metric_dsl_prediction_inputs.jsonl`
+- `docs/data_artifacts/metric_dsl_direct_sql_prediction_inputs.jsonl`
+
 Control:
 
 - direct SQL trained and evaluated on the same metric-heavy fixtures.

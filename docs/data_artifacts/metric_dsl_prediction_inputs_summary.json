@@ -1,0 +1,22 @@
+{
+  "artifact_type": "metric_dsl_prediction_inputs",
+  "comparison_contract": "same_fixture_metric_dsl_vs_direct_sql_predictions",
+  "direct_sql_prediction_input_count": 2,
+  "dsl_target_overrides": [
+    "grain_fanout_bridge"
+  ],
+  "evaluation_gate": "eval.run_metric_dsl_comparison after generated predictions are added to these same row identities",
+  "failure_mode_counts": {
+    "duplicate_row_policy": 1,
+    "grain_fanout": 1,
+    "measure_preservation": 1,
+    "semantic_model": 1
+  },
+  "fixture_ids": [
+    "grain_fanout_bridge",
+    "measure_preservation_metric"
+  ],
+  "metric_dsl_prediction_input_count": 2,
+  "oracle_policy": "non_oracle_prompt_with_held_out_scorer_fields",
+  "schema_version": 1
+}
