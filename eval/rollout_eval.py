@@ -137,6 +137,7 @@ def evaluate_rollout_records(
         turn_by_message_index = {
             payload["message_index"]: payload for payload in turn_payloads
         }
+        seeded_history_turn_index = record.get("seeded_failure_turn_index")
         history: list[dict[str, str]] = []
         for message_index, message in enumerate(messages):
             if message.get("role") != "assistant":
@@ -144,6 +145,9 @@ def evaluate_rollout_records(
                 continue
 
             payload = turn_by_message_index[message_index]
+            if payload["turn_index"] == seeded_history_turn_index:
+                history.append(dict(message))
+                continue
             rollout_record = _rollout_record(
                 record,
                 index=record_index,

@@ -33,7 +33,8 @@ offline through `eval.generate_metric_dsl_predictions`, `eval.metric_dsl_eval`, 
 Generated-history rollout evaluation is documented in
 `docs/rollout_eval_contract.md`, seeded by
 `data.behavior_recovery_rollout_inputs`, and implemented in
-`eval.rollout_eval`.
+`eval.rollout_eval` with `eval.behavior_recovery_teacher_forced` as the
+teacher-forced comparison arm.
 The checked-in files under `docs/data_artifacts/` are explained in
 `docs/data_artifacts/README.md`; use that guide before adding new generated
 files to the repo. Metric DSL now has separate training rows and prediction

@@ -182,10 +182,21 @@ Rollout evaluation is available for generated-history behavior:
 ```bash
 uv run --active --no-sync python -m eval.rollout_eval \
   --input docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl \
-  --output results/rollout/<run-id>.jsonl \
-  --manifest-output results/rollout/<run-id>.manifest.json \
+  --output results/rollout/<run-id>.rollout.jsonl \
+  --manifest-output results/rollout/<run-id>.rollout.manifest.json \
   --database-root data/raw/cosql_dataset/database \
   --model-name <served-model-name>
+
+uv run --active --no-sync python -m eval.behavior_recovery_teacher_forced \
+  --input docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl \
+  --output results/rollout/<run-id>.teacher_forced.jsonl \
+  --manifest-output results/rollout/<run-id>.teacher_forced.manifest.json \
+  --model-name <served-model-name>
+
+uv run --active --no-sync python -m eval.compare_rollout_history \
+  --rollout-manifest results/rollout/<run-id>.rollout.manifest.json \
+  --teacher-forced-manifest results/rollout/<run-id>.teacher_forced.manifest.json \
+  --output results/rollout/<run-id>.comparison.manifest.json
 ```
 
 What this proves: the recovery and same-fixture direct-SQL training targets

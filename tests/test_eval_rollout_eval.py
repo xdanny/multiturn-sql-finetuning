@@ -85,6 +85,35 @@ def test_rollout_continues_after_invalid_generated_sql() -> None:
     assert prompts[1][2] == {"role": "assistant", "content": "not sql at all"}
 
 
+def test_rollout_treats_seeded_failure_turn_as_history_only() -> None:
+    record = _dialog_record()
+    record["history_policy"] = "seeded_generated_failure_then_rollout"
+    record["seeded_failure_turn_index"] = 0
+    prompts: list[list[dict[str, str]]] = []
+
+    def fake_generate(messages: list[dict[str, str]]) -> tuple[str, float]:
+        prompts.append(messages)
+        return "SELECT repaired;", 1.0
+
+    rows = evaluate_rollout_records(
+        [record],
+        generate_fn=fake_generate,
+        model_name="local-9b",
+        database_root=None,
+    )
+
+    assert len(rows) == 1
+    assert rows[0]["id"] == "dialog-a:1"
+    assert rows[0]["turn_index"] == 1
+    assert rows[0]["reference_sql"] == "SELECT gold_second;"
+    assert rows[0]["generated_sql"] == "SELECT repaired;"
+    assert rows[0]["messages"][2] == {
+        "role": "assistant",
+        "content": "SELECT gold_first;",
+    }
+    assert prompts[0][2] == {"role": "assistant", "content": "SELECT gold_first;"}
+
+
 def test_rollout_preserves_non_oracle_predicted_plan_hint_for_each_turn() -> None:
     record = _dialog_record()
     record["evaluation_mode"] = "predicted_planner"

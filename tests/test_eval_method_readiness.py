@@ -152,7 +152,10 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
     }
     assert "rollout_beats_teacher_forced_history" in recovery["blocking_claim_ids"]
     assert recovery["evaluator_paths"]["data/behavior_recovery_rollout_inputs.py"] is True
+    assert recovery["evaluator_paths"]["eval/behavior_recovery_teacher_forced.py"] is True
     assert "eval.rollout_eval" in recovery["next_command"]
+    assert "eval.behavior_recovery_teacher_forced" in recovery["next_command"]
+    assert "eval.compare_rollout_history" in recovery["next_command"]
 
     hosted = methods["Hosted and BIRD-Interact comparison"]
     assert hosted["readiness_level"] == "needs_hosted_protocol_run"
