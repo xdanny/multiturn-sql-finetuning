@@ -58,7 +58,43 @@ same-row comparison against the direct-SQL control.
 
 ## Metric DSL Status
 
-Current `main` has the metric DSL parser and evaluator:
+Current `main` has two checked-in metric-DSL finetuning rows and two matching
+direct-SQL control rows:
+
+- `docs/data_artifacts/metric_dsl_training_rows.jsonl`
+- `docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl`
+
+Generate them with:
+
+```bash
+uv run --active --no-sync python -m data.metric_dsl_training_rows
+```
+
+Metric DSL smoke:
+
+```bash
+uv run --active --no-sync python -m train.finetune \
+  --config configs/qwen35_9b_5090.yaml \
+  --data docs/data_artifacts/metric_dsl_training_rows.jsonl \
+  --eval-data docs/data_artifacts/metric_dsl_training_rows.jsonl \
+  --output-dir outputs/experiments/metric_dsl_smoke \
+  --max-steps 5 \
+  --report-to none
+```
+
+Same-fixture direct SQL control:
+
+```bash
+uv run --active --no-sync python -m train.finetune \
+  --config configs/qwen35_9b_5090.yaml \
+  --data docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl \
+  --eval-data docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl \
+  --output-dir outputs/experiments/metric_dsl_direct_sql_smoke \
+  --max-steps 5 \
+  --report-to none
+```
+
+The parser and evaluator are available for generated predictions:
 
 ```bash
 uv run --active --no-sync python -m eval.metric_dsl_eval \
@@ -69,10 +105,10 @@ uv run --active --no-sync python -m eval.metric_dsl_eval \
   --model-name <model-or-adapter>
 ```
 
-Current `main` does not yet have canonical metric-DSL finetuning rows checked
-in. The next useful data PR should add a small `metric_dsl_training_rows.jsonl`
-and a same-row direct-SQL control, or add a generator that writes them to
-`docs/data_artifacts/` under the policy in `docs/data_artifacts/README.md`.
+What this proves: the metric-DSL and same-fixture direct-SQL training targets
+both load through the current SFT path. It does not prove the DSL path wins.
+That claim needs generated predictions from both adapters, database-backed
+execution scoring, and `eval.compare_metric_dsl_direct_sql`.
 
 ## Behavior And Recovery Status
 

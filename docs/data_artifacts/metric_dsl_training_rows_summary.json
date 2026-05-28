@@ -1,0 +1,18 @@
+{
+  "artifact_type": "metric_dsl_finetuning_rows",
+  "comparison_contract": "same_fixture_metric_dsl_vs_direct_sql_control",
+  "direct_sql_control_row_count": 2,
+  "failure_mode_counts": {
+    "duplicate_row_policy": 1,
+    "grain_fanout": 1,
+    "measure_preservation": 1,
+    "semantic_model": 1
+  },
+  "fixture_ids": [
+    "grain_fanout_bridge",
+    "measure_preservation_metric"
+  ],
+  "metric_dsl_row_count": 2,
+  "oracle_policy": "synthetic_curated_label",
+  "schema_version": 1
+}
