@@ -30,6 +30,50 @@ def test_method_readiness_loads_method_arms_from_config() -> None:
     assert configs[0]["control_rows_required"] is False
     assert configs[0]["next_command"].startswith("uv run --active --no-sync")
     assert "reference SQL" not in configs[0]["next_command"].lower()
+    assert configs[0]["finetuning_objective"]
+    assert configs[0]["benchmark_scope"]
+    assert configs[0]["primary_metric"]
+    assert configs[0]["leakage_boundary"]
+    assert configs[0]["evidence_gate"]
+
+
+def test_method_readiness_requires_method_contract_fields(tmp_path) -> None:
+    config = tmp_path / "methods.yaml"
+    config.write_text(
+        """
+schema_version: 1
+methods:
+  - method: Missing contract
+    readiness_level: needs_rows
+    supported_claim_ids: []
+    blocking_claim_ids: []
+    module_path: eval/run_eval.py
+    training_rows: []
+    smoke_rows_required: false
+    control_rows: []
+    control_rows_required: false
+    prediction_input_rows: []
+    prediction_input_rows_required: false
+    evaluator_paths:
+      - eval/run_eval.py
+    next_command: uv run --active --no-sync python -m eval.run_eval
+    next_artifact: result manifest
+    claim_boundary: no claim
+    rankable_when: never
+    finetuning_objective: learn the target behavior
+    benchmark_scope: synthetic smoke rows
+    leakage_boundary: no scorer fields in prompts
+    evidence_gate: same-row comparison manifest
+""",
+        encoding="utf-8",
+    )
+
+    try:
+        load_method_configs(config)
+    except ValueError as exc:
+        assert "Missing contract: missing primary_metric" in str(exc)
+    else:
+        raise AssertionError("missing method contract field should fail")
 
 
 def test_method_readiness_maps_claims_to_next_actions() -> None:
@@ -77,6 +121,11 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
     assert direct["training_rows"] == {"data/processed/train_smoke.jsonl": True}
     assert "eval.run_eval" in direct["next_command"]
     assert direct["next_command"].startswith("uv run --active --no-sync")
+    assert "control arm" in direct["finetuning_objective"]
+    assert "CoSQL proxy" in direct["benchmark_scope"]
+    assert "value-only execution accuracy" in direct["primary_metric"]
+    assert "reference SQL" in direct["leakage_boundary"]
+    assert "manifest" in direct["evidence_gate"]
 
     planner = methods["Planner/DSL first, SQL second"]
     assert planner["readiness_level"] == "needs_endpoint_comparison"
@@ -177,6 +226,11 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
         assert (REPO_ROOT / row["module_path"]).exists(), row["module_path"]
         assert row["next_artifact"]
         assert row["claim_boundary"]
+        assert row["finetuning_objective"]
+        assert row["benchmark_scope"]
+        assert row["primary_metric"]
+        assert row["leakage_boundary"]
+        assert row["evidence_gate"]
         assert "uv run --active --no-sync" in row["next_command"]
 
 

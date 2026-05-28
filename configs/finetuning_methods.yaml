@@ -2,6 +2,13 @@ schema_version: 1
 methods:
   - method: Direct SQL SFT
     readiness_level: control_ready
+    finetuning_objective: stable direct SQL control arm for all method comparisons
+    benchmark_scope: fixed CoSQL proxy rows now; hosted and BIRD-Interact rows later
+    primary_metric: value-only execution accuracy on identical row identities
+    leakage_boundary: >-
+      prompts may use question, prior turns, schema, and non-oracle context; do
+      not expose reference SQL, gold plans, expected rows, or future turns
+    evidence_gate: result manifest from eval.run_eval or eval.local_benchmark
     supported_claim_ids:
       - qwen35_9b_base_cosql_dev_100turns
       - multiturn_sql_100_cosql_dev_100turns
@@ -32,6 +39,16 @@ methods:
 
   - method: Planner/DSL first, SQL second
     readiness_level: needs_endpoint_comparison
+    finetuning_objective: >-
+      predict a compact schema/query plan before generating SQL from that plan
+    benchmark_scope: fixed CoSQL proxy planner rows with row-matched direct-SQL control
+    primary_metric: predicted-planner SQL value accuracy delta versus direct SQL
+    leakage_boundary: >-
+      predicted plans must come from question, history, schema, and non-oracle
+      artifacts; gold SQL-derived plans are oracle diagnostics only
+    evidence_gate: >-
+      eval.run_predicted_planner_comparison manifests plus a positive same-row
+      comparison delta
     supported_claim_ids:
       - planner_lexical_schema_baseline
     blocking_claim_ids:
@@ -60,6 +77,15 @@ methods:
 
   - method: Semantic-layer tuning
     readiness_level: needs_value_entity_retrieval
+    finetuning_objective: >-
+      teach the model to use governed dimensions, entities, values, joins, and
+      grain that raw DDL does not explain
+    benchmark_scope: CoSQL proxy value/entity rows plus synthetic schema-rich fixtures
+    primary_metric: same-row value accuracy delta and value/entity retrieval coverage
+    leakage_boundary: >-
+      database-derived indexes and semantic manifests are allowed; answer-derived
+      labels, reference SQL, and expected rows stay scorer-side
+    evidence_gate: value/entity retrieval manifest plus row-matched semantic delta
     supported_claim_ids:
       - semantic_prompt_minimal_executable_cosql_dev_100turns
     blocking_claim_ids:
@@ -87,6 +113,16 @@ methods:
 
   - method: MEASURE()-preserving metric DSL
     readiness_level: needs_prediction_manifest
+    finetuning_objective: >-
+      preserve governed metric intent as MEASURE(...) before compiling to SQL
+    benchmark_scope: synthetic metric-heavy fixtures before larger proxy or BIRD-style rows
+    primary_metric: compiled metric-DSL value accuracy delta versus direct SQL
+    leakage_boundary: >-
+      prompts may include semantic metric definitions but not gold metric DSL,
+      reference SQL, expected rows, or direct-SQL labels
+    evidence_gate: >-
+      eval.run_metric_dsl_comparison manifests with parse, compile,
+      measure-preservation, and positive value-delta metrics
     supported_claim_ids: []
     blocking_claim_ids:
       - metric_dsl_evaluation_manifest
@@ -134,6 +170,17 @@ methods:
 
   - method: Behavior/recovery tuning
     readiness_level: needs_rollout_manifest
+    finetuning_objective: >-
+      teach the model to continue after its own generated SQL, empty results, or
+      bad value grounding
+    benchmark_scope: synthetic generated-history repair fixture before CoSQL rollout rows
+    primary_metric: generated-history rollout value accuracy delta versus direct SQL
+    leakage_boundary: >-
+      prompts may include previous generated SQL and observed rows; do not expose
+      repair labels, reference SQL, expected rows, or future turns
+    evidence_gate: >-
+      generated-history recovery-adapter and direct-SQL-control manifests on
+      identical rollout rows
     supported_claim_ids: []
     blocking_claim_ids:
       - model_generated_history_rollout
@@ -178,6 +225,15 @@ methods:
 
   - method: Hosted and BIRD-Interact comparison
     readiness_level: needs_hosted_protocol_run
+    finetuning_objective: >-
+      compare the best local 9B method against hosted systems under the same
+      interactive data-analysis protocol
+    benchmark_scope: frozen hosted baseline rows and BIRD-Interact or Multi-BIRD transfer rows
+    primary_metric: same-protocol value accuracy delta with latency and cost metadata
+    leakage_boundary: >-
+      local and hosted prompts must share the same non-oracle inputs, scorer,
+      row identities, and conversation protocol
+    evidence_gate: hosted/local comparison manifest plus BIRD-Interact transfer manifest
     supported_claim_ids: []
     blocking_claim_ids:
       - hosted_sota_same_protocol
