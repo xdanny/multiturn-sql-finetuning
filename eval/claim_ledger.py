@@ -80,9 +80,21 @@ PENDING_CLAIMS = (
         "claim_status": "pending",
         "artifact_type": "pending_claim",
         "evaluation_mode": "not_run",
-        "allowed_public_claim": "no behavior/recovery improvement claim yet",
+        "allowed_public_claim": "no generated-history diagnostic comparison yet",
         "blocking_reason": "no side-by-side rollout-vs-teacher-forced comparison",
         "required_artifact": "same-model rollout and teacher-forced manifests with comparison metrics",
+    },
+    {
+        "claim_id": "behavior_recovery_beats_direct_sql",
+        "claim_status": "pending",
+        "artifact_type": "pending_claim",
+        "evaluation_mode": "not_run",
+        "allowed_public_claim": "no behavior/recovery method win yet",
+        "blocking_reason": "no generated-history recovery-vs-direct-SQL comparison",
+        "required_artifact": (
+            "same-row generated-history rollout comparison between recovery adapter "
+            "and direct-SQL control adapter"
+        ),
     },
     {
         "claim_id": "hosted_sota_same_protocol",
@@ -547,6 +559,7 @@ def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any
         "predicted_planner_sql_execution": not has_predicted_sql,
         "model_generated_history_rollout": not has_rollout,
         "rollout_beats_teacher_forced_history": not has_rollout_teacher_forced_comparison,
+        "behavior_recovery_beats_direct_sql": True,
         "hosted_sota_same_protocol": not has_hosted,
         "local_beats_hosted_same_protocol": not has_local_beats_hosted,
         "bird_interact_local_vs_hosted": not has_bird_interact,

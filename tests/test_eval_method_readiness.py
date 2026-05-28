@@ -151,11 +151,14 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
         "docs/data_artifacts/behavior_recovery_training_rows.jsonl": True
     }
     assert "rollout_beats_teacher_forced_history" in recovery["blocking_claim_ids"]
+    assert "behavior_recovery_beats_direct_sql" in recovery["blocking_claim_ids"]
+    assert "behavior_recovery_beats_direct_sql" in recovery["open_blocking_claim_ids"]
     assert recovery["evaluator_paths"]["data/behavior_recovery_rollout_inputs.py"] is True
     assert recovery["evaluator_paths"]["eval/behavior_recovery_teacher_forced.py"] is True
     assert recovery["evaluator_paths"]["eval/run_behavior_recovery_comparison.py"] is True
     assert "eval.run_behavior_recovery_comparison" in recovery["next_command"]
     assert "--output-dir results/rollout" in recovery["next_command"]
+    assert "direct-SQL control" in recovery["claim_boundary"]
 
     hosted = methods["Hosted and BIRD-Interact comparison"]
     assert hosted["readiness_level"] == "needs_hosted_protocol_run"

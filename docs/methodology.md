@@ -46,9 +46,10 @@ Generated-history rollout evaluation is separate from this teacher-forced path.
 `eval.rollout_eval` runs dialog turns sequentially and writes
 `history_policy=model_generated_sql_rollout` output rows, where each later turn
 sees the model's generated SQL from earlier turns. This is the required surface
-for behavior/recovery claims. A rollout result alone is not enough; it must be
-compared against the same model and input under teacher-forced history before
-claiming recovery behavior improved.
+for behavior/recovery work. Rollout-vs-teacher-forced comparison is diagnostic:
+it shows whether clean history was hiding generated-history failure. A recovery
+method win still requires the recovery adapter to beat its direct-SQL control
+under generated-history rollout.
 
 ## Dataset Decomposition
 

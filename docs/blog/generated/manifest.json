@@ -45,7 +45,7 @@
       "path": "claim-table.md",
       "required_in_post": false,
       "required_reference": true,
-      "sha256": "4077ce62a23ad145ae754a752844deec9dd467e045387a5db3066fb20a719b50"
+      "sha256": "fd9afe90242a1eaf6e480fc9046e2ca29bc747d9578b4b278c0321c09dccec3d"
     },
     {
       "claim_ids": [],
@@ -116,7 +116,7 @@
       "path": "method-readiness-report.md",
       "required_in_post": false,
       "required_reference": true,
-      "sha256": "382296262f1fae71ab6e5021019f33dee09e394fdd1a95d138ad25816f045813"
+      "sha256": "5c129e449be31be2e435599ce3fca74820b230202cb3761bc001bd680aa38a2a"
     },
     {
       "claim_ids": [
@@ -325,6 +325,18 @@
     }
   ],
   "claim_snapshot": {
+    "behavior_recovery_beats_direct_sql": {
+      "allowed_public_claim": "no behavior/recovery method win yet",
+      "artifact_type": "pending_claim",
+      "artifact_valid": false,
+      "blocking_reason": "no generated-history recovery-vs-direct-SQL comparison",
+      "can_support_sota_claim": false,
+      "claim_id": "behavior_recovery_beats_direct_sql",
+      "claim_status": "pending",
+      "evaluation_mode": "not_run",
+      "production_claim_allowed": false,
+      "required_artifact": "same-row generated-history rollout comparison between recovery adapter and direct-SQL control adapter"
+    },
     "bird_interact_local_vs_hosted": {
       "allowed_public_claim": "no BIRD-Interact claim yet",
       "artifact_type": "pending_claim",
@@ -645,7 +657,7 @@
       "value_execution_accuracy": 0.59
     },
     "rollout_beats_teacher_forced_history": {
-      "allowed_public_claim": "no behavior/recovery improvement claim yet",
+      "allowed_public_claim": "no generated-history diagnostic comparison yet",
       "artifact_type": "pending_claim",
       "artifact_valid": false,
       "blocking_reason": "no side-by-side rollout-vs-teacher-forced comparison",
@@ -1083,7 +1095,7 @@
   "source_artifacts": [
     {
       "path": "docs/claim_ledgers/cosql_dev_100.jsonl",
-      "sha256": "aa136ff29b897ff5cb79f00dd193a48a1458d75c6fc7d5477d2f96bd49954031"
+      "sha256": "053b5c374be89cde8657d7f05feaa50bd87638c5f70ad6bcc4798256714c51b6"
     },
     {
       "path": "docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl",
