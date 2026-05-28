@@ -115,8 +115,9 @@ Win condition: generated-history rollout beats teacher-forced evaluation on the
 same rows, or exposes concrete repair behavior that a recovery-tuned model can
 improve.
 
-Current status: the rollout evaluator exists. Recovery is not proven until
-side-by-side rollout comparison manifests exist.
+Current status: the rollout evaluator exists, and tiny recovery/control SFT rows
+exist for smoke testing. Recovery is not proven until generated predictions from
+the recovery-tuned adapter clear side-by-side rollout comparison manifests.
 
 ## Stage 6: Hosted And BIRD-Interact Gate
 

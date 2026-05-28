@@ -46,6 +46,22 @@ does not include reference SQL in the metric-DSL prompt. The labels are
 synthetic curated answers, so use them for method smoke tests and controls, not
 for claims about CoSQL, SParC, or BIRD performance.
 
+### Behavior Recovery Finetuning Rows
+
+- `behavior_recovery_training_rows.jsonl`
+- `behavior_recovery_direct_sql_training_rows.jsonl`
+- `behavior_recovery_training_rows_summary.json`
+- `behavior_recovery_training_rows.manifest.json`
+
+These rows project the generated-history recovery fixture into two same-fixture
+training targets: a recovery-specific repair prompt and a direct SQL control.
+The recovery prompt includes the previous generated SQL and observed empty rows,
+but not the repaired reference SQL, expected rows, or future turns.
+
+Use these rows to smoke-test whether the training path can learn from generated
+history and repair context. A behavior/recovery claim still needs generated
+predictions evaluated under rollout, not teacher-forced history.
+
 ### Value Grounding Labels
 
 - `value_grounding_labels_cosql_dev_100.jsonl`

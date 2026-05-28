@@ -1,0 +1,17 @@
+{
+  "artifact_type": "behavior_recovery_finetuning_rows",
+  "behavior_recovery_row_count": 1,
+  "command": [
+    "/home/dan/docs/multiturn-sql-finetuning/data/behavior_recovery_training_rows.py"
+  ],
+  "control_output_path": "docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl",
+  "control_output_sha256": "4a4a87c6fda10081317f35505995d423b2e64ad99026bae6b80dd40e1edcfc94",
+  "direct_sql_control_row_count": 1,
+  "evaluation_gate": "generated_history_rollout",
+  "oracle_policy": "synthetic_curated_label",
+  "recovery_output_path": "docs/data_artifacts/behavior_recovery_training_rows.jsonl",
+  "recovery_output_sha256": "4f451254b8761568e88ee3f2dd5973d17ae8be48d056aa895ccb65ab15e66674",
+  "schema_version": 1,
+  "summary_path": "docs/data_artifacts/behavior_recovery_training_rows_summary.json",
+  "summary_sha256": "b3c88fdcf4dd372dda4e14e4ccd37aacf81e6ae14690b486178d67ec065203ea"
+}
