@@ -32,4 +32,5 @@ When editing broadly, inspect:
 - `docs/finetuning_ladder.md`
 - `docs/finetuning_measurement_plan.md`
 - `docs/data_artifacts/README.md`
+- `docs/AGENTS.md`
 - `train/AGENTS.md`
