@@ -104,8 +104,22 @@ uv run --active --no-sync python -m train.finetune \
   --report-to none
 ```
 
-After both adapters generate predictions for the same metric-heavy row
-identities, use the paired runner to score and compare the arms:
+After both adapters exist, generate predictions for the same metric-heavy row
+identities:
+
+```bash
+uv run --active --no-sync python -m eval.generate_metric_dsl_predictions \
+  --input docs/data_artifacts/metric_dsl_prediction_inputs.jsonl \
+  --output results/metric_dsl/<run-id>.metric_predictions.jsonl \
+  --model-name <metric-dsl-adapter>
+
+uv run --active --no-sync python -m eval.generate_metric_dsl_predictions \
+  --input docs/data_artifacts/metric_dsl_direct_sql_prediction_inputs.jsonl \
+  --output results/metric_dsl/<run-id>.direct_predictions.jsonl \
+  --model-name <direct-sql-adapter>
+```
+
+Then score and compare the arms:
 
 ```bash
 uv run --active --no-sync python -m eval.run_metric_dsl_comparison \
