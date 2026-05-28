@@ -25,6 +25,9 @@ Rules:
   shells, also point Zig caches at writable directories such as `/tmp`.
 - Treat dataset mixture and stage naming as part of experiment meaning, not as
   optional metadata.
+- Before committing generated data under `docs/data_artifacts/`, check
+  `docs/data_artifacts/README.md`. Most run-specific files belong under
+  `outputs/` or `results/`, not in the source tree.
 - When a finetuning stage has a fixed contract, pass
   `--expected-training-target`, `--expected-evaluation-mode`, and
   `--expected-benchmark` so mislabeled datasets fail before training.
