@@ -112,7 +112,43 @@ execution scoring, and `eval.compare_metric_dsl_direct_sql`.
 
 ## Behavior And Recovery Status
 
-Current `main` has rollout evaluation for generated-history behavior:
+Current `main` has one checked-in behavior/recovery finetuning row and one
+matching direct-SQL control row:
+
+- `docs/data_artifacts/behavior_recovery_training_rows.jsonl`
+- `docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl`
+
+Generate them with:
+
+```bash
+uv run --active --no-sync python -m data.behavior_recovery_training_rows
+```
+
+Behavior recovery smoke:
+
+```bash
+uv run --active --no-sync python -m train.finetune \
+  --config configs/qwen35_9b_5090.yaml \
+  --data docs/data_artifacts/behavior_recovery_training_rows.jsonl \
+  --eval-data docs/data_artifacts/behavior_recovery_training_rows.jsonl \
+  --output-dir outputs/experiments/behavior_recovery_smoke \
+  --max-steps 5 \
+  --report-to none
+```
+
+Same-fixture direct SQL control:
+
+```bash
+uv run --active --no-sync python -m train.finetune \
+  --config configs/qwen35_9b_5090.yaml \
+  --data docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl \
+  --eval-data docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl \
+  --output-dir outputs/experiments/behavior_recovery_direct_sql_smoke \
+  --max-steps 5 \
+  --report-to none
+```
+
+Rollout evaluation is available for generated-history behavior:
 
 ```bash
 uv run --active --no-sync python -m eval.rollout_eval \
@@ -123,9 +159,10 @@ uv run --active --no-sync python -m eval.rollout_eval \
   --model-name <served-model-name>
 ```
 
-Current `main` does not yet have dedicated recovery finetuning rows. The next
-useful data PR should define a small recovery training target that is evaluated
-under generated-history rollout, not teacher-forced history.
+What this proves: the recovery and same-fixture direct-SQL training targets
+both load through the current SFT path. It does not prove recovery tuning wins.
+That claim needs generated predictions from both adapters and a rollout
+comparison where later turns see generated SQL history, not reference SQL.
 
 ## Reading Results
 

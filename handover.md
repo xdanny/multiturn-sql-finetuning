@@ -53,5 +53,6 @@ uv run --active --no-sync python -m train.finetune \
 
 See `docs/finetuning_smoke_matrix.md`.
 
-Metric DSL and behavior/recovery still need small canonical finetuning-row PRs
-before they can run as training targets on current `main`.
+Metric DSL and behavior/recovery now have small canonical finetuning rows and
+same-fixture direct-SQL control rows under `docs/data_artifacts/`. They are
+smoke inputs, not benchmark wins.
