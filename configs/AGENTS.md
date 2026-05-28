@@ -8,6 +8,8 @@ Primary responsibilities:
 - Keep training configs aligned with the method ladder: direct SQL, semantic
   context, metric DSL, behavior recovery, planner runs, and hosted/BIRD-style
   comparisons.
+- Keep `configs/finetuning_methods.yaml` as the source of truth for method
+  readiness arms consumed by `eval.method_readiness`.
 - Make prompt variants explicit about whether they are production-style,
   diagnostic, or oracle-derived.
 - Keep dataset splits, row limits, model names, and output directories
@@ -31,6 +33,8 @@ Rules:
   slice support a benchmark claim.
 - If a config changes a method comparison, update
   `docs/finetuning_measurement_plan.md` or `docs/finetuning_smoke_matrix.md`.
+- If a method arm changes, update `configs/finetuning_methods.yaml` and run the
+  method-readiness command before claiming the gate is wired.
 
 When editing here, inspect:
 

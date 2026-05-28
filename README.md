@@ -22,6 +22,9 @@ the checked-in method rows that make metric-DSL and recovery finetuning smokes
 runnable.
 See `docs/finetuning_measurement_plan.md` for the metrics, controls, and
 comparison artifacts required before any smoke run becomes a benchmark claim.
+The machine-readable method registry is `configs/finetuning_methods.yaml`; it
+drives `eval.method_readiness` so method arms, controls, gates, and next
+commands are reviewed as config rather than hidden in evaluator code.
 
 The first metric-DSL experiment surface is documented in
 `docs/metric_dsl_contract.md`, implemented in `data.metric_dsl`, and evaluated
