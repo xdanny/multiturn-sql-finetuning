@@ -140,14 +140,17 @@ methods:
     control_rows:
       - docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl
     control_rows_required: true
-    prediction_input_rows: []
-    prediction_input_rows_required: false
+    prediction_input_rows:
+      - docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl
+    prediction_input_rows_required: true
     evaluator_paths:
+      - data/behavior_recovery_rollout_inputs.py
       - eval/rollout_eval.py
       - eval/compare_rollout_history.py
     next_command: >-
+      uv run --active --no-sync python -m data.behavior_recovery_rollout_inputs;
       uv run --active --no-sync python -m eval.rollout_eval
-      --input data/processed/eval_cosql_dev_100.jsonl
+      --input docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl
       --manifest-output results/rollout/<run-id>.manifest.json;
       uv run --active --no-sync python -m eval.compare_rollout_history ...
     next_artifact: generated-history rollout manifest compared with teacher-forced history

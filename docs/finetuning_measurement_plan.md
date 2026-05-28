@@ -129,6 +129,10 @@ Training inputs:
 - `docs/data_artifacts/behavior_recovery_training_rows.jsonl`
 - `docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl`
 
+Rollout input:
+
+- `docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl`
+
 Control:
 
 - direct SQL trained on the same generated-history repair fixture.
@@ -149,6 +153,7 @@ Supporting measurements:
 
 Evidence gate:
 
+- generated-history rollout input from `data.behavior_recovery_rollout_inputs`,
 - `eval.rollout_eval` manifest with
   `history_policy=model_generated_sql_rollout`,
 - a same-model teacher-forced manifest on the same input when checking

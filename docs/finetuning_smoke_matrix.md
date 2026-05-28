@@ -144,11 +144,13 @@ matching direct-SQL control row:
 
 - `docs/data_artifacts/behavior_recovery_training_rows.jsonl`
 - `docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl`
+- `docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl`
 
 Generate them with:
 
 ```bash
 uv run --active --no-sync python -m data.behavior_recovery_training_rows
+uv run --active --no-sync python -m data.behavior_recovery_rollout_inputs
 ```
 
 Behavior recovery smoke:
@@ -179,7 +181,7 @@ Rollout evaluation is available for generated-history behavior:
 
 ```bash
 uv run --active --no-sync python -m eval.rollout_eval \
-  --input data/processed/eval_cosql_smoke.jsonl \
+  --input docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl \
   --output results/rollout/<run-id>.jsonl \
   --manifest-output results/rollout/<run-id>.manifest.json \
   --database-root data/raw/cosql_dataset/database \
