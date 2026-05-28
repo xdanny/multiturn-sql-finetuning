@@ -20,6 +20,9 @@ The first metric-DSL experiment surface is documented in
 offline through `eval.metric_dsl_eval`.
 Generated-history rollout evaluation is documented in
 `docs/rollout_eval_contract.md` and implemented in `eval.rollout_eval`.
+The checked-in files under `docs/data_artifacts/` are explained in
+`docs/data_artifacts/README.md`; use that guide before adding new generated
+files to the repo.
 
 > Oracle diagnostic: the `0.890` schema-pruned result uses gold SQL-derived
 > planning hints in the eval prompt. It is an upper bound for the
