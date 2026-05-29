@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from train.finetuning_steps import finetuning_step_summary, load_finetuning_steps
+from train.finetuning_steps import (
+    finetuning_step_summary,
+    load_finetuning_steps,
+    select_step_commands,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -61,6 +65,59 @@ def test_finetuning_step_summary_exposes_readiness() -> None:
         "local_beats_hosted_same_protocol",
         "bird_interact_local_vs_hosted",
     ]
+
+
+def test_select_step_commands_returns_preflight_and_run_groups() -> None:
+    preflight = select_step_commands(
+        step_id="planner_first_sql_pair",
+        command_group="preflight",
+        path=REPO_ROOT / "configs" / "finetuning_steps.yaml",
+        method_config_path=REPO_ROOT / "configs" / "finetuning_methods.yaml",
+        protocol_config_path=REPO_ROOT / "configs" / "benchmark_protocols.yaml",
+        claim_ledger_path=REPO_ROOT / "docs" / "claim_ledgers" / "cosql_dev_100.jsonl",
+        repo_root=REPO_ROOT,
+    )
+    run = select_step_commands(
+        step_id="planner_first_sql_pair",
+        command_group="run",
+        path=REPO_ROOT / "configs" / "finetuning_steps.yaml",
+        method_config_path=REPO_ROOT / "configs" / "finetuning_methods.yaml",
+        protocol_config_path=REPO_ROOT / "configs" / "benchmark_protocols.yaml",
+        claim_ledger_path=REPO_ROOT / "docs" / "claim_ledgers" / "cosql_dev_100.jsonl",
+        repo_root=REPO_ROOT,
+    )
+    all_commands = select_step_commands(
+        step_id="planner_first_sql_pair",
+        command_group="all",
+        path=REPO_ROOT / "configs" / "finetuning_steps.yaml",
+        method_config_path=REPO_ROOT / "configs" / "finetuning_methods.yaml",
+        protocol_config_path=REPO_ROOT / "configs" / "benchmark_protocols.yaml",
+        claim_ledger_path=REPO_ROOT / "docs" / "claim_ledgers" / "cosql_dev_100.jsonl",
+        repo_root=REPO_ROOT,
+    )
+
+    assert len(preflight) == 1
+    assert "--preflight-only" in preflight[0]
+    assert len(run) == 1
+    assert "--preflight-only" not in run[0]
+    assert all_commands == preflight + run
+
+
+def test_select_step_commands_rejects_unknown_step() -> None:
+    try:
+        select_step_commands(
+            step_id="missing_step",
+            command_group="preflight",
+            path=REPO_ROOT / "configs" / "finetuning_steps.yaml",
+            method_config_path=REPO_ROOT / "configs" / "finetuning_methods.yaml",
+            protocol_config_path=REPO_ROOT / "configs" / "benchmark_protocols.yaml",
+            claim_ledger_path=REPO_ROOT / "docs" / "claim_ledgers" / "cosql_dev_100.jsonl",
+            repo_root=REPO_ROOT,
+        )
+    except ValueError as exc:
+        assert "unknown finetuning step id: missing_step" in str(exc)
+    else:
+        raise AssertionError("unknown step id should fail")
 
 
 def test_finetuning_step_loader_rejects_unknown_method(tmp_path) -> None:
