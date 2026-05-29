@@ -2686,17 +2686,30 @@ def gpu_finetuning_evidence() -> pd.DataFrame:
             }
         )
 
-    blocked = evidence["fresh_gpu_check"]
+    smoke = evidence["fresh_training_smoke"]
     rows.append(
         {
-            "run": "fresh run from current shell",
-            "steps": "",
-            "loss_moved": blocked["torch"],
-            "adapter_hash": "not run",
+            "run": "fresh 1-step GPU smoke",
+            "steps": str(smoke["global_step"]),
+            "loss_moved": f"train_loss {smoke['train_loss']:.3f}; {smoke['runtime_seconds']:.2f}s",
+            "adapter_hash": smoke["adapter_weights_sha256"][:12],
             "value_accuracy": "",
             "strict_accuracy": "",
-            "claim_status": "blocked_now",
-            "public_claim": blocked["nvidia_smi"],
+            "claim_status": "completed_smoke",
+            "public_claim": "GPU path verified only; not a benchmark result",
+        }
+    )
+    checks = evidence["fresh_gpu_check"]
+    rows.append(
+        {
+            "run": "GPU visibility check",
+            "steps": "",
+            "loss_moved": checks["escalated_torch"],
+            "adapter_hash": "not applicable",
+            "value_accuracy": "",
+            "strict_accuracy": "",
+            "claim_status": "gpu_visible_outside_sandbox",
+            "public_claim": checks["escalated_nvidia_smi"],
         }
     )
     return pd.DataFrame(rows)

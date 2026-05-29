@@ -1,10 +1,29 @@
 {
   "artifact_type": "gpu_finetuning_evidence_snapshot",
   "fresh_gpu_check": {
-    "nvidia_smi": "Failed to initialize NVML: GPU access blocked by the operating system",
-    "torch": "torch 2.10.0+cu128; cuda_available False; device_count 0"
+    "escalated_nvidia_smi": "NVIDIA GeForce RTX 5090; driver 591.86; CUDA 13.1; 32607 MiB",
+    "escalated_torch": "torch 2.10.0+cu128; cuda_available True; device_count 1; device_name NVIDIA GeForce RTX 5090; capability (12, 0); cuda matmul ok",
+    "sandbox_nvidia_smi": "Failed to initialize NVML: GPU access blocked by the operating system",
+    "sandbox_torch": "torch 2.10.0+cu128; cuda_available False; device_count 0"
   },
-  "interpretation": "Existing local LoRA artifacts and claim-ledger results support previous GPU fine-tuning measurements. This shell cannot run a fresh GPU training pass until WSL GPU access is restored.",
+  "fresh_training_smoke": {
+    "adapter_config_path": "outputs/gpu_access_smoke_1step/final/adapter_config.json",
+    "adapter_config_sha256": "e37f370de91e04891be1c22ac0f06f9e735d213a1dea83df203fca282defd00f",
+    "adapter_weights_path": "outputs/gpu_access_smoke_1step/final/adapter_model.safetensors",
+    "adapter_weights_sha256": "ea12b9f4f1fe0611e3cded056c0377c5d4f60fa9e39b6cb6474b0b99ecaeac3d",
+    "command": "env CC=/home/dan/.local/bin/cc UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m train.finetune --config configs/qwen35_9b_5090.yaml --data data/processed/train_cosql_smoke.jsonl --max-steps 1 --output-dir outputs/gpu_access_smoke_1step --report-to none --run-id gpu_access_smoke_1step",
+    "global_step": 1,
+    "runtime_seconds": 27.23,
+    "saved_final_adapter": true,
+    "total_flos": 41565324977280.0,
+    "train_loss": 1.684,
+    "trainable_parameters": 58195968,
+    "trainer_state_path": "outputs/gpu_access_smoke_1step/checkpoint-1/trainer_state.json",
+    "trainer_state_sha256": "b401b56c85afa2d53faab3bf859d755e88391f10a56d3ed672bead77581100e7",
+    "training_manifest_path": "outputs/gpu_access_smoke_1step/training.manifest.json",
+    "training_manifest_sha256": "d57260cfef8aa8dbf3782ae746ce4f03bc6e5acbb0e0f916339ed0ab39ca6b6b"
+  },
+  "interpretation": "Existing local LoRA artifacts and claim-ledger results support previous GPU fine-tuning measurements. A fresh one-step LoRA smoke also completed on the RTX 5090 when run outside the sandbox; the sandboxed command path cannot initialize NVML and should not be used as the GPU-access signal.",
   "runs": [
     {
       "adapter_config_path": "outputs/qwen35_9b_multiturn_sql_100steps/final/adapter_config.json",
