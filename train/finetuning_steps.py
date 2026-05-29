@@ -20,6 +20,7 @@ LIST_FIELDS = {
     "train_rows",
     "eval_rows",
     "control_rows",
+    "preflight_commands",
     "commands",
     "clears_claim_ids",
     "blocks_claim_ids",
@@ -120,14 +121,17 @@ def load_finetuning_steps(
             )
         if not row["commands"]:
             raise ValueError(f"{step_id}: missing commands")
+        if not row["preflight_commands"]:
+            raise ValueError(f"{step_id}: missing preflight_commands")
+        all_commands = row["preflight_commands"] + row["commands"]
         non_uv_commands = [
             command
-            for command in row["commands"]
+            for command in all_commands
             if not command.startswith("uv run --active --no-sync")
         ]
         if non_uv_commands:
             raise ValueError(f"{step_id}: commands must use uv run --active --no-sync")
-        if any("reference SQL" in command for command in row["commands"]):
+        if any("reference SQL" in command for command in all_commands):
             raise ValueError(f"{step_id}: command text mentions reference SQL")
         row["train_rows_status"] = _path_status(repo_root, row["train_rows"])
         row["eval_rows_status"] = _path_status(repo_root, row["eval_rows"])
@@ -168,6 +172,11 @@ def finetuning_step_summary(
                 "evidence_gate": step["evidence_gate"],
                 "clears_claim_ids": list(step["clears_claim_ids"]),
                 "blocks_claim_ids": list(step["blocks_claim_ids"]),
+                "preflight_command_count": len(step["preflight_commands"]),
+                "cheap_preflight_available": all(
+                    "<" not in command and ">" not in command
+                    for command in step["preflight_commands"]
+                ),
                 "command_count": len(step["commands"]),
             }
             for step in steps

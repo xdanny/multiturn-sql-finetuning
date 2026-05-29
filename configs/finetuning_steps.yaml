@@ -11,6 +11,14 @@ steps:
     eval_rows:
       - data/processed/eval_cosql_smoke.jsonl
     control_rows: []
+    preflight_commands:
+      - >-
+        uv run --active --no-sync python -m train.finetune
+        --config configs/qwen35_9b_5090.yaml
+        --data data/processed/train_smoke.jsonl
+        --eval-data data/processed/eval_cosql_smoke.jsonl
+        --validate-data-only
+        --report-to none
     commands:
       - >-
         uv run --active --no-sync python -m train.finetune
@@ -40,6 +48,18 @@ steps:
       - data/processed/eval_cosql_dev_predicted_planner_100.jsonl
     control_rows:
       - data/processed/eval_cosql_dev_100.jsonl
+    preflight_commands:
+      - >-
+        uv run --active --no-sync python -m eval.run_predicted_planner_comparison
+        --direct-input data/processed/eval_cosql_dev_100.jsonl
+        --predicted-input data/processed/eval_cosql_dev_predicted_planner_100.jsonl
+        --output-dir /tmp/predicted_planner_preflight
+        --run-id preflight
+        --model-name preflight
+        --database-root data/raw/cosql_dataset/database
+        --limit 100
+        --preflight-only
+        --preflight-output /tmp/predicted_planner_comparison_preflight.json
     commands:
       - >-
         uv run --active --no-sync python -m eval.run_predicted_planner_comparison
@@ -70,6 +90,21 @@ steps:
     control_rows:
       - data/processed/eval_cosql_dev_100.jsonl
       - docs/data_artifacts/semantic_value_retrieval_inputs.manifest.json
+    preflight_commands:
+      - >-
+        uv run --active --no-sync python -m data.semantic_value_retrieval_inputs
+      - >-
+        uv run --active --no-sync python -m eval.run_semantic_value_retrieval_comparison
+        --direct-input data/processed/eval_cosql_dev_100.jsonl
+        --semantic-input data/processed/eval_cosql_dev_100_semantic_value_retrieval.jsonl
+        --value-index-manifest docs/data_artifacts/value_index_cosql_dev_100.manifest.json
+        --output-dir /tmp/semantic_value_retrieval_preflight
+        --run-id preflight
+        --model-name preflight
+        --database-root data/raw/cosql_dataset/database
+        --limit 100
+        --preflight-only
+        --preflight-output /tmp/semantic_value_retrieval_comparison_preflight.json
     commands:
       - >-
         uv run --active --no-sync python -m data.semantic_value_retrieval_inputs
@@ -105,6 +140,21 @@ steps:
       - docs/data_artifacts/metric_dsl_direct_sql_prediction_inputs.jsonl
     control_rows:
       - docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl
+    preflight_commands:
+      - >-
+        uv run --active --no-sync python -m train.finetune
+        --config configs/qwen35_9b_5090.yaml
+        --data docs/data_artifacts/metric_dsl_training_rows.jsonl
+        --eval-data docs/data_artifacts/metric_dsl_training_rows.jsonl
+        --validate-data-only
+        --report-to none
+      - >-
+        uv run --active --no-sync python -m train.finetune
+        --config configs/qwen35_9b_5090.yaml
+        --data docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl
+        --eval-data docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl
+        --validate-data-only
+        --report-to none
     commands:
       - >-
         uv run --active --no-sync python -m train.finetune
@@ -150,6 +200,21 @@ steps:
       - docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl
     control_rows:
       - docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl
+    preflight_commands:
+      - >-
+        uv run --active --no-sync python -m train.finetune
+        --config configs/qwen35_9b_5090.yaml
+        --data docs/data_artifacts/behavior_recovery_training_rows.jsonl
+        --eval-data docs/data_artifacts/behavior_recovery_training_rows.jsonl
+        --validate-data-only
+        --report-to none
+      - >-
+        uv run --active --no-sync python -m train.finetune
+        --config configs/qwen35_9b_5090.yaml
+        --data docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl
+        --eval-data docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl
+        --validate-data-only
+        --report-to none
     commands:
       - >-
         uv run --active --no-sync python -m train.finetune
@@ -191,6 +256,10 @@ steps:
     train_rows: []
     eval_rows: []
     control_rows: []
+    preflight_commands:
+      - >-
+        uv run --active --no-sync python -m train.finetuning_steps
+        --output /tmp/finetuning_steps_summary.json
     commands:
       - >-
         uv run --active --no-sync python -m eval.compare_hosted_baseline
