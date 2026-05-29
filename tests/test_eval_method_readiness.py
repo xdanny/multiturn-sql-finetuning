@@ -25,6 +25,10 @@ def test_method_readiness_loads_method_arms_from_config() -> None:
         "Hosted and BIRD-Interact comparison",
     ]
     assert configs[0]["training_rows"] == ("data/processed/train_smoke.jsonl",)
+    assert configs[0]["benchmark_protocol_ids"] == (
+        "cosql_dev_100_teacher_forced_proxy",
+        "bird_interact_same_protocol_transfer",
+    )
     assert configs[0]["smoke_rows_required"] is True
     assert configs[0]["control_rows"] == ()
     assert configs[0]["control_rows_required"] is False
@@ -108,6 +112,12 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
         "local_beats_hosted_same_protocol",
         "bird_interact_local_vs_hosted",
     ]
+    assert direct["benchmark_protocol_ids"] == [
+        "cosql_dev_100_teacher_forced_proxy",
+        "bird_interact_same_protocol_transfer",
+    ]
+    assert direct["benchmark_protocols"][0]["benchmark"] == "CoSQL dev 100-turn proxy"
+    assert direct["benchmark_protocols"][1]["supports_hosted_sota_claim"] is True
     assert direct["open_blocking_claim_ids"] == [
         "hosted_sota_same_protocol",
         "local_beats_hosted_same_protocol",
@@ -140,6 +150,10 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
     assert "predicted_planner_sql_execution" in planner["blocking_claim_ids"]
     assert "predicted_planner_sql_execution" in planner["open_blocking_claim_ids"]
     assert "eval.run_predicted_planner_comparison" in planner["next_command"]
+    assert planner["benchmark_protocol_ids"] == [
+        "cosql_dev_100_teacher_forced_proxy",
+        "synthetic_schema_rich_method_fixture",
+    ]
 
     semantic = methods["Semantic-layer tuning"]
     assert semantic["readiness_level"] == "needs_value_entity_retrieval"
@@ -161,6 +175,10 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
         "docs/data_artifacts/semantic_value_retrieval_inputs.manifest.json": True
     }
     assert semantic["evaluators_ready"] is True
+    assert semantic["benchmark_protocol_ids"] == [
+        "cosql_dev_100_teacher_forced_proxy",
+        "synthetic_schema_rich_method_fixture",
+    ]
 
     metric = methods["MEASURE()-preserving metric DSL"]
     assert metric["readiness_level"] == "needs_prediction_manifest"
@@ -190,6 +208,10 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
     assert "eval.run_metric_dsl_comparison" in metric["next_command"]
     assert metric["evaluator_paths"]["eval/generate_metric_dsl_predictions.py"] is True
     assert metric["evaluator_paths"]["eval/run_metric_dsl_comparison.py"] is True
+    assert metric["benchmark_protocol_ids"] == [
+        "synthetic_schema_rich_method_fixture",
+        "cosql_dev_100_teacher_forced_proxy",
+    ]
 
     recovery = methods["Behavior/recovery tuning"]
     assert recovery["readiness_level"] == "needs_rollout_manifest"
@@ -215,6 +237,10 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
     assert "eval.run_behavior_recovery_comparison" in recovery["next_command"]
     assert "--output-dir results/rollout" in recovery["next_command"]
     assert "direct-SQL control" in recovery["claim_boundary"]
+    assert recovery["benchmark_protocol_ids"] == [
+        "synthetic_schema_rich_method_fixture",
+        "cosql_generated_history_rollout",
+    ]
 
     hosted = methods["Hosted and BIRD-Interact comparison"]
     assert hosted["readiness_level"] == "needs_hosted_protocol_run"
@@ -228,6 +254,8 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
     assert "hosted_sota_same_protocol" in hosted["blocking_claim_ids"]
     assert "local_beats_hosted_same_protocol" in hosted["blocking_claim_ids"]
     assert "eval.compare_hosted_baseline" in hosted["next_command"]
+    assert hosted["benchmark_protocol_ids"] == ["bird_interact_same_protocol_transfer"]
+    assert hosted["benchmark_protocols"][0]["supports_hosted_sota_claim"] is True
 
     for row in rows:
         assert (REPO_ROOT / row["module_path"]).exists(), row["module_path"]
@@ -238,6 +266,8 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
         assert row["primary_metric"]
         assert row["leakage_boundary"]
         assert row["evidence_gate"]
+        assert row["benchmark_protocol_ids"]
+        assert row["benchmark_protocols"]
         assert "uv run --active --no-sync" in row["next_command"]
 
 

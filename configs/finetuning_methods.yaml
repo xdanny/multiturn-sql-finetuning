@@ -4,6 +4,9 @@ methods:
     readiness_level: control_ready
     finetuning_objective: stable direct SQL control arm for all method comparisons
     benchmark_scope: fixed CoSQL proxy rows now; hosted and BIRD-Interact rows later
+    benchmark_protocol_ids:
+      - cosql_dev_100_teacher_forced_proxy
+      - bird_interact_same_protocol_transfer
     primary_metric: value-only execution accuracy on identical row identities
     leakage_boundary: >-
       prompts may use question, prior turns, schema, and non-oracle context; do
@@ -42,6 +45,9 @@ methods:
     finetuning_objective: >-
       predict a compact schema/query plan before generating SQL from that plan
     benchmark_scope: fixed CoSQL proxy planner rows with row-matched direct-SQL control
+    benchmark_protocol_ids:
+      - cosql_dev_100_teacher_forced_proxy
+      - synthetic_schema_rich_method_fixture
     primary_metric: predicted-planner SQL value accuracy delta versus direct SQL
     leakage_boundary: >-
       predicted plans must come from question, history, schema, and non-oracle
@@ -81,6 +87,9 @@ methods:
       teach the model to use governed dimensions, entities, values, joins, and
       grain that raw DDL does not explain
     benchmark_scope: CoSQL proxy value/entity rows plus synthetic schema-rich fixtures
+    benchmark_protocol_ids:
+      - cosql_dev_100_teacher_forced_proxy
+      - synthetic_schema_rich_method_fixture
     primary_metric: same-row value accuracy delta and value/entity retrieval coverage
     leakage_boundary: >-
       database-derived indexes and semantic manifests are allowed; answer-derived
@@ -124,6 +133,9 @@ methods:
     finetuning_objective: >-
       preserve governed metric intent as MEASURE(...) before compiling to SQL
     benchmark_scope: synthetic metric-heavy fixtures before larger proxy or BIRD-style rows
+    benchmark_protocol_ids:
+      - synthetic_schema_rich_method_fixture
+      - cosql_dev_100_teacher_forced_proxy
     primary_metric: compiled metric-DSL value accuracy delta versus direct SQL
     leakage_boundary: >-
       prompts may include semantic metric definitions but not gold metric DSL,
@@ -182,6 +194,9 @@ methods:
       teach the model to continue after its own generated SQL, empty results, or
       bad value grounding
     benchmark_scope: synthetic generated-history repair fixture before CoSQL rollout rows
+    benchmark_protocol_ids:
+      - synthetic_schema_rich_method_fixture
+      - cosql_generated_history_rollout
     primary_metric: generated-history rollout value accuracy delta versus direct SQL
     leakage_boundary: >-
       prompts may include previous generated SQL and observed rows; do not expose
@@ -237,6 +252,8 @@ methods:
       compare the best local 9B method against hosted systems under the same
       interactive data-analysis protocol
     benchmark_scope: frozen hosted baseline rows and BIRD-Interact or Multi-BIRD transfer rows
+    benchmark_protocol_ids:
+      - bird_interact_same_protocol_transfer
     primary_metric: same-protocol value accuracy delta with latency and cost metadata
     leakage_boundary: >-
       local and hosted prompts must share the same non-oracle inputs, scorer,

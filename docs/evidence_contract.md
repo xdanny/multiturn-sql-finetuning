@@ -6,6 +6,10 @@ CoSQL proxy slice, not a BIRD-Interact score and not a hosted-model comparison.
 The broader methodology, dataset roles, training boundaries, and benchmark
 rules are defined in `docs/methodology.md`.
 
+The machine-readable benchmark protocol registry is
+`configs/benchmark_protocols.yaml`. Method readiness rows must name protocol ids
+from that registry before they can make benchmark or transfer claims.
+
 ## Evaluation Modes
 
 | Mode | Inference inputs | Allowed public claim |
