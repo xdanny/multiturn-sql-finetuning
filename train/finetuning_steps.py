@@ -24,6 +24,7 @@ LIST_FIELDS = {
     "commands",
     "clears_claim_ids",
     "blocks_claim_ids",
+    "requires_step_ids",
 }
 REQUIRED_TEXT_FIELDS = {
     "step_id",
@@ -166,12 +167,21 @@ def load_finetuning_steps(
         previous_step_id = step_id
         if step_id in seen_ids:
             raise ValueError(f"{step_id}: duplicate finetuning step id")
-        seen_ids.add(step_id)
         if row["method"] not in methods:
             raise ValueError(f"{step_id}: unknown method {row['method']}")
         method = methods[row["method"]]
         for field in LIST_FIELDS:
             row[field] = tuple(row.get(field) or ())
+        missing_dependencies = sorted(
+            required_step_id
+            for required_step_id in row["requires_step_ids"]
+            if required_step_id not in seen_ids
+        )
+        if missing_dependencies:
+            raise ValueError(
+                f"{step_id}: requires_step_ids must reference earlier steps: "
+                f"{', '.join(missing_dependencies)}"
+            )
         step_claim_ids = set(row["clears_claim_ids"]) | set(row["blocks_claim_ids"])
         unknown_claim_ids = sorted(step_claim_ids - known_claim_ids)
         if unknown_claim_ids:
@@ -221,6 +231,7 @@ def load_finetuning_steps(
         row["eval_rows_status"] = _path_status(repo_root, row["eval_rows"])
         row["control_rows_status"] = _path_status(repo_root, row["control_rows"])
         normalized.append(row)
+        seen_ids.add(step_id)
     return tuple(normalized)
 
 
@@ -249,6 +260,7 @@ def finetuning_step_summary(
                 "step_id": step["step_id"],
                 "method": step["method"],
                 "stage": step["stage"],
+                "requires_step_ids": list(step["requires_step_ids"]),
                 "benchmark_protocol_ids": list(step["benchmark_protocol_ids"]),
                 "train_rows_ready": all(step["train_rows_status"].values()),
                 "eval_rows_ready": all(step["eval_rows_status"].values()),
@@ -346,6 +358,7 @@ def build_step_command_record(
         "step_id": step["step_id"],
         "method": step["method"],
         "stage": step["stage"],
+        "requires_step_ids": list(step["requires_step_ids"]),
         "command_group": command_group,
         "commands": list(commands),
         "benchmark_protocol_ids": list(step["benchmark_protocol_ids"]),

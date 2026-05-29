@@ -63,6 +63,11 @@ Do not move hosted or transfer gates before the proxy/control steps they depend
 on. If a new stage is needed, add it to `train.finetuning_steps.STAGE_ORDER` and
 document what evidence must exist before that stage can run.
 
+Each step also declares `requires_step_ids`. Dependencies must point to earlier
+steps in the same file. Use this to make control and promotion gates explicit:
+for example, hosted/BIRD transfer depends on the direct control and the method
+comparison steps it may promote.
+
 Print the cheap preflight commands for one step before spending GPU or endpoint
 time:
 
