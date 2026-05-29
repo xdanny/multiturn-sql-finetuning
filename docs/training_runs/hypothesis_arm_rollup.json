@@ -7,7 +7,8 @@
     "docs/training_runs/metric_dsl_arm_5steps.json",
     "docs/training_runs/behavior_recovery_5steps.json",
     "docs/training_runs/value_schema_repair_prompt.json",
-    "docs/training_runs/value_choice_consistency_prompt.json"
+    "docs/training_runs/value_choice_consistency_prompt.json",
+    "docs/training_runs/alias_column_validity_prompt.json"
   ],
   "arms": [
     {
@@ -172,11 +173,49 @@
         }
       ],
       "next_action": "Add alias/column-validity supervision after value choice is correct."
+    },
+    {
+      "run_id": "alias_column_validity_prompt",
+      "hypothesis_id": "value_schema_repair",
+      "arm_type": "prompt_only_alias_column_diagnostic",
+      "evidence_path": "docs/training_runs/alias_column_validity_prompt.json",
+      "evidence_sha256": "b8550a4aa8f9989280c64dc5d34a506b56a14f24fd51280515ddec061485a041",
+      "claim_boundary": "Single synthetic prompt-only alias/column-validity fixture. This is hypothesis evidence, not a benchmark or SOTA claim.",
+      "model": "unsloth/Qwen3.5-9B",
+      "control": "teacher_forced_reference",
+      "decision": "passed_single_synthetic_diagnostic",
+      "primary_failure_mode": "The explicit column-role constraints fixed the known invalid-column failure.",
+      "selected_metrics": {
+        "dialog_count": 1,
+        "syntax_accuracy": 1.0,
+        "value_execution_accuracy": 1.0,
+        "strict_execution_accuracy": 1.0,
+        "rollout_value_delta_vs_teacher_forced": 0.0,
+        "value_choice_accuracy": 1.0,
+        "column_validity_accuracy": 1.0,
+        "schema_valid_sql_rate": 1.0,
+        "alias_resolution_success_rate": 1.0
+      },
+      "observed_outputs": [
+        {
+          "fixture_id": "recovery_empty_result",
+          "generated_sql": "SELECT customers.name, SUM(orders.amount) AS revenue FROM orders JOIN customers ON orders.customer_id = customers.id WHERE customers.country_code = 'FR' GROUP BY customers.name ORDER BY revenue DESC LIMIT 1",
+          "invalid_table_column_refs": [],
+          "matched_invalid_patterns": [],
+          "score_error": null,
+          "selected_storage_value": "FR",
+          "strict_execution_score": 1.0,
+          "syntax_valid": true,
+          "value_choice_match": true,
+          "value_execution_score": 1.0
+        }
+      ],
+      "next_action": "Scale the artifact to validation rows before any adapter or blog claim."
     }
   ],
   "overall_decision": {
     "status": "no_method_promoted",
-    "reason": "Every completed method arm either lost to its control, matched a failed control, or changed the failure mode without solving the fixture.",
-    "next_repo_step": "Build alias/column-validity supervision before another GPU fine-tuning run or blog claim."
+    "reason": "Only the final alias/column diagnostic passes, and it does so on one synthetic row. No method has passed broader validation or a locked proxy gate.",
+    "next_repo_step": "Scale alias/column-validity context to validation rows before another GPU fine-tuning run or blog claim."
   }
 }

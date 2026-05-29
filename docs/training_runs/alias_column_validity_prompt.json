@@ -1,0 +1,63 @@
+{
+  "artifact_type": "alias_column_validity_prompt_evidence",
+  "claim_boundary": "Single synthetic prompt-only alias/column-validity fixture. This is hypothesis evidence, not a benchmark or SOTA claim.",
+  "date": "2026-05-29",
+  "input_artifacts": {
+    "manifest_path": "docs/data_artifacts/alias_column_validity_rollout_inputs.manifest.json",
+    "manifest_sha256": "ded5e5bc7a6ebc306710349de5e69cb42d490f02fe6b6b2b3ceecd0d141760ef",
+    "rollout_input_path": "docs/data_artifacts/alias_column_validity_rollout_inputs.jsonl",
+    "rollout_input_sha256": "5280c2decdda6d50ed1743e8b16eec6b68e7a48e12e08998b0bc2ae2fe7d003d",
+    "summary_path": "docs/data_artifacts/alias_column_validity_rollout_inputs_summary.json",
+    "summary_sha256": "92d61b2b2498e79faf6eb225c6a5c286faff4938008bb5d3b0c094bedcf26db8"
+  },
+  "interpretation": [
+    "Prompt-visible column-role constraints fixed the observed invalid-column failure on the same synthetic recovery row.",
+    "The generated SQL selected FR, avoided customers.customer_id, and matched the teacher-forced reference execution.",
+    "This promotes the artifact shape to broader validation, not to a method claim; the result is still one synthetic diagnostic row."
+  ],
+  "metrics": {
+    "alias_resolution_success_rate": 1.0,
+    "column_validity_accuracy": 1.0,
+    "dialog_count": 1,
+    "execution_accuracy": 1.0,
+    "rollout_value_delta_vs_teacher_forced": 0.0,
+    "schema_valid_sql_rate": 1.0,
+    "strict_execution_accuracy": 1.0,
+    "syntax_accuracy": 1.0,
+    "teacher_forced_value_execution_accuracy": 1.0,
+    "value_choice_accuracy": 1.0,
+    "value_execution_accuracy": 1.0
+  },
+  "model": "unsloth/Qwen3.5-9B",
+  "observed_output": [
+    {
+      "fixture_id": "recovery_empty_result",
+      "generated_sql": "SELECT customers.name, SUM(orders.amount) AS revenue FROM orders JOIN customers ON orders.customer_id = customers.id WHERE customers.country_code = 'FR' GROUP BY customers.name ORDER BY revenue DESC LIMIT 1",
+      "invalid_table_column_refs": [],
+      "matched_invalid_patterns": [],
+      "score_error": null,
+      "selected_storage_value": "FR",
+      "strict_execution_score": 1.0,
+      "syntax_valid": true,
+      "value_choice_match": true,
+      "value_execution_score": 1.0
+    }
+  ],
+  "result_artifacts": {
+    "column_validity_score_path": "results/rollout/alias_column_validity_prompt.column_validity.json",
+    "column_validity_score_sha256": "2b2d3393cb96bc7007538c87f287d2395140bf83114f565bdcc6c90f7d357267",
+    "comparison_manifest_path": "results/rollout/alias_column_validity_prompt.comparison.manifest.json",
+    "comparison_manifest_sha256": "9c4e6e02592bfb2560044acec561c6860156394e91af1203b77bcf858f9ab443",
+    "rollout_manifest_path": "results/rollout/alias_column_validity_prompt.rollout.manifest.json",
+    "rollout_manifest_sha256": "c85367b845264d233248139669e4f7203ab7acf234148848f4fe97facd572fa0",
+    "rollout_rows_path": "results/rollout/alias_column_validity_prompt.rollout.jsonl",
+    "rollout_rows_sha256": "b74990872fe2f8a86e73673610a1750ffe368b8ea3c82844825ca9a7383a0258",
+    "teacher_forced_manifest_path": "results/rollout/alias_column_validity_prompt.teacher_forced.manifest.json",
+    "teacher_forced_manifest_sha256": "8bca853cafc9a12faf9da41e4cf831d77022a7ee6ead83ffa82b219e9e052b02",
+    "value_choice_score_path": "results/rollout/alias_column_validity_prompt.value_choice.json",
+    "value_choice_score_sha256": "5a0cd9f51e91383a57314edc928c9f58b4c3954ed481672fb08287c84993d394"
+  },
+  "run_id": "alias_column_validity_prompt",
+  "schema_version": 1,
+  "training": null
+}
