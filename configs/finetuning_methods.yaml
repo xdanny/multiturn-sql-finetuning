@@ -88,7 +88,9 @@ methods:
     evidence_gate: value/entity retrieval manifest plus row-matched semantic delta
     supported_claim_ids:
       - semantic_prompt_minimal_executable_cosql_dev_100turns
+      - value_index_coverage
     blocking_claim_ids:
+      - semantic_value_retrieval_improves_sql
       - hosted_sota_same_protocol
       - local_beats_hosted_same_protocol
     module_path: data/value_artifacts.py

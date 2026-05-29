@@ -16,3 +16,5 @@ schema_pruned_minimal_schemafix_oracle_cosql_dev_100turns,diagnostic_upper_bound
 schema_pruned_projection_oracle_cosql_dev_100turns,diagnostic_upper_bound,oracle_planner_diagnostic,oracle planner diagnostic only,,,0.83,0.62,100,32
 schema_pruned_trained100_oracle_cosql_dev_100turns,diagnostic_upper_bound,oracle_planner_diagnostic,oracle planner diagnostic only,,,0.89,0.82,100,32
 semantic_prompt_minimal_executable_cosql_dev_100turns,supported_proxy,non_oracle_generation,local proxy result only,,,0.64,0.42,100,32
+semantic_value_retrieval_improves_sql,pending,non_oracle_generation,no semantic value-retrieval SQL win yet,no row-matched semantic value-retrieval SQL comparison,semantic/value retrieval run compared with direct SQL on identical rows,,,,
+value_index_coverage,supported_value_retrieval_coverage,value_retrieval_coverage,value/entity retrieval coverage only,,,,,12661,

@@ -568,6 +568,8 @@ def claim_table() -> pd.DataFrame:
                 "qwen35_9b_base_cosql_dev_100turns",
                 "multiturn_sql_100_cosql_dev_100turns",
                 "semantic_prompt_minimal_executable_cosql_dev_100turns",
+                "value_index_coverage",
+                "semantic_value_retrieval_improves_sql",
                 "schema_pruned_trained100_oracle_cosql_dev_100turns",
                 "metric-dsl-bootstrap.metric_dsl",
                 "metric_dsl_beats_direct_sql",

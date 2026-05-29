@@ -45,7 +45,7 @@
       "path": "claim-table.md",
       "required_in_post": false,
       "required_reference": true,
-      "sha256": "0f61f89eadbee7020b4a5002d6d8e6ae33c3115b67b418afc0b1617f40ba58b3"
+      "sha256": "4cacb8b29a921e5e8bf828c2f186a193d037271372440be0f59a0ed65627de58"
     },
     {
       "claim_ids": [],
@@ -116,7 +116,7 @@
       "path": "method-readiness-report.md",
       "required_in_post": false,
       "required_reference": true,
-      "sha256": "f6ddf33ec531cb04fdad176d82827928913f91632be1a7fd6c052273712ba768"
+      "sha256": "cbc7c18a85b0863c479d73cbec764e3a9e7916a090dc5515767aa288e230c637"
     },
     {
       "claim_ids": [
@@ -1314,6 +1314,45 @@
       "total_cost_usd": null,
       "turn_format": null,
       "value_execution_accuracy": 0.64
+    },
+    "semantic_value_retrieval_improves_sql": {
+      "allowed_public_claim": "no semantic value-retrieval SQL win yet",
+      "artifact_type": "pending_claim",
+      "artifact_valid": false,
+      "blocking_reason": "no row-matched semantic value-retrieval SQL comparison",
+      "can_support_sota_claim": false,
+      "claim_id": "semantic_value_retrieval_improves_sql",
+      "claim_status": "pending",
+      "evaluation_mode": "non_oracle_generation",
+      "production_claim_allowed": false,
+      "required_artifact": "semantic/value retrieval run compared with direct SQL on identical rows"
+    },
+    "value_index_coverage": {
+      "alias_count": 19334,
+      "allowed_public_claim": "value/entity retrieval coverage only",
+      "artifact_type": "value_index_summary",
+      "artifact_valid": true,
+      "blocking_reason": null,
+      "can_support_sota_claim": false,
+      "claim_id": "value_index_coverage",
+      "claim_status": "supported_value_retrieval_coverage",
+      "column_count": 411,
+      "database_count": 20,
+      "evaluation_mode": "value_retrieval_coverage",
+      "index_source": "database_contents",
+      "input_path": "data/processed/eval_cosql_dev_100.jsonl",
+      "label_count": 106,
+      "label_source": "optional_gold_sql_coverage_eval",
+      "mention_alias_indexed_count": 80,
+      "mention_alias_indexed_rate": 0.7547169811320755,
+      "output_path": "docs/data_artifacts/value_index_cosql_dev_100.jsonl",
+      "production_claim_allowed": false,
+      "required_artifact": null,
+      "resolved_value_indexed_count": 83,
+      "resolved_value_indexed_rate": 0.7830188679245284,
+      "row_count": 12661,
+      "summary_path": "/home/dan/docs/multiturn-sql-finetuning/docs/data_artifacts/value_index_cosql_dev_100_summary.json",
+      "table_count": 80
     }
   },
   "forbidden_public_substrings": [
@@ -1327,7 +1366,7 @@
   "source_artifacts": [
     {
       "path": "docs/claim_ledgers/cosql_dev_100.jsonl",
-      "sha256": "5469ff4e02186c24f20042586ee38f13faa4238756b07be0a770dd50dd4b4c98"
+      "sha256": "e9f680449c3f48eae713b65b86519dd118b6feb9fec75b1493bc15642b318a81"
     },
     {
       "path": "docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl",
