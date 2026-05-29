@@ -203,23 +203,31 @@ direct and predicted prepared inputs have matching row identities for the fixed
 100-turn proxy. This is only a readiness artifact. It cannot clear the claim
 without the endpoint result manifests and comparison metrics.
 
-Compare a semantic value-retrieval SQL run against direct SQL before claiming
-the value index improved execution:
+Run a semantic value-retrieval SQL pair against direct SQL before claiming the
+value index improved execution:
 
 ```bash
-python -m eval.compare_semantic_value_retrieval \
-  --semantic-manifest results/semantic_value_retrieval/<run-id>.manifest.json \
-  --direct-manifest results/direct_sql/<run-id>.manifest.json \
+python -m eval.run_semantic_value_retrieval_comparison \
+  --direct-input data/processed/eval_cosql_dev_100.jsonl \
+  --semantic-input data/processed/eval_cosql_dev_100_semantic_value_retrieval.jsonl \
   --value-index-manifest docs/data_artifacts/value_index_cosql_dev_100.manifest.json \
-  --output results/semantic_value_retrieval/<run-id>.compared.manifest.json
+  --output-dir results/semantic_value_retrieval \
+  --run-id semantic_value_retrieval_cosql_dev_100 \
+  --model-name <served-model> \
+  --endpoint http://localhost:8000/v1 \
+  --database-root data/raw/cosql_dataset/database \
+  --limit 100 \
+  --preflight-output docs/semantic_value_retrieval_comparison_preflight.json
 ```
 
-The semantic manifest must be non-oracle `benchmark=prepared` and must already
-record the value-index manifest SHA and `value_index_index_source=database_contents`
-in its metrics. The comparer then requires the same model, matching row
-identities, non-oracle output rows, execution scores on both sides, and a
-database-derived value index. The claim ledger clears
-`semantic_value_retrieval_improves_sql` only when this compared manifest reports
+The paired runner first validates that both prepared inputs expand to the same
+non-oracle row identities, that the semantic input differs from the direct-SQL
+control, and that the value-index manifest is database-derived. It then writes
+direct, semantic, and compared manifests. The lower-level
+`eval.compare_semantic_value_retrieval` still enforces the final comparison
+contract: same model, matching row identities, non-oracle output rows, execution
+scores on both sides, and the value-index manifest SHA. The claim ledger clears
+`semantic_value_retrieval_improves_sql` only when the compared manifest reports
 a positive value-accuracy delta versus direct SQL. Coverage alone remains a
 retrieval artifact, not a SQL win.
 
