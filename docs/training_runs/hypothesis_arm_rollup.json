@@ -8,7 +8,8 @@
     "docs/training_runs/behavior_recovery_5steps.json",
     "docs/training_runs/value_schema_repair_prompt.json",
     "docs/training_runs/value_choice_consistency_prompt.json",
-    "docs/training_runs/alias_column_validity_prompt.json"
+    "docs/training_runs/alias_column_validity_prompt.json",
+    "docs/training_runs/alias_column_context_prompt_limit8.json"
   ],
   "arms": [
     {
@@ -211,11 +212,49 @@
         }
       ],
       "next_action": "Run a row-matched prompt-only CoSQL validation comparison."
+    },
+    {
+      "run_id": "alias_column_context_prompt_limit8",
+      "hypothesis_id": "value_schema_repair",
+      "arm_type": "prompt_only_validation_slice",
+      "evidence_path": "docs/training_runs/alias_column_context_prompt_limit8.json",
+      "evidence_sha256": "0cd0889c8a1111b8a58410b5b12bc48887bf584d0101aaf5727f1a20413b3348",
+      "claim_boundary": "Eight-turn prompt-only CoSQL proxy validation slice. This is a path check and early validation signal, not a benchmark or method-promotion claim.",
+      "model": "unsloth/Qwen3.5-9B",
+      "control": "direct_sql_prompt",
+      "decision": "no_delta_on_limit8_validation_slice",
+      "primary_failure_mode": "Column-valid SQL still missed value execution; remaining failures are query-shape/semantic, not invalid-column.",
+      "selected_metrics": {
+        "dialog_count": 3,
+        "syntax_accuracy": 1.0,
+        "value_execution_accuracy": 0.125,
+        "strict_execution_accuracy": 0.0,
+        "direct_sql_value_execution_accuracy": 0.125,
+        "column_validity_accuracy": 1.0,
+        "schema_valid_sql_rate": 1.0,
+        "alias_resolution_success_rate": 1.0,
+        "alias_column_context_value_delta_vs_direct_sql": 0.0
+      },
+      "observed_outputs": [
+        {
+          "id": "prepared-0:0",
+          "generated_sql": "SELECT ml.Maker, COUNT(*) AS model_count\nFROM model_list ml\nJOIN car_makers cm ON ml.Maker = cm.Id\nGROUP BY ml.Maker;",
+          "strict_execution_score": 0.0,
+          "value_execution_score": 0.0
+        },
+        {
+          "id": "prepared-0:1",
+          "generated_sql": "SELECT Model, COUNT(*) AS Popularity FROM car_names GROUP BY Model ORDER BY Popularity DESC LIMIT 1;",
+          "strict_execution_score": 0.0,
+          "value_execution_score": 0.0
+        }
+      ],
+      "next_action": "Run a larger row-matched slice and classify remaining failures before training."
     }
   ],
   "overall_decision": {
     "status": "no_method_promoted",
-    "reason": "Only the final alias/column diagnostic passes, and it does so on one synthetic row. No method has passed broader validation or a locked proxy gate.",
-    "next_repo_step": "Run a row-matched prompt-only validation comparison for the alias/column context artifact before another GPU fine-tuning run or blog claim."
+    "reason": "The alias/column context passed one synthetic diagnostic but showed no value delta on the first eight CoSQL validation turns. No method has passed broader validation or a locked proxy gate.",
+    "next_repo_step": "Run a larger row-matched alias/column validation slice and classify remaining failures before another GPU fine-tuning run or blog claim."
   }
 }
