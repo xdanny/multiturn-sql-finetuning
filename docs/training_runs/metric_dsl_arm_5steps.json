@@ -1,0 +1,110 @@
+{
+  "artifact_type": "metric_dsl_arm_evidence",
+  "claim_boundary": "Tiny synthetic fixture arm only. This is hypothesis evidence, not a benchmark or SOTA claim.",
+  "date": "2026-05-29",
+  "direct_sql_control_outputs": [
+    {
+      "fixture_id": "grain_fanout_bridge",
+      "generated_sql": "SELECT \n    c.name AS campaign_name,\n    SUM(o.amount) AS total_revenue\nFROM \n    campaigns c\nJOIN \n    order_promotions op ON c.id = op.campaign_id\nJOIN \n    orders o ON op.order_id = o.id\nGROUP BY \n    c.id, c.name\nORDER BY \n    total_revenue DESC;",
+      "strict_execution_score": 0.0,
+      "value_execution_score": 0.0
+    },
+    {
+      "fixture_id": "measure_preservation_metric",
+      "generated_sql": "SELECT \n    c.country_code,\n    SUM(o.amount) AS revenue\nFROM \n    orders o\nJOIN \n    customers c ON o.customer_id = c.id\nGROUP BY \n    c.country_code\nORDER BY \n    revenue DESC;",
+      "strict_execution_score": 1.0,
+      "value_execution_score": 1.0
+    }
+  ],
+  "interpretation": [
+    "The metric-DSL adapter did not learn the strict output language from two rows and five steps.",
+    "The direct-SQL control solved one of two fixture rows under the same tiny training budget.",
+    "The next iteration should separate output-language instruction following from metric semantics before scaling data or claiming method improvement."
+  ],
+  "metrics": {
+    "compiled_sql_execution_attempt_rate": 0.0,
+    "compiled_sql_execution_evaluated_rows": 0,
+    "dimension_f1": 0.0,
+    "direct_sql_comparison_run_id": "metric_dsl_arm_5steps.direct_sql",
+    "direct_sql_input_sha256": "95430ec213e8d0ec7b87e882ae4fbce72cfab94c9d6ab64ab559383e5f77e939",
+    "direct_sql_model_name": "metric_dsl_direct_sql_arm_5steps",
+    "direct_sql_output_sha256": "041195ab4c765333838b0adf747bd6f24fd6868261e99d0685819f8987ba4bc5",
+    "direct_sql_strict_execution_accuracy": 0.5,
+    "direct_sql_value_execution_accuracy": 0.5,
+    "filter_f1": 0.0,
+    "measure_f1": 0.0,
+    "measure_preservation": 0.0,
+    "metric_dsl_comparable_row_count": 2,
+    "metric_dsl_compile_rate": 0.0,
+    "metric_dsl_measure_preservation": 0.0,
+    "metric_dsl_parse_rate": 0.0,
+    "metric_dsl_strict_delta_vs_direct_sql": -0.5,
+    "metric_dsl_value_delta_vs_direct_sql": -0.5,
+    "rows": 2,
+    "semantic_model_oracle_derived_rows": 0,
+    "semantic_model_sha256s": [
+      "74fe87cb89f837769872140a37a2833f8d313741f792038f5d377c87a3b0f3d6"
+    ],
+    "semantic_model_sources": {
+      "synthetic_non_oracle_fixture": 2
+    },
+    "strict_execution_accuracy": 0.0,
+    "syntax_accuracy": 0.0,
+    "value_execution_accuracy": 0.0
+  },
+  "model": "unsloth/Qwen3.5-9B",
+  "observed_failures": [
+    {
+      "fixture_id": "grain_fanout_bridge",
+      "parse_error": "invalid metric DSL: SQL keyword found outside DSL contract",
+      "prediction": "SELECT\n  MEASURE(campaign_name) AS campaign_name,\n  MEASURE(revenue) AS total_revenue\nFROM\n  campaign\nJOIN\n  order_promotions ON campaign.id = order_promotions.campaign_id\nJOIN\n  orders ON order_promotions.order_id = orders.id\nJOIN\n  customers ON orders.customer_id = customers.id\nGROUP BY\n  campaign_name\nORDER BY\n  total_revenue DESC\nLIMIT 10"
+    },
+    {
+      "fixture_id": "measure_preservation_metric",
+      "parse_error": "invalid metric DSL measure segment; expected MEASURE(name)",
+      "prediction": "MEASURE(revenue)\nDIMENSION(customer_country)"
+    }
+  ],
+  "prediction_inputs": {
+    "database_backed_prepared_inputs": [
+      "results/metric_dsl/.prepared/metric_dsl_arm_5steps.metric_predictions.db.jsonl",
+      "results/metric_dsl/.prepared/metric_dsl_arm_5steps.direct_predictions.db.jsonl"
+    ],
+    "direct_sql": "docs/data_artifacts/metric_dsl_direct_sql_prediction_inputs.jsonl",
+    "metric_dsl": "docs/data_artifacts/metric_dsl_prediction_inputs.jsonl"
+  },
+  "result_artifacts": {
+    "comparison_manifest_path": "results/metric_dsl/metric_dsl_arm_5steps.comparison.manifest.json",
+    "comparison_manifest_sha256": "1289e93c480dced41ff5a99a6dbf567c52f0597e8b14e7286f3ce2657c5642ab",
+    "direct_manifest_path": "results/metric_dsl/metric_dsl_arm_5steps.direct_sql.manifest.json",
+    "direct_manifest_sha256": "a1e082beb6bbe77666e168b56268b207f6d2b75ad72413d5e81367eecb7d4d6e",
+    "direct_rows_path": "results/metric_dsl/metric_dsl_arm_5steps.direct_sql.jsonl",
+    "direct_rows_sha256": "041195ab4c765333838b0adf747bd6f24fd6868261e99d0685819f8987ba4bc5",
+    "metric_manifest_path": "results/metric_dsl/metric_dsl_arm_5steps.metric_dsl.manifest.json",
+    "metric_manifest_sha256": "54402f74467259b9fd0964f26148c311f1008522c69737d34c27a3e9d1498be1",
+    "metric_rows_path": "results/metric_dsl/metric_dsl_arm_5steps.metric_dsl.jsonl",
+    "metric_rows_sha256": "2477524bd471a35fe1a00cd77b5c3005963a12b026b51082b9fef45f6d3bd396"
+  },
+  "run_id": "metric_dsl_arm_5steps",
+  "schema_version": 1,
+  "training": {
+    "config": "configs/qwen35_9b_5090.yaml",
+    "direct_sql_arm": {
+      "eval_loss": 1.7533174753189087,
+      "global_step": 5,
+      "max_steps": 5,
+      "output_dir": "outputs/experiments/metric_dsl_direct_sql_arm_5steps",
+      "trainer_state_sha256": "83551641406b7525036580edf7f11484d6fda280e0eabf0a3c3d246e592a1e63",
+      "training_rows": "docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl"
+    },
+    "gpu_observed": "NVIDIA GeForce RTX 5090, 1 GPU, 31.842 GB reported by Unsloth",
+    "metric_dsl_arm": {
+      "eval_loss": 1.8733612298965454,
+      "global_step": 5,
+      "max_steps": 5,
+      "output_dir": "outputs/experiments/metric_dsl_arm_5steps",
+      "trainer_state_sha256": "91efbe65959202e42ca627a7270e96eb4e3bc23d6309ebedb9554d076c4f93e9",
+      "training_rows": "docs/data_artifacts/metric_dsl_training_rows.jsonl"
+    }
+  }
+}

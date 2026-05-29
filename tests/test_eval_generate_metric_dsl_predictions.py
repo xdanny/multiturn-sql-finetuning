@@ -5,6 +5,7 @@ from pathlib import Path
 
 from eval.generate_metric_dsl_predictions import (
     generate_prediction_rows,
+    _chat_prompt,
     run_generate_metric_dsl_predictions,
 )
 
@@ -101,3 +102,19 @@ def test_run_generate_metric_dsl_predictions_writes_jsonl(tmp_path) -> None:
     [row] = [json.loads(line) for line in output_path.read_text().splitlines()]
     assert row["predicted_dsl"] == "MEASURE(revenue)"
     assert row["model_name"] == "metric-adapter"
+
+
+def test_chat_prompt_does_not_replace_metric_dsl_system_prompt() -> None:
+    class Tokenizer:
+        chat_template = ""
+
+    prompt = _chat_prompt(
+        Tokenizer(),
+        [
+            {"role": "system", "content": "Return metric DSL only."},
+            {"role": "user", "content": "Question"},
+        ],
+    )
+
+    assert "Return metric DSL only." in prompt
+    assert "generate only the correct SQL query" not in prompt

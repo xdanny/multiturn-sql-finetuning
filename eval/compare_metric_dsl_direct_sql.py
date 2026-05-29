@@ -42,14 +42,10 @@ def _validate_metric_manifest(manifest: dict[str, Any]) -> None:
     if manifest.get("evaluation_mode") != METRIC_DSL:
         raise ValueError("metric-DSL manifest must use evaluation_mode=metric_dsl")
     row_count = int(manifest.get("row_count") or 0)
-    if int(_metric(manifest, "compiled_sql_execution_evaluated_rows")) != row_count:
-        raise ValueError("metric-DSL comparison requires database-backed execution for every row")
-    if _metric(manifest, "metric_dsl_parse_rate") <= 0:
-        raise ValueError("metric-DSL comparison requires parsed DSL rows")
-    if _metric(manifest, "metric_dsl_compile_rate") <= 0:
-        raise ValueError("metric-DSL comparison requires compiled DSL rows")
-    if _metric(manifest, "measure_preservation") <= 0:
-        raise ValueError("metric-DSL comparison requires positive measure preservation")
+    if row_count <= 0:
+        raise ValueError("metric-DSL comparison requires output rows")
+    _metric(manifest, "value_execution_accuracy")
+    _metric(manifest, "strict_execution_accuracy")
 
 
 def _validate_direct_manifest(manifest: dict[str, Any]) -> None:
@@ -114,8 +110,8 @@ def _validate_rows(
         raise ValueError("direct SQL output rows must all use non_oracle_generation mode")
     if any(_row_uses_oracle(row) for row in metric_dsl_rows + direct_sql_rows):
         raise ValueError("oracle-derived rows found in metric-DSL comparison")
-    if not all(row.get("sql_execution_attempted") for row in metric_dsl_rows):
-        raise ValueError("metric-DSL comparison requires database-backed execution for every row")
+    if not all(row.get("database_path") for row in metric_dsl_rows):
+        raise ValueError("metric-DSL comparison requires database-backed metric rows")
     if any(
         row.get("value_execution_score") is None or row.get("strict_execution_score") is None
         for row in direct_sql_rows

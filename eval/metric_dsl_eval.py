@@ -92,19 +92,23 @@ def _semantic_model_is_oracle_derived(row: dict[str, Any]) -> bool:
         bool(row.get("uses_oracle_planning_hints"))
         or bool(row.get("semantic_context_pruned_by_oracle_labels"))
         or "gold_reference" in source
-        or "oracle" in source
+        or source.startswith("oracle_")
     )
 
 
-def _values_for_attempted(
+def _values_for_database_backed(
     results: list[dict[str, Any]],
     field: str,
 ) -> list[float]:
-    return [
-        float(result[field])
-        for result in results
-        if result.get("sql_execution_attempted") and result.get(field) is not None
-    ]
+    values = []
+    for result in results:
+        if not result.get("database_path"):
+            continue
+        if result.get("sql_execution_attempted") and result.get(field) is not None:
+            values.append(float(result[field]))
+        else:
+            values.append(0.0)
+    return values
 
 
 def _measure_segment(text: str) -> str:
@@ -255,8 +259,8 @@ def summarize_metric_dsl_results(results: list[dict[str, Any]]) -> dict[str, Any
             if result.get("semantic_model_sha256")
         }
     )
-    execution_values = _values_for_attempted(results, "value_execution_score")
-    strict_values = _values_for_attempted(results, "strict_execution_score")
+    execution_values = _values_for_database_backed(results, "value_execution_score")
+    strict_values = _values_for_database_backed(results, "strict_execution_score")
     semantic_model_sources = Counter(
         str(result.get("semantic_model_source") or "unknown") for result in results
     )
@@ -271,7 +275,12 @@ def summarize_metric_dsl_results(results: list[dict[str, Any]]) -> dict[str, Any
         "compiled_sql_execution_attempt_rate": _mean(
             [float(bool(result.get("sql_execution_attempted"))) for result in results]
         ),
-        "compiled_sql_execution_evaluated_rows": len(execution_values),
+        "compiled_sql_execution_evaluated_rows": sum(
+            1
+            for result in results
+            if result.get("sql_execution_attempted")
+            and result.get("value_execution_score") is not None
+        ),
         "measure_f1": _mean([float(score.get("measure_f1") or 0.0) for score in metric_scores]),
         "dimension_f1": _mean(
             [float(score.get("dimension_f1") or 0.0) for score in metric_scores]
