@@ -264,6 +264,7 @@ def test_build_claim_ledger_separates_proxy_diagnostic_and_pending_claims(tmp_pa
     assert "model_generated_history_rollout" in pending
     assert "rollout_beats_teacher_forced_history" in pending
     assert "behavior_recovery_beats_direct_sql" in pending
+    assert "semantic_value_retrieval_improves_sql" in pending
     assert "hosted_sota_same_protocol" in pending
     assert "bird_interact_local_vs_hosted" in pending
     assert pending["predicted_planner_sql_execution"]["blocking_reason"] == (
@@ -278,12 +279,95 @@ def test_build_claim_ledger_separates_proxy_diagnostic_and_pending_claims(tmp_pa
     assert pending["behavior_recovery_beats_direct_sql"]["blocking_reason"] == (
         "no generated-history recovery-vs-direct-SQL comparison"
     )
+    assert pending["semantic_value_retrieval_improves_sql"]["blocking_reason"] == (
+        "no row-matched semantic value-retrieval SQL comparison"
+    )
 
     planner = next(row for row in rows if row["claim_id"] == "planner_lexical_schema_baseline")
     assert planner["claim_status"] == "supported_planner_quality"
     assert planner["macro_planner_score"] == 0.25
     assert planner["allowed_public_claim"] == "planner quality only, not SQL execution"
     assert planner["artifact_valid"] is True
+
+
+def test_claim_ledger_includes_value_index_coverage_artifact(tmp_path) -> None:
+    input_path = tmp_path / "data" / "eval.jsonl"
+    index_path = tmp_path / "docs" / "value_index.jsonl"
+    summary_path = tmp_path / "docs" / "value_index_summary.json"
+    manifest_path = tmp_path / "docs" / "value_index.manifest.json"
+    result_manifest_path = tmp_path / "docs" / "manifests.json"
+    _write_jsonl(input_path, [{"database_id": "store", "messages": []}])
+    _write_jsonl(
+        index_path,
+        [
+            {
+                "artifact_type": "non_oracle_value_index_entry",
+                "database_id": "store",
+                "table": "customers",
+                "column": "country_code",
+                "raw_value": "FR",
+                "aliases": ["FR", "fr"],
+            }
+        ],
+    )
+    summary_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "artifact_type": "non_oracle_value_index_summary",
+                "index_source": "database_contents",
+                "entry_count": 1,
+                "database_count": 1,
+                "table_count": 1,
+                "column_count": 1,
+                "alias_count": 2,
+                "coverage": {
+                    "label_count": 2,
+                    "resolved_value_indexed_count": 2,
+                    "resolved_value_indexed_rate": 1.0,
+                    "mention_alias_indexed_count": 1,
+                    "mention_alias_indexed_rate": 0.5,
+                },
+            }
+        )
+    )
+    manifest_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "artifact_type": "non_oracle_value_index_v1",
+                "index_source": "database_contents",
+                "input_path": str(input_path.relative_to(tmp_path)),
+                "input_sha256": _sha256(input_path),
+                "output_path": str(index_path.relative_to(tmp_path)),
+                "output_sha256": _sha256(index_path),
+                "summary_path": str(summary_path.relative_to(tmp_path)),
+                "summary_sha256": _sha256(summary_path),
+                "row_count": 1,
+                "database_count": 1,
+                "table_count": 1,
+                "column_count": 1,
+                "label_source": "optional_gold_sql_coverage_eval",
+            }
+        )
+    )
+    result_manifest_path.write_text("[]")
+
+    rows = build_claim_ledger(
+        manifest_path=result_manifest_path,
+        repo_root=tmp_path,
+        value_index_manifest_path=manifest_path,
+        value_index_summary_path=summary_path,
+    )
+
+    value_index = next(row for row in rows if row["claim_id"] == "value_index_coverage")
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert value_index["claim_status"] == "supported_value_retrieval_coverage"
+    assert value_index["allowed_public_claim"] == "value/entity retrieval coverage only"
+    assert value_index["production_claim_allowed"] is False
+    assert value_index["resolved_value_indexed_rate"] == 1.0
+    assert value_index["mention_alias_indexed_rate"] == 0.5
+    assert "semantic_value_retrieval_improves_sql" in pending
 
 
 def test_hash_mismatch_blocks_supported_claim(tmp_path) -> None:

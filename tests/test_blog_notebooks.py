@@ -156,6 +156,8 @@ def test_notebook_support_loads_current_artifacts() -> None:
 
     claims = claim_table()
     assert "rollout_beats_teacher_forced_history" in set(claims["claim_id"])
+    assert "value_index_coverage" in set(claims["claim_id"])
+    assert "semantic_value_retrieval_improves_sql" in set(claims["claim_id"])
     assert "metric-dsl-bootstrap.metric_dsl" in set(claims["claim_id"])
     assert "metric_dsl_beats_direct_sql" in set(claims["claim_id"])
     assert "local_beats_hosted_same_protocol" in set(claims["claim_id"])
@@ -167,6 +169,8 @@ def test_notebook_support_loads_current_artifacts() -> None:
     assert "metric-DSL" in metric_comparison["allowed_public_claim"]
     metric_quality = claims[claims["claim_id"] == "metric-dsl-bootstrap.metric_dsl"].iloc[0]
     assert metric_quality["claim_status"] == "supported_metric_dsl_quality"
+    value_index_claim = claims[claims["claim_id"] == "value_index_coverage"].iloc[0]
+    assert value_index_claim["claim_status"] == "supported_value_retrieval_coverage"
 
     planner = planner_scorecard()
     assert "column_f1" in set(planner["metric"])
@@ -379,7 +383,11 @@ def test_notebook_support_loads_current_artifacts() -> None:
         readiness_report["method"] == "Semantic-layer tuning"
     ].iloc[0]
     assert semantic_readiness["supported_claim_ids"] == [
-        "semantic_prompt_minimal_executable_cosql_dev_100turns"
+        "semantic_prompt_minimal_executable_cosql_dev_100turns",
+        "value_index_coverage",
+    ]
+    assert "semantic_value_retrieval_improves_sql" in semantic_readiness[
+        "blocking_claim_ids"
     ]
     assert planner_readiness["readiness_level"] == "needs_endpoint_comparison"
     assert planner_readiness["control_ready_now"] is False

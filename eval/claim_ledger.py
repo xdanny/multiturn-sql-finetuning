@@ -22,6 +22,8 @@ DEFAULT_MANIFEST_PATHS = (
     Path("docs/result_manifests/cosql_dev_100_proxy.json"),
     Path("docs/result_manifests/metric_dsl_bootstrap.json"),
 )
+DEFAULT_VALUE_INDEX_MANIFEST = Path("docs/data_artifacts/value_index_cosql_dev_100.manifest.json")
+DEFAULT_VALUE_INDEX_SUMMARY = Path("docs/data_artifacts/value_index_cosql_dev_100_summary.json")
 HOSTED_ENDPOINT_PREFIXES = ("https://", "anthropic:", "google:")
 HOSTED_LATENCY_KEYS = (
     "mean_latency_ms",
@@ -144,6 +146,17 @@ PENDING_CLAIMS = (
         "allowed_public_claim": "no metric-DSL vs direct-SQL improvement claim yet",
         "blocking_reason": "no side-by-side metric-DSL-vs-direct-SQL comparison",
         "required_artifact": "compared metric_dsl manifest with direct-SQL baseline",
+    },
+    {
+        "claim_id": "semantic_value_retrieval_improves_sql",
+        "claim_status": "pending",
+        "artifact_type": "pending_claim",
+        "evaluation_mode": "non_oracle_generation",
+        "allowed_public_claim": "no semantic value-retrieval SQL win yet",
+        "blocking_reason": "no row-matched semantic value-retrieval SQL comparison",
+        "required_artifact": (
+            "semantic/value retrieval run compared with direct SQL on identical rows"
+        ),
     },
 )
 
@@ -552,6 +565,60 @@ def _planner_row(planner_summary_path: Path | None) -> dict[str, Any] | None:
     }
 
 
+def _value_index_row(
+    *,
+    repo_root: Path,
+    manifest_path: Path | None,
+    summary_path: Path | None,
+) -> dict[str, Any] | None:
+    if manifest_path is None or summary_path is None:
+        return None
+    if not manifest_path.exists() or not summary_path.exists():
+        return None
+    manifest = _load_json(manifest_path)
+    summary = _load_json(summary_path)
+    output_path = _repo_path(repo_root, manifest.get("output_path"))
+    input_path = _repo_path(repo_root, manifest.get("input_path"))
+    coverage = summary.get("coverage") or {}
+    artifact_valid = (
+        manifest.get("artifact_type") == "non_oracle_value_index_v1"
+        and manifest.get("index_source") == "database_contents"
+        and summary.get("artifact_type") == "non_oracle_value_index_summary"
+        and summary.get("index_source") == "database_contents"
+        and _hash_matches(input_path, manifest.get("input_sha256")) is not False
+        and _hash_matches(output_path, manifest.get("output_sha256")) is not False
+        and _hash_matches(summary_path, manifest.get("summary_sha256")) is not False
+        and _num(coverage.get("label_count")) is not None
+    )
+    return {
+        "claim_id": "value_index_coverage",
+        "artifact_type": "value_index_summary",
+        "claim_status": "supported_value_retrieval_coverage" if artifact_valid else "pending",
+        "allowed_public_claim": "value/entity retrieval coverage only",
+        "production_claim_allowed": False,
+        "can_support_sota_claim": False,
+        "artifact_valid": artifact_valid,
+        "blocking_reason": None if artifact_valid else "invalid or missing value-index coverage manifest",
+        "required_artifact": None if artifact_valid else "valid non-oracle value-index manifest and summary",
+        "evaluation_mode": "value_retrieval_coverage",
+        "index_source": manifest.get("index_source"),
+        "label_source": manifest.get("label_source"),
+        "input_path": manifest.get("input_path"),
+        "output_path": manifest.get("output_path"),
+        "summary_path": str(summary_path),
+        "row_count": summary.get("entry_count"),
+        "database_count": summary.get("database_count"),
+        "table_count": summary.get("table_count"),
+        "column_count": summary.get("column_count"),
+        "alias_count": summary.get("alias_count"),
+        "label_count": coverage.get("label_count"),
+        "resolved_value_indexed_count": coverage.get("resolved_value_indexed_count"),
+        "resolved_value_indexed_rate": coverage.get("resolved_value_indexed_rate"),
+        "mention_alias_indexed_count": coverage.get("mention_alias_indexed_count"),
+        "mention_alias_indexed_rate": coverage.get("mention_alias_indexed_rate"),
+    }
+
+
 def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
     rows = list(existing_rows)
     has_predicted_sql = any(_row_has_predicted_sql_claim_support(row, rows) for row in rows)
@@ -563,6 +630,9 @@ def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any
     has_metric_dsl_eval = any(_row_has_metric_dsl_quality_support(row) for row in rows)
     has_metric_dsl_direct_sql_comparison = any(
         _row_has_metric_dsl_direct_sql_comparison(row, rows) for row in rows
+    )
+    has_semantic_value_retrieval_sql_improvement = any(
+        _row_has_semantic_value_retrieval_sql_improvement(row, rows) for row in rows
     )
     has_hosted = any(_row_has_hosted_claim_support(row, rows) for row in rows)
     has_local_beats_hosted = any(
@@ -583,6 +653,7 @@ def _pending_rows(existing_rows: Iterable[dict[str, Any]]) -> list[dict[str, Any
         "bird_interact_local_vs_hosted": not has_bird_interact,
         "metric_dsl_evaluation_manifest": not has_metric_dsl_eval,
         "metric_dsl_beats_direct_sql": not has_metric_dsl_direct_sql_comparison,
+        "semantic_value_retrieval_improves_sql": not has_semantic_value_retrieval_sql_improvement,
     }
     pending = []
     for row in PENDING_CLAIMS:
@@ -658,6 +729,22 @@ def _row_has_metric_dsl_quality_support(row: dict[str, Any]) -> bool:
         and measure_preservation is not None
         and measure_preservation > 0
     )
+
+
+def _row_has_semantic_value_retrieval_sql_improvement(
+    row: dict[str, Any],
+    rows: list[dict[str, Any]],
+) -> bool:
+    if row.get("artifact_type") != "result_manifest" or not row.get("artifact_valid"):
+        return False
+    if row.get("evaluation_mode") != NON_ORACLE_GENERATION or row.get("oracle_allowed"):
+        return False
+    if not row.get("value_index_manifest_sha256"):
+        return False
+    if not any(candidate.get("claim_id") == "value_index_coverage" for candidate in rows):
+        return False
+    delta = _num(row.get("semantic_value_retrieval_value_delta_vs_direct_sql"))
+    return delta is not None and delta > 0
 
 
 def _row_has_metric_dsl_direct_sql_comparison(
@@ -1017,6 +1104,8 @@ def build_claim_ledger(
     repo_root: Path = Path("."),
     classified_dir: Path | None = Path("results/classified"),
     planner_summary_path: Path | None = None,
+    value_index_manifest_path: Path | None = None,
+    value_index_summary_path: Path | None = None,
 ) -> list[dict[str, Any]]:
     """Build claim ledger rows from tracked manifests and analysis artifacts."""
 
@@ -1034,6 +1123,17 @@ def build_claim_ledger(
     planner = _planner_row(_repo_path(repo_root, str(planner_summary_path)) if planner_summary_path else None)
     if planner:
         rows.append(planner)
+    value_index = _value_index_row(
+        repo_root=repo_root,
+        manifest_path=_repo_path(repo_root, str(value_index_manifest_path))
+        if value_index_manifest_path
+        else None,
+        summary_path=_repo_path(repo_root, str(value_index_summary_path))
+        if value_index_summary_path
+        else None,
+    )
+    if value_index:
+        rows.append(value_index)
     for row in rows:
         if row.get("artifact_type") == "result_manifest":
             row["can_support_sota_claim"] = _row_has_local_beats_hosted_claim_support(
@@ -1113,6 +1213,16 @@ def main() -> int:
         default=Path("docs/planner_baseline_cosql_dev_100_summary.json"),
     )
     parser.add_argument(
+        "--value-index-manifest",
+        type=Path,
+        default=DEFAULT_VALUE_INDEX_MANIFEST,
+    )
+    parser.add_argument(
+        "--value-index-summary",
+        type=Path,
+        default=DEFAULT_VALUE_INDEX_SUMMARY,
+    )
+    parser.add_argument(
         "--output-jsonl",
         type=Path,
         default=Path("docs/claim_ledgers/cosql_dev_100.jsonl"),
@@ -1130,6 +1240,8 @@ def main() -> int:
         repo_root=args.repo_root,
         classified_dir=args.classified_dir,
         planner_summary_path=args.planner_summary,
+        value_index_manifest_path=args.value_index_manifest,
+        value_index_summary_path=args.value_index_summary,
     )
     write_claim_ledger(rows, args.output_jsonl)
     write_claim_summary(rows, args.output_summary)

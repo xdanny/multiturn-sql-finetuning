@@ -146,8 +146,11 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
     assert semantic["control_ready_now"] is False
     assert semantic["rankable_now"] is False
     assert semantic["supported_claim_ids"] == [
-        "semantic_prompt_minimal_executable_cosql_dev_100turns"
+        "semantic_prompt_minimal_executable_cosql_dev_100turns",
+        "value_index_coverage",
     ]
+    assert "semantic_value_retrieval_improves_sql" in semantic["blocking_claim_ids"]
+    assert "semantic_value_retrieval_improves_sql" in semantic["open_blocking_claim_ids"]
     assert semantic["smoke_rows_ready"] is True
     assert semantic["smoke_rows_required"] is True
     assert semantic["control_rows_required"] is True

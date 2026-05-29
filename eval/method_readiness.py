@@ -74,6 +74,7 @@ def _all_supported(claims: dict[str, dict[str, Any]], claim_ids: list[str]) -> b
         "supported_metric_dsl_quality",
         "supported_planner_quality",
         "supported_proxy",
+        "supported_value_retrieval_coverage",
     }
     return bool(claim_ids) and all(
         claims[claim_id].get("claim_status") in supported_statuses
