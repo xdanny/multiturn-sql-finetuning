@@ -51,6 +51,18 @@ uv run --active --no-sync python -m train.finetuning_steps
 The step summary is not a benchmark result. It is a checklist for which row
 artifacts, controls, protocols, and claim gates the next run must use.
 
+Print the cheap preflight commands for one step before spending GPU or endpoint
+time:
+
+```bash
+uv run --active --no-sync python -m train.finetuning_steps \
+  --step-id metric_dsl_vs_direct_sql \
+  --commands preflight
+```
+
+Use `--commands run` for the full training/evaluation commands and
+`--commands all` when preparing a complete run checklist.
+
 ## Direct SQL SFT
 
 Hypothesis: ordinary supervised SQL chat finetuning is the control arm for the

@@ -184,6 +184,38 @@ def finetuning_step_summary(
     }
 
 
+def select_step_commands(
+    *,
+    step_id: str,
+    command_group: str,
+    path: Path = DEFAULT_STEP_CONFIG,
+    method_config_path: Path = DEFAULT_METHOD_CONFIG,
+    protocol_config_path: Path = DEFAULT_PROTOCOL_CONFIG,
+    claim_ledger_path: Path = DEFAULT_CLAIM_LEDGER,
+    repo_root: Path = Path("."),
+) -> tuple[str, ...]:
+    """Return preflight, run, or all commands for a configured step."""
+
+    steps = load_finetuning_steps(
+        path,
+        method_config_path=method_config_path,
+        protocol_config_path=protocol_config_path,
+        claim_ledger_path=claim_ledger_path,
+        repo_root=repo_root,
+    )
+    step_by_id = {step["step_id"]: step for step in steps}
+    step = step_by_id.get(step_id)
+    if step is None:
+        raise ValueError(f"unknown finetuning step id: {step_id}")
+    if command_group == "preflight":
+        return tuple(step["preflight_commands"])
+    if command_group == "run":
+        return tuple(step["commands"])
+    if command_group == "all":
+        return tuple(step["preflight_commands"] + step["commands"])
+    raise ValueError(f"unknown command group: {command_group}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--steps-config", type=Path, default=DEFAULT_STEP_CONFIG)
@@ -191,7 +223,31 @@ def main() -> int:
     parser.add_argument("--protocol-config", type=Path, default=DEFAULT_PROTOCOL_CONFIG)
     parser.add_argument("--claim-ledger", type=Path, default=DEFAULT_CLAIM_LEDGER)
     parser.add_argument("--output", type=Path, default=None)
+    parser.add_argument("--step-id", default=None, help="Print commands for one configured step.")
+    parser.add_argument(
+        "--commands",
+        choices=("preflight", "run", "all"),
+        default=None,
+        help="Command group to print when --step-id is supplied.",
+    )
     args = parser.parse_args()
+
+    if args.step_id or args.commands:
+        if not args.step_id or not args.commands:
+            raise SystemExit("--step-id and --commands must be supplied together")
+        selected = select_step_commands(
+            step_id=args.step_id,
+            command_group=args.commands,
+            path=args.steps_config,
+            method_config_path=args.method_config,
+            protocol_config_path=args.protocol_config,
+            claim_ledger_path=args.claim_ledger,
+            repo_root=Path.cwd(),
+        )
+        print("\n".join(selected))
+        if selected:
+            print()
+        return 0
 
     summary = finetuning_step_summary(
         path=args.steps_config,
