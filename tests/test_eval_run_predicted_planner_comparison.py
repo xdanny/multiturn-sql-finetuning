@@ -81,6 +81,24 @@ def test_validate_comparison_inputs_requires_matching_rows(tmp_path) -> None:
         )
 
 
+def test_validate_comparison_inputs_rejects_prompt_invalid_predicted_plan(tmp_path) -> None:
+    direct_path = tmp_path / "direct.jsonl"
+    predicted_path = tmp_path / "predicted.jsonl"
+    predicted = _record(mode="predicted_planner")
+    predicted["predicted_plans"][0]["relevant_tables"] = []
+    predicted["predicted_plans"][0]["relevant_columns"] = []
+
+    _write_jsonl(direct_path, [_record(mode="non_oracle_generation")])
+    _write_jsonl(predicted_path, [predicted])
+
+    with pytest.raises(ValueError, match="invalid prompt plan"):
+        validate_comparison_inputs(
+            direct_input=direct_path,
+            predicted_input=predicted_path,
+            limit=None,
+        )
+
+
 def test_write_comparison_preflight_records_ready_input_pair(tmp_path) -> None:
     direct_path = tmp_path / "direct.jsonl"
     predicted_path = tmp_path / "predicted.jsonl"
@@ -112,23 +130,11 @@ def test_run_predicted_planner_comparison_runs_both_eval_paths_then_compares(
     _write_jsonl(direct_path, [_record(mode="non_oracle_generation")])
     _write_jsonl(predicted_path, [_record(mode="predicted_planner")])
 
-    run_calls: list[dict] = []
+    generate_calls: list[list[dict[str, str]]] = []
 
-    def fake_run_eval(**kwargs):
-        run_calls.append(kwargs)
-        kwargs["manifest_output"].write_text(
-            json.dumps(
-                {
-                    "run_id": kwargs["output"].stem,
-                    "output_path": str(kwargs["output"]),
-                    "row_count": 1,
-                    "evaluation_mode": "predicted_planner"
-                    if kwargs["input_path"] == predicted_path
-                    else "non_oracle_generation",
-                }
-            )
-        )
-        return 0
+    def fake_generate(messages: list[dict[str, str]]) -> tuple[str, float]:
+        generate_calls.append(messages)
+        return "SELECT name FROM singer;", 1.0
 
     compare_calls: list[dict] = []
 
@@ -137,7 +143,6 @@ def test_run_predicted_planner_comparison_runs_both_eval_paths_then_compares(
         kwargs["output_path"].write_text(json.dumps({"compared": True}) + "\n")
         return {"compared": True}
 
-    monkeypatch.setattr("eval.run_predicted_planner_comparison.run_eval", fake_run_eval)
     monkeypatch.setattr(
         "eval.run_predicted_planner_comparison.compare_predicted_planner_manifest_files",
         fake_compare,
@@ -151,20 +156,24 @@ def test_run_predicted_planner_comparison_runs_both_eval_paths_then_compares(
         model_name="local-9b",
         endpoint="http://localhost:8000/v1",
         database_root=tmp_path / "db",
-        api_key="EMPTY",
-        temperature=0.0,
-        max_tokens=256,
         limit=1,
+        generate_fn=fake_generate,
     )
 
     assert exit_code == 0
-    assert [call["input_path"] for call in run_calls] == [direct_path, predicted_path]
-    assert {call["model_name"] for call in run_calls} == {"local-9b"}
-    assert {call["endpoint"] for call in run_calls} == {"http://localhost:8000/v1"}
-    assert [call["output"].name for call in run_calls] == [
-        "lexical_probe.direct.jsonl",
-        "lexical_probe.predicted_planner.jsonl",
+    assert len(generate_calls) == 2
+    direct_rows = [
+        json.loads(line)
+        for line in (output_dir / "lexical_probe.direct.jsonl").read_text().splitlines()
     ]
+    predicted_rows = [
+        json.loads(line)
+        for line in (output_dir / "lexical_probe.predicted_planner.jsonl").read_text().splitlines()
+    ]
+    assert direct_rows[0]["prompt_variant"] == "direct_sql_control"
+    assert predicted_rows[0]["prompt_variant"] == "predicted_planner"
+    assert direct_rows[0]["model_name"] == "local-9b"
+    assert predicted_rows[0]["model_name"] == "local-9b"
     assert compare_calls == [
         {
             "predicted_manifest_path": output_dir
