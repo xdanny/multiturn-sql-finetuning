@@ -370,6 +370,164 @@ def test_claim_ledger_includes_value_index_coverage_artifact(tmp_path) -> None:
     assert "semantic_value_retrieval_improves_sql" in pending
 
 
+def test_semantic_value_retrieval_comparison_clears_pending_claim(tmp_path) -> None:
+    value_index_input = tmp_path / "data" / "eval.jsonl"
+    value_index_output = tmp_path / "docs" / "value_index.jsonl"
+    value_index_summary = tmp_path / "docs" / "value_index_summary.json"
+    value_index_manifest = tmp_path / "docs" / "value_index.manifest.json"
+    _write_jsonl(value_index_input, [{"database_id": "store", "messages": []}])
+    _write_jsonl(
+        value_index_output,
+        [
+            {
+                "artifact_type": "non_oracle_value_index_entry",
+                "database_id": "store",
+                "table": "customers",
+                "column": "country_code",
+                "raw_value": "FR",
+                "aliases": ["FR", "fr"],
+            }
+        ],
+    )
+    value_index_summary.write_text(
+        json.dumps(
+            {
+                "artifact_type": "non_oracle_value_index_summary",
+                "index_source": "database_contents",
+                "entry_count": 1,
+                "database_count": 1,
+                "table_count": 1,
+                "column_count": 1,
+                "alias_count": 2,
+                "coverage": {
+                    "label_count": 1,
+                    "resolved_value_indexed_count": 1,
+                    "resolved_value_indexed_rate": 1.0,
+                    "mention_alias_indexed_count": 1,
+                    "mention_alias_indexed_rate": 1.0,
+                },
+            }
+        )
+    )
+    value_index_manifest.write_text(
+        json.dumps(
+            {
+                "artifact_type": "non_oracle_value_index_v1",
+                "index_source": "database_contents",
+                "input_path": str(value_index_input.relative_to(tmp_path)),
+                "input_sha256": _sha256(value_index_input),
+                "output_path": str(value_index_output.relative_to(tmp_path)),
+                "output_sha256": _sha256(value_index_output),
+                "summary_path": str(value_index_summary.relative_to(tmp_path)),
+                "summary_sha256": _sha256(value_index_summary),
+                "label_source": "optional_gold_sql_coverage_eval",
+            }
+        )
+    )
+    value_index_manifest_sha = _sha256(value_index_manifest)
+
+    direct_input = tmp_path / "data" / "direct.jsonl"
+    semantic_input = tmp_path / "data" / "semantic.jsonl"
+    direct_output = tmp_path / "results" / "direct.jsonl"
+    semantic_output = tmp_path / "results" / "semantic.jsonl"
+    input_row = {
+        "messages": [
+            {"role": "user", "content": "q"},
+            {"role": "assistant", "content": "SELECT 1"},
+        ],
+        "evaluation_mode": "non_oracle_generation",
+    }
+    output_row = {
+        "id": "dialog-a:0",
+        "dialog_id": "dialog-a",
+        "turn_index": 0,
+        "database_id": "store",
+        "reference_sql": "SELECT 1",
+        "evaluation_mode": "non_oracle_generation",
+        "value_execution_score": 1.0,
+        "strict_execution_score": 1.0,
+    }
+    _write_jsonl(direct_input, [input_row])
+    _write_jsonl(semantic_input, [input_row])
+    _write_jsonl(direct_output, [output_row])
+    _write_jsonl(semantic_output, [output_row])
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(
+        json.dumps(
+            [
+                {
+                    "schema_version": 1,
+                    "run_id": "direct",
+                    "benchmark": "prepared",
+                    "model_name": "local-9b",
+                    "endpoint": "local",
+                    "evaluation_mode": "non_oracle_generation",
+                    "oracle_allowed": False,
+                    "prompt_variant": None,
+                    "input_path": str(direct_input.relative_to(tmp_path)),
+                    "input_sha256": _sha256(direct_input),
+                    "output_path": str(direct_output.relative_to(tmp_path)),
+                    "output_sha256": _sha256(direct_output),
+                    "row_count": 1,
+                    "metrics": {
+                        "value_execution_accuracy": 0.5,
+                        "strict_execution_accuracy": 0.5,
+                    },
+                    "command": ["run-direct"],
+                },
+                {
+                    "schema_version": 1,
+                    "run_id": "semantic_gain",
+                    "benchmark": "prepared",
+                    "model_name": "local-9b",
+                    "endpoint": "local",
+                    "evaluation_mode": "non_oracle_generation",
+                    "oracle_allowed": False,
+                    "prompt_variant": "semantic_value_retrieval",
+                    "input_path": str(semantic_input.relative_to(tmp_path)),
+                    "input_sha256": _sha256(semantic_input),
+                    "output_path": str(semantic_output.relative_to(tmp_path)),
+                    "output_sha256": _sha256(semantic_output),
+                    "row_count": 1,
+                    "metrics": {
+                        "value_execution_accuracy": 0.6,
+                        "strict_execution_accuracy": 0.6,
+                        "direct_sql_comparison_run_id": "direct",
+                        "direct_sql_model_name": "local-9b",
+                        "direct_sql_input_sha256": _sha256(direct_input),
+                        "direct_sql_output_sha256": _sha256(direct_output),
+                        "direct_sql_value_execution_accuracy": 0.5,
+                        "direct_sql_strict_execution_accuracy": 0.5,
+                        "semantic_value_retrieval_value_delta_vs_direct_sql": 0.1,
+                        "semantic_value_retrieval_strict_delta_vs_direct_sql": 0.1,
+                        "semantic_value_retrieval_comparable_row_count": 1,
+                        "semantic_value_retrieval_comparer": (
+                            "eval.compare_semantic_value_retrieval"
+                        ),
+                        "value_index_manifest_sha256": value_index_manifest_sha,
+                        "value_index_index_source": "database_contents",
+                    },
+                    "command": [
+                        "run-semantic",
+                        "# compared-with-direct-sql",
+                        "direct",
+                    ],
+                },
+            ]
+        )
+    )
+
+    rows = build_claim_ledger(
+        manifest_path=manifest_path,
+        repo_root=tmp_path,
+        value_index_manifest_path=value_index_manifest,
+        value_index_summary_path=value_index_summary,
+    )
+
+    pending = {row["claim_id"]: row for row in rows if row["claim_status"] == "pending"}
+    assert "semantic_value_retrieval_improves_sql" not in pending
+
+
 def test_hash_mismatch_blocks_supported_claim(tmp_path) -> None:
     input_path = tmp_path / "data" / "eval.jsonl"
     output_path = tmp_path / "results" / "direct.jsonl"
