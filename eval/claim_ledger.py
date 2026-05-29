@@ -525,6 +525,16 @@ def _manifest_row(
     }
     for metric_key in HOSTED_LATENCY_KEYS + HOSTED_COST_KEYS:
         row[metric_key] = metrics.get(metric_key)
+    for metric_key in (
+        "semantic_value_retrieval_value_delta_vs_direct_sql",
+        "semantic_value_retrieval_strict_delta_vs_direct_sql",
+        "semantic_value_retrieval_comparable_row_count",
+        "semantic_value_retrieval_comparer",
+        "value_index_manifest_sha256",
+        "value_index_index_source",
+    ):
+        if metric_key in metrics:
+            row[metric_key] = metrics.get(metric_key)
     row.update(input_contract)
     if row.get("result_history_policy"):
         row["history_policy"] = row["result_history_policy"]
@@ -740,6 +750,23 @@ def _row_has_semantic_value_retrieval_sql_improvement(
     if row.get("evaluation_mode") != NON_ORACLE_GENERATION or row.get("oracle_allowed"):
         return False
     if not row.get("value_index_manifest_sha256"):
+        return False
+    if row.get("semantic_value_retrieval_comparer") != "eval.compare_semantic_value_retrieval":
+        return False
+    if not row.get("direct_sql_comparison_run_id"):
+        return False
+    command = [str(item) for item in row.get("command") or []]
+    if "# compared-with-direct-sql" not in command:
+        return False
+    if str(row.get("direct_sql_comparison_run_id")) not in command:
+        return False
+    if not row.get("direct_sql_model_name"):
+        return False
+    if not row.get("direct_sql_input_sha256") or not row.get("direct_sql_output_sha256"):
+        return False
+    row_count = _num(row.get("row_count"))
+    comparable_rows = _num(row.get("semantic_value_retrieval_comparable_row_count"))
+    if row_count is None or comparable_rows is None or comparable_rows != row_count:
         return False
     if not any(candidate.get("claim_id") == "value_index_coverage" for candidate in rows):
         return False

@@ -87,8 +87,10 @@ Control arm: same rows without the semantic-layer context.
 Win condition: semantic-layer tuning or prompting improves same-row SQL
 execution without oracle pruning.
 
-Current status: semantic context has helped some prompt conditions, but broad
-semantic-layer superiority is not proven.
+Current status: semantic context has helped some prompt conditions, and the
+value-index coverage artifact is tracked. The SQL win is still not proven until
+`eval.compare_semantic_value_retrieval` shows a positive same-row delta versus
+direct SQL.
 
 ## Stage 4: `MEASURE()` Metric DSL
 

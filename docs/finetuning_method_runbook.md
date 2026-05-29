@@ -92,12 +92,16 @@ measurable before turning it into prompt text.
 Control: same rows without the semantic-layer context, or the same model under a
 matching direct-SQL prompt.
 
-Evidence gate: paired result manifests plus a same-row comparison that records
-value-only execution delta and failure-class movement. Semantic prompt gains on
-the CoSQL proxy are useful, but they are not a hosted or BIRD-Interact claim.
+Evidence gate: `eval.compare_semantic_value_retrieval` verifies paired result
+manifests, matching row identities, non-oracle output rows, execution scores,
+and the database-derived value-index manifest SHA. It records value-only and
+strict execution deltas against direct SQL. Semantic prompt gains on the CoSQL
+proxy are useful, but they are not a hosted or BIRD-Interact claim.
 
-Next useful movement: add a non-oracle value/entity retrieval gate that measures
-whether aliases and stored values are found before SQL generation.
+Next useful movement: run the paired endpoint experiment for semantic
+value-retrieval versus direct SQL on the fixed CoSQL rows, then inspect whether
+the remaining misses are value lookup, entity resolution, join path, or query
+shape failures.
 
 ## `MEASURE()`-Preserving Metric DSL
 
