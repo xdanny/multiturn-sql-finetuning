@@ -16,6 +16,7 @@ from notebooks.blog_support import (
     endpoint_run_scorecard,
     export_blog_evidence,
     failure_taxonomy_delta,
+    finetuning_step_plan,
     lab_failure_trace,
     lab_method_scorecard,
     lab_reader_flow,
@@ -400,6 +401,22 @@ def test_notebook_support_loads_current_artifacts() -> None:
         "eval.rollout_eval" in command for command in readiness_report["next_command"]
     )
     assert all((REPO_ROOT / path).exists() for path in readiness_report["module_path"])
+
+    step_plan = finetuning_step_plan()
+    assert set(step_plan["step_id"]) == {
+        "direct_sql_control_smoke",
+        "planner_first_sql_pair",
+        "semantic_value_retrieval_pair",
+        "metric_dsl_vs_direct_sql",
+        "behavior_recovery_rollout_pair",
+        "hosted_bird_interact_gate",
+    }
+    assert "metric_dsl_beats_direct_sql" in set(step_plan["clears_claim_ids"])
+    assert any(
+        "semantic_value_retrieval_improves_sql" in claim_ids
+        for claim_ids in step_plan["clears_claim_ids"]
+    )
+    assert all("train=" in rows_ready for rows_ready in step_plan["rows_ready"])
 
     lab_attachment = shareable_lab_attachment()
     assert {
@@ -929,6 +946,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "evaluation_harness_map_md",
         "experiment_ladder_md",
         "method_readiness_report_md",
+        "finetuning_step_plan_md",
         "method_decision_rules_md",
         "method_priority_backlog_md",
         "lab_method_scores_md",
@@ -947,6 +965,9 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "schema_validation_findings_md",
     }
     assert {source["path"] for source in manifest["source_artifacts"]} >= {
+        "configs/benchmark_protocols.yaml",
+        "configs/finetuning_methods.yaml",
+        "configs/finetuning_steps.yaml",
         "docs/claim_ledgers/cosql_dev_100.jsonl",
         "docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json",
         "docs/data_artifacts/value_index_cosql_dev_100.manifest.json",
@@ -1079,6 +1100,17 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "eval.metric_dsl_eval" in method_readiness_md
     assert "eval.rollout_eval" in method_readiness_md
     assert "notebooks/blog/" not in method_readiness_md
+
+    finetuning_steps_md = (
+        tmp_path / asset_paths["finetuning_step_plan_md"]
+    ).read_text()
+    assert "metric_dsl_vs_direct_sql" in finetuning_steps_md
+    assert "behavior_recovery_rollout_pair" in finetuning_steps_md
+    assert "semantic_value_retrieval_pair" in finetuning_steps_md
+    assert "synthetic_schema_rich_method_fixture" in finetuning_steps_md
+    assert "metric_dsl_beats_direct_sql" in finetuning_steps_md
+    assert "hosted_bird_interact_gate" in finetuning_steps_md
+    assert "notebooks/blog/" not in finetuning_steps_md
 
     experiment_ladder_md = (
         tmp_path / asset_paths["experiment_ladder_md"]
@@ -1306,6 +1338,10 @@ def test_blog_evidence_manifest_is_machine_checkable_contract(tmp_path) -> None:
     assert "predicted_planner_sql_execution" in assets["method_readiness_report_md"]["claim_ids"]
     assert "metric_dsl_beats_direct_sql" in assets["method_readiness_report_md"]["claim_ids"]
     assert "rollout_beats_teacher_forced_history" in assets["method_readiness_report_md"]["claim_ids"]
+    assert assets["finetuning_step_plan_md"]["kind"] == "markdown"
+    assert assets["finetuning_step_plan_md"]["required_reference"] is True
+    assert "semantic_value_retrieval_improves_sql" in assets["finetuning_step_plan_md"]["claim_ids"]
+    assert "behavior_recovery_beats_direct_sql" in assets["finetuning_step_plan_md"]["claim_ids"]
     assert assets["experiment_ladder_md"]["kind"] == "markdown"
     assert assets["experiment_ladder_md"]["required_reference"] is True
     assert "predicted_planner_sql_execution" in assets["experiment_ladder_md"]["claim_ids"]

@@ -120,6 +120,23 @@
     },
     {
       "claim_ids": [
+        "predicted_planner_sql_execution",
+        "semantic_value_retrieval_improves_sql",
+        "metric_dsl_beats_direct_sql",
+        "behavior_recovery_beats_direct_sql",
+        "hosted_sota_same_protocol",
+        "local_beats_hosted_same_protocol",
+        "bird_interact_local_vs_hosted"
+      ],
+      "id": "finetuning_step_plan_md",
+      "kind": "markdown",
+      "path": "finetuning-step-plan.md",
+      "required_in_post": false,
+      "required_reference": true,
+      "sha256": "85b8dded971718a8e54ca7783a468b0b474afe96c4ee73d1688df4ca9797810c"
+    },
+    {
+      "claim_ids": [
         "metric-dsl-bootstrap.metric_dsl",
         "metric_dsl_beats_direct_sql"
       ],
@@ -1364,6 +1381,18 @@
   "post_slug": "local-multiturn-sql-finetuning",
   "schema_version": 2,
   "source_artifacts": [
+    {
+      "path": "configs/benchmark_protocols.yaml",
+      "sha256": "69a4e60532e672bc688280209941148842ceba7cb4153e996a90eba368930481"
+    },
+    {
+      "path": "configs/finetuning_methods.yaml",
+      "sha256": "623d80857641bcbb1a9eaffd1dcd7319e775ad0024edb3379b8b3fbc3fe27aa3"
+    },
+    {
+      "path": "configs/finetuning_steps.yaml",
+      "sha256": "2809c52e82c938330016fffaac9d233e0214b2ffeaa2ae369fa3de81ab7e99bd"
+    },
     {
       "path": "docs/claim_ledgers/cosql_dev_100.jsonl",
       "sha256": "e9f680449c3f48eae713b65b86519dd118b6feb9fec75b1493bc15642b318a81"
