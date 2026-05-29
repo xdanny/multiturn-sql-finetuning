@@ -207,6 +207,21 @@ Run a semantic value-retrieval SQL pair against direct SQL before claiming the
 value index improved execution:
 
 ```bash
+python -m data.semantic_value_retrieval_inputs \
+  --input data/processed/eval_cosql_dev_100.jsonl \
+  --value-index docs/data_artifacts/value_index_cosql_dev_100.jsonl \
+  --value-index-manifest docs/data_artifacts/value_index_cosql_dev_100.manifest.json \
+  --output data/processed/eval_cosql_dev_100_semantic_value_retrieval.jsonl \
+  --summary-output docs/data_artifacts/semantic_value_retrieval_inputs_summary.json \
+  --manifest-output docs/data_artifacts/semantic_value_retrieval_inputs.manifest.json
+```
+
+This input builder matches database-derived value-index aliases against
+user-authored text up to each turn. It does not use reference SQL, gold planner
+labels, expected rows, assistant SQL, or future user turns for retrieval
+matching.
+
+```bash
 python -m eval.run_semantic_value_retrieval_comparison \
   --direct-input data/processed/eval_cosql_dev_100.jsonl \
   --semantic-input data/processed/eval_cosql_dev_100_semantic_value_retrieval.jsonl \
@@ -220,7 +235,7 @@ python -m eval.run_semantic_value_retrieval_comparison \
   --preflight-output docs/semantic_value_retrieval_comparison_preflight.json
 ```
 
-The paired runner first validates that both prepared inputs expand to the same
+The paired runner validates that both prepared inputs expand to the same
 non-oracle row identities, that the semantic input differs from the direct-SQL
 control, and that the value-index manifest is database-derived. It then writes
 direct, semantic, and compared manifests. The lower-level
