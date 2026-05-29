@@ -218,6 +218,7 @@ def test_summarize_metric_dsl_results_aggregates_semantic_and_sql_metrics() -> N
             "value_execution_score": 1.0,
             "strict_execution_score": 0.0,
             "syntax_valid": True,
+            "database_path": "store.sqlite",
         },
         {
             "metric_scores": {
@@ -232,6 +233,7 @@ def test_summarize_metric_dsl_results_aggregates_semantic_and_sql_metrics() -> N
             "value_execution_score": 0.0,
             "strict_execution_score": 0.0,
             "syntax_valid": False,
+            "database_path": "store.sqlite",
         },
     ]
 
@@ -246,7 +248,7 @@ def test_summarize_metric_dsl_results_aggregates_semantic_and_sql_metrics() -> N
     assert summary["dimension_f1"] == 1.0
     assert summary["filter_f1"] == 0.5
     assert summary["measure_preservation"] == 0.5
-    assert summary["value_execution_accuracy"] == 1.0
+    assert summary["value_execution_accuracy"] == 0.5
     assert summary["strict_execution_accuracy"] == 0.0
     assert summary["syntax_accuracy"] == 0.5
 
@@ -299,6 +301,37 @@ def test_run_metric_dsl_eval_writes_results_and_manifest(tmp_path) -> None:
     assert manifest["metrics"]["semantic_model_oracle_derived_rows"] == 0
     assert manifest["metrics"]["compiled_sql_execution_evaluated_rows"] == 1
     assert manifest["oracle_allowed"] is False
+
+
+def test_run_metric_dsl_eval_keeps_non_oracle_fixture_source_non_oracle(tmp_path) -> None:
+    input_path = tmp_path / "metric_dsl_predictions.jsonl"
+    output_path = tmp_path / "metric_dsl_results.jsonl"
+    manifest_path = tmp_path / "metric_dsl_results.manifest.json"
+    _write_jsonl(
+        input_path,
+        [
+            {
+                "id": "metric-non-oracle",
+                "predicted_dsl": "MEASURE(revenue)",
+                "gold_dsl": "MEASURE(revenue)",
+                "semantic_model": SEMANTIC_MODEL,
+                "semantic_model_source": "synthetic_non_oracle_fixture",
+            }
+        ],
+    )
+
+    exit_code = run_metric_dsl_eval(
+        input_path=input_path,
+        output_path=output_path,
+        manifest_output=manifest_path,
+        model_name="metric-dsl-model",
+        command=["python", "-m", "eval.metric_dsl_eval"],
+    )
+
+    assert exit_code == 0
+    manifest = json.loads(manifest_path.read_text())
+    assert manifest["oracle_allowed"] is False
+    assert manifest["metrics"]["semantic_model_oracle_derived_rows"] == 0
 
 
 def test_run_metric_dsl_eval_marks_oracle_derived_semantic_model_manifest(tmp_path) -> None:

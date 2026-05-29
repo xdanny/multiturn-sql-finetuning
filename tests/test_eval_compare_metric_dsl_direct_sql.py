@@ -162,17 +162,48 @@ def test_compare_metric_dsl_direct_sql_rejects_unrelated_direct_benchmark() -> N
         )
 
 
-def test_compare_metric_dsl_direct_sql_requires_full_database_execution() -> None:
-    metric_manifest = _metric_manifest()
-    metric_manifest["metrics"]["compiled_sql_execution_evaluated_rows"] = 1
+def test_compare_metric_dsl_direct_sql_requires_database_backed_metric_rows() -> None:
+    metric_rows = _metric_rows()
+    metric_rows[0].pop("database_path")
 
     with pytest.raises(ValueError, match="database-backed"):
         compare_metric_dsl_direct_sql_manifests(
-            metric_dsl_manifest=metric_manifest,
+            metric_dsl_manifest=_metric_manifest(),
             direct_sql_manifest=_direct_manifest(),
-            metric_dsl_rows=_metric_rows(),
+            metric_dsl_rows=metric_rows,
             direct_sql_rows=_direct_rows(),
         )
+
+
+def test_compare_metric_dsl_direct_sql_records_metric_dsl_failures_as_zero() -> None:
+    metric_manifest = _metric_manifest()
+    metric_manifest["metrics"].update(
+        {
+            "metric_dsl_parse_rate": 0.0,
+            "metric_dsl_compile_rate": 0.0,
+            "compiled_sql_execution_evaluated_rows": 0,
+            "measure_preservation": 0.0,
+            "value_execution_accuracy": 0.0,
+            "strict_execution_accuracy": 0.0,
+        }
+    )
+    metric_rows = _metric_rows()
+    for row in metric_rows:
+        row["metric_dsl_parse_success"] = False
+        row["compile_success"] = False
+        row["sql_execution_attempted"] = False
+        row["value_execution_score"] = None
+        row["strict_execution_score"] = None
+
+    compared = compare_metric_dsl_direct_sql_manifests(
+        metric_dsl_manifest=metric_manifest,
+        direct_sql_manifest=_direct_manifest(),
+        metric_dsl_rows=metric_rows,
+        direct_sql_rows=_direct_rows(),
+    )
+
+    assert compared["metrics"]["metric_dsl_value_delta_vs_direct_sql"] == pytest.approx(-0.5)
+    assert compared["metrics"]["metric_dsl_measure_preservation"] == 0.0
 
 
 def test_compare_metric_dsl_direct_sql_rejects_metric_rows_with_wrong_mode() -> None:
