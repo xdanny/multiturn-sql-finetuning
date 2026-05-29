@@ -148,6 +148,8 @@ hypotheses:
       - docs/data_artifacts/value_schema_repair_rollout_inputs.jsonl
       - docs/data_artifacts/value_choice_consistency_rollout_inputs.jsonl
       - docs/data_artifacts/alias_column_validity_rollout_inputs.jsonl
+      - data/processed/eval_cosql_dev_100_alias_column_context.jsonl
+      - docs/data_artifacts/alias_column_context_inputs.manifest.json
     locked_benchmark_artifacts:
       - docs/data_artifacts/value_schema_repair_rollout_inputs.manifest.json
     control_hypothesis_id: behavior_recovery
@@ -161,12 +163,14 @@ hypotheses:
       - allowed-column guardrails come from schema introspection
       - repair reference SQL stays scorer-side
       - future turns are not prompt-visible
-    current_status: prompt_passed_single_synthetic_diagnostic
+    current_status: validation_context_artifact_ready
     next_gpu_run: >-
       Do not train this arm yet. Prompt-only alias/column context solved the
       single synthetic recovery fixture after value-choice and invalid-column
-      failures were isolated. Scale the same non-oracle artifact shape to
-      validation rows before another adapter run or blog claim.
+      failures were isolated. The same non-oracle column-role context now exists
+      for the 100-row CoSQL proxy slice. Run a row-matched prompt-only
+      validation comparison against direct SQL before another adapter run or
+      blog claim.
 
   - hypothesis_id: hosted_transfer
     method: Hosted and BIRD-Interact comparison

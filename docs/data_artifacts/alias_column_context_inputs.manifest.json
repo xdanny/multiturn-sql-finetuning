@@ -1,0 +1,32 @@
+{
+  "artifact_type": "alias_column_context_prepared_inputs",
+  "assistant_turn_count": 327,
+  "command": [
+    "python",
+    "-m",
+    "data.alias_column_context_inputs",
+    "--input",
+    "data/processed/eval_cosql_dev_100.jsonl",
+    "--database-root",
+    "data/raw/cosql_dataset/database",
+    "--output",
+    "data/processed/eval_cosql_dev_100_alias_column_context.jsonl",
+    "--summary-output",
+    "docs/data_artifacts/alias_column_context_inputs_summary.json",
+    "--manifest-output",
+    "docs/data_artifacts/alias_column_context_inputs.manifest.json"
+  ],
+  "database_count": 20,
+  "database_root": "data/raw/cosql_dataset/database",
+  "evaluation_gate": "eval.run_eval or eval.rollout_eval plus eval.alias_column_validity",
+  "input_path": "data/processed/eval_cosql_dev_100.jsonl",
+  "input_sha256": "00886900e4faf539bc6a6428b8b699b77f169874a9bfb8a205b1beaa2785cf6e",
+  "leakage_boundary": "no reference SQL, gold plans, expected rows, assistant SQL, or future user turns are used to build column-role context",
+  "oracle_policy": "non_oracle_schema_introspection_only",
+  "output_path": "data/processed/eval_cosql_dev_100_alias_column_context.jsonl",
+  "output_sha256": "068f4a9895dfe8de434483391e8e8578afb8770b786c686d82d89a580e70c949",
+  "row_count": 100,
+  "schema_version": 1,
+  "summary_path": "docs/data_artifacts/alias_column_context_inputs_summary.json",
+  "summary_sha256": "f0e1f3b3132c2797c76265f5c898a098fce4e70416a3b6a69abe10210188c288"
+}

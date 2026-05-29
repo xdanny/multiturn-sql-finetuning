@@ -134,6 +134,20 @@ introspection and the visible failed pattern, then let
 table-column references and resolvable aliases. This keeps schema validity
 separate from value choice and result matching.
 
+### Alias/Column Context Prepared Inputs
+
+- `alias_column_context_inputs_summary.json`
+- `alias_column_context_inputs.manifest.json`
+
+`data.alias_column_context_inputs` writes
+`data/processed/eval_cosql_dev_100_alias_column_context.jsonl`, a fixed CoSQL
+proxy-slice variant with schema-derived column-role constraints appended to the
+first user turn. The context comes from SQLite schema introspection only:
+allowed columns, primary keys, and foreign-key join keys. It does not use
+reference SQL, gold plans, expected rows, assistant SQL, or future turns. Use it
+for row-matched prompt comparisons before treating the single synthetic
+alias/column pass as a scalable method.
+
 ### Value Grounding Labels
 
 - `value_grounding_labels_cosql_dev_100.jsonl`

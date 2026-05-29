@@ -74,7 +74,7 @@ RUN_SUMMARIES = {
         "primary_failure_mode": (
             "The explicit column-role constraints fixed the known invalid-column failure."
         ),
-        "next_action": "Scale the artifact to validation rows before any adapter or blog claim.",
+        "next_action": "Run a row-matched prompt-only CoSQL validation comparison.",
     },
 }
 
@@ -164,8 +164,9 @@ def build_hypothesis_rollup(
                 "or a locked proxy gate."
             ),
             "next_repo_step": (
-                "Scale alias/column-validity context to validation rows before "
-                "another GPU fine-tuning run or blog claim."
+                "Run a row-matched prompt-only validation comparison for the "
+                "alias/column context artifact before another GPU fine-tuning "
+                "run or blog claim."
             ),
         },
     }
