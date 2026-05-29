@@ -92,11 +92,13 @@ measurable before turning it into prompt text.
 Control: same rows without the semantic-layer context, or the same model under a
 matching direct-SQL prompt.
 
-Evidence gate: `eval.compare_semantic_value_retrieval` verifies paired result
-manifests, matching row identities, non-oracle output rows, execution scores,
-and the database-derived value-index manifest SHA. It records value-only and
-strict execution deltas against direct SQL. Semantic prompt gains on the CoSQL
-proxy are useful, but they are not a hosted or BIRD-Interact claim.
+Evidence gate: `eval.run_semantic_value_retrieval_comparison` runs the direct
+SQL control and semantic value-retrieval arm as one endpoint pair, annotates the
+semantic manifest with the database-derived value-index SHA, and calls
+`eval.compare_semantic_value_retrieval`. The comparison verifies matching row
+identities, non-oracle output rows, execution scores, and value-only and strict
+deltas against direct SQL. Semantic prompt gains on the CoSQL proxy are useful,
+but they are not a hosted or BIRD-Interact claim.
 
 Next useful movement: run the paired endpoint experiment for semantic
 value-retrieval versus direct SQL on the fixed CoSQL rows, then inspect whether

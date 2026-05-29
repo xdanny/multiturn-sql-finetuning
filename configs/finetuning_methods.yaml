@@ -105,11 +105,12 @@ methods:
     evaluator_paths:
       - eval/run_eval.py
       - eval/classify_errors.py
+      - eval/run_semantic_value_retrieval_comparison.py
       - eval/compare_semantic_value_retrieval.py
     next_command: >-
       uv run --active --no-sync python -m data.value_artifacts ...;
       uv run --active --no-sync python -m data.value_index ...;
-      uv run --active --no-sync python -m eval.compare_semantic_value_retrieval ...
+      uv run --active --no-sync python -m eval.run_semantic_value_retrieval_comparison ...
     next_artifact: value/entity retrieval manifest and row-matched semantic delta
     claim_boundary: Semantic prompt movement is proxy evidence, not a proven method win.
     rankable_when: Rank after value/entity artifacts improve same-row SQL outcomes.

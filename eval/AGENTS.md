@@ -26,6 +26,7 @@ When editing here, inspect:
 - `eval/run_eval.py`
 - `eval/local_benchmark.py`
 - `eval/metric_dsl_eval.py`
+- `eval/run_semantic_value_retrieval_comparison.py`
 - `eval/compare_semantic_value_retrieval.py`
 - `eval/claim_ledger.py`
 - `docs/evidence_contract.md`
