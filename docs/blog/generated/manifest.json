@@ -339,6 +339,19 @@
       "required_in_post": false,
       "required_reference": true,
       "sha256": "1464f5015bcb593fa082c9acbcf97514536a2832e4060669bd8753ca19f90462"
+    },
+    {
+      "claim_ids": [
+        "multiturn_sql_100_cosql_dev_100turns",
+        "semantic_prompt_minimal_executable_cosql_dev_100turns",
+        "schema_pruned_trained100_oracle_cosql_dev_100turns"
+      ],
+      "id": "gpu_finetuning_evidence_md",
+      "kind": "markdown",
+      "path": "gpu-finetuning-evidence.md",
+      "required_in_post": false,
+      "required_reference": true,
+      "sha256": "e7482f62eac99e848499b733ee2282287a01c5b6f2702b5bd8b815437b0a7c5f"
     }
   ],
   "claim_snapshot": {
@@ -1432,6 +1445,10 @@
     {
       "path": "docs/data_artifacts/synthetic_method_fixtures_summary.json",
       "sha256": "36eec7540329d35b748064d337d286ae2e1edd7d028f4406ef4632178fb184d6"
+    },
+    {
+      "path": "docs/training_runs/gpu_finetuning_evidence.json",
+      "sha256": "9b1fffccfa54223e2e25cd9bf426af6be174276ec3e6a72ac18082ce2554221a"
     },
     {
       "path": "docs/planner_baseline_cosql_dev_100_summary.json",
