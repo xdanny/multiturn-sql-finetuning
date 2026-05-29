@@ -133,7 +133,7 @@
       "path": "finetuning-step-plan.md",
       "required_in_post": false,
       "required_reference": true,
-      "sha256": "85b8dded971718a8e54ca7783a468b0b474afe96c4ee73d1688df4ca9797810c"
+      "sha256": "acb36d8e89f6854813fd25b9804c844a6d428822a76439a71b080cc50439007f"
     },
     {
       "claim_ids": [
@@ -1391,7 +1391,7 @@
     },
     {
       "path": "configs/finetuning_steps.yaml",
-      "sha256": "2809c52e82c938330016fffaac9d233e0214b2ffeaa2ae369fa3de81ab7e99bd"
+      "sha256": "57a32f6d6efcad0d346036109885410d72030ef81c822f6fa04603714b7e80c0"
     },
     {
       "path": "docs/claim_ledgers/cosql_dev_100.jsonl",

@@ -1272,6 +1272,8 @@ def finetuning_step_plan() -> pd.DataFrame:
                     f"eval={step['eval_rows_ready']}; "
                     f"control={step['control_rows_ready']}"
                 ),
+                "preflight_command_count": step["preflight_command_count"],
+                "cheap_preflight_available": step["cheap_preflight_available"],
                 "command_count": step["command_count"],
                 "evidence_gate": step["evidence_gate"],
                 "clears_claim_ids": "; ".join(step["clears_claim_ids"]),

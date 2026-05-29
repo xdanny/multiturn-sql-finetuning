@@ -32,6 +32,11 @@ def test_finetuning_steps_load_in_execution_order() -> None:
     }
     assert "metric_dsl_beats_direct_sql" in metric["clears_claim_ids"]
     assert all(command.startswith("uv run --active --no-sync") for command in metric["commands"])
+    assert all(
+        command.startswith("uv run --active --no-sync")
+        for command in metric["preflight_commands"]
+    )
+    assert all("--validate-data-only" in command for command in metric["preflight_commands"])
 
 
 def test_finetuning_step_summary_exposes_readiness() -> None:
@@ -47,6 +52,9 @@ def test_finetuning_step_summary_exposes_readiness() -> None:
     steps = {step["step_id"]: step for step in summary["steps"]}
     assert steps["direct_sql_control_smoke"]["train_rows_ready"] is True
     assert steps["direct_sql_control_smoke"]["eval_rows_ready"] is True
+    assert steps["direct_sql_control_smoke"]["cheap_preflight_available"] is True
+    assert steps["planner_first_sql_pair"]["preflight_command_count"] == 1
+    assert steps["semantic_value_retrieval_pair"]["preflight_command_count"] == 2
     assert steps["hosted_bird_interact_gate"]["eval_rows_ready"] is True
     assert steps["hosted_bird_interact_gate"]["clears_claim_ids"] == [
         "hosted_sota_same_protocol",
@@ -72,6 +80,8 @@ steps:
     control_rows: []
     commands:
       - uv run --active --no-sync python -m train.finetune
+    preflight_commands:
+      - uv run --active --no-sync python -m train.finetune --validate-data-only
     evidence_gate: manifest
     clears_claim_ids: []
     blocks_claim_ids: []
@@ -111,6 +121,8 @@ steps:
     control_rows: []
     commands:
       - uv run --active --no-sync python -m train.finetune
+    preflight_commands:
+      - uv run --active --no-sync python -m train.finetune --validate-data-only
     evidence_gate: manifest
     clears_claim_ids:
       - nonexistent_claim
@@ -151,6 +163,8 @@ steps:
     control_rows: []
     commands:
       - uv run --active --no-sync python -m train.finetune
+    preflight_commands:
+      - uv run --active --no-sync python -m train.finetune --validate-data-only
     evidence_gate: manifest
     clears_claim_ids:
       - metric_dsl_beats_direct_sql
@@ -175,3 +189,42 @@ steps:
         ) in str(exc)
     else:
         raise AssertionError("method claim mismatch should fail")
+
+
+def test_finetuning_step_loader_requires_preflight_commands(tmp_path) -> None:
+    config = tmp_path / "steps.yaml"
+    config.write_text(
+        """
+schema_version: 1
+steps:
+  - step_id: no_preflight_step
+    method: Direct SQL SFT
+    stage: train
+    purpose: test
+    benchmark_protocol_ids:
+      - cosql_dev_100_teacher_forced_proxy
+    train_rows: []
+    eval_rows: []
+    control_rows: []
+    commands:
+      - uv run --active --no-sync python -m train.finetune
+    evidence_gate: manifest
+    clears_claim_ids: []
+    blocks_claim_ids: []
+    leakage_boundary: no leakage
+""",
+        encoding="utf-8",
+    )
+
+    try:
+        load_finetuning_steps(
+            config,
+            method_config_path=REPO_ROOT / "configs" / "finetuning_methods.yaml",
+            protocol_config_path=REPO_ROOT / "configs" / "benchmark_protocols.yaml",
+            claim_ledger_path=REPO_ROOT / "docs" / "claim_ledgers" / "cosql_dev_100.jsonl",
+            repo_root=REPO_ROOT,
+        )
+    except ValueError as exc:
+        assert "no_preflight_step: missing preflight_commands" in str(exc)
+    else:
+        raise AssertionError("missing preflight commands should fail")

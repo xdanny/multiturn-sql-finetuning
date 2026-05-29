@@ -416,6 +416,7 @@ def test_notebook_support_loads_current_artifacts() -> None:
         "semantic_value_retrieval_improves_sql" in claim_ids
         for claim_ids in step_plan["clears_claim_ids"]
     )
+    assert step_plan["cheap_preflight_available"].all()
     assert all("train=" in rows_ready for rows_ready in step_plan["rows_ready"])
 
     lab_attachment = shareable_lab_attachment()
@@ -1108,6 +1109,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "behavior_recovery_rollout_pair" in finetuning_steps_md
     assert "semantic_value_retrieval_pair" in finetuning_steps_md
     assert "synthetic_schema_rich_method_fixture" in finetuning_steps_md
+    assert "cheap_preflight_available" in finetuning_steps_md
     assert "metric_dsl_beats_direct_sql" in finetuning_steps_md
     assert "hosted_bird_interact_gate" in finetuning_steps_md
     assert "notebooks/blog/" not in finetuning_steps_md
