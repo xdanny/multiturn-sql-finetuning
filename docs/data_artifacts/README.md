@@ -108,6 +108,19 @@ inference-time artifacts that are allowed in production:
 The repair SQL remains scorer-side. Use this artifact to test whether explicit
 value/schema context changes the failure mode before training another adapter.
 
+### Value-Choice Consistency Rollout Inputs
+
+- `value_choice_consistency_rollout_inputs.jsonl`
+- `value_choice_consistency_rollout_inputs_summary.json`
+- `value_choice_consistency_rollout_inputs.manifest.json`
+
+These rows narrow the failed value/schema repair prompt to one question: can the
+model choose the storage value that matches the visible user mention? The prompt
+shows a matched value-choice record derived from database contents and visible
+text, including the `France` to `FR` candidate and a `US` distractor. The
+expected storage value remains scorer-side so `eval.value_choice_consistency`
+can score value choice separately from full SQL execution.
+
 ### Value Grounding Labels
 
 - `value_grounding_labels_cosql_dev_100.jsonl`

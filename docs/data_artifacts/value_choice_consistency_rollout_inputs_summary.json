@@ -1,0 +1,22 @@
+{
+  "artifact_type": "value_choice_consistency_rollout_inputs",
+  "comparison_contract": "same_dialog_value_choice_consistency_rollout",
+  "evaluation_gate": "eval.run_behavior_recovery_comparison",
+  "failure_mode_counts": {
+    "entity_resolution": 1,
+    "recovery": 1,
+    "value_normalization": 1
+  },
+  "fixture_ids": [
+    "recovery_empty_result"
+  ],
+  "history_policy_counts": {
+    "seeded_generated_failure_then_value_choice_repair": 1
+  },
+  "matched_value_choice_source": "database_contents_plus_visible_user_text",
+  "matched_value_choices_visible_to_model": true,
+  "oracle_policy": "seeded_failure_visible_non_oracle_value_choice_context",
+  "rollout_input_count": 1,
+  "schema_version": 1,
+  "value_choice_scoring_gate": "eval.value_choice_consistency"
+}

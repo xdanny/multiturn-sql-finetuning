@@ -20,6 +20,7 @@ def test_experiment_matrix_names_each_hypothesis_and_gate() -> None:
         "semantic_value_retrieval",
         "metric_dsl",
         "behavior_recovery",
+        "value_schema_repair",
         "hosted_transfer",
     ]
     assert all(row["leakage_checks"] for row in rows)
@@ -31,11 +32,15 @@ def test_experiment_matrix_names_each_hypothesis_and_gate() -> None:
 def test_experiment_matrix_summary_exposes_holdout_boundary() -> None:
     summary = experiment_matrix_summary(repo_root=REPO_ROOT)
 
-    assert summary["hypothesis_count"] == 6
+    assert summary["hypothesis_count"] == 7
     assert "not a pristine scientific holdout" in summary["holdout_policy"]
     assert "not a result" in summary["claim_boundary"]
     by_id = {row["hypothesis_id"]: row for row in summary["hypotheses"]}
     assert by_id["metric_dsl"]["ready_for_validation"] is True
+    assert (
+        by_id["value_schema_repair"]["current_status"]
+        == "prompt_fixed_value_choice_failed_column_validity"
+    )
     assert by_id["hosted_transfer"]["ready_for_locked_benchmark"] is False
     assert by_id["hosted_transfer"]["current_status"] == "not_started"
 

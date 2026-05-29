@@ -105,10 +105,12 @@ hypotheses:
       - semantic metric definitions may be prompt-visible
       - gold DSL stays scorer-side
       - reference SQL stays scorer-side
-    current_status: parser_compiler_only
+    current_status: failed_tiny_fixture_output_language_control
     next_gpu_run: >-
-      Train separate metric-DSL and direct-SQL fixture adapters, generate held
-      validation predictions, then run the compiled-SQL comparison.
+      Do not scale the same metric-DSL setup yet. Prompt-only and 5-step LoRA
+      arms both failed to obey the DSL output language while the direct-SQL
+      control solved one fixture row. First isolate constrained-output
+      instruction following from metric semantics.
 
   - hypothesis_id: behavior_recovery
     method: Behavior/recovery tuning
@@ -144,6 +146,7 @@ hypotheses:
     train_artifacts: []
     validation_artifacts:
       - docs/data_artifacts/value_schema_repair_rollout_inputs.jsonl
+      - docs/data_artifacts/value_choice_consistency_rollout_inputs.jsonl
     locked_benchmark_artifacts:
       - docs/data_artifacts/value_schema_repair_rollout_inputs.manifest.json
     control_hypothesis_id: behavior_recovery
@@ -157,11 +160,11 @@ hypotheses:
       - allowed-column guardrails come from schema introspection
       - repair reference SQL stays scorer-side
       - future turns are not prompt-visible
-    current_status: artifact_planned_from_failed_recovery_arm
+    current_status: prompt_fixed_value_choice_failed_column_validity
     next_gpu_run: >-
-      First run prompt-only local generation on the value/schema repair rollout
-      input. Only train if the prompt-only result shows the artifact can change
-      the failure mode.
+      Do not train this arm yet. Prompt-only value-choice context selected FR
+      correctly but reintroduced customers.customer_id in GROUP BY. Add
+      alias/column-validity supervision and scoring before another adapter run.
 
   - hypothesis_id: hosted_transfer
     method: Hosted and BIRD-Interact comparison

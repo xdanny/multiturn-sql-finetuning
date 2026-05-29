@@ -1,0 +1,56 @@
+{
+  "artifact_type": "value_choice_consistency_prompt_evidence",
+  "claim_boundary": "Single synthetic prompt-only value-choice fixture. This is hypothesis evidence, not a benchmark or SOTA claim.",
+  "date": "2026-05-29",
+  "input_artifacts": {
+    "manifest_path": "docs/data_artifacts/value_choice_consistency_rollout_inputs.manifest.json",
+    "manifest_sha256": "ed5dbfa2f2823907d592eda8c59db64d59b0b7ac2fb9326e341daf65ea8d549b",
+    "rollout_input_path": "docs/data_artifacts/value_choice_consistency_rollout_inputs.jsonl",
+    "rollout_input_sha256": "39f53c5d0b2d80cb4af1043ed892281bd7657669e1cc2690ed664463a830db0f",
+    "summary_path": "docs/data_artifacts/value_choice_consistency_rollout_inputs_summary.json",
+    "summary_sha256": "1f26a87c6b0aaa5b1323d4aef196a9c40f32d0e7c9f52c6b39b5759ffc313aca"
+  },
+  "interpretation": [
+    "Matched value-choice context fixed the storage-value decision: the generated SQL selected FR for the visible France mention.",
+    "The query still failed execution because the model reintroduced nonexistent customers.customer_id in GROUP BY.",
+    "The next iteration should supervise alias/column validity after value choice is correct, not rerun broad value-index prompting."
+  ],
+  "metrics": {
+    "dialog_count": 1,
+    "execution_accuracy": 0.0,
+    "rollout_value_delta_vs_teacher_forced": -1.0,
+    "strict_execution_accuracy": 0.0,
+    "syntax_accuracy": 1.0,
+    "teacher_forced_value_execution_accuracy": 1.0,
+    "value_choice_accuracy": 1.0,
+    "value_execution_accuracy": 0.0
+  },
+  "model": "unsloth/Qwen3.5-9B",
+  "observed_output": [
+    {
+      "fixture_id": "recovery_empty_result",
+      "generated_sql": "SELECT customers.name, SUM(orders.amount) AS revenue FROM orders JOIN customers ON orders.customer_id = customers.id WHERE customers.country_code = 'FR' GROUP BY customers.customer_id, customers.name ORDER BY revenue DESC LIMIT 1;",
+      "score_error": "Execution failed on sql 'SELECT customers.name, SUM(orders.amount) AS revenue FROM orders JOIN customers ON orders.customer_id = customers.id WHERE customers.country_code = 'FR' GROUP BY customers.customer_id, customers.name ORDER BY revenue DESC LIMIT 1;': no such column: customers.customer_id",
+      "selected_storage_value": "FR",
+      "strict_execution_score": 0.0,
+      "syntax_valid": true,
+      "value_choice_match": true,
+      "value_execution_score": 0.0
+    }
+  ],
+  "result_artifacts": {
+    "comparison_manifest_path": "results/rollout/value_choice_consistency_prompt.comparison.manifest.json",
+    "comparison_manifest_sha256": "b0585da397f88437cf738030f9a7260e85a22606f258181f91396475c4cc147d",
+    "rollout_manifest_path": "results/rollout/value_choice_consistency_prompt.rollout.manifest.json",
+    "rollout_manifest_sha256": "1ee1b414e1417ae42af4b6e91fe593350d5a769fc6b2a447658ff8b1ec7ba212",
+    "rollout_rows_path": "results/rollout/value_choice_consistency_prompt.rollout.jsonl",
+    "rollout_rows_sha256": "36dd9de4c51f55a7931b2025c9550238606cb51fa95224f51506e4780c5acc87",
+    "teacher_forced_manifest_path": "results/rollout/value_choice_consistency_prompt.teacher_forced.manifest.json",
+    "teacher_forced_manifest_sha256": "6f4d092fd0f9f40037004f97c2a35950109a64a8aa0bbee46392acacdaa1d406",
+    "value_choice_score_path": "results/rollout/value_choice_consistency_prompt.value_choice.json",
+    "value_choice_score_sha256": "277f39f346e99ddd494281880acf5255144439f3561aa2ec07c774b51bbadf92"
+  },
+  "run_id": "value_choice_consistency_prompt",
+  "schema_version": 1,
+  "training": null
+}
