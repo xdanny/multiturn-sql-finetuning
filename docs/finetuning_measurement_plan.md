@@ -237,7 +237,7 @@ evaluator paths, next command, and claim boundary there first. Then update the
 matching section in this plan only if the measurement rule itself changes.
 
 The concrete run sequence is loaded from `configs/finetuning_steps.yaml`. Each
-step carries its own measurement contract: deciding metric, supporting
-diagnostics, expected comparison artifact, and promotion rule. Keep that block
-aligned with this plan whenever a step changes from a smoke check into a real
-benchmark comparison.
+step carries its own measurement contract: deciding metric, protocol-backed
+metric references, supporting diagnostics, expected comparison artifact, and
+promotion rule. Keep that block aligned with this plan whenever a step changes
+from a smoke check into a real benchmark comparison.

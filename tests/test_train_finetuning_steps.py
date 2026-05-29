@@ -39,6 +39,10 @@ def test_finetuning_steps_load_in_execution_order() -> None:
     assert metric["measurement"]["primary_metric"] == (
         "compiled_value_accuracy_delta_vs_direct_sql"
     )
+    assert metric["measurement"]["benchmark_metric_refs"] == (
+        "synthetic_schema_rich_method_fixture:value_accuracy",
+        "synthetic_schema_rich_method_fixture:measure_preservation",
+    )
     assert "measure_preservation" in metric["measurement"]["supporting_metrics"]
     assert all(command.startswith("uv run --active --no-sync") for command in metric["commands"])
     assert all(
@@ -72,6 +76,10 @@ def test_finetuning_step_summary_exposes_readiness() -> None:
     ]
     assert steps["metric_dsl_vs_direct_sql"]["measurement"] == {
         "primary_metric": "compiled_value_accuracy_delta_vs_direct_sql",
+        "benchmark_metric_refs": [
+            "synthetic_schema_rich_method_fixture:value_accuracy",
+            "synthetic_schema_rich_method_fixture:measure_preservation",
+        ],
         "supporting_metrics": [
             "dsl_parse_rate",
             "dsl_compile_rate",
@@ -164,6 +172,9 @@ def test_build_step_command_record_includes_handoff_metadata() -> None:
         "docs/data_artifacts/semantic_value_retrieval_inputs.manifest.json": True,
     }
     assert record["measurement"]["primary_metric"] == "value_accuracy_delta_vs_direct_sql"
+    assert record["measurement"]["benchmark_metric_refs"] == [
+        "cosql_dev_100_teacher_forced_proxy:value_accuracy"
+    ]
     assert record["measurement"]["comparison_artifact"] == (
         "results/semantic_value_retrieval/<run-id>.comparison.manifest.json"
     )
@@ -377,3 +388,55 @@ steps:
         assert "no_measurement_step: missing measurement" in str(exc)
     else:
         raise AssertionError("missing measurement should fail")
+
+
+def test_finetuning_step_loader_rejects_unknown_benchmark_metric_ref(tmp_path) -> None:
+    config = tmp_path / "steps.yaml"
+    config.write_text(
+        """
+schema_version: 1
+steps:
+  - step_id: bad_metric_ref_step
+    method: Direct SQL SFT
+    stage: train
+    purpose: test
+    benchmark_protocol_ids:
+      - cosql_dev_100_teacher_forced_proxy
+    train_rows: []
+    eval_rows: []
+    control_rows: []
+    commands:
+      - uv run --active --no-sync python -m train.finetune
+    preflight_commands:
+      - uv run --active --no-sync python -m train.finetune --validate-data-only
+    evidence_gate: manifest
+    measurement:
+      primary_metric: fake_metric
+      benchmark_metric_refs:
+        - cosql_dev_100_teacher_forced_proxy:fake_metric
+      supporting_metrics:
+        - syntax_validity
+      comparison_artifact: results/fake.json
+      promoted_when: fake metric wins
+    clears_claim_ids: []
+    blocks_claim_ids: []
+    leakage_boundary: no leakage
+""",
+        encoding="utf-8",
+    )
+
+    try:
+        load_finetuning_steps(
+            config,
+            method_config_path=REPO_ROOT / "configs" / "finetuning_methods.yaml",
+            protocol_config_path=REPO_ROOT / "configs" / "benchmark_protocols.yaml",
+            claim_ledger_path=REPO_ROOT / "docs" / "claim_ledgers" / "cosql_dev_100.jsonl",
+            repo_root=REPO_ROOT,
+        )
+    except ValueError as exc:
+        assert (
+            "bad_metric_ref_step: benchmark metric ref "
+            "cosql_dev_100_teacher_forced_proxy:fake_metric is not a primary metric"
+        ) in str(exc)
+    else:
+        raise AssertionError("unknown benchmark metric ref should fail")

@@ -79,6 +79,9 @@ claim ids, evidence gate, measurement contract, and leakage boundary.
 Each step also carries a `measurement` block:
 
 - `primary_metric`: the metric that decides the step.
+- `benchmark_metric_refs`: protocol-backed metrics in
+  `<protocol_id>:<metric>` form. Each metric must be a primary metric declared
+  by one of the step's benchmark protocols.
 - `supporting_metrics`: diagnostics that explain why the primary metric moved.
 - `comparison_artifact`: the manifest or comparison file that should exist
   after a real run.
