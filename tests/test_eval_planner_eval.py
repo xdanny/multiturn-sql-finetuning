@@ -94,6 +94,24 @@ def test_lexical_planner_uses_question_text_not_schema_tokens() -> None:
     assert "routes.route_id" not in plan["relevant_columns"]
 
 
+def test_lexical_planner_matches_simple_plural_question_tokens() -> None:
+    messages = [
+        {
+            "role": "user",
+            "content": (
+                "Schema/context:\n"
+                "teacher(Teacher_ID number, Name text, Age text)\n\n"
+                "Question:\nHow many teachers are there?"
+            ),
+        }
+    ]
+
+    plan = lexical_planner(messages)
+
+    assert plan["relevant_tables"] == ["teacher"]
+    assert "count(*)" in plan["projection_shape"]["aggregations"]
+
+
 def test_evaluate_planner_records_adds_gold_predicted_and_scores() -> None:
     records = [
         {

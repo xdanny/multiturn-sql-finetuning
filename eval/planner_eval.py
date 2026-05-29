@@ -51,11 +51,13 @@ def _normalize_identifier(value: Any) -> str:
 
 
 def _identifier_tokens(value: str) -> set[str]:
-    return {
+    tokens = {
         token
         for token in re.split(r"[^a-z0-9]+", value.lower())
         if len(token) > 1 and token not in {"the", "and", "for", "with", "from"}
     }
+    singulars = {token[:-1] for token in tokens if len(token) > 3 and token.endswith("s")}
+    return tokens | singulars
 
 
 def _f1(gold: Iterable[Any], predicted: Iterable[Any]) -> float:
@@ -192,6 +194,14 @@ def _value_hint_matches_column(question_text: str, column: str) -> bool:
     return False
 
 
+def _column_name_matches_question(question_tokens: set[str], column: str) -> bool:
+    column_tokens = _identifier_tokens(column)
+    if not column_tokens & question_tokens:
+        return False
+    normalized = _normalize_identifier(column)
+    return not (normalized.endswith("_id") and "id" not in question_tokens)
+
+
 def lexical_planner(messages: list[dict[str, str]]) -> dict[str, Any]:
     """Predict a weak non-oracle plan from prompt-visible schema and question text."""
 
@@ -205,8 +215,9 @@ def lexical_planner(messages: list[dict[str, str]]) -> dict[str, Any]:
         table_tokens = _identifier_tokens(table)
         column_hits = []
         for column in columns:
-            column_tokens = _identifier_tokens(column)
-            if column_tokens & question_tokens or _value_hint_matches_column(question_text, column):
+            if _column_name_matches_question(
+                question_tokens, column
+            ) or _value_hint_matches_column(question_text, column):
                 column_hits.append(column)
                 selected_columns.add(f"{table}.{column}")
         if table_tokens & question_tokens or column_hits:
