@@ -241,6 +241,7 @@ Start with one small PR:
 - Update `configs/finetuning_methods.yaml`.
 - Update this runbook only when the method's operational contract changes.
 - Run `uv run --active --no-sync python -m eval.method_readiness
+  --output results/method_readiness/<run-id>.json
   --fail-on-missing-required`.
 
 Do not start by committing large generated outputs. Make the row identity,
