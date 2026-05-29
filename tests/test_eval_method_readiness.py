@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from eval.method_readiness import (
+    DEFAULT_REPORT_OUTPUT,
     build_method_readiness,
     load_method_configs,
     required_readiness_failures,
@@ -283,6 +284,10 @@ def test_write_method_readiness_report_is_deterministic(tmp_path) -> None:
     assert payload == {"schema_version": 1, "methods": rows}
     assert payload["methods"][0]["method"] == "Direct SQL SFT"
     assert payload["methods"][-1]["method"] == "Hosted and BIRD-Interact comparison"
+
+
+def test_default_method_readiness_report_output_uses_results_dir() -> None:
+    assert Path("results/method_readiness/latest.json") == DEFAULT_REPORT_OUTPUT
 
 
 def test_required_readiness_failures_only_reports_required_missing_inputs() -> None:

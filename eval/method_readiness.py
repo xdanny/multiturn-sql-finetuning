@@ -12,6 +12,7 @@ import yaml
 from eval.benchmark_protocols import DEFAULT_PROTOCOL_CONFIG, benchmark_protocol_map
 
 DEFAULT_METHOD_CONFIG = Path("configs/finetuning_methods.yaml")
+DEFAULT_REPORT_OUTPUT = Path("results/method_readiness/latest.json")
 LIST_FIELDS = {
     "supported_claim_ids",
     "blocking_claim_ids",
@@ -353,7 +354,7 @@ def main() -> int:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("docs/method_readiness_report.json"),
+        default=DEFAULT_REPORT_OUTPUT,
     )
     parser.add_argument(
         "--method-config",
