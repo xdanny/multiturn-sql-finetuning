@@ -17,6 +17,7 @@ DEFAULT_EVIDENCE_PATHS = (
     Path("docs/training_runs/value_choice_consistency_prompt.json"),
     Path("docs/training_runs/alias_column_validity_prompt.json"),
     Path("docs/training_runs/alias_column_context_prompt_limit8.json"),
+    Path("docs/training_runs/alias_column_context_prompt_limit24.json"),
 )
 
 RUN_SUMMARIES = {
@@ -87,6 +88,16 @@ RUN_SUMMARIES = {
         ),
         "next_action": "Run a larger row-matched slice and classify remaining failures before training.",
     },
+    "alias_column_context_prompt_limit24": {
+        "hypothesis_id": "value_schema_repair",
+        "arm_type": "prompt_only_validation_slice",
+        "control": "direct_sql_prompt",
+        "decision": "no_delta_on_limit24_validation_slice",
+        "primary_failure_mode": (
+            "Alias/column context changed generations but did not fix or regress any turns; remaining misses are query-shape and semantic failures."
+        ),
+        "next_action": "Pivot from alias/column context to planner/query-shape supervision before training.",
+    },
 }
 
 METRIC_KEYS = (
@@ -107,6 +118,8 @@ METRIC_KEYS = (
     "alias_resolution_success_rate",
     "alias_column_context_value_delta_vs_direct_sql",
     "direct_sql_value_execution_accuracy",
+    "fixed_turns",
+    "regressed_turns",
 )
 
 
@@ -174,13 +187,13 @@ def build_hypothesis_rollup(
             "status": "no_method_promoted",
             "reason": (
                 "The alias/column context passed one synthetic diagnostic but "
-                "showed no value delta on the first eight CoSQL validation turns. "
+                "showed no value delta on 24 CoSQL validation turns. "
                 "No method has passed broader validation or a locked proxy gate."
             ),
             "next_repo_step": (
-                "Run a larger row-matched alias/column validation slice and "
-                "classify remaining failures before another GPU fine-tuning run "
-                "or blog claim."
+                "Pivot to planner/query-shape supervision, then compare it "
+                "against direct SQL on row-matched validation before another GPU "
+                "fine-tuning run or blog claim."
             ),
         },
     }

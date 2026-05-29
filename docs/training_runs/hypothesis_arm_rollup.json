@@ -9,7 +9,8 @@
     "docs/training_runs/value_schema_repair_prompt.json",
     "docs/training_runs/value_choice_consistency_prompt.json",
     "docs/training_runs/alias_column_validity_prompt.json",
-    "docs/training_runs/alias_column_context_prompt_limit8.json"
+    "docs/training_runs/alias_column_context_prompt_limit8.json",
+    "docs/training_runs/alias_column_context_prompt_limit24.json"
   ],
   "arms": [
     {
@@ -250,11 +251,46 @@
         }
       ],
       "next_action": "Run a larger row-matched slice and classify remaining failures before training."
+    },
+    {
+      "run_id": "alias_column_context_prompt_limit24",
+      "hypothesis_id": "value_schema_repair",
+      "arm_type": "prompt_only_validation_slice",
+      "evidence_path": "docs/training_runs/alias_column_context_prompt_limit24.json",
+      "evidence_sha256": "1d92246a14f45d92e11fa1122dfaec09c8261f0c8f5969345cb0560a8512022f",
+      "claim_boundary": "Twenty-four-turn prompt-only CoSQL proxy validation slice. This is bounded validation evidence, not a benchmark or method-promotion claim.",
+      "model": "unsloth/Qwen3.5-9B",
+      "control": "direct_sql_prompt",
+      "decision": "no_delta_on_limit24_validation_slice",
+      "primary_failure_mode": "Alias/column context changed generations but did not fix or regress any turns; remaining misses are query-shape and semantic failures.",
+      "selected_metrics": {
+        "dialog_count": 8,
+        "syntax_accuracy": 1.0,
+        "value_execution_accuracy": 0.5,
+        "strict_execution_accuracy": 0.3333333333333333,
+        "direct_sql_value_execution_accuracy": 0.5,
+        "column_validity_accuracy": 0.9583333333333334,
+        "schema_valid_sql_rate": 0.9583333333333334,
+        "alias_resolution_success_rate": 1.0,
+        "alias_column_context_value_delta_vs_direct_sql": 0.0,
+        "fixed_turns": 0,
+        "regressed_turns": 0
+      },
+      "observed_outputs": [
+        {
+          "id": "prepared-0:0",
+          "direct_sql": "SELECT cm.FullName, COUNT(ml.ModelId) AS model_count FROM car_makers cm JOIN model_list ml ON cm.Id = ml.Maker GROUP BY cm.FullName;",
+          "alias_column_sql": "SELECT ml.Maker, COUNT(*) AS model_count FROM model_list ml JOIN car_makers cm ON ml.Maker = cm.Id GROUP BY ml.Maker;",
+          "direct_value_execution_score": 0.0,
+          "alias_value_execution_score": 0.0
+        }
+      ],
+      "next_action": "Pivot from alias/column context to planner/query-shape supervision before training."
     }
   ],
   "overall_decision": {
     "status": "no_method_promoted",
-    "reason": "The alias/column context passed one synthetic diagnostic but showed no value delta on the first eight CoSQL validation turns. No method has passed broader validation or a locked proxy gate.",
-    "next_repo_step": "Run a larger row-matched alias/column validation slice and classify remaining failures before another GPU fine-tuning run or blog claim."
+    "reason": "The alias/column context passed one synthetic diagnostic but showed no value delta on 24 CoSQL validation turns. No method has passed broader validation or a locked proxy gate.",
+    "next_repo_step": "Pivot to planner/query-shape supervision, then compare it against direct SQL on row-matched validation before another GPU fine-tuning run or blog claim."
   }
 }
