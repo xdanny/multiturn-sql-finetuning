@@ -13,6 +13,8 @@ Primary responsibilities:
 - Keep `configs/benchmark_protocols.yaml` as the source of truth for what each
   dataset or benchmark protocol can prove, what it blocks, and which leakage
   boundary applies.
+- Keep `configs/finetuning_steps.yaml` as the source of truth for the concrete
+  train/evaluate/compare sequence behind each method arm.
 - Make prompt variants explicit about whether they are production-style,
   diagnostic, or oracle-derived.
 - Keep dataset splits, row limits, model names, and output directories
@@ -37,8 +39,9 @@ Rules:
 - If a config changes a method comparison, update
   `docs/finetuning_measurement_plan.md` or `docs/finetuning_smoke_matrix.md`.
 - If a method arm or benchmark protocol changes, update
-  `configs/finetuning_methods.yaml` or `configs/benchmark_protocols.yaml` and
-  run the method-readiness command before claiming the gate is wired.
+  `configs/finetuning_methods.yaml`, `configs/benchmark_protocols.yaml`, or
+  `configs/finetuning_steps.yaml`, then run the method-readiness and
+  finetuning-step summary commands before claiming the gate is wired.
 
 When editing here, inspect:
 

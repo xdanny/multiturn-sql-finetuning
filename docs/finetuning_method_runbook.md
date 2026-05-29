@@ -41,6 +41,16 @@ behavior being trained, the benchmark rows or fixture family, the metric that
 settles the comparison, the fields that must not enter prompts, and the artifact
 that would clear the gate.
 
+`configs/finetuning_steps.yaml` is the concrete sequence of train, evaluation,
+and comparison commands. Validate it with:
+
+```bash
+uv run --active --no-sync python -m train.finetuning_steps
+```
+
+The step summary is not a benchmark result. It is a checklist for which row
+artifacts, controls, protocols, and claim gates the next run must use.
+
 ## Direct SQL SFT
 
 Hypothesis: ordinary supervised SQL chat finetuning is the control arm for the

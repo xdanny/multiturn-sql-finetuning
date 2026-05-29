@@ -1,0 +1,206 @@
+schema_version: 1
+steps:
+  - step_id: direct_sql_control_smoke
+    method: Direct SQL SFT
+    stage: train_control
+    purpose: verify the direct-SQL control target before comparing method arms
+    benchmark_protocol_ids:
+      - cosql_dev_100_teacher_forced_proxy
+    train_rows:
+      - data/processed/train_smoke.jsonl
+    eval_rows:
+      - data/processed/eval_cosql_smoke.jsonl
+    control_rows: []
+    commands:
+      - >-
+        uv run --active --no-sync python -m train.finetune
+        --config configs/qwen35_9b_5090.yaml
+        --data data/processed/train_smoke.jsonl
+        --eval-data data/processed/eval_cosql_smoke.jsonl
+        --output-dir outputs/experiments/direct_sql_smoke
+        --max-steps 5
+        --report-to none
+    evidence_gate: training smoke completes; benchmark claims still require eval.run_eval manifest
+    clears_claim_ids: []
+    blocks_claim_ids:
+      - hosted_sota_same_protocol
+      - local_beats_hosted_same_protocol
+      - bird_interact_local_vs_hosted
+    leakage_boundary: no reference SQL, gold plans, expected rows, or future turns in prompts
+
+  - step_id: planner_first_sql_pair
+    method: Planner/DSL first, SQL second
+    stage: endpoint_comparison
+    purpose: compare predicted-planner SQL against the same-model direct-SQL control
+    benchmark_protocol_ids:
+      - cosql_dev_100_teacher_forced_proxy
+    train_rows: []
+    eval_rows:
+      - data/processed/eval_cosql_dev_100.jsonl
+      - data/processed/eval_cosql_dev_predicted_planner_100.jsonl
+    control_rows:
+      - data/processed/eval_cosql_dev_100.jsonl
+    commands:
+      - >-
+        uv run --active --no-sync python -m eval.run_predicted_planner_comparison
+        --direct-input data/processed/eval_cosql_dev_100.jsonl
+        --predicted-input data/processed/eval_cosql_dev_predicted_planner_100.jsonl
+        --output-dir results/predicted_planner
+        --run-id <run-id>
+        --model-name <served-model>
+        --endpoint http://localhost:8000/v1
+        --database-root data/raw/cosql_dataset/database
+        --limit 100
+    evidence_gate: positive same-row value-accuracy delta versus direct SQL
+    clears_claim_ids:
+      - predicted_planner_sql_execution
+    blocks_claim_ids: []
+    leakage_boundary: predicted plans must be non-oracle; gold SQL plans are scorer-only
+
+  - step_id: semantic_value_retrieval_pair
+    method: Semantic-layer tuning
+    stage: endpoint_comparison
+    purpose: test whether database-derived value retrieval improves SQL outcomes
+    benchmark_protocol_ids:
+      - cosql_dev_100_teacher_forced_proxy
+    train_rows:
+      - data/processed/train_semantic_smoke.jsonl
+    eval_rows:
+      - data/processed/eval_cosql_dev_100.jsonl
+    control_rows:
+      - data/processed/eval_cosql_dev_100.jsonl
+      - docs/data_artifacts/semantic_value_retrieval_inputs.manifest.json
+    commands:
+      - >-
+        uv run --active --no-sync python -m data.semantic_value_retrieval_inputs
+      - >-
+        uv run --active --no-sync python -m eval.run_semantic_value_retrieval_comparison
+        --direct-input data/processed/eval_cosql_dev_100.jsonl
+        --semantic-input data/processed/eval_cosql_dev_100_semantic_value_retrieval.jsonl
+        --output-dir results/semantic_value_retrieval
+        --run-id <run-id>
+        --model-name <served-model>
+        --endpoint http://localhost:8000/v1
+        --database-root data/raw/cosql_dataset/database
+        --limit 100
+    evidence_gate: semantic comparison manifest with positive same-row value delta
+    clears_claim_ids:
+      - semantic_value_retrieval_improves_sql
+    blocks_claim_ids:
+      - hosted_sota_same_protocol
+      - local_beats_hosted_same_protocol
+    leakage_boundary: value index is database-derived; answer-derived value labels stay scorer-side
+
+  - step_id: metric_dsl_vs_direct_sql
+    method: MEASURE()-preserving metric DSL
+    stage: train_and_compare
+    purpose: compare compiled metric-DSL predictions against direct SQL on metric-heavy fixtures
+    benchmark_protocol_ids:
+      - synthetic_schema_rich_method_fixture
+    train_rows:
+      - docs/data_artifacts/metric_dsl_training_rows.jsonl
+      - docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl
+    eval_rows:
+      - docs/data_artifacts/metric_dsl_prediction_inputs.jsonl
+      - docs/data_artifacts/metric_dsl_direct_sql_prediction_inputs.jsonl
+    control_rows:
+      - docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl
+    commands:
+      - >-
+        uv run --active --no-sync python -m train.finetune
+        --config configs/qwen35_9b_5090.yaml
+        --data docs/data_artifacts/metric_dsl_training_rows.jsonl
+        --eval-data docs/data_artifacts/metric_dsl_training_rows.jsonl
+        --output-dir outputs/experiments/metric_dsl_smoke
+        --max-steps 5
+        --report-to none
+      - >-
+        uv run --active --no-sync python -m train.finetune
+        --config configs/qwen35_9b_5090.yaml
+        --data docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl
+        --eval-data docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl
+        --output-dir outputs/experiments/metric_dsl_direct_sql_smoke
+        --max-steps 5
+        --report-to none
+      - >-
+        uv run --active --no-sync python -m eval.run_metric_dsl_comparison
+        --metric-dsl-predictions results/metric_dsl/<run-id>.metric_predictions.jsonl
+        --direct-sql-predictions results/metric_dsl/<run-id>.direct_predictions.jsonl
+        --output-dir results/metric_dsl
+        --run-id <run-id>
+        --metric-dsl-model-name <metric-dsl-adapter>
+        --direct-sql-model-name <direct-sql-adapter>
+    evidence_gate: parse, compile, measure-preservation, and positive compiled value delta
+    clears_claim_ids:
+      - metric_dsl_beats_direct_sql
+    blocks_claim_ids: []
+    leakage_boundary: semantic metric definitions are allowed; gold DSL and reference SQL stay out
+
+  - step_id: behavior_recovery_rollout_pair
+    method: Behavior/recovery tuning
+    stage: train_and_rollout
+    purpose: test generated-history recovery against a direct-SQL control
+    benchmark_protocol_ids:
+      - synthetic_schema_rich_method_fixture
+      - cosql_generated_history_rollout
+    train_rows:
+      - docs/data_artifacts/behavior_recovery_training_rows.jsonl
+      - docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl
+    eval_rows:
+      - docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl
+    control_rows:
+      - docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl
+    commands:
+      - >-
+        uv run --active --no-sync python -m train.finetune
+        --config configs/qwen35_9b_5090.yaml
+        --data docs/data_artifacts/behavior_recovery_training_rows.jsonl
+        --eval-data docs/data_artifacts/behavior_recovery_training_rows.jsonl
+        --output-dir outputs/experiments/behavior_recovery_smoke
+        --max-steps 5
+        --report-to none
+      - >-
+        uv run --active --no-sync python -m train.finetune
+        --config configs/qwen35_9b_5090.yaml
+        --data docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl
+        --eval-data docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl
+        --output-dir outputs/experiments/behavior_recovery_direct_sql_smoke
+        --max-steps 5
+        --report-to none
+      - >-
+        uv run --active --no-sync python -m eval.run_behavior_recovery_comparison
+        --input docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl
+        --output-dir results/rollout
+        --run-id <run-id>
+        --model-name <served-model-name>
+        --database-root data/raw/cosql_dataset/database
+    evidence_gate: recovery adapter beats direct-SQL control under generated-history rollout
+    clears_claim_ids:
+      - model_generated_history_rollout
+      - behavior_recovery_beats_direct_sql
+    blocks_claim_ids:
+      - rollout_beats_teacher_forced_history
+    leakage_boundary: previous generated SQL is allowed; repair labels and future turns are not
+
+  - step_id: hosted_bird_interact_gate
+    method: Hosted and BIRD-Interact comparison
+    stage: transfer_gate
+    purpose: compare the best local candidate against hosted systems under the same protocol
+    benchmark_protocol_ids:
+      - bird_interact_same_protocol_transfer
+    train_rows: []
+    eval_rows: []
+    control_rows: []
+    commands:
+      - >-
+        uv run --active --no-sync python -m eval.compare_hosted_baseline
+        --hosted-manifest <hosted-manifest>
+        --local-manifest <local-manifest>
+        --output <comparison-manifest>
+    evidence_gate: local and hosted manifests share inputs, scorer, row ids, latency, and cost fields
+    clears_claim_ids:
+      - hosted_sota_same_protocol
+      - local_beats_hosted_same_protocol
+      - bird_interact_local_vs_hosted
+    blocks_claim_ids: []
+    leakage_boundary: local and hosted runs receive the same non-oracle user-visible inputs

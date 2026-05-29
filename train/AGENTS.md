@@ -30,6 +30,9 @@ Rules:
   `--max-steps`, `--output-dir`, `--report-to`, and
   `--allow-oracle-diagnostic-data`. Do not document unimplemented flags as if
   they already exist.
+- `train.finetuning_steps` validates `configs/finetuning_steps.yaml` and emits
+  the concrete train/evaluate/compare sequence for method arms. Keep it aligned
+  with `configs/finetuning_methods.yaml` and `configs/benchmark_protocols.yaml`.
 - If a new finetuning target is added, document which control it is expected to
   beat and which eval command clears that claim.
 
