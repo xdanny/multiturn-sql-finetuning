@@ -11,6 +11,21 @@ Do not call a method better because its smoke run completed. A method becomes
 evidence only after generated outputs are scored and compared against the
 control arm listed here.
 
+`configs/hypothesis_experiment_matrix.yaml` is the machine-readable contract for
+that rule. It names each hypothesis, its control, its training artifacts, its
+validation artifacts, its locked benchmark artifacts, and the promotion gate.
+Regenerate the checked-in summary with:
+
+```bash
+uv run --active --no-sync python -m train.experiment_matrix \
+  --output docs/experiment_matrix_summary.json
+```
+
+The matrix intentionally says CoSQL dev 100 is a locked proxy benchmark, not a
+pristine holdout. Earlier prompt and evidence iteration inspected that slice.
+Use it for reproducible proxy gates, then reserve hosted/BIRD-Interact transfer
+rows for the broader claim.
+
 ## Shared Rules
 
 - Use the same input rows for a method and its control.
