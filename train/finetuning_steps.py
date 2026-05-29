@@ -38,6 +38,13 @@ MEASUREMENT_REQUIRED_TEXT_FIELDS = {
     "comparison_artifact",
     "promoted_when",
 }
+STAGE_ORDER = {
+    "train_control": 0,
+    "endpoint_comparison": 1,
+    "train_and_compare": 2,
+    "train_and_rollout": 3,
+    "transfer_gate": 4,
+}
 
 
 def _path_status(repo_root: Path, paths: tuple[str, ...]) -> dict[str, bool]:
@@ -109,6 +116,12 @@ def _validate_benchmark_metric_refs(
             )
 
 
+def _stage_rank(step_id: str, stage: str) -> int:
+    if stage not in STAGE_ORDER:
+        raise ValueError(f"{step_id}: unknown stage {stage}")
+    return STAGE_ORDER[stage]
+
+
 def load_finetuning_steps(
     path: Path = DEFAULT_STEP_CONFIG,
     *,
@@ -131,6 +144,8 @@ def load_finetuning_steps(
     known_claim_ids = _claim_ids(claim_ledger_path)
     normalized = []
     seen_ids = set()
+    previous_stage_rank = -1
+    previous_step_id = None
     for step in steps:
         row = dict(step)
         step_id = row.get("step_id") or "<unknown step>"
@@ -141,6 +156,14 @@ def load_finetuning_steps(
         ]
         if missing_text_fields:
             raise ValueError(f"{step_id}: missing {', '.join(missing_text_fields)}")
+        stage_rank = _stage_rank(step_id, row["stage"])
+        if stage_rank < previous_stage_rank:
+            raise ValueError(
+                f"{step_id}: stage {row['stage']} appears after "
+                f"{previous_step_id} with a later stage"
+            )
+        previous_stage_rank = stage_rank
+        previous_step_id = step_id
         if step_id in seen_ids:
             raise ValueError(f"{step_id}: duplicate finetuning step id")
         seen_ids.add(step_id)
