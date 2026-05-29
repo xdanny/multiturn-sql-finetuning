@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "artifact_type": "hypothesis_arm_rollup",
+  "claim_boundary": "This rollup summarizes tiny diagnostic arms. It is not a benchmark, a SOTA claim, or evidence that any method is promoted.",
+  "evidence_paths": [
+    "docs/training_runs/metric_dsl_prompt_baseline.json",
+    "docs/training_runs/metric_dsl_arm_5steps.json",
+    "docs/training_runs/behavior_recovery_5steps.json",
+    "docs/training_runs/value_schema_repair_prompt.json",
+    "docs/training_runs/value_choice_consistency_prompt.json"
+  ],
+  "arms": [
+    {
+      "run_id": "metric_dsl_prompt_baseline",
+      "hypothesis_id": "metric_dsl",
+      "arm_type": "prompt_only_baseline",
+      "evidence_path": "docs/training_runs/metric_dsl_prompt_baseline.json",
+      "evidence_sha256": "e9a7a7ce557e03de15a68491a2bab976bf48682973618653bb5dbd668be4c794",
+      "claim_boundary": "Tiny synthetic fixture prompt-only baseline. This is hypothesis evidence, not a benchmark or SOTA claim.",
+      "model": "unsloth/Qwen3.5-9B",
+      "control": "direct_sql_prompt",
+      "decision": "failed",
+      "primary_failure_mode": "The model did not follow the metric DSL output contract.",
+      "selected_metrics": {
+        "rows": 2,
+        "syntax_accuracy": 0.0,
+        "value_execution_accuracy": 0.0,
+        "strict_execution_accuracy": 0.0,
+        "metric_dsl_parse_rate": 0.0,
+        "metric_dsl_compile_rate": 0.0,
+        "metric_dsl_value_delta_vs_direct_sql": -0.5,
+        "direct_sql_value_execution_accuracy": 0.5
+      },
+      "observed_outputs": [
+        {
+          "fixture_id": "grain_fanout_bridge",
+          "parse_error": "invalid metric DSL: SQL keyword found outside DSL contract",
+          "prediction": "SELECT\n  MEASURE(campaign_name) AS campaign_name,\n  MEASURE(revenue) AS total_revenue\nFROM\n  campaign\nJOIN\n  order_promotions ON campaign.id = order_promotions.campaign_id\nJOIN\n  orders ON order_promotions.order_id = orders.id\nJOIN\n  customers ON orders.customer_id = customers.id\nWHERE\n  orders.order_date >= '2023-01-01'\nGROUP BY\n  campaign_name\nORDER BY\n  total_revenue DESC\nLIMIT 10"
+        },
+        {
+          "fixture_id": "measure_preservation_metric",
+          "parse_error": "invalid metric DSL measure segment; expected MEASURE(name)",
+          "prediction": "MEASURE(revenue)\nDIMENSION(customer_country)"
+        }
+      ],
+      "next_action": "Separate constrained-output obedience from metric semantics before scaling."
+    },
+    {
+      "run_id": "metric_dsl_arm_5steps",
+      "hypothesis_id": "metric_dsl",
+      "arm_type": "five_step_lora",
+      "evidence_path": "docs/training_runs/metric_dsl_arm_5steps.json",
+      "evidence_sha256": "df085c6d32356e80d6f58f77c3c9a1334cf0b6606c34958e7254bab0ec824865",
+      "claim_boundary": "Tiny synthetic fixture arm only. This is hypothesis evidence, not a benchmark or SOTA claim.",
+      "model": "unsloth/Qwen3.5-9B",
+      "control": "direct_sql_five_step_lora",
+      "decision": "failed",
+      "primary_failure_mode": "The adapter still emitted invalid DSL while direct SQL solved one fixture.",
+      "selected_metrics": {
+        "rows": 2,
+        "syntax_accuracy": 0.0,
+        "value_execution_accuracy": 0.0,
+        "strict_execution_accuracy": 0.0,
+        "metric_dsl_parse_rate": 0.0,
+        "metric_dsl_compile_rate": 0.0,
+        "metric_dsl_value_delta_vs_direct_sql": -0.5,
+        "direct_sql_value_execution_accuracy": 0.5
+      },
+      "observed_outputs": [
+        {
+          "fixture_id": "grain_fanout_bridge",
+          "parse_error": "invalid metric DSL: SQL keyword found outside DSL contract",
+          "prediction": "SELECT\n  MEASURE(campaign_name) AS campaign_name,\n  MEASURE(revenue) AS total_revenue\nFROM\n  campaign\nJOIN\n  order_promotions ON campaign.id = order_promotions.campaign_id\nJOIN\n  orders ON order_promotions.order_id = orders.id\nJOIN\n  customers ON orders.customer_id = customers.id\nGROUP BY\n  campaign_name\nORDER BY\n  total_revenue DESC\nLIMIT 10"
+        },
+        {
+          "fixture_id": "measure_preservation_metric",
+          "parse_error": "invalid metric DSL measure segment; expected MEASURE(name)",
+          "prediction": "MEASURE(revenue)\nDIMENSION(customer_country)"
+        }
+      ],
+      "next_action": "Do not claim DSL benefit until parse and compile rates are nonzero."
+    },
+    {
+      "run_id": "behavior_recovery_5steps",
+      "hypothesis_id": "behavior_recovery",
+      "arm_type": "five_step_lora",
+      "evidence_path": "docs/training_runs/behavior_recovery_5steps.json",
+      "evidence_sha256": "c0594d1092b4524567a43ccfef32fe989b08e32efe1ac26db1c6097b97346e0c",
+      "claim_boundary": "Single synthetic generated-history recovery fixture. This is hypothesis evidence, not a benchmark or SOTA claim.",
+      "model": "unsloth/Qwen3.5-9B",
+      "control": "direct_sql_five_step_lora",
+      "decision": "no_delta",
+      "primary_failure_mode": "Recovery and direct-SQL adapters made the same value-normalization and invalid-column errors.",
+      "selected_metrics": {
+        "dialog_count": 1,
+        "syntax_accuracy": 1.0,
+        "value_execution_accuracy": 0.0,
+        "strict_execution_accuracy": 0.0,
+        "direct_sql_value_execution_accuracy": 0.0,
+        "behavior_recovery_value_delta_vs_direct_sql": 0.0
+      },
+      "observed_outputs": [
+        {
+          "fixture_id": "recovery_empty_result",
+          "generated_sql": "SELECT customers.name, SUM(orders.amount) AS revenue FROM orders JOIN customers ON orders.customer_id = customers.id WHERE customers.country_code = 'France' GROUP BY customers.customer_id, customers.name ORDER BY revenue DESC LIMIT 1;",
+          "score_error": "Execution failed on sql 'SELECT customers.name, SUM(orders.amount) AS revenue FROM orders JOIN customers ON orders.customer_id = customers.id WHERE customers.country_code = 'France' GROUP BY customers.customer_id, customers.name ORDER BY revenue DESC LIMIT 1;': no such column: customers.customer_id",
+          "strict_execution_score": 0.0,
+          "value_execution_score": 0.0
+        }
+      ],
+      "next_action": "Test value and schema repair context before another adapter run."
+    },
+    {
+      "run_id": "value_schema_repair_prompt",
+      "hypothesis_id": "value_schema_repair",
+      "arm_type": "prompt_only_diagnostic",
+      "evidence_path": "docs/training_runs/value_schema_repair_prompt.json",
+      "evidence_sha256": "ea3419b47a802015187222fec23bd85c19044a37ce89d35008e4c42f019ccc91",
+      "claim_boundary": "Single synthetic prompt-only recovery fixture. This is hypothesis evidence, not a benchmark or SOTA claim.",
+      "model": "unsloth/Qwen3.5-9B",
+      "control": "teacher_forced_reference",
+      "decision": "failed_changed_failure_mode",
+      "primary_failure_mode": "The prompt fixed schema validity but chose the wrong storage value.",
+      "selected_metrics": {
+        "dialog_count": 1,
+        "syntax_accuracy": 1.0,
+        "value_execution_accuracy": 0.0,
+        "strict_execution_accuracy": 0.0,
+        "rollout_value_delta_vs_teacher_forced": -1.0
+      },
+      "observed_outputs": [
+        {
+          "fixture_id": "recovery_empty_result",
+          "generated_sql": "SELECT customers.name, SUM(orders.amount) AS revenue FROM orders JOIN customers ON orders.customer_id = customers.id WHERE customers.country_code = 'US' GROUP BY customers.name ORDER BY revenue DESC LIMIT 1",
+          "score_error": null,
+          "strict_execution_score": 0.0,
+          "syntax_valid": true,
+          "value_execution_score": 0.0
+        }
+      ],
+      "next_action": "Add a value-choice consistency artifact and score value choice separately."
+    },
+    {
+      "run_id": "value_choice_consistency_prompt",
+      "hypothesis_id": "value_schema_repair",
+      "arm_type": "prompt_only_value_choice_diagnostic",
+      "evidence_path": "docs/training_runs/value_choice_consistency_prompt.json",
+      "evidence_sha256": "2a771f410c790b386ea4032f2043869ffa05aff4d0f728ca4008a765abe727c6",
+      "claim_boundary": "Single synthetic prompt-only value-choice fixture. This is hypothesis evidence, not a benchmark or SOTA claim.",
+      "model": "unsloth/Qwen3.5-9B",
+      "control": "teacher_forced_reference",
+      "decision": "partial_pass_value_choice_failed_sql",
+      "primary_failure_mode": "The model chose FR correctly but reintroduced the invalid customers.customer_id column.",
+      "selected_metrics": {
+        "dialog_count": 1,
+        "syntax_accuracy": 1.0,
+        "value_execution_accuracy": 0.0,
+        "strict_execution_accuracy": 0.0,
+        "rollout_value_delta_vs_teacher_forced": -1.0,
+        "value_choice_accuracy": 1.0
+      },
+      "observed_outputs": [
+        {
+          "fixture_id": "recovery_empty_result",
+          "generated_sql": "SELECT customers.name, SUM(orders.amount) AS revenue FROM orders JOIN customers ON orders.customer_id = customers.id WHERE customers.country_code = 'FR' GROUP BY customers.customer_id, customers.name ORDER BY revenue DESC LIMIT 1;",
+          "score_error": "Execution failed on sql 'SELECT customers.name, SUM(orders.amount) AS revenue FROM orders JOIN customers ON orders.customer_id = customers.id WHERE customers.country_code = 'FR' GROUP BY customers.customer_id, customers.name ORDER BY revenue DESC LIMIT 1;': no such column: customers.customer_id",
+          "selected_storage_value": "FR",
+          "strict_execution_score": 0.0,
+          "syntax_valid": true,
+          "value_choice_match": true,
+          "value_execution_score": 0.0
+        }
+      ],
+      "next_action": "Add alias/column-validity supervision after value choice is correct."
+    }
+  ],
+  "overall_decision": {
+    "status": "no_method_promoted",
+    "reason": "Every completed method arm either lost to its control, matched a failed control, or changed the failure mode without solving the fixture.",
+    "next_repo_step": "Build alias/column-validity supervision before another GPU fine-tuning run or blog claim."
+  }
+}
