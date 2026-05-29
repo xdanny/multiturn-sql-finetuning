@@ -63,6 +63,19 @@ uv run --active --no-sync python -m train.finetuning_steps \
 Use `--commands run` for the full training/evaluation commands and
 `--commands all` when preparing a complete run checklist.
 
+To hand a step to another process or save an execution checklist, add
+`--output`:
+
+```bash
+uv run --active --no-sync python -m train.finetuning_steps \
+  --step-id semantic_value_retrieval_pair \
+  --commands preflight \
+  --output results/step_records/<run-id>.semantic_preflight.json
+```
+
+That JSON record includes the selected commands, row readiness, protocol ids,
+claim ids, evidence gate, and leakage boundary.
+
 ## Direct SQL SFT
 
 Hypothesis: ordinary supervised SQL chat finetuning is the control arm for the
