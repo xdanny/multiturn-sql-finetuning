@@ -74,7 +74,19 @@ uv run --active --no-sync python -m train.finetuning_steps \
 ```
 
 That JSON record includes the selected commands, row readiness, protocol ids,
-claim ids, evidence gate, and leakage boundary.
+claim ids, evidence gate, measurement contract, and leakage boundary.
+
+Each step also carries a `measurement` block:
+
+- `primary_metric`: the metric that decides the step.
+- `supporting_metrics`: diagnostics that explain why the primary metric moved.
+- `comparison_artifact`: the manifest or comparison file that should exist
+  after a real run.
+- `promoted_when`: the condition that lets the step clear its claim gate.
+
+Use this block to keep smoke runs, benchmark proxies, synthetic fixtures, and
+hosted/BIRD-style transfer claims separate. If the comparison artifact is
+missing, the step may be wired, but its claim is not cleared.
 
 ## Direct SQL SFT
 

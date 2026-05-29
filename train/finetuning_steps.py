@@ -33,6 +33,11 @@ REQUIRED_TEXT_FIELDS = {
     "evidence_gate",
     "leakage_boundary",
 }
+MEASUREMENT_REQUIRED_TEXT_FIELDS = {
+    "primary_metric",
+    "comparison_artifact",
+    "promoted_when",
+}
 
 
 def _path_status(repo_root: Path, paths: tuple[str, ...]) -> dict[str, bool]:
@@ -53,6 +58,26 @@ def _claim_ids(path: Path) -> set[str]:
             for line in handle
             if line.strip()
         }
+
+
+def _normalize_measurement(step_id: str, value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        raise ValueError(f"{step_id}: missing measurement")
+    measurement = dict(value)
+    missing_text_fields = [
+        field
+        for field in sorted(MEASUREMENT_REQUIRED_TEXT_FIELDS)
+        if not str(measurement.get(field) or "").strip()
+    ]
+    if missing_text_fields:
+        raise ValueError(
+            f"{step_id}: measurement missing {', '.join(missing_text_fields)}"
+        )
+    supporting_metrics = measurement.get("supporting_metrics")
+    if not isinstance(supporting_metrics, list) or not supporting_metrics:
+        raise ValueError(f"{step_id}: measurement missing supporting_metrics")
+    measurement["supporting_metrics"] = tuple(str(metric) for metric in supporting_metrics)
+    return measurement
 
 
 def load_finetuning_steps(
@@ -133,6 +158,7 @@ def load_finetuning_steps(
             raise ValueError(f"{step_id}: commands must use uv run --active --no-sync")
         if any("reference SQL" in command for command in all_commands):
             raise ValueError(f"{step_id}: command text mentions reference SQL")
+        row["measurement"] = _normalize_measurement(step_id, row.get("measurement"))
         row["train_rows_status"] = _path_status(repo_root, row["train_rows"])
         row["eval_rows_status"] = _path_status(repo_root, row["eval_rows"])
         row["control_rows_status"] = _path_status(repo_root, row["control_rows"])
@@ -170,6 +196,12 @@ def finetuning_step_summary(
                 "eval_rows_ready": all(step["eval_rows_status"].values()),
                 "control_rows_ready": all(step["control_rows_status"].values()),
                 "evidence_gate": step["evidence_gate"],
+                "measurement": {
+                    "primary_metric": step["measurement"]["primary_metric"],
+                    "supporting_metrics": list(step["measurement"]["supporting_metrics"]),
+                    "comparison_artifact": step["measurement"]["comparison_artifact"],
+                    "promoted_when": step["measurement"]["promoted_when"],
+                },
                 "clears_claim_ids": list(step["clears_claim_ids"]),
                 "blocks_claim_ids": list(step["blocks_claim_ids"]),
                 "preflight_command_count": len(step["preflight_commands"]),
@@ -262,6 +294,12 @@ def build_step_command_record(
         "clears_claim_ids": list(step["clears_claim_ids"]),
         "blocks_claim_ids": list(step["blocks_claim_ids"]),
         "evidence_gate": step["evidence_gate"],
+        "measurement": {
+            "primary_metric": step["measurement"]["primary_metric"],
+            "supporting_metrics": list(step["measurement"]["supporting_metrics"]),
+            "comparison_artifact": step["measurement"]["comparison_artifact"],
+            "promoted_when": step["measurement"]["promoted_when"],
+        },
         "leakage_boundary": step["leakage_boundary"],
         "cheap_preflight_available": all(
             "<" not in command and ">" not in command

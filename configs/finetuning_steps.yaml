@@ -29,6 +29,13 @@ steps:
         --max-steps 5
         --report-to none
     evidence_gate: training smoke completes; benchmark claims still require eval.run_eval manifest
+    measurement:
+      primary_metric: value_accuracy
+      supporting_metrics:
+        - strict_accuracy
+        - syntax_validity
+      comparison_artifact: results/direct_sql/<run-id>.manifest.json
+      promoted_when: direct SQL control has a scored non-oracle manifest on the fixed rows
     clears_claim_ids: []
     blocks_claim_ids:
       - hosted_sota_same_protocol
@@ -72,6 +79,15 @@ steps:
         --database-root data/raw/cosql_dataset/database
         --limit 100
     evidence_gate: positive same-row value-accuracy delta versus direct SQL
+    measurement:
+      primary_metric: value_accuracy_delta_vs_direct_sql
+      supporting_metrics:
+        - planner_table_f1
+        - planner_column_f1
+        - projection_shape_match
+        - syntax_validity_delta
+      comparison_artifact: results/predicted_planner/<run-id>.comparison.manifest.json
+      promoted_when: predicted planner beats direct SQL on identical row ids without oracle plans
     clears_claim_ids:
       - predicted_planner_sql_execution
     blocks_claim_ids: []
@@ -119,6 +135,14 @@ steps:
         --database-root data/raw/cosql_dataset/database
         --limit 100
     evidence_gate: semantic comparison manifest with positive same-row value delta
+    measurement:
+      primary_metric: value_accuracy_delta_vs_direct_sql
+      supporting_metrics:
+        - strict_accuracy_delta
+        - value_grounding_match_rate
+        - syntax_validity_delta
+      comparison_artifact: results/semantic_value_retrieval/<run-id>.comparison.manifest.json
+      promoted_when: semantic value-retrieval arm beats the same-model direct SQL control
     clears_claim_ids:
       - semantic_value_retrieval_improves_sql
     blocks_claim_ids:
@@ -181,6 +205,17 @@ steps:
         --metric-dsl-model-name <metric-dsl-adapter>
         --direct-sql-model-name <direct-sql-adapter>
     evidence_gate: parse, compile, measure-preservation, and positive compiled value delta
+    measurement:
+      primary_metric: compiled_value_accuracy_delta_vs_direct_sql
+      supporting_metrics:
+        - dsl_parse_rate
+        - dsl_compile_rate
+        - measure_preservation
+        - measure_f1
+        - dimension_f1
+        - filter_f1
+      comparison_artifact: results/metric_dsl/<run-id>.comparison.manifest.json
+      promoted_when: compiled metric DSL beats direct SQL while preserving MEASURE(...) intent
     clears_claim_ids:
       - metric_dsl_beats_direct_sql
     blocks_claim_ids: []
@@ -240,6 +275,15 @@ steps:
         --model-name <served-model-name>
         --database-root data/raw/cosql_dataset/database
     evidence_gate: recovery adapter beats direct-SQL control under generated-history rollout
+    measurement:
+      primary_metric: rollout_value_accuracy_delta_vs_direct_sql
+      supporting_metrics:
+        - strict_rollout_accuracy_delta
+        - empty_result_repair_rate
+        - syntax_validity_after_error
+        - value_normalization_repair_rate
+      comparison_artifact: results/rollout/<run-id>.comparison.manifest.json
+      promoted_when: recovery adapter beats direct SQL under generated-history rollout
     clears_claim_ids:
       - model_generated_history_rollout
       - behavior_recovery_beats_direct_sql
@@ -267,6 +311,14 @@ steps:
         --local-manifest <local-manifest>
         --output <comparison-manifest>
     evidence_gate: local and hosted manifests share inputs, scorer, row ids, latency, and cost fields
+    measurement:
+      primary_metric: value_accuracy_delta_vs_hosted_baseline
+      supporting_metrics:
+        - task_success
+        - latency
+        - cost
+      comparison_artifact: results/hosted/<run-id>.comparison.manifest.json
+      promoted_when: local and hosted runs share the same protocol, rows, scorer, and prompt-visible inputs
     clears_claim_ids:
       - hosted_sota_same_protocol
       - local_beats_hosted_same_protocol
