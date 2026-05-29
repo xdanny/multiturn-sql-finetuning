@@ -246,6 +246,12 @@ scores on both sides, and the value-index manifest SHA. The claim ledger clears
 a positive value-accuracy delta versus direct SQL. Coverage alone remains a
 retrieval artifact, not a SQL win.
 
+`docs/semantic_value_retrieval_comparison_preflight.json` records that the
+current direct and semantic prepared inputs match on the fixed 100-turn proxy:
+100 turns, 32 dialogs, and 15 databases under the comparison limit. Like the
+predicted-planner preflight, this is only readiness evidence. It does not clear
+the SQL-improvement claim without endpoint result manifests.
+
 Summarize whether that endpoint pair is worth running before spending model
 time:
 
