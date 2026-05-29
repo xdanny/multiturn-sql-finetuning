@@ -56,6 +56,7 @@ Tracked outputs:
 - `docs/blog/generated/endpoint-run-scorecard.md`
 - `docs/blog/generated/failure-taxonomy-delta.md`
 - `docs/blog/generated/schema-validation-findings.md`
+- `docs/blog/generated/gpu-finetuning-evidence.md`
 - `docs/blog/generated/manifest.json`
 
 The intended pattern is:

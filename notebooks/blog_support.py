@@ -33,6 +33,7 @@ BLOG_EVIDENCE_SOURCES = (
     "docs/data_artifacts/synthetic_method_fixtures.jsonl",
     "docs/data_artifacts/synthetic_method_fixtures.manifest.json",
     "docs/data_artifacts/synthetic_method_fixtures_summary.json",
+    "docs/training_runs/gpu_finetuning_evidence.json",
     "docs/planner_baseline_cosql_dev_100_summary.json",
     "docs/predicted_planner_comparison_preflight.json",
     "docs/planner_readiness_cosql_dev_100.json",
@@ -143,6 +144,11 @@ ASSET_CLAIM_IDS = {
         "local_beats_hosted_same_protocol",
         "bird_interact_local_vs_hosted",
     ),
+    "gpu_finetuning_evidence_md": (
+        "multiturn_sql_100_cosql_dev_100turns",
+        "semantic_prompt_minimal_executable_cosql_dev_100turns",
+        "schema_pruned_trained100_oracle_cosql_dev_100turns",
+    ),
 }
 ASSET_REQUIRED_IN_POST = {
     "accuracy_ladder_svg",
@@ -172,6 +178,7 @@ ASSET_REQUIRED_REFERENCE = {
     "failure_taxonomy_delta_md",
     "schema_validation_findings_md",
     "planner_readiness_md",
+    "gpu_finetuning_evidence_md",
 }
 
 
@@ -2656,6 +2663,45 @@ def schema_validation_findings() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def gpu_finetuning_evidence() -> pd.DataFrame:
+    """Summarize the compact training evidence snapshot for publication."""
+
+    evidence = read_json_artifact("docs/training_runs/gpu_finetuning_evidence.json")
+    rows: list[dict[str, Any]] = []
+    for run in evidence["runs"]:
+        if run["claim_status"] == "diagnostic_upper_bound":
+            public_claim = "oracle diagnostic ceiling"
+        else:
+            public_claim = "local proxy result"
+        rows.append(
+            {
+                "run": run["model_name"],
+                "steps": str(run["global_step"]),
+                "loss_moved": f"{run['first_logged_loss']:.3f} -> {run['last_logged_loss']:.3f}",
+                "adapter_hash": run["adapter_weights_sha256"][:12],
+                "value_accuracy": run["value_execution_accuracy"],
+                "strict_accuracy": run["strict_execution_accuracy"],
+                "claim_status": run["claim_status"],
+                "public_claim": public_claim,
+            }
+        )
+
+    blocked = evidence["fresh_gpu_check"]
+    rows.append(
+        {
+            "run": "fresh run from current shell",
+            "steps": "",
+            "loss_moved": blocked["torch"],
+            "adapter_hash": "not run",
+            "value_accuracy": "",
+            "strict_accuracy": "",
+            "claim_status": "blocked_now",
+            "public_claim": blocked["nvidia_smi"],
+        }
+    )
+    return pd.DataFrame(rows)
+
+
 def _write_text(path: Path, text: str) -> str:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text)
@@ -2802,6 +2848,7 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     endpoint_runs = endpoint_run_scorecard()
     failure_delta = failure_taxonomy_delta()
     schema_findings = schema_validation_findings()
+    gpu_evidence = gpu_finetuning_evidence()
 
     assets = {
         "accuracy_ladder_svg": _write_text(
@@ -2928,6 +2975,10 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
         "schema_validation_findings_md": _write_text(
             output / "schema-validation-findings.md",
             _markdown_table(schema_findings),
+        ),
+        "gpu_finetuning_evidence_md": _write_text(
+            output / "gpu-finetuning-evidence.md",
+            _markdown_table(gpu_evidence),
         ),
     }
     asset_contracts = [

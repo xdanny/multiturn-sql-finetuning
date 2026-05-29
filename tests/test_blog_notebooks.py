@@ -964,6 +964,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "endpoint_run_scorecard_md",
         "failure_taxonomy_delta_md",
         "schema_validation_findings_md",
+        "gpu_finetuning_evidence_md",
     }
     assert {source["path"] for source in manifest["source_artifacts"]} >= {
         "configs/benchmark_protocols.yaml",
@@ -973,6 +974,7 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
         "docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json",
         "docs/data_artifacts/value_index_cosql_dev_100.manifest.json",
         "docs/data_artifacts/synthetic_method_fixtures.manifest.json",
+        "docs/training_runs/gpu_finetuning_evidence.json",
         "docs/predicted_planner_comparison_preflight.json",
         "docs/planner_readiness_cosql_dev_100.json",
         "docs/planner_baseline_cosql_dev_100_summary.json",
@@ -996,6 +998,14 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     assert "empty_projection_expression_rate" in planner_readiness_md
     assert "improve_planner_before_claim" in planner_readiness_md
     assert "readiness only; no SQL execution claim" in planner_readiness_md
+
+    gpu_evidence_md = (
+        tmp_path / asset_paths["gpu_finetuning_evidence_md"]
+    ).read_text()
+    assert "multiturn-sql-100" in gpu_evidence_md
+    assert "0.63" in gpu_evidence_md
+    assert "blocked_now" in gpu_evidence_md
+    assert "cuda_available False" in gpu_evidence_md
 
     claim_table_md = (tmp_path / asset_paths["claim_table_md"]).read_text()
     assert "metric_dsl_beats_direct_sql" in claim_table_md
