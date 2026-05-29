@@ -116,7 +116,7 @@
       "path": "method-readiness-report.md",
       "required_in_post": false,
       "required_reference": true,
-      "sha256": "22772a6ad6f39a9b9d80c8f5678fd3b0d45cf8899126e1d46a1ff11e4627fdca"
+      "sha256": "4e06b56201aaf3737f1f0d6e77cbf8de19ec6d51575a51828c625b1584bf8476"
     },
     {
       "claim_ids": [

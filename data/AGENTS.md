@@ -28,6 +28,7 @@ When editing here, inspect:
 
 - `docs/data_artifacts/README.md`
 - `data/prepare.py`
+- `data/semantic_value_retrieval_inputs.py`
 - `data/value_artifacts.py`
 - `data/value_index.py`
 - `data/synthetic_method_fixtures.py`

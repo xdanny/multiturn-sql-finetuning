@@ -111,6 +111,17 @@ This index comes from database contents, not from the answer SQL. It is the
 right kind of artifact for retrieval experiments because it can be available at
 inference time.
 
+### Semantic Value-Retrieval Inputs
+
+`data.semantic_value_retrieval_inputs` writes the prepared input used by
+`eval.run_semantic_value_retrieval_comparison`. The default JSONL output belongs
+under `data/processed/` because it is a generated benchmark input. The summary
+and manifest may be written here to record provenance.
+
+The builder matches value-index aliases against user-authored text visible up to
+each turn. It intentionally does not use reference SQL, gold planner labels,
+expected rows, assistant SQL, or future user turns for retrieval matching.
+
 ## What Should Be Added Here
 
 Add files here when they are small, stable inputs that another developer should

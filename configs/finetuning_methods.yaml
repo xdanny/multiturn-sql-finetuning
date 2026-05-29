@@ -93,15 +93,16 @@ methods:
       - semantic_value_retrieval_improves_sql
       - hosted_sota_same_protocol
       - local_beats_hosted_same_protocol
-    module_path: data/value_artifacts.py
+    module_path: data/semantic_value_retrieval_inputs.py
     training_rows:
       - data/processed/train_semantic_smoke.jsonl
     smoke_rows_required: true
     control_rows:
       - data/processed/train_cosql_smoke.jsonl
     control_rows_required: true
-    prediction_input_rows: []
-    prediction_input_rows_required: false
+    prediction_input_rows:
+      - data/processed/eval_cosql_dev_100_semantic_value_retrieval.jsonl
+    prediction_input_rows_required: true
     evaluator_paths:
       - eval/run_eval.py
       - eval/classify_errors.py
@@ -110,8 +111,9 @@ methods:
     next_command: >-
       uv run --active --no-sync python -m data.value_artifacts ...;
       uv run --active --no-sync python -m data.value_index ...;
+      uv run --active --no-sync python -m data.semantic_value_retrieval_inputs ...;
       uv run --active --no-sync python -m eval.run_semantic_value_retrieval_comparison ...
-    next_artifact: value/entity retrieval manifest and row-matched semantic delta
+    next_artifact: semantic value-retrieval prepared input plus row-matched semantic delta
     claim_boundary: Semantic prompt movement is proxy evidence, not a proven method win.
     rankable_when: Rank after value/entity artifacts improve same-row SQL outcomes.
 

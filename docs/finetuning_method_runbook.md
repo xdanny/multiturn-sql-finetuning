@@ -86,8 +86,10 @@ Hypothesis: governed semantic context helps the model ground entities,
 dimensions, measures, joins, grain, and values that raw DDL does not explain.
 
 Finetuning step: train or prompt with semantic context that is available at
-inference time. Use value/entity artifacts to make the retrieval problem
-measurable before turning it into prompt text.
+inference time. `data.semantic_value_retrieval_inputs` turns the database-derived
+value index into prepared prompt context by matching aliases against user text
+seen up to each turn. It does not retrieve from reference SQL, assistant SQL,
+expected rows, or future turns.
 
 Control: same rows without the semantic-layer context, or the same model under a
 matching direct-SQL prompt.
@@ -100,8 +102,8 @@ identities, non-oracle output rows, execution scores, and value-only and strict
 deltas against direct SQL. Semantic prompt gains on the CoSQL proxy are useful,
 but they are not a hosted or BIRD-Interact claim.
 
-Next useful movement: run the paired endpoint experiment for semantic
-value-retrieval versus direct SQL on the fixed CoSQL rows, then inspect whether
+Next useful movement: generate the semantic prepared input on the fixed CoSQL
+rows, run the paired endpoint experiment versus direct SQL, then inspect whether
 the remaining misses are value lookup, entity resolution, join path, or query
 shape failures.
 
