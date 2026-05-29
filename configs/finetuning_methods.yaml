@@ -102,6 +102,8 @@ methods:
     control_rows_required: true
     prediction_input_rows:
       - data/processed/eval_cosql_dev_100_semantic_value_retrieval.jsonl
+    prediction_input_manifests:
+      - docs/data_artifacts/semantic_value_retrieval_inputs.manifest.json
     prediction_input_rows_required: true
     evaluator_paths:
       - eval/run_eval.py

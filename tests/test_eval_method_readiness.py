@@ -155,6 +155,11 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
     assert semantic["smoke_rows_required"] is True
     assert semantic["control_rows_required"] is True
     assert semantic["control_rows_ready"] is True
+    assert semantic["prediction_input_rows_required"] is True
+    assert semantic["prediction_input_rows_ready"] is True
+    assert semantic["prediction_input_manifests"] == {
+        "docs/data_artifacts/semantic_value_retrieval_inputs.manifest.json": True
+    }
     assert semantic["evaluators_ready"] is True
 
     metric = methods["MEASURE()-preserving metric DSL"]
@@ -177,6 +182,7 @@ def test_method_readiness_maps_claims_to_next_actions() -> None:
         "docs/data_artifacts/metric_dsl_prediction_inputs.jsonl": True,
         "docs/data_artifacts/metric_dsl_direct_sql_prediction_inputs.jsonl": True,
     }
+    assert metric["prediction_input_manifests"] == {}
     assert metric["prediction_input_rows_ready"] is True
     assert metric["supported_claim_ids"] == ["metric-dsl-bootstrap.metric_dsl"]
     assert metric["blocking_claim_ids"] == ["metric_dsl_beats_direct_sql"]
@@ -274,6 +280,7 @@ def test_required_readiness_failures_only_reports_required_missing_inputs() -> N
             "training_rows": {"data/missing_train.jsonl": False},
             "control_rows": {"data/missing_control.jsonl": False},
             "prediction_input_rows": {"data/missing_prediction.jsonl": False},
+            "prediction_input_manifests": {"docs/missing_prediction.manifest.json": False},
             "evaluator_paths": {"eval/missing_eval.py": False},
         },
     ]
@@ -281,6 +288,7 @@ def test_required_readiness_failures_only_reports_required_missing_inputs() -> N
     assert required_readiness_failures(rows) == [
         "Missing required rows: missing smoke rows: data/missing_train.jsonl",
         "Missing required rows: missing control rows: data/missing_control.jsonl",
-        "Missing required rows: missing prediction input rows: data/missing_prediction.jsonl",
+        "Missing required rows: missing prediction input rows or manifests: "
+        "data/missing_prediction.jsonl, docs/missing_prediction.manifest.json",
         "Missing required rows: missing evaluators: eval/missing_eval.py",
     ]
