@@ -34,6 +34,14 @@ explicit teacher-forced diagnostic experiments.
 | BIRD mini-dev | Single-turn BIRD-style SQLite rows. | Execution harness and BIRD-style schema debugging. | It is not an interactive benchmark. |
 | BIRD-Interact | Interactive data-analysis target. | Future local-vs-hosted comparison. | Not run yet in this repo. |
 
+The claim boundary for each dataset lives in
+`configs/benchmark_protocols.yaml`. CoSQL can rank local method changes on a
+fixed proxy slice. SParC can show context-dependent transfer when row manifests
+are frozen. Synthetic schema-rich fixtures can isolate planner, value, metric,
+fanout, and recovery behavior, but they do not prove benchmark improvement.
+BIRD-Interact or Multi-BIRD plus a same-protocol hosted baseline is the first
+protocol that can support a local-vs-hosted data-analysis claim.
+
 Prepared JSONL records now carry `assistant_turn_count`, `turn_format`, and
 `history_policy`. A multi-turn CoSQL dialog should show
 `history_policy=gold_sql_teacher_forced`, because the expanded prompt for turn N

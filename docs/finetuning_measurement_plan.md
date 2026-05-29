@@ -24,6 +24,9 @@ control arm listed here.
   strict execution accuracy, syntax validity, and normalized match visible.
 - Treat CoSQL as the local proxy slice. Do not describe CoSQL proxy gains as
   BIRD-Interact or hosted-SOTA wins.
+- Attach every method claim to a protocol from `configs/benchmark_protocols.yaml`
+  so CoSQL proxy, SParC transfer, synthetic fixtures, generated-history rollout,
+  and BIRD-Interact/hosted comparisons stay separate.
 
 ## Direct SQL Control
 

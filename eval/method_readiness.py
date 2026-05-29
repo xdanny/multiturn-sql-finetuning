@@ -9,10 +9,13 @@ from typing import Any
 
 import yaml
 
+from eval.benchmark_protocols import DEFAULT_PROTOCOL_CONFIG, benchmark_protocol_map
+
 DEFAULT_METHOD_CONFIG = Path("configs/finetuning_methods.yaml")
 LIST_FIELDS = {
     "supported_claim_ids",
     "blocking_claim_ids",
+    "benchmark_protocol_ids",
     "training_rows",
     "control_rows",
     "prediction_input_rows",
@@ -52,6 +55,9 @@ def load_method_configs(path: Path = DEFAULT_METHOD_CONFIG) -> tuple[dict[str, A
             )
         for field in LIST_FIELDS:
             row[field] = tuple(row.get(field) or ())
+        if not row["benchmark_protocol_ids"]:
+            method_name = row.get("method") or "<unknown method>"
+            raise ValueError(f"{method_name}: missing benchmark_protocol_ids")
         normalized.append(row)
     return tuple(normalized)
 
@@ -189,13 +195,27 @@ def build_method_readiness(
     ledger_path: Path,
     repo_root: Path,
     method_config_path: Path | None = None,
+    protocol_config_path: Path | None = None,
 ) -> list[dict[str, Any]]:
     """Return deterministic method-readiness rows from the claim ledger."""
 
     claims = _claim_statuses(ledger_path)
     rows = []
     config_path = method_config_path or repo_root / DEFAULT_METHOD_CONFIG
+    protocol_path = protocol_config_path or repo_root / DEFAULT_PROTOCOL_CONFIG
+    protocols = benchmark_protocol_map(protocol_path)
     for method in load_method_configs(config_path):
+        benchmark_protocol_ids = tuple(method["benchmark_protocol_ids"])
+        missing_protocol_ids = [
+            protocol_id
+            for protocol_id in benchmark_protocol_ids
+            if protocol_id not in protocols
+        ]
+        if missing_protocol_ids:
+            raise ValueError(
+                f"{method['method']}: unknown benchmark protocols: "
+                f"{', '.join(missing_protocol_ids)}"
+            )
         supported_claim_ids = _existing_claim_ids(
             claims,
             tuple(method["supported_claim_ids"]),
@@ -270,6 +290,21 @@ def build_method_readiness(
                 "blocking_claim_ids": blocking_claim_ids,
                 "open_blocking_claim_ids": open_blocking_claim_ids,
                 "blocking_reasons": blocking_reasons,
+                "benchmark_protocol_ids": list(benchmark_protocol_ids),
+                "benchmark_protocols": [
+                    {
+                        "protocol_id": protocols[protocol_id]["protocol_id"],
+                        "benchmark": protocols[protocol_id]["benchmark"],
+                        "role": protocols[protocol_id]["role"],
+                        "supports_method_ranking": protocols[protocol_id][
+                            "supports_method_ranking"
+                        ],
+                        "supports_hosted_sota_claim": protocols[protocol_id][
+                            "supports_hosted_sota_claim"
+                        ],
+                    }
+                    for protocol_id in benchmark_protocol_ids
+                ],
                 "module_path": method["module_path"],
                 "module_exists": (repo_root / method["module_path"]).exists(),
                 "next_command": method["next_command"],
@@ -292,11 +327,13 @@ def write_method_readiness_report(
     ledger_path: Path,
     repo_root: Path,
     method_config_path: Path | None = None,
+    protocol_config_path: Path | None = None,
 ) -> list[dict[str, Any]]:
     rows = build_method_readiness(
         ledger_path=ledger_path,
         repo_root=repo_root,
         method_config_path=method_config_path,
+        protocol_config_path=protocol_config_path,
     )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(
@@ -325,6 +362,12 @@ def main() -> int:
         help="Configured finetuning method arms to report.",
     )
     parser.add_argument(
+        "--protocol-config",
+        type=Path,
+        default=None,
+        help="Configured benchmark protocols to validate against method arms.",
+    )
+    parser.add_argument(
         "--fail-on-missing-required",
         action="store_true",
         help="Exit non-zero if a required smoke row, control row, or evaluator path is missing.",
@@ -336,6 +379,7 @@ def main() -> int:
         ledger_path=args.ledger,
         repo_root=repo_root,
         method_config_path=args.method_config,
+        protocol_config_path=args.protocol_config,
     )
     print(f"Wrote {len(rows)} method readiness rows to {args.output}")
     if args.fail_on_missing_required:
