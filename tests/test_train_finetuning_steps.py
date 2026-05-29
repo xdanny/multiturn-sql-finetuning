@@ -645,3 +645,56 @@ steps:
         ) in str(exc)
     else:
         raise AssertionError("missing dependency should fail")
+
+
+def test_finetuning_step_loader_rejects_method_protocol_mismatch(tmp_path) -> None:
+    config = tmp_path / "steps.yaml"
+    config.write_text(
+        """
+schema_version: 1
+steps:
+  - step_id: wrong_protocol_step
+    method: Direct SQL SFT
+    stage: train_control
+    purpose: test wrong protocol
+    benchmark_protocol_ids:
+      - synthetic_schema_rich_method_fixture
+    requires_step_ids: []
+    train_rows: []
+    eval_rows: []
+    control_rows: []
+    commands:
+      - uv run --active --no-sync python -m train.finetune
+    preflight_commands:
+      - uv run --active --no-sync python -m train.finetune --validate-data-only
+    evidence_gate: manifest
+    measurement:
+      primary_metric: value_accuracy
+      benchmark_metric_refs:
+        - synthetic_schema_rich_method_fixture:value_accuracy
+      supporting_metrics:
+        - syntax_validity
+      comparison_artifact: results/direct/fake.json
+      promoted_when: direct control exists
+    clears_claim_ids: []
+    blocks_claim_ids: []
+    leakage_boundary: no leakage
+""",
+        encoding="utf-8",
+    )
+
+    try:
+        load_finetuning_steps(
+            config,
+            method_config_path=REPO_ROOT / "configs" / "finetuning_methods.yaml",
+            protocol_config_path=REPO_ROOT / "configs" / "benchmark_protocols.yaml",
+            claim_ledger_path=REPO_ROOT / "docs" / "claim_ledgers" / "cosql_dev_100.jsonl",
+            repo_root=REPO_ROOT,
+        )
+    except ValueError as exc:
+        assert (
+            "wrong_protocol_step: benchmark protocols are not declared by method "
+            "Direct SQL SFT: synthetic_schema_rich_method_fixture"
+        ) in str(exc)
+    else:
+        raise AssertionError("method protocol mismatch should fail")
