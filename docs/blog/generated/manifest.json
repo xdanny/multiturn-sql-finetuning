@@ -351,7 +351,7 @@
       "path": "gpu-finetuning-evidence.md",
       "required_in_post": false,
       "required_reference": true,
-      "sha256": "e7482f62eac99e848499b733ee2282287a01c5b6f2702b5bd8b815437b0a7c5f"
+      "sha256": "30c54ee8a5fa834291674e1bc56f31fd54854d4a01772779a8344189d604b22a"
     }
   ],
   "claim_snapshot": {
@@ -1448,7 +1448,7 @@
     },
     {
       "path": "docs/training_runs/gpu_finetuning_evidence.json",
-      "sha256": "9b1fffccfa54223e2e25cd9bf426af6be174276ec3e6a72ac18082ce2554221a"
+      "sha256": "1c2b9bd287e860d861750970519b53be5aa880bb64f9496bc90446fee41d8461"
     },
     {
       "path": "docs/planner_baseline_cosql_dev_100_summary.json",

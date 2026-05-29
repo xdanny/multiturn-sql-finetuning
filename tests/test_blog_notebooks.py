@@ -1004,8 +1004,9 @@ def test_export_blog_evidence_writes_publishable_assets(tmp_path) -> None:
     ).read_text()
     assert "multiturn-sql-100" in gpu_evidence_md
     assert "0.63" in gpu_evidence_md
-    assert "blocked_now" in gpu_evidence_md
-    assert "cuda_available False" in gpu_evidence_md
+    assert "completed_smoke" in gpu_evidence_md
+    assert "cuda_available True" in gpu_evidence_md
+    assert "RTX 5090" in gpu_evidence_md
 
     claim_table_md = (tmp_path / asset_paths["claim_table_md"]).read_text()
     assert "metric_dsl_beats_direct_sql" in claim_table_md
