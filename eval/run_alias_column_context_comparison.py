@@ -154,6 +154,7 @@ def _run_prepared_eval_with_generate_fn(
             {
                 **record,
                 "model_name": model_name,
+                "prompt_variant": prompt_variant,
                 "raw_generation": raw_generation,
                 "generated_sql": generated_sql,
                 "generation_latency_ms": generation_latency_ms,

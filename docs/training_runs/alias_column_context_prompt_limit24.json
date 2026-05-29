@@ -1,0 +1,80 @@
+{
+  "artifact_type": "alias_column_context_prompt_validation_evidence",
+  "claim_boundary": "Twenty-four-turn prompt-only CoSQL proxy validation slice. This is bounded validation evidence, not a benchmark or method-promotion claim.",
+  "date": "2026-05-29",
+  "input_artifacts": {
+    "alias_context_manifest_path": "docs/data_artifacts/alias_column_context_inputs.manifest.json",
+    "alias_context_manifest_sha256": "8d41ed9fda6d29e9cde450cb47a5fdd11e72a8143a8d893b589de136594fe600",
+    "alias_context_input_path": "data/processed/eval_cosql_dev_100_alias_column_context.jsonl",
+    "alias_context_input_sha256": "068f4a9895dfe8de434483391e8e8578afb8770b786c686d82d89a580e70c949",
+    "direct_input_path": "data/processed/eval_cosql_dev_100.jsonl",
+    "direct_input_sha256": "00886900e4faf539bc6a6428b8b699b77f169874a9bfb8a205b1beaa2785cf6e"
+  },
+  "interpretation": [
+    "Alias/column context did not improve the 24-turn validation slice: value and strict accuracy matched direct SQL exactly.",
+    "The generated SQL differed on 14 of 24 turns, but the pairwise classifier found zero fixed turns and zero regressions.",
+    "The error mix was identical across arms: 12 correct, 5 schema-link, 2 join-path, 2 grain/fanout, 1 aggregation, 1 value-grounding, and 1 projection primary error.",
+    "Column validity was high for the alias arm, so the remaining misses are not mainly invalid physical-column references. The next intervention should target query shape, planner state, or semantic grounding rather than training on alias/column context alone."
+  ],
+  "metrics": {
+    "alias_column_context_comparable_row_count": 24,
+    "alias_column_context_strict_delta_vs_direct_sql": 0.0,
+    "alias_column_context_value_delta_vs_direct_sql": 0.0,
+    "alias_resolution_success_rate": 1.0,
+    "both_correct": 12,
+    "both_wrong": 12,
+    "column_validity_accuracy": 0.9583333333333334,
+    "dialog_count": 8,
+    "different_generated_sql_count": 14,
+    "direct_sql_strict_execution_accuracy": 0.3333333333333333,
+    "direct_sql_value_execution_accuracy": 0.5,
+    "fixed_turns": 0,
+    "interaction_match_rate": 0.125,
+    "regressed_turns": 0,
+    "schema_valid_sql_rate": 0.9583333333333334,
+    "strict_execution_accuracy": 0.3333333333333333,
+    "syntax_accuracy": 1.0,
+    "value_execution_accuracy": 0.5
+  },
+  "model": "unsloth/Qwen3.5-9B",
+  "observed_outputs": [
+    {
+      "id": "prepared-0:0",
+      "direct_sql": "SELECT cm.FullName, COUNT(ml.ModelId) AS model_count FROM car_makers cm JOIN model_list ml ON cm.Id = ml.Maker GROUP BY cm.FullName;",
+      "alias_column_sql": "SELECT ml.Maker, COUNT(*) AS model_count FROM model_list ml JOIN car_makers cm ON ml.Maker = cm.Id GROUP BY ml.Maker;",
+      "direct_value_execution_score": 0.0,
+      "alias_value_execution_score": 0.0
+    }
+  ],
+  "result_artifacts": {
+    "alias_classified_path": "results/alias_column_context/alias_column_context_prompt_limit24.alias_column_context.classified.jsonl",
+    "alias_classified_sha256": "01d35e1a546f7a7c19798c97b1612d75712e770f4e1f325fc3deb8bf39ab0d13",
+    "alias_error_summary_path": "results/alias_column_context/alias_column_context_prompt_limit24.alias_column_context.error_summary.csv",
+    "alias_error_summary_sha256": "e124e14bd6fe4d1c82884e32ab363e86744f98093dd0f84232e2c99fcff9b98a",
+    "alias_manifest_path": "results/alias_column_context/alias_column_context_prompt_limit24.alias_column_context.manifest.json",
+    "alias_manifest_sha256": "f286ad22e8114b3ee5ad552594103d141169ab5a6f2cf0b2b49183528d8a9498",
+    "alias_rows_path": "results/alias_column_context/alias_column_context_prompt_limit24.alias_column_context.jsonl",
+    "alias_rows_sha256": "aa46144aacbbdd53b6c820369916ade6d9f2079d5279db626c7a26e590cbfb3b",
+    "column_validity_score_path": "results/alias_column_context/alias_column_context_prompt_limit24.column_validity.json",
+    "column_validity_score_sha256": "b61d94994d30fae8b4b00a398f7f1305f7886f5197bfdf130ab5fc2c034392fb",
+    "compared_manifest_path": "results/alias_column_context/alias_column_context_prompt_limit24.compared.manifest.json",
+    "compared_manifest_sha256": "e43a9e151297e7735a7c5612f30fdae31dd3f3217c8c0961ce244100937333dd",
+    "direct_classified_path": "results/alias_column_context/alias_column_context_prompt_limit24.direct.classified.jsonl",
+    "direct_classified_sha256": "2c054c0e65fe2c3bc2e28f23902d22d931e8eb0660ac4f85dcd559bc0cc457bf",
+    "direct_error_summary_path": "results/alias_column_context/alias_column_context_prompt_limit24.direct.error_summary.csv",
+    "direct_error_summary_sha256": "dbbc7c04b80f3cb004c8c859db56883a5730f6e1a0bb8955cc829d8c515de17d",
+    "direct_manifest_path": "results/alias_column_context/alias_column_context_prompt_limit24.direct.manifest.json",
+    "direct_manifest_sha256": "f91801d4217b3ee306e924e7356b78934e5b2405acf4af2e26734b2d459110a2",
+    "direct_rows_path": "results/alias_column_context/alias_column_context_prompt_limit24.direct.jsonl",
+    "direct_rows_sha256": "6cb5d6f9761eeb79d5f216d190137197824c92636f0fc685e8f7b0363a514991",
+    "failure_compare_summary_path": "results/alias_column_context/alias_column_context_prompt_limit24.failure_compare/model_error_summary.csv",
+    "failure_compare_summary_sha256": "9a13b6fc10a3b36168f2ba01c78bc6bf958d280246875b9d9c2e2a9196f64839",
+    "failure_pairwise_path": "results/alias_column_context/alias_column_context_prompt_limit24.failure_compare/pairwise_vs_baseline.csv",
+    "failure_pairwise_sha256": "e39c065082ad508246cb6f16d3f32477cf435f059c7951d5220798fbfb171b82",
+    "preflight_path": "results/alias_column_context/alias_column_context_prompt_limit24.preflight.json",
+    "preflight_sha256": "76128c66d4b7059f08f87af1852fd9b11882a764fc67eaceb9e4585eff988f1c"
+  },
+  "run_id": "alias_column_context_prompt_limit24",
+  "schema_version": 1,
+  "training": null
+}
