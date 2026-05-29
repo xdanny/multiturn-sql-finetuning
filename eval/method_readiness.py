@@ -16,6 +16,7 @@ LIST_FIELDS = {
     "training_rows",
     "control_rows",
     "prediction_input_rows",
+    "prediction_input_manifests",
     "evaluator_paths",
 }
 REQUIRED_TEXT_FIELDS = {
@@ -121,6 +122,20 @@ def _paths_ready(path_status: dict[str, bool], *, required: bool) -> bool:
     return bool(path_status) and all(path_status.values())
 
 
+def _prediction_inputs_ready(
+    *,
+    row_status: dict[str, bool],
+    manifest_status: dict[str, bool],
+    required: bool,
+) -> bool:
+    if not required:
+        return True
+    return _paths_ready(row_status, required=True) or _paths_ready(
+        manifest_status,
+        required=True,
+    )
+
+
 def required_readiness_failures(rows: list[dict[str, Any]]) -> list[str]:
     """Return missing required path checks from method-readiness rows."""
 
@@ -145,13 +160,19 @@ def required_readiness_failures(rows: list[dict[str, Any]]) -> list[str]:
             "prediction_input_rows_ready",
             True,
         ):
-            missing = [
+            missing_rows = [
                 path
                 for path, exists in row.get("prediction_input_rows", {}).items()
                 if not exists
             ]
+            missing_manifests = [
+                path
+                for path, exists in row.get("prediction_input_manifests", {}).items()
+                if not exists
+            ]
+            missing = missing_rows + missing_manifests
             failures.append(
-                f"{method}: missing prediction input rows: {', '.join(missing)}"
+                f"{method}: missing prediction input rows or manifests: {', '.join(missing)}"
             )
         if not row["evaluators_ready"]:
             missing = [
@@ -212,6 +233,10 @@ def build_method_readiness(
             repo_root,
             tuple(method["prediction_input_rows"]),
         )
+        prediction_input_manifest_status = _path_status(
+            repo_root,
+            tuple(method["prediction_input_manifests"]),
+        )
         prediction_input_required = bool(method.get("prediction_input_rows_required"))
         rows.append(
             {
@@ -230,14 +255,16 @@ def build_method_readiness(
                     required=bool(method["control_rows_required"]),
                 ),
                 "prediction_input_rows_required": prediction_input_required,
-                "prediction_input_rows_ready": _paths_ready(
-                    prediction_input_status,
+                "prediction_input_rows_ready": _prediction_inputs_ready(
+                    row_status=prediction_input_status,
+                    manifest_status=prediction_input_manifest_status,
                     required=prediction_input_required,
                 ),
                 "evaluators_ready": _paths_ready(evaluator_status, required=True),
                 "training_rows": training_row_status,
                 "control_rows": control_row_status,
                 "prediction_input_rows": prediction_input_status,
+                "prediction_input_manifests": prediction_input_manifest_status,
                 "evaluator_paths": evaluator_status,
                 "supported_claim_ids": supported_claim_ids,
                 "blocking_claim_ids": blocking_claim_ids,
