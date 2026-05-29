@@ -197,6 +197,17 @@ def load_finetuning_steps(
             )
         if not row["benchmark_protocol_ids"]:
             raise ValueError(f"{step_id}: missing benchmark_protocol_ids")
+        method_protocol_ids = set(method["benchmark_protocol_ids"])
+        unowned_protocol_ids = [
+            protocol_id
+            for protocol_id in row["benchmark_protocol_ids"]
+            if protocol_id not in method_protocol_ids
+        ]
+        if unowned_protocol_ids:
+            raise ValueError(
+                f"{step_id}: benchmark protocols are not declared by method "
+                f"{row['method']}: {', '.join(unowned_protocol_ids)}"
+            )
         unknown_protocol_ids = [
             protocol_id
             for protocol_id in row["benchmark_protocol_ids"]

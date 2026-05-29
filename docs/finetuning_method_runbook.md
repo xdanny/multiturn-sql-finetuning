@@ -68,6 +68,11 @@ steps in the same file. Use this to make control and promotion gates explicit:
 for example, hosted/BIRD transfer depends on the direct control and the method
 comparison steps it may promote.
 
+Step `benchmark_protocol_ids` must also be declared by the owning method in
+`configs/finetuning_methods.yaml`. Add a protocol to the method first if the
+step expands the benchmark scope; do not let one step silently broaden what a
+method is allowed to claim.
+
 Print the cheap preflight commands for one step before spending GPU or endpoint
 time:
 
