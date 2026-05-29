@@ -90,6 +90,24 @@ SQL is visible as prior assistant history, while the repair SQL remains a
 held-out assistant label for the final turn. Use this artifact to smoke the
 rollout path before spending endpoint time on the larger CoSQL proxy slice.
 
+### Value/Schema Repair Rollout Inputs
+
+- `value_schema_repair_rollout_inputs.jsonl`
+- `value_schema_repair_rollout_inputs_summary.json`
+- `value_schema_repair_rollout_inputs.manifest.json`
+
+These rows are the next diagnostic artifact after the failed behavior-recovery
+arm. They keep the same generated-history repair fixture, but add two
+inference-time artifacts that are allowed in production:
+
+- a database-derived value index mapping display values such as `France` to
+  stored values such as `FR`,
+- schema validation guardrails listing allowed table columns and the invalid
+  column pattern observed in the failed arm.
+
+The repair SQL remains scorer-side. Use this artifact to test whether explicit
+value/schema context changes the failure mode before training another adapter.
+
 ### Value Grounding Labels
 
 - `value_grounding_labels_cosql_dev_100.jsonl`

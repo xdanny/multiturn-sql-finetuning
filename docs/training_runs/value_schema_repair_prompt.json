@@ -1,0 +1,73 @@
+{
+  "artifact_type": "value_schema_repair_prompt_evidence",
+  "claim_boundary": "Single synthetic prompt-only recovery fixture. This is hypothesis evidence, not a benchmark or SOTA claim.",
+  "date": "2026-05-29",
+  "input_artifacts": {
+    "manifest_path": "docs/data_artifacts/value_schema_repair_rollout_inputs.manifest.json",
+    "manifest_sha256": "2fccebc96f23b0e5244bd9a6138b0fcb86e3ccf5e6904b50bc1b47471a31c420",
+    "rollout_input_path": "docs/data_artifacts/value_schema_repair_rollout_inputs.jsonl",
+    "rollout_input_sha256": "d750d8f7cef844794c0f3f2f781e8eb5823ddc4e770b9f3d1d18edddfd0e12e0",
+    "summary_path": "docs/data_artifacts/value_schema_repair_rollout_inputs_summary.json",
+    "summary_sha256": "be9a92c7af225fbe9193ce14326fecb31173e674a2d37f8f8130d6a0f7b26d49"
+  },
+  "interpretation": [
+    "The value/schema prompt did not solve the recovery fixture: value accuracy remained 0.0.",
+    "It changed the failure mode: the generated SQL was executable and avoided customers.customer_id, but selected US instead of FR.",
+    "The next iteration should supervise value-choice consistency, not only expose aliases and allowed columns."
+  ],
+  "metrics": {
+    "dialog_count": 1,
+    "evaluation_modes": {
+      "non_oracle_generation": 1
+    },
+    "execution_accuracy": 0.0,
+    "history_policies": {
+      "model_generated_sql_rollout": 1
+    },
+    "history_policy": "model_generated_sql_rollout",
+    "interaction_match_rate": 0.0,
+    "mean_generation_latency_ms": 2611.435437000182,
+    "mean_latency_ms": 2611.435437000182,
+    "rollout_dialog_count": 1,
+    "rollout_strict_delta_vs_teacher_forced": -1.0,
+    "rollout_value_delta_vs_teacher_forced": -1.0,
+    "sources": {
+      "synthetic_value_schema_repair": 1
+    },
+    "strict_execution_accuracy": 0.0,
+    "syntax_accuracy": 1.0,
+    "teacher_forced_comparable_row_count": 1,
+    "teacher_forced_comparison_run_id": "value_schema_repair_prompt.teacher_forced",
+    "teacher_forced_input_sha256": "d750d8f7cef844794c0f3f2f781e8eb5823ddc4e770b9f3d1d18edddfd0e12e0",
+    "teacher_forced_model_name": "qwen35_9b_value_schema_prompt",
+    "teacher_forced_strict_execution_accuracy": 1.0,
+    "teacher_forced_value_execution_accuracy": 1.0,
+    "value_execution_accuracy": 0.0
+  },
+  "model": "unsloth/Qwen3.5-9B",
+  "observed_output": [
+    {
+      "fixture_id": "recovery_empty_result",
+      "generated_sql": "SELECT customers.name, SUM(orders.amount) AS revenue FROM orders JOIN customers ON orders.customer_id = customers.id WHERE customers.country_code = 'US' GROUP BY customers.name ORDER BY revenue DESC LIMIT 1",
+      "score_error": null,
+      "strict_execution_score": 0.0,
+      "syntax_valid": true,
+      "value_execution_score": 0.0
+    }
+  ],
+  "result_artifacts": {
+    "comparison_manifest_path": "results/rollout/value_schema_repair_prompt.comparison.manifest.json",
+    "comparison_manifest_sha256": "69fa66ddba72ebd2b2d5b1b05b1334511678043a30968af67285c392e5fd4264",
+    "rollout_manifest_path": "results/rollout/value_schema_repair_prompt.rollout.manifest.json",
+    "rollout_manifest_sha256": "0aaf4794fba7d932614ca478e795639b1a2be4037d571ce8e463b816291d4ac5",
+    "rollout_rows_path": "results/rollout/value_schema_repair_prompt.rollout.jsonl",
+    "rollout_rows_sha256": "c80cba3a2c60c389ceddc0d80770a33ad297a0c6afbe5f85b409809b19a51436",
+    "teacher_forced_manifest_path": "results/rollout/value_schema_repair_prompt.teacher_forced.manifest.json",
+    "teacher_forced_manifest_sha256": "f0bc7fbbd3cd5cd3b42d127c953fa19850c7305446faa8908fea185a1c5fefeb",
+    "teacher_forced_rows_path": "results/rollout/value_schema_repair_prompt.teacher_forced.jsonl",
+    "teacher_forced_rows_sha256": "c069c88bc4285c6b0b02ee9c13ed2f8d340411c1b610fc2b1d70ae7bd2e71f44"
+  },
+  "run_id": "value_schema_repair_prompt",
+  "schema_version": 1,
+  "training": null
+}

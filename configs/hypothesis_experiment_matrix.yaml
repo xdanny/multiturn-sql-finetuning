@@ -129,10 +129,39 @@ hypotheses:
       - previous generated SQL and observed rows may be prompt-visible
       - repair labels are not prompt-visible
       - future turns are not prompt-visible
-    current_status: training_rows_only
+    current_status: failed_tiny_fixture_no_delta
     next_gpu_run: >-
-      Train recovery and direct-control adapters, then compare generated-history
-      rollout against teacher-forced and direct-control manifests.
+      Do not scale the same recovery row yet. The 5-step recovery and
+      direct-control adapters both repeated the France/FR value error and
+      emitted an invalid customers.customer_id column. Test value-index and
+      schema-validation repair context before another adapter run.
+
+  - hypothesis_id: value_schema_repair
+    method: Value-index and schema-validating repair
+    question: >-
+      Does explicit database-derived value mapping plus allowed-column
+      guardrails fix generated-history repair failures before fine-tuning?
+    train_artifacts: []
+    validation_artifacts:
+      - docs/data_artifacts/value_schema_repair_rollout_inputs.jsonl
+    locked_benchmark_artifacts:
+      - docs/data_artifacts/value_schema_repair_rollout_inputs.manifest.json
+    control_hypothesis_id: behavior_recovery
+    primary_metric: value_execution_accuracy
+    promotion_gate: >-
+      Prompt-only value/schema repair fixes the synthetic empty-result recovery
+      fixture without exposing the held-out repair SQL, then becomes the next
+      training target for a same-row recovery-vs-direct-control adapter run.
+    leakage_checks:
+      - value index comes from database contents
+      - allowed-column guardrails come from schema introspection
+      - repair reference SQL stays scorer-side
+      - future turns are not prompt-visible
+    current_status: artifact_planned_from_failed_recovery_arm
+    next_gpu_run: >-
+      First run prompt-only local generation on the value/schema repair rollout
+      input. Only train if the prompt-only result shows the artifact can change
+      the failure mode.
 
   - hypothesis_id: hosted_transfer
     method: Hosted and BIRD-Interact comparison
