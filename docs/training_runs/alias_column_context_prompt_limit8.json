@@ -1,0 +1,72 @@
+{
+  "artifact_type": "alias_column_context_prompt_validation_evidence",
+  "claim_boundary": "Eight-turn prompt-only CoSQL proxy validation slice. This is a path check and early validation signal, not a benchmark or method-promotion claim.",
+  "date": "2026-05-29",
+  "input_artifacts": {
+    "alias_context_manifest_path": "docs/data_artifacts/alias_column_context_inputs.manifest.json",
+    "alias_context_manifest_sha256": "8d41ed9fda6d29e9cde450cb47a5fdd11e72a8143a8d893b589de136594fe600",
+    "alias_context_input_path": "data/processed/eval_cosql_dev_100_alias_column_context.jsonl",
+    "alias_context_input_sha256": "068f4a9895dfe8de434483391e8e8578afb8770b786c686d82d89a580e70c949",
+    "direct_input_path": "data/processed/eval_cosql_dev_100.jsonl",
+    "direct_input_sha256": "00886900e4faf539bc6a6428b8b699b77f169874a9bfb8a205b1beaa2785cf6e"
+  },
+  "interpretation": [
+    "The full 100-row CoSQL proxy preflight passed: 327 turns, 100 dialogs, and 20 databases are row-matched against the direct input.",
+    "On the first eight expanded validation turns, alias/column context did not improve value or strict execution over direct SQL.",
+    "The alias/column outputs were schema-valid under the column-validity scorer, so the remaining misses are semantic/query-shape failures rather than invalid-column failures on this small slice.",
+    "The next validation step should run a larger row-matched prompt-only slice and classify failures before training."
+  ],
+  "metrics": {
+    "alias_column_context_comparable_row_count": 8,
+    "alias_column_context_strict_delta_vs_direct_sql": 0.0,
+    "alias_column_context_value_delta_vs_direct_sql": 0.0,
+    "alias_resolution_success_rate": 1.0,
+    "column_validity_accuracy": 1.0,
+    "dialog_count": 3,
+    "direct_sql_strict_execution_accuracy": 0.0,
+    "direct_sql_value_execution_accuracy": 0.125,
+    "full_preflight_database_count": 20,
+    "full_preflight_dialog_count": 100,
+    "full_preflight_turn_count": 327,
+    "schema_valid_sql_rate": 1.0,
+    "strict_execution_accuracy": 0.0,
+    "syntax_accuracy": 1.0,
+    "value_execution_accuracy": 0.125
+  },
+  "model": "unsloth/Qwen3.5-9B",
+  "observed_outputs": [
+    {
+      "id": "prepared-0:0",
+      "generated_sql": "SELECT ml.Maker, COUNT(*) AS model_count\nFROM model_list ml\nJOIN car_makers cm ON ml.Maker = cm.Id\nGROUP BY ml.Maker;",
+      "strict_execution_score": 0.0,
+      "value_execution_score": 0.0
+    },
+    {
+      "id": "prepared-0:1",
+      "generated_sql": "SELECT Model, COUNT(*) AS Popularity FROM car_names GROUP BY Model ORDER BY Popularity DESC LIMIT 1;",
+      "strict_execution_score": 0.0,
+      "value_execution_score": 0.0
+    }
+  ],
+  "result_artifacts": {
+    "alias_manifest_path": "results/alias_column_context/alias_column_context_prompt_limit8.alias_column_context.manifest.json",
+    "alias_manifest_sha256": "0bd7f7c044c604cb41abb3c45cac5dd7c7fc9719f1984242bd8516b759284431",
+    "alias_rows_path": "results/alias_column_context/alias_column_context_prompt_limit8.alias_column_context.jsonl",
+    "alias_rows_sha256": "9ce802abee58175bb6597ecfc6cab94b7b9adab45e92d4b85d0e14058c0ed9ef",
+    "column_validity_score_path": "results/alias_column_context/alias_column_context_prompt_limit8.column_validity.json",
+    "column_validity_score_sha256": "b1443b0ddc99e395f852eaf35e5394a3835f36b738a7dbe49dac661318b5fceb",
+    "compared_manifest_path": "results/alias_column_context/alias_column_context_prompt_limit8.compared.manifest.json",
+    "compared_manifest_sha256": "2fe52f8cf2c7c381da4e5f08a11ca95416f7fd6b755cda560976448f6091cd1b",
+    "direct_manifest_path": "results/alias_column_context/alias_column_context_prompt_limit8.direct.manifest.json",
+    "direct_manifest_sha256": "d21180cd2a8fe9259affe4227fcacafa4553390a40561040feba364a6ea3f0e1",
+    "direct_rows_path": "results/alias_column_context/alias_column_context_prompt_limit8.direct.jsonl",
+    "direct_rows_sha256": "baf987eb1fa4532292a53e34543b35b584c361fab6fb3434d81bb32a20ab5163",
+    "full_preflight_path": "results/alias_column_context/alias_column_context_preflight.json",
+    "full_preflight_sha256": "edc2a63ffb6c7379c8c8e471228ea30e459f52a015da64db344226240c248de8",
+    "limit8_preflight_path": "results/alias_column_context/alias_column_context_prompt_limit8.preflight.json",
+    "limit8_preflight_sha256": "a0abfb805a9e42f2d643e96d7064e6f299d55486c9fda30832a3a9b1aef29706"
+  },
+  "run_id": "alias_column_context_prompt_limit8",
+  "schema_version": 1,
+  "training": null
+}

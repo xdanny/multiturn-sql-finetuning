@@ -16,6 +16,7 @@ DEFAULT_EVIDENCE_PATHS = (
     Path("docs/training_runs/value_schema_repair_prompt.json"),
     Path("docs/training_runs/value_choice_consistency_prompt.json"),
     Path("docs/training_runs/alias_column_validity_prompt.json"),
+    Path("docs/training_runs/alias_column_context_prompt_limit8.json"),
 )
 
 RUN_SUMMARIES = {
@@ -76,6 +77,16 @@ RUN_SUMMARIES = {
         ),
         "next_action": "Run a row-matched prompt-only CoSQL validation comparison.",
     },
+    "alias_column_context_prompt_limit8": {
+        "hypothesis_id": "value_schema_repair",
+        "arm_type": "prompt_only_validation_slice",
+        "control": "direct_sql_prompt",
+        "decision": "no_delta_on_limit8_validation_slice",
+        "primary_failure_mode": (
+            "Column-valid SQL still missed value execution; remaining failures are query-shape/semantic, not invalid-column."
+        ),
+        "next_action": "Run a larger row-matched slice and classify remaining failures before training.",
+    },
 }
 
 METRIC_KEYS = (
@@ -94,6 +105,8 @@ METRIC_KEYS = (
     "column_validity_accuracy",
     "schema_valid_sql_rate",
     "alias_resolution_success_rate",
+    "alias_column_context_value_delta_vs_direct_sql",
+    "direct_sql_value_execution_accuracy",
 )
 
 
@@ -108,6 +121,7 @@ def _selected_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
 def _observed_outputs(payload: dict[str, Any]) -> list[dict[str, Any]]:
     for key in (
         "observed_output",
+        "observed_outputs",
         "observed_recovery_output",
         "observed_failures",
         "direct_sql_control_outputs",
@@ -159,14 +173,14 @@ def build_hypothesis_rollup(
         "overall_decision": {
             "status": "no_method_promoted",
             "reason": (
-                "Only the final alias/column diagnostic passes, and it does so "
-                "on one synthetic row. No method has passed broader validation "
-                "or a locked proxy gate."
+                "The alias/column context passed one synthetic diagnostic but "
+                "showed no value delta on the first eight CoSQL validation turns. "
+                "No method has passed broader validation or a locked proxy gate."
             ),
             "next_repo_step": (
-                "Run a row-matched prompt-only validation comparison for the "
-                "alias/column context artifact before another GPU fine-tuning "
-                "run or blog claim."
+                "Run a larger row-matched alias/column validation slice and "
+                "classify remaining failures before another GPU fine-tuning run "
+                "or blog claim."
             ),
         },
     }

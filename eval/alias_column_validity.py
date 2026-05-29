@@ -23,28 +23,52 @@ def _allowed_columns_from_prompt(messages: list[dict[str, str]]) -> dict[str, se
     prompt = "\n".join(message.get("content", "") for message in messages)
     match = re.search(r'"allowed_columns"\s*:\s*(?P<object>\{.*?\})\s*,\s*"artifact_type"', prompt, re.DOTALL)
     if not match:
-        return {}
+        return _allowed_columns_from_bullets(prompt)
     try:
         payload = json.loads(match.group("object"))
     except json.JSONDecodeError:
-        return {}
+        return _allowed_columns_from_bullets(prompt)
     return {
         str(table).lower(): {str(column).lower() for column in columns}
         for table, columns in payload.items()
+    }
+
+
+def _allowed_columns_from_bullets(prompt: str) -> dict[str, set[str]]:
+    allowed: dict[str, set[str]] = {}
+    in_allowed = False
+    for raw_line in prompt.splitlines():
+        line = raw_line.strip()
+        if line == "Allowed columns:":
+            in_allowed = True
+            continue
+        if in_allowed and line in {"Join keys:", ""}:
+            break
+        if not in_allowed or not line.startswith("- ") or ":" not in line:
+            continue
+        table, columns = line[2:].split(":", 1)
+        allowed[table.strip().lower()] = {
+            column.strip().lower()
+            for column in columns.split(",")
+            if column.strip()
         }
+    return allowed
 
 
-def _parse_column_refs(sql: str) -> tuple[list[dict[str, str]], list[dict[str, str]], str | None]:
+def _parse_column_refs(
+    sql: str,
+) -> tuple[list[dict[str, str | bool]], list[dict[str, str | bool]], str | None, set[str]]:
     try:
         expression = sqlglot.parse_one(sql, dialect="sqlite")
     except sqlglot.errors.SqlglotError as exc:
-        return [], [], str(exc)
+        return [], [], str(exc), set()
 
     alias_to_table = {
         table.alias_or_name.lower(): table.name.lower()
         for table in expression.find_all(exp.Table)
         if table.alias_or_name and table.name
     }
+    table_scope = set(alias_to_table.values())
     output_aliases = {
         alias.alias.lower()
         for alias in expression.find_all(exp.Alias)
@@ -66,7 +90,33 @@ def _parse_column_refs(sql: str) -> tuple[list[dict[str, str]], list[dict[str, s
         refs.append(ref)
         if qualifier and qualifier.lower() not in alias_to_table:
             unresolved_aliases.append(ref)
-    return refs, unresolved_aliases, None
+    return refs, unresolved_aliases, None, table_scope
+
+
+def _invalid_refs(
+    refs: list[dict[str, str | bool]],
+    *,
+    allowed: dict[str, set[str]],
+    table_scope: set[str],
+) -> list[dict[str, str | bool]]:
+    invalid = []
+    for ref in refs:
+        column = str(ref["column"]).lower()
+        table = str(ref["table"]).lower()
+        if ref["select_alias_ref"] is True:
+            continue
+        if table:
+            if table not in allowed or column not in allowed[table]:
+                invalid.append(ref)
+            continue
+        candidate_tables = [
+            scoped_table
+            for scoped_table in table_scope
+            if scoped_table in allowed and column in allowed[scoped_table]
+        ]
+        if len(candidate_tables) != 1:
+            invalid.append(ref)
+    return invalid
 
 
 def score_alias_column_validity(
@@ -74,7 +124,10 @@ def score_alias_column_validity(
     input_path: Path,
     rollout_output_path: Path,
 ) -> dict[str, Any]:
-    inputs_by_dialog = {str(row["dialog_id"]): row for row in _load_jsonl(input_path)}
+    inputs_by_dialog = {
+        str(row.get("dialog_id") or row.get("id") or f"prepared-{index}"): row
+        for index, row in enumerate(_load_jsonl(input_path))
+    }
     output_rows = _load_jsonl(rollout_output_path)
     scored_rows = []
     for output in output_rows:
@@ -83,18 +136,10 @@ def score_alias_column_validity(
         if not input_row:
             continue
         allowed = _allowed_columns_from_prompt(input_row.get("messages", []))
-        refs, unresolved_aliases, parse_error = _parse_column_refs(
+        refs, unresolved_aliases, parse_error, table_scope = _parse_column_refs(
             str(output.get("generated_sql") or "")
         )
-        invalid_refs = [
-            ref
-            for ref in refs
-            if ref["select_alias_ref"]
-            is False
-            and (not ref["table"]
-            or ref["table"].lower() not in allowed
-            or ref["column"].lower() not in allowed[ref["table"].lower()])
-        ]
+        invalid_refs = _invalid_refs(refs, allowed=allowed, table_scope=table_scope)
         expected = input_row.get("expected_column_validity", {})
         invalid_patterns = [str(pattern) for pattern in expected.get("invalid_patterns_to_avoid", [])]
         generated_sql = str(output.get("generated_sql") or "")

@@ -32,6 +32,28 @@ def _input_row() -> dict:
     }
 
 
+def _bullet_input_row() -> dict:
+    return {
+        "dialog_id": "d1",
+        "expected_column_validity": {
+            "invalid_patterns_to_avoid": ["customers.customer_id"],
+        },
+        "messages": [
+            {
+                "role": "user",
+                "content": (
+                    "Column-role constraints (non-oracle; schema introspection only):\n"
+                    "Allowed columns:\n"
+                    "- customers: id, name, country_code\n"
+                    "- orders: id, customer_id, amount\n"
+                    "Join keys:\n"
+                    "- orders.customer_id = customers.id"
+                ),
+            }
+        ],
+    }
+
+
 def test_score_alias_column_validity_detects_invalid_customer_column(tmp_path) -> None:
     input_path = tmp_path / "input.jsonl"
     rollout_path = tmp_path / "rollout.jsonl"
@@ -166,3 +188,81 @@ def test_score_alias_column_validity_allows_order_by_select_alias(tmp_path) -> N
         "column": "revenue",
         "select_alias_ref": True,
     }
+
+
+def test_score_alias_column_validity_reads_bullet_allowed_columns(tmp_path) -> None:
+    input_path = tmp_path / "input.jsonl"
+    rollout_path = tmp_path / "rollout.jsonl"
+    _write_jsonl(input_path, [_bullet_input_row()])
+    _write_jsonl(
+        rollout_path,
+        [
+            {
+                "id": "d1:1",
+                "dialog_id": "d1",
+                "generated_sql": (
+                    "SELECT c.name FROM orders o "
+                    "JOIN customers c ON o.customer_id = c.id "
+                    "GROUP BY c.name"
+                ),
+            }
+        ],
+    )
+
+    payload = score_alias_column_validity(
+        input_path=input_path,
+        rollout_output_path=rollout_path,
+    )
+
+    assert payload["column_validity_accuracy"] == 1.0
+
+
+def test_score_alias_column_validity_accepts_unambiguous_unqualified_column(tmp_path) -> None:
+    input_path = tmp_path / "input.jsonl"
+    rollout_path = tmp_path / "rollout.jsonl"
+    _write_jsonl(input_path, [_bullet_input_row()])
+    _write_jsonl(
+        rollout_path,
+        [
+            {
+                "id": "d1:1",
+                "dialog_id": "d1",
+                "generated_sql": "SELECT name FROM customers GROUP BY name",
+            }
+        ],
+    )
+
+    payload = score_alias_column_validity(
+        input_path=input_path,
+        rollout_output_path=rollout_path,
+    )
+
+    assert payload["column_validity_accuracy"] == 1.0
+
+
+def test_score_alias_column_validity_rejects_ambiguous_unqualified_column(tmp_path) -> None:
+    input_path = tmp_path / "input.jsonl"
+    rollout_path = tmp_path / "rollout.jsonl"
+    row = _bullet_input_row()
+    row["messages"][0]["content"] += "\n- archived_orders: id, customer_id, amount"
+    _write_jsonl(input_path, [row])
+    _write_jsonl(
+        rollout_path,
+        [
+            {
+                "id": "d1:1",
+                "dialog_id": "d1",
+                "generated_sql": (
+                    "SELECT customer_id FROM orders "
+                    "JOIN archived_orders ON orders.id = archived_orders.id"
+                ),
+            }
+        ],
+    )
+
+    payload = score_alias_column_validity(
+        input_path=input_path,
+        rollout_output_path=rollout_path,
+    )
+
+    assert payload["column_validity_accuracy"] == 0.0

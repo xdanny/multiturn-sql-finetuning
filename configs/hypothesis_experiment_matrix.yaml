@@ -163,14 +163,14 @@ hypotheses:
       - allowed-column guardrails come from schema introspection
       - repair reference SQL stays scorer-side
       - future turns are not prompt-visible
-    current_status: validation_context_artifact_ready
+    current_status: prompt_validation_limit8_no_delta
     next_gpu_run: >-
       Do not train this arm yet. Prompt-only alias/column context solved the
       single synthetic recovery fixture after value-choice and invalid-column
-      failures were isolated. The same non-oracle column-role context now exists
-      for the 100-row CoSQL proxy slice. Run a row-matched prompt-only
-      validation comparison against direct SQL before another adapter run or
-      blog claim.
+      failures were isolated, but the first eight CoSQL validation turns matched
+      direct SQL with no value or strict delta. Run a larger row-matched
+      validation slice and classify remaining failures before another adapter
+      run or blog claim.
 
   - hypothesis_id: hosted_transfer
     method: Hosted and BIRD-Interact comparison

@@ -10,7 +10,7 @@ def test_build_hypothesis_rollup_keeps_claim_boundary_conservative() -> None:
 
     assert payload["artifact_type"] == "hypothesis_arm_rollup"
     assert payload["overall_decision"]["status"] == "no_method_promoted"
-    assert len(payload["arms"]) == 6
+    assert len(payload["arms"]) == 7
     assert {arm["run_id"] for arm in payload["arms"]} == {
         "metric_dsl_prompt_baseline",
         "metric_dsl_arm_5steps",
@@ -18,6 +18,7 @@ def test_build_hypothesis_rollup_keeps_claim_boundary_conservative() -> None:
         "value_schema_repair_prompt",
         "value_choice_consistency_prompt",
         "alias_column_validity_prompt",
+        "alias_column_context_prompt_limit8",
     }
     assert all(arm["evidence_sha256"] for arm in payload["arms"])
     assert all("selected_metrics" in arm for arm in payload["arms"])
