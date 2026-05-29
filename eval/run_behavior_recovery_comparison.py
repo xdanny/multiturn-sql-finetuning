@@ -11,6 +11,7 @@ from openai import OpenAI
 
 from eval.behavior_recovery_teacher_forced import run_behavior_recovery_teacher_forced
 from eval.compare_rollout_history import compare_rollout_manifest_files
+from eval.local_generation import local_adapter_generate_fn
 from eval.result_manifest import build_result_manifest, write_result_manifest
 from eval.rollout_eval import (
     evaluate_rollout_records,
@@ -141,27 +142,42 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--model-name", required=True)
+    parser.add_argument("--result-model-name", default=None)
     parser.add_argument("--endpoint", default="http://localhost:8000/v1")
     parser.add_argument("--api-key", default="EMPTY")
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--max-tokens", type=int, default=512)
     parser.add_argument("--database-root", type=Path, default=None)
+    parser.add_argument("--backend", choices=["endpoint", "local"], default="endpoint")
+    parser.add_argument("--adapter-path", type=Path, default=None)
+    parser.add_argument("--max-memory-gb", type=int, default=30)
     args = parser.parse_args()
-
-    compared = run_behavior_recovery_comparison(
-        input_path=args.input,
-        output_dir=args.output_dir,
-        run_id=args.run_id,
-        model_name=args.model_name,
-        database_root=args.database_root,
-        endpoint=args.endpoint,
-        generate_fn=_endpoint_generate_fn(
+    if args.backend == "local":
+        generate_fn = local_adapter_generate_fn(
+            model_name=args.model_name,
+            adapter_path=args.adapter_path,
+            max_tokens=args.max_tokens,
+            max_memory_gb=args.max_memory_gb,
+        )
+        endpoint = "local"
+    else:
+        generate_fn = _endpoint_generate_fn(
             endpoint=args.endpoint,
             api_key=args.api_key,
             model_name=args.model_name,
             temperature=args.temperature,
             max_tokens=args.max_tokens,
-        ),
+        )
+        endpoint = args.endpoint
+
+    compared = run_behavior_recovery_comparison(
+        input_path=args.input,
+        output_dir=args.output_dir,
+        run_id=args.run_id,
+        model_name=args.result_model_name or args.model_name,
+        database_root=args.database_root,
+        endpoint=endpoint,
+        generate_fn=generate_fn,
         command=sys.argv,
     )
     metrics = compared["metrics"]

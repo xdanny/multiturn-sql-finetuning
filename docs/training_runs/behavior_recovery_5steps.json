@@ -1,0 +1,103 @@
+{
+  "artifact_type": "behavior_recovery_arm_evidence",
+  "claim_boundary": "Single synthetic generated-history recovery fixture. This is hypothesis evidence, not a benchmark or SOTA claim.",
+  "database_fixture": {
+    "path": "results/rollout/.fixtures/synthetic_revenue_schema_v1/synthetic_revenue_schema_v1.sqlite",
+    "sha256": "2d22039a0f7f6f23b6fa0d73a966936a424911570805236aba7aa8b7cc5f2a67"
+  },
+  "date": "2026-05-29",
+  "interpretation": [
+    "The recovery adapter did not beat the direct-SQL control on the generated-history recovery fixture.",
+    "Both adapters repeated the display value France instead of the storage value FR and introduced a nonexistent customers.customer_id column.",
+    "The next useful iteration is not a blog rewrite; it is a value-index or schema-validating repair artifact that explicitly supervises storage-value normalization and column existence after empty results."
+  ],
+  "metrics": {
+    "behavior_recovery_strict_delta_vs_direct_sql": 0.0,
+    "behavior_recovery_value_delta_vs_direct_sql": 0.0,
+    "dialog_count": 1,
+    "direct_sql_comparable_row_count": 1,
+    "direct_sql_comparison_run_id": "behavior_recovery_direct_sql_5steps.rollout",
+    "direct_sql_input_sha256": "43629d5c9fae887421aa1d9a5f7b7bb9fa93bd09fdb785d7c333c634d63a1690",
+    "direct_sql_model_name": "behavior_recovery_direct_sql_5steps",
+    "direct_sql_output_sha256": "106a924ec1d2b6e1824422f714ab4a525c21df9e2889e75ff842423a21725465",
+    "direct_sql_strict_execution_accuracy": 0.0,
+    "direct_sql_value_execution_accuracy": 0.0,
+    "evaluation_modes": {
+      "non_oracle_generation": 1
+    },
+    "execution_accuracy": 0.0,
+    "history_policies": {
+      "model_generated_sql_rollout": 1
+    },
+    "history_policy": "model_generated_sql_rollout",
+    "interaction_match_rate": 0.0,
+    "mean_generation_latency_ms": 3685.1746499996807,
+    "mean_latency_ms": 3685.1746499996807,
+    "rollout_dialog_count": 1,
+    "rollout_value_accuracy_delta_vs_direct_sql": 0.0,
+    "sources": {
+      "synthetic_behavior_recovery": 1
+    },
+    "strict_execution_accuracy": 0.0,
+    "syntax_accuracy": 1.0,
+    "value_execution_accuracy": 0.0
+  },
+  "model": "unsloth/Qwen3.5-9B",
+  "observed_direct_control_output": [
+    {
+      "fixture_id": "recovery_empty_result",
+      "generated_sql": "SELECT customers.name, SUM(orders.amount) AS revenue FROM orders JOIN customers ON orders.customer_id = customers.id WHERE customers.country_code = 'France' GROUP BY customers.customer_id, customers.name ORDER BY revenue DESC LIMIT 1;",
+      "score_error": "Execution failed on sql 'SELECT customers.name, SUM(orders.amount) AS revenue FROM orders JOIN customers ON orders.customer_id = customers.id WHERE customers.country_code = 'France' GROUP BY customers.customer_id, customers.name ORDER BY revenue DESC LIMIT 1;': no such column: customers.customer_id",
+      "strict_execution_score": 0.0,
+      "value_execution_score": 0.0
+    }
+  ],
+  "observed_recovery_output": [
+    {
+      "fixture_id": "recovery_empty_result",
+      "generated_sql": "SELECT customers.name, SUM(orders.amount) AS revenue FROM orders JOIN customers ON orders.customer_id = customers.id WHERE customers.country_code = 'France' GROUP BY customers.customer_id, customers.name ORDER BY revenue DESC LIMIT 1;",
+      "score_error": "Execution failed on sql 'SELECT customers.name, SUM(orders.amount) AS revenue FROM orders JOIN customers ON orders.customer_id = customers.id WHERE customers.country_code = 'France' GROUP BY customers.customer_id, customers.name ORDER BY revenue DESC LIMIT 1;': no such column: customers.customer_id",
+      "strict_execution_score": 0.0,
+      "value_execution_score": 0.0
+    }
+  ],
+  "result_artifacts": {
+    "direct_rollout_manifest_path": "results/rollout/behavior_recovery_direct_sql_5steps.rollout.manifest.json",
+    "direct_rollout_manifest_sha256": "c8ce7814769e16e02926aef8a6549579c1fa1f8cff53bb0736cdcca95501a3c1",
+    "direct_rollout_rows_path": "results/rollout/behavior_recovery_direct_sql_5steps.rollout.jsonl",
+    "direct_rollout_rows_sha256": "106a924ec1d2b6e1824422f714ab4a525c21df9e2889e75ff842423a21725465",
+    "direct_sql_comparison_manifest_path": "results/rollout/behavior_recovery_5steps.direct_sql_comparison.manifest.json",
+    "direct_sql_comparison_manifest_sha256": "04b7a0fbba3241985ae6c160e0e3b98f80b9f35dc6aa18d81e716fbb245869ee",
+    "direct_teacher_forced_manifest_path": "results/rollout/behavior_recovery_direct_sql_5steps.teacher_forced.manifest.json",
+    "direct_teacher_forced_manifest_sha256": "755469cfafc0cf027ac25a006c0c9c738ed5e8b1d71abc9fd84dcd7df9af194f",
+    "recovery_rollout_manifest_path": "results/rollout/behavior_recovery_5steps.rollout.manifest.json",
+    "recovery_rollout_manifest_sha256": "6965d7051aed7cc266e8e69ebd7f9e450efe848c5c03aa7497451f6d42985653",
+    "recovery_rollout_rows_path": "results/rollout/behavior_recovery_5steps.rollout.jsonl",
+    "recovery_rollout_rows_sha256": "f8e8e4169423390c8b8e8e44eb69884be0038989ce331a186eab433cea483e7b",
+    "recovery_teacher_forced_manifest_path": "results/rollout/behavior_recovery_5steps.teacher_forced.manifest.json",
+    "recovery_teacher_forced_manifest_sha256": "fc674af92f69298f39b91eb70f12732f3132065ace3e02b5eb6b8a603bc37e78"
+  },
+  "rollout_input": "docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl",
+  "run_id": "behavior_recovery_5steps",
+  "schema_version": 1,
+  "training": {
+    "config": "configs/qwen35_9b_5090.yaml",
+    "direct_sql_control_arm": {
+      "eval_loss": 1.7398611307144165,
+      "global_step": 5,
+      "max_steps": 5,
+      "output_dir": "outputs/experiments/behavior_recovery_direct_sql_5steps",
+      "trainer_state_sha256": "b76452efeba31bc311c2a620310c8438d4389181abc632bbf139cf988c1a1232",
+      "training_rows": "docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl"
+    },
+    "gpu_observed": "NVIDIA GeForce RTX 5090, 1 GPU, 31.842 GB reported by Unsloth",
+    "recovery_arm": {
+      "eval_loss": 2.0258352756500244,
+      "global_step": 5,
+      "max_steps": 5,
+      "output_dir": "outputs/experiments/behavior_recovery_5steps",
+      "trainer_state_sha256": "abbbbe5dca3e15aedf9e1acaaa14a71062c51c3740641b9cba5401fb21c23c63",
+      "training_rows": "docs/data_artifacts/behavior_recovery_training_rows.jsonl"
+    }
+  }
+}
