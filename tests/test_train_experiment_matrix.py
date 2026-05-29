@@ -39,7 +39,7 @@ def test_experiment_matrix_summary_exposes_holdout_boundary() -> None:
     assert by_id["metric_dsl"]["ready_for_validation"] is True
     assert (
         by_id["value_schema_repair"]["current_status"]
-        == "prompt_passed_single_synthetic_diagnostic"
+        == "validation_context_artifact_ready"
     )
     assert by_id["hosted_transfer"]["ready_for_locked_benchmark"] is False
     assert by_id["hosted_transfer"]["current_status"] == "not_started"

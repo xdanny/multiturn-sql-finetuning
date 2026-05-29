@@ -210,12 +210,12 @@
           "value_execution_score": 1.0
         }
       ],
-      "next_action": "Scale the artifact to validation rows before any adapter or blog claim."
+      "next_action": "Run a row-matched prompt-only CoSQL validation comparison."
     }
   ],
   "overall_decision": {
     "status": "no_method_promoted",
     "reason": "Only the final alias/column diagnostic passes, and it does so on one synthetic row. No method has passed broader validation or a locked proxy gate.",
-    "next_repo_step": "Scale alias/column-validity context to validation rows before another GPU fine-tuning run or blog claim."
+    "next_repo_step": "Run a row-matched prompt-only validation comparison for the alias/column context artifact before another GPU fine-tuning run or blog claim."
   }
 }
