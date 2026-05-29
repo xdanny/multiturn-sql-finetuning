@@ -36,6 +36,10 @@ def test_finetuning_steps_load_in_execution_order() -> None:
         "docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl": True,
     }
     assert "metric_dsl_beats_direct_sql" in metric["clears_claim_ids"]
+    assert metric["measurement"]["primary_metric"] == (
+        "compiled_value_accuracy_delta_vs_direct_sql"
+    )
+    assert "measure_preservation" in metric["measurement"]["supporting_metrics"]
     assert all(command.startswith("uv run --active --no-sync") for command in metric["commands"])
     assert all(
         command.startswith("uv run --active --no-sync")
@@ -66,6 +70,21 @@ def test_finetuning_step_summary_exposes_readiness() -> None:
         "local_beats_hosted_same_protocol",
         "bird_interact_local_vs_hosted",
     ]
+    assert steps["metric_dsl_vs_direct_sql"]["measurement"] == {
+        "primary_metric": "compiled_value_accuracy_delta_vs_direct_sql",
+        "supporting_metrics": [
+            "dsl_parse_rate",
+            "dsl_compile_rate",
+            "measure_preservation",
+            "measure_f1",
+            "dimension_f1",
+            "filter_f1",
+        ],
+        "comparison_artifact": "results/metric_dsl/<run-id>.comparison.manifest.json",
+        "promoted_when": (
+            "compiled metric DSL beats direct SQL while preserving MEASURE(...) intent"
+        ),
+    }
 
 
 def test_select_step_commands_returns_preflight_and_run_groups() -> None:
@@ -144,6 +163,10 @@ def test_build_step_command_record_includes_handoff_metadata() -> None:
         "data/processed/eval_cosql_dev_100.jsonl": True,
         "docs/data_artifacts/semantic_value_retrieval_inputs.manifest.json": True,
     }
+    assert record["measurement"]["primary_metric"] == "value_accuracy_delta_vs_direct_sql"
+    assert record["measurement"]["comparison_artifact"] == (
+        "results/semantic_value_retrieval/<run-id>.comparison.manifest.json"
+    )
     assert record["clears_claim_ids"] == ["semantic_value_retrieval_improves_sql"]
     assert "value index is database-derived" in record["leakage_boundary"]
 
@@ -313,3 +336,44 @@ steps:
         assert "no_preflight_step: missing preflight_commands" in str(exc)
     else:
         raise AssertionError("missing preflight commands should fail")
+
+
+def test_finetuning_step_loader_requires_measurement_contract(tmp_path) -> None:
+    config = tmp_path / "steps.yaml"
+    config.write_text(
+        """
+schema_version: 1
+steps:
+  - step_id: no_measurement_step
+    method: Direct SQL SFT
+    stage: train
+    purpose: test
+    benchmark_protocol_ids:
+      - cosql_dev_100_teacher_forced_proxy
+    train_rows: []
+    eval_rows: []
+    control_rows: []
+    commands:
+      - uv run --active --no-sync python -m train.finetune
+    preflight_commands:
+      - uv run --active --no-sync python -m train.finetune --validate-data-only
+    evidence_gate: manifest
+    clears_claim_ids: []
+    blocks_claim_ids: []
+    leakage_boundary: no leakage
+""",
+        encoding="utf-8",
+    )
+
+    try:
+        load_finetuning_steps(
+            config,
+            method_config_path=REPO_ROOT / "configs" / "finetuning_methods.yaml",
+            protocol_config_path=REPO_ROOT / "configs" / "benchmark_protocols.yaml",
+            claim_ledger_path=REPO_ROOT / "docs" / "claim_ledgers" / "cosql_dev_100.jsonl",
+            repo_root=REPO_ROOT,
+        )
+    except ValueError as exc:
+        assert "no_measurement_step: missing measurement" in str(exc)
+    else:
+        raise AssertionError("missing measurement should fail")
