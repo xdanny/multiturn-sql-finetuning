@@ -1,0 +1,16 @@
+{
+  "artifact_type": "value_schema_repair_rollout_inputs",
+  "command": [
+    "/home/dan/docs/multiturn-sql-finetuning/data/value_schema_repair_rollout_inputs.py"
+  ],
+  "evaluation_gate": "eval.run_behavior_recovery_comparison",
+  "oracle_policy": "seeded_failure_visible_non_oracle_value_schema_context",
+  "output_path": "docs/data_artifacts/value_schema_repair_rollout_inputs.jsonl",
+  "output_sha256": "d750d8f7cef844794c0f3f2f781e8eb5823ddc4e770b9f3d1d18edddfd0e12e0",
+  "rollout_input_count": 1,
+  "schema_validation_guardrails_visible_to_model": true,
+  "schema_version": 1,
+  "summary_path": "docs/data_artifacts/value_schema_repair_rollout_inputs_summary.json",
+  "summary_sha256": "be9a92c7af225fbe9193ce14326fecb31173e674a2d37f8f8130d6a0f7b26d49",
+  "value_index_source": "database_contents"
+}
