@@ -6,6 +6,7 @@ steps:
     purpose: verify the direct-SQL control target before comparing method arms
     benchmark_protocol_ids:
       - cosql_dev_100_teacher_forced_proxy
+    requires_step_ids: []
     train_rows:
       - data/processed/train_smoke.jsonl
     eval_rows:
@@ -51,6 +52,8 @@ steps:
     purpose: compare predicted-planner SQL against the same-model direct-SQL control
     benchmark_protocol_ids:
       - cosql_dev_100_teacher_forced_proxy
+    requires_step_ids:
+      - direct_sql_control_smoke
     train_rows: []
     eval_rows:
       - data/processed/eval_cosql_dev_100.jsonl
@@ -103,6 +106,8 @@ steps:
     purpose: test whether database-derived value retrieval improves SQL outcomes
     benchmark_protocol_ids:
       - cosql_dev_100_teacher_forced_proxy
+    requires_step_ids:
+      - direct_sql_control_smoke
     train_rows:
       - data/processed/train_semantic_smoke.jsonl
     eval_rows:
@@ -162,6 +167,8 @@ steps:
     purpose: compare compiled metric-DSL predictions against direct SQL on metric-heavy fixtures
     benchmark_protocol_ids:
       - synthetic_schema_rich_method_fixture
+    requires_step_ids:
+      - direct_sql_control_smoke
     train_rows:
       - docs/data_artifacts/metric_dsl_training_rows.jsonl
       - docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl
@@ -237,6 +244,9 @@ steps:
     benchmark_protocol_ids:
       - synthetic_schema_rich_method_fixture
       - cosql_generated_history_rollout
+    requires_step_ids:
+      - direct_sql_control_smoke
+      - metric_dsl_vs_direct_sql
     train_rows:
       - docs/data_artifacts/behavior_recovery_training_rows.jsonl
       - docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl
@@ -310,6 +320,12 @@ steps:
     purpose: compare the best local candidate against hosted systems under the same protocol
     benchmark_protocol_ids:
       - bird_interact_same_protocol_transfer
+    requires_step_ids:
+      - direct_sql_control_smoke
+      - planner_first_sql_pair
+      - semantic_value_retrieval_pair
+      - metric_dsl_vs_direct_sql
+      - behavior_recovery_rollout_pair
     train_rows: []
     eval_rows: []
     control_rows: []

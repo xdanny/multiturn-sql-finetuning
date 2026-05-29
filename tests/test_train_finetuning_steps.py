@@ -41,6 +41,14 @@ def test_finetuning_steps_load_in_execution_order() -> None:
     assert [STAGE_ORDER[step["stage"]] for step in steps] == sorted(
         STAGE_ORDER[step["stage"]] for step in steps
     )
+    assert steps[0]["requires_step_ids"] == ()
+    assert steps[-1]["requires_step_ids"] == (
+        "direct_sql_control_smoke",
+        "planner_first_sql_pair",
+        "semantic_value_retrieval_pair",
+        "metric_dsl_vs_direct_sql",
+        "behavior_recovery_rollout_pair",
+    )
     metric = next(step for step in steps if step["step_id"] == "metric_dsl_vs_direct_sql")
     assert metric["method"] == "MEASURE()-preserving metric DSL"
     assert metric["train_rows_status"] == {
@@ -76,6 +84,10 @@ def test_finetuning_step_summary_exposes_readiness() -> None:
     assert summary["step_count"] == 6
     steps = {step["step_id"]: step for step in summary["steps"]}
     assert steps["direct_sql_control_smoke"]["train_rows_ready"] is True
+    assert steps["direct_sql_control_smoke"]["requires_step_ids"] == []
+    assert steps["planner_first_sql_pair"]["requires_step_ids"] == [
+        "direct_sql_control_smoke"
+    ]
     assert steps["direct_sql_control_smoke"]["eval_rows_ready"] is True
     assert steps["direct_sql_control_smoke"]["cheap_preflight_available"] is True
     assert steps["planner_first_sql_pair"]["preflight_command_count"] == 1
@@ -175,6 +187,7 @@ def test_build_step_command_record_includes_handoff_metadata() -> None:
     assert record["step_id"] == "semantic_value_retrieval_pair"
     assert record["method"] == "Semantic-layer tuning"
     assert record["command_group"] == "preflight"
+    assert record["requires_step_ids"] == ["direct_sql_control_smoke"]
     assert len(record["commands"]) == 2
     assert record["cheap_preflight_available"] is True
     assert record["benchmark_protocol_ids"] == ["cosql_dev_100_teacher_forced_proxy"]
@@ -578,3 +591,57 @@ steps:
         ) in str(exc)
     else:
         raise AssertionError("backward stage order should fail")
+
+
+def test_finetuning_step_loader_rejects_missing_dependency(tmp_path) -> None:
+    config = tmp_path / "steps.yaml"
+    config.write_text(
+        """
+schema_version: 1
+steps:
+  - step_id: missing_dependency_step
+    method: Direct SQL SFT
+    stage: train_control
+    purpose: test missing dependency
+    benchmark_protocol_ids:
+      - cosql_dev_100_teacher_forced_proxy
+    requires_step_ids:
+      - absent_step
+    train_rows: []
+    eval_rows: []
+    control_rows: []
+    commands:
+      - uv run --active --no-sync python -m train.finetune
+    preflight_commands:
+      - uv run --active --no-sync python -m train.finetune --validate-data-only
+    evidence_gate: manifest
+    measurement:
+      primary_metric: value_accuracy
+      benchmark_metric_refs:
+        - cosql_dev_100_teacher_forced_proxy:value_accuracy
+      supporting_metrics:
+        - syntax_validity
+      comparison_artifact: results/direct/fake.json
+      promoted_when: direct control exists
+    clears_claim_ids: []
+    blocks_claim_ids: []
+    leakage_boundary: no leakage
+""",
+        encoding="utf-8",
+    )
+
+    try:
+        load_finetuning_steps(
+            config,
+            method_config_path=REPO_ROOT / "configs" / "finetuning_methods.yaml",
+            protocol_config_path=REPO_ROOT / "configs" / "benchmark_protocols.yaml",
+            claim_ledger_path=REPO_ROOT / "docs" / "claim_ledgers" / "cosql_dev_100.jsonl",
+            repo_root=REPO_ROOT,
+        )
+    except ValueError as exc:
+        assert (
+            "missing_dependency_step: requires_step_ids must reference earlier steps: "
+            "absent_step"
+        ) in str(exc)
+    else:
+        raise AssertionError("missing dependency should fail")

@@ -1266,6 +1266,7 @@ def finetuning_step_plan() -> pd.DataFrame:
                 "step_id": step["step_id"],
                 "method": step["method"],
                 "stage": step["stage"],
+                "requires_step_ids": "; ".join(step["requires_step_ids"]),
                 "protocols": "; ".join(step["benchmark_protocol_ids"]),
                 "rows_ready": (
                     f"train={step['train_rows_ready']}; "
