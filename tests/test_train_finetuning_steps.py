@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from train.finetuning_steps import (
+    build_step_command_record,
     finetuning_step_summary,
     load_finetuning_steps,
     select_step_commands,
@@ -118,6 +119,33 @@ def test_select_step_commands_rejects_unknown_step() -> None:
         assert "unknown finetuning step id: missing_step" in str(exc)
     else:
         raise AssertionError("unknown step id should fail")
+
+
+def test_build_step_command_record_includes_handoff_metadata() -> None:
+    record = build_step_command_record(
+        step_id="semantic_value_retrieval_pair",
+        command_group="preflight",
+        path=REPO_ROOT / "configs" / "finetuning_steps.yaml",
+        method_config_path=REPO_ROOT / "configs" / "finetuning_methods.yaml",
+        protocol_config_path=REPO_ROOT / "configs" / "benchmark_protocols.yaml",
+        claim_ledger_path=REPO_ROOT / "docs" / "claim_ledgers" / "cosql_dev_100.jsonl",
+        repo_root=REPO_ROOT,
+    )
+
+    assert record["schema_version"] == 1
+    assert record["step_id"] == "semantic_value_retrieval_pair"
+    assert record["method"] == "Semantic-layer tuning"
+    assert record["command_group"] == "preflight"
+    assert len(record["commands"]) == 2
+    assert record["cheap_preflight_available"] is True
+    assert record["benchmark_protocol_ids"] == ["cosql_dev_100_teacher_forced_proxy"]
+    assert record["eval_rows"] == {"data/processed/eval_cosql_dev_100.jsonl": True}
+    assert record["control_rows"] == {
+        "data/processed/eval_cosql_dev_100.jsonl": True,
+        "docs/data_artifacts/semantic_value_retrieval_inputs.manifest.json": True,
+    }
+    assert record["clears_claim_ids"] == ["semantic_value_retrieval_improves_sql"]
+    assert "value index is database-derived" in record["leakage_boundary"]
 
 
 def test_finetuning_step_loader_rejects_unknown_method(tmp_path) -> None:

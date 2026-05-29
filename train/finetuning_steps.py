@@ -216,6 +216,60 @@ def select_step_commands(
     raise ValueError(f"unknown command group: {command_group}")
 
 
+def build_step_command_record(
+    *,
+    step_id: str,
+    command_group: str,
+    path: Path = DEFAULT_STEP_CONFIG,
+    method_config_path: Path = DEFAULT_METHOD_CONFIG,
+    protocol_config_path: Path = DEFAULT_PROTOCOL_CONFIG,
+    claim_ledger_path: Path = DEFAULT_CLAIM_LEDGER,
+    repo_root: Path = Path("."),
+) -> dict[str, Any]:
+    """Return a machine-readable checklist for executing one step command group."""
+
+    steps = load_finetuning_steps(
+        path,
+        method_config_path=method_config_path,
+        protocol_config_path=protocol_config_path,
+        claim_ledger_path=claim_ledger_path,
+        repo_root=repo_root,
+    )
+    step_by_id = {step["step_id"]: step for step in steps}
+    step = step_by_id.get(step_id)
+    if step is None:
+        raise ValueError(f"unknown finetuning step id: {step_id}")
+    commands = select_step_commands(
+        step_id=step_id,
+        command_group=command_group,
+        path=path,
+        method_config_path=method_config_path,
+        protocol_config_path=protocol_config_path,
+        claim_ledger_path=claim_ledger_path,
+        repo_root=repo_root,
+    )
+    return {
+        "schema_version": 1,
+        "step_id": step["step_id"],
+        "method": step["method"],
+        "stage": step["stage"],
+        "command_group": command_group,
+        "commands": list(commands),
+        "benchmark_protocol_ids": list(step["benchmark_protocol_ids"]),
+        "train_rows": step["train_rows_status"],
+        "eval_rows": step["eval_rows_status"],
+        "control_rows": step["control_rows_status"],
+        "clears_claim_ids": list(step["clears_claim_ids"]),
+        "blocks_claim_ids": list(step["blocks_claim_ids"]),
+        "evidence_gate": step["evidence_gate"],
+        "leakage_boundary": step["leakage_boundary"],
+        "cheap_preflight_available": all(
+            "<" not in command and ">" not in command
+            for command in step["preflight_commands"]
+        ),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--steps-config", type=Path, default=DEFAULT_STEP_CONFIG)
@@ -235,7 +289,7 @@ def main() -> int:
     if args.step_id or args.commands:
         if not args.step_id or not args.commands:
             raise SystemExit("--step-id and --commands must be supplied together")
-        selected = select_step_commands(
+        record = build_step_command_record(
             step_id=args.step_id,
             command_group=args.commands,
             path=args.steps_config,
@@ -244,9 +298,14 @@ def main() -> int:
             claim_ledger_path=args.claim_ledger,
             repo_root=Path.cwd(),
         )
-        print("\n".join(selected))
-        if selected:
-            print()
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
+            print(f"Wrote {args.commands} command record for {args.step_id} to {args.output}")
+        else:
+            print("\n".join(record["commands"]))
+            if record["commands"]:
+                print()
         return 0
 
     summary = finetuning_step_summary(
