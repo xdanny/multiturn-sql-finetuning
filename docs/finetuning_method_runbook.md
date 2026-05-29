@@ -51,6 +51,18 @@ uv run --active --no-sync python -m train.finetuning_steps
 The step summary is not a benchmark result. It is a checklist for which row
 artifacts, controls, protocols, and claim gates the next run must use.
 
+The loader enforces the stage ladder in this order:
+
+- `train_control`
+- `endpoint_comparison`
+- `train_and_compare`
+- `train_and_rollout`
+- `transfer_gate`
+
+Do not move hosted or transfer gates before the proxy/control steps they depend
+on. If a new stage is needed, add it to `train.finetuning_steps.STAGE_ORDER` and
+document what evidence must exist before that stage can run.
+
 Print the cheap preflight commands for one step before spending GPU or endpoint
 time:
 

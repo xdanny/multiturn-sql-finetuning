@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from train.finetuning_steps import (
+    STAGE_ORDER,
     build_step_command_record,
     finetuning_step_summary,
     load_finetuning_steps,
@@ -29,6 +30,17 @@ def test_finetuning_steps_load_in_execution_order() -> None:
         "behavior_recovery_rollout_pair",
         "hosted_bird_interact_gate",
     ]
+    assert [step["stage"] for step in steps] == [
+        "train_control",
+        "endpoint_comparison",
+        "endpoint_comparison",
+        "train_and_compare",
+        "train_and_rollout",
+        "transfer_gate",
+    ]
+    assert [STAGE_ORDER[step["stage"]] for step in steps] == sorted(
+        STAGE_ORDER[step["stage"]] for step in steps
+    )
     metric = next(step for step in steps if step["step_id"] == "metric_dsl_vs_direct_sql")
     assert metric["method"] == "MEASURE()-preserving metric DSL"
     assert metric["train_rows_status"] == {
@@ -190,7 +202,7 @@ schema_version: 1
 steps:
   - step_id: bad_step
     method: Missing method
-    stage: train
+    stage: train_control
     purpose: test
     benchmark_protocol_ids:
       - cosql_dev_100_teacher_forced_proxy
@@ -231,7 +243,7 @@ schema_version: 1
 steps:
   - step_id: bad_claim_step
     method: Direct SQL SFT
-    stage: train
+    stage: train_control
     purpose: test
     benchmark_protocol_ids:
       - cosql_dev_100_teacher_forced_proxy
@@ -273,7 +285,7 @@ schema_version: 1
 steps:
   - step_id: wrong_method_claim_step
     method: Direct SQL SFT
-    stage: train
+    stage: train_control
     purpose: test
     benchmark_protocol_ids:
       - cosql_dev_100_teacher_forced_proxy
@@ -318,7 +330,7 @@ schema_version: 1
 steps:
   - step_id: no_preflight_step
     method: Direct SQL SFT
-    stage: train
+    stage: train_control
     purpose: test
     benchmark_protocol_ids:
       - cosql_dev_100_teacher_forced_proxy
@@ -357,7 +369,7 @@ schema_version: 1
 steps:
   - step_id: no_measurement_step
     method: Direct SQL SFT
-    stage: train
+    stage: train_control
     purpose: test
     benchmark_protocol_ids:
       - cosql_dev_100_teacher_forced_proxy
@@ -398,7 +410,7 @@ schema_version: 1
 steps:
   - step_id: bad_metric_ref_step
     method: Direct SQL SFT
-    stage: train
+    stage: train_control
     purpose: test
     benchmark_protocol_ids:
       - cosql_dev_100_teacher_forced_proxy
@@ -440,3 +452,129 @@ steps:
         ) in str(exc)
     else:
         raise AssertionError("unknown benchmark metric ref should fail")
+
+
+def test_finetuning_step_loader_rejects_unknown_stage(tmp_path) -> None:
+    config = tmp_path / "steps.yaml"
+    config.write_text(
+        """
+schema_version: 1
+steps:
+  - step_id: bad_stage_step
+    method: Direct SQL SFT
+    stage: surprise_stage
+    purpose: test
+    benchmark_protocol_ids:
+      - cosql_dev_100_teacher_forced_proxy
+    train_rows: []
+    eval_rows: []
+    control_rows: []
+    commands:
+      - uv run --active --no-sync python -m train.finetune
+    preflight_commands:
+      - uv run --active --no-sync python -m train.finetune --validate-data-only
+    evidence_gate: manifest
+    measurement:
+      primary_metric: value_accuracy
+      benchmark_metric_refs:
+        - cosql_dev_100_teacher_forced_proxy:value_accuracy
+      supporting_metrics:
+        - syntax_validity
+      comparison_artifact: results/fake.json
+      promoted_when: value accuracy is scored
+    clears_claim_ids: []
+    blocks_claim_ids: []
+    leakage_boundary: no leakage
+""",
+        encoding="utf-8",
+    )
+
+    try:
+        load_finetuning_steps(
+            config,
+            method_config_path=REPO_ROOT / "configs" / "finetuning_methods.yaml",
+            protocol_config_path=REPO_ROOT / "configs" / "benchmark_protocols.yaml",
+            claim_ledger_path=REPO_ROOT / "docs" / "claim_ledgers" / "cosql_dev_100.jsonl",
+            repo_root=REPO_ROOT,
+        )
+    except ValueError as exc:
+        assert "bad_stage_step: unknown stage surprise_stage" in str(exc)
+    else:
+        raise AssertionError("unknown stage should fail")
+
+
+def test_finetuning_step_loader_rejects_backward_stage_order(tmp_path) -> None:
+    config = tmp_path / "steps.yaml"
+    config.write_text(
+        """
+schema_version: 1
+steps:
+  - step_id: hosted_first
+    method: Hosted and BIRD-Interact comparison
+    stage: transfer_gate
+    purpose: test transfer first
+    benchmark_protocol_ids:
+      - bird_interact_same_protocol_transfer
+    train_rows: []
+    eval_rows: []
+    control_rows: []
+    commands:
+      - uv run --active --no-sync python -m eval.compare_hosted_baseline
+    preflight_commands:
+      - uv run --active --no-sync python -m train.finetuning_steps
+    evidence_gate: manifest
+    measurement:
+      primary_metric: value_accuracy_delta_vs_hosted_baseline
+      benchmark_metric_refs:
+        - bird_interact_same_protocol_transfer:value_accuracy
+      supporting_metrics:
+        - task_success
+      comparison_artifact: results/hosted/fake.json
+      promoted_when: hosted comparison exists
+    clears_claim_ids: []
+    blocks_claim_ids: []
+    leakage_boundary: no leakage
+  - step_id: direct_later
+    method: Direct SQL SFT
+    stage: train_control
+    purpose: test direct later
+    benchmark_protocol_ids:
+      - cosql_dev_100_teacher_forced_proxy
+    train_rows: []
+    eval_rows: []
+    control_rows: []
+    commands:
+      - uv run --active --no-sync python -m train.finetune
+    preflight_commands:
+      - uv run --active --no-sync python -m train.finetune --validate-data-only
+    evidence_gate: manifest
+    measurement:
+      primary_metric: value_accuracy
+      benchmark_metric_refs:
+        - cosql_dev_100_teacher_forced_proxy:value_accuracy
+      supporting_metrics:
+        - syntax_validity
+      comparison_artifact: results/direct/fake.json
+      promoted_when: direct control exists
+    clears_claim_ids: []
+    blocks_claim_ids: []
+    leakage_boundary: no leakage
+""",
+        encoding="utf-8",
+    )
+
+    try:
+        load_finetuning_steps(
+            config,
+            method_config_path=REPO_ROOT / "configs" / "finetuning_methods.yaml",
+            protocol_config_path=REPO_ROOT / "configs" / "benchmark_protocols.yaml",
+            claim_ledger_path=REPO_ROOT / "docs" / "claim_ledgers" / "cosql_dev_100.jsonl",
+            repo_root=REPO_ROOT,
+        )
+    except ValueError as exc:
+        assert (
+            "direct_later: stage train_control appears after hosted_first "
+            "with a later stage"
+        ) in str(exc)
+    else:
+        raise AssertionError("backward stage order should fail")
