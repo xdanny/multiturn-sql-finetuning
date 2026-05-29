@@ -13,6 +13,7 @@ from eval.benchmark_protocols import DEFAULT_PROTOCOL_CONFIG, benchmark_protocol
 from eval.method_readiness import DEFAULT_METHOD_CONFIG, load_method_configs
 
 DEFAULT_STEP_CONFIG = Path("configs/finetuning_steps.yaml")
+DEFAULT_CLAIM_LEDGER = Path("docs/claim_ledgers/cosql_dev_100.jsonl")
 
 LIST_FIELDS = {
     "benchmark_protocol_ids",
@@ -44,11 +45,21 @@ def _method_map(path: Path) -> dict[str, dict[str, Any]]:
     return {row["method"]: row for row in load_method_configs(path)}
 
 
+def _claim_ids(path: Path) -> set[str]:
+    with path.open() as handle:
+        return {
+            str(json.loads(line)["claim_id"])
+            for line in handle
+            if line.strip()
+        }
+
+
 def load_finetuning_steps(
     path: Path = DEFAULT_STEP_CONFIG,
     *,
     method_config_path: Path = DEFAULT_METHOD_CONFIG,
     protocol_config_path: Path = DEFAULT_PROTOCOL_CONFIG,
+    claim_ledger_path: Path = DEFAULT_CLAIM_LEDGER,
     repo_root: Path = Path("."),
 ) -> tuple[dict[str, Any], ...]:
     """Return validated finetuning steps with path readiness metadata."""
@@ -62,6 +73,7 @@ def load_finetuning_steps(
 
     methods = _method_map(method_config_path)
     protocols = benchmark_protocol_map(protocol_config_path)
+    known_claim_ids = _claim_ids(claim_ledger_path)
     normalized = []
     seen_ids = set()
     for step in steps:
@@ -79,8 +91,22 @@ def load_finetuning_steps(
         seen_ids.add(step_id)
         if row["method"] not in methods:
             raise ValueError(f"{step_id}: unknown method {row['method']}")
+        method = methods[row["method"]]
         for field in LIST_FIELDS:
             row[field] = tuple(row.get(field) or ())
+        step_claim_ids = set(row["clears_claim_ids"]) | set(row["blocks_claim_ids"])
+        unknown_claim_ids = sorted(step_claim_ids - known_claim_ids)
+        if unknown_claim_ids:
+            raise ValueError(
+                f"{step_id}: unknown claim ids: {', '.join(unknown_claim_ids)}"
+            )
+        method_claim_ids = set(method["supported_claim_ids"]) | set(method["blocking_claim_ids"])
+        unowned_claim_ids = sorted(step_claim_ids - method_claim_ids)
+        if unowned_claim_ids:
+            raise ValueError(
+                f"{step_id}: claim ids are not declared by method {row['method']}: "
+                f"{', '.join(unowned_claim_ids)}"
+            )
         if not row["benchmark_protocol_ids"]:
             raise ValueError(f"{step_id}: missing benchmark_protocol_ids")
         unknown_protocol_ids = [
@@ -115,6 +141,7 @@ def finetuning_step_summary(
     path: Path = DEFAULT_STEP_CONFIG,
     method_config_path: Path = DEFAULT_METHOD_CONFIG,
     protocol_config_path: Path = DEFAULT_PROTOCOL_CONFIG,
+    claim_ledger_path: Path = DEFAULT_CLAIM_LEDGER,
     repo_root: Path = Path("."),
 ) -> dict[str, Any]:
     """Return a JSON-serializable summary for docs and review."""
@@ -123,6 +150,7 @@ def finetuning_step_summary(
         path,
         method_config_path=method_config_path,
         protocol_config_path=protocol_config_path,
+        claim_ledger_path=claim_ledger_path,
         repo_root=repo_root,
     )
     return {
@@ -152,6 +180,7 @@ def main() -> int:
     parser.add_argument("--steps-config", type=Path, default=DEFAULT_STEP_CONFIG)
     parser.add_argument("--method-config", type=Path, default=DEFAULT_METHOD_CONFIG)
     parser.add_argument("--protocol-config", type=Path, default=DEFAULT_PROTOCOL_CONFIG)
+    parser.add_argument("--claim-ledger", type=Path, default=DEFAULT_CLAIM_LEDGER)
     parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()
 
@@ -159,6 +188,7 @@ def main() -> int:
         path=args.steps_config,
         method_config_path=args.method_config,
         protocol_config_path=args.protocol_config,
+        claim_ledger_path=args.claim_ledger,
         repo_root=Path.cwd(),
     )
     text = json.dumps(summary, indent=2, sort_keys=True) + "\n"

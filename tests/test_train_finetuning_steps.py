@@ -12,6 +12,7 @@ def test_finetuning_steps_load_in_execution_order() -> None:
         REPO_ROOT / "configs" / "finetuning_steps.yaml",
         method_config_path=REPO_ROOT / "configs" / "finetuning_methods.yaml",
         protocol_config_path=REPO_ROOT / "configs" / "benchmark_protocols.yaml",
+        claim_ledger_path=REPO_ROOT / "docs" / "claim_ledgers" / "cosql_dev_100.jsonl",
         repo_root=REPO_ROOT,
     )
 
@@ -38,6 +39,7 @@ def test_finetuning_step_summary_exposes_readiness() -> None:
         path=REPO_ROOT / "configs" / "finetuning_steps.yaml",
         method_config_path=REPO_ROOT / "configs" / "finetuning_methods.yaml",
         protocol_config_path=REPO_ROOT / "configs" / "benchmark_protocols.yaml",
+        claim_ledger_path=REPO_ROOT / "docs" / "claim_ledgers" / "cosql_dev_100.jsonl",
         repo_root=REPO_ROOT,
     )
 
@@ -83,9 +85,93 @@ steps:
             config,
             method_config_path=REPO_ROOT / "configs" / "finetuning_methods.yaml",
             protocol_config_path=REPO_ROOT / "configs" / "benchmark_protocols.yaml",
+            claim_ledger_path=REPO_ROOT / "docs" / "claim_ledgers" / "cosql_dev_100.jsonl",
             repo_root=REPO_ROOT,
         )
     except ValueError as exc:
         assert "bad_step: unknown method Missing method" in str(exc)
     else:
         raise AssertionError("unknown method should fail")
+
+
+def test_finetuning_step_loader_rejects_unknown_claim_id(tmp_path) -> None:
+    config = tmp_path / "steps.yaml"
+    config.write_text(
+        """
+schema_version: 1
+steps:
+  - step_id: bad_claim_step
+    method: Direct SQL SFT
+    stage: train
+    purpose: test
+    benchmark_protocol_ids:
+      - cosql_dev_100_teacher_forced_proxy
+    train_rows: []
+    eval_rows: []
+    control_rows: []
+    commands:
+      - uv run --active --no-sync python -m train.finetune
+    evidence_gate: manifest
+    clears_claim_ids:
+      - nonexistent_claim
+    blocks_claim_ids: []
+    leakage_boundary: no leakage
+""",
+        encoding="utf-8",
+    )
+
+    try:
+        load_finetuning_steps(
+            config,
+            method_config_path=REPO_ROOT / "configs" / "finetuning_methods.yaml",
+            protocol_config_path=REPO_ROOT / "configs" / "benchmark_protocols.yaml",
+            claim_ledger_path=REPO_ROOT / "docs" / "claim_ledgers" / "cosql_dev_100.jsonl",
+            repo_root=REPO_ROOT,
+        )
+    except ValueError as exc:
+        assert "bad_claim_step: unknown claim ids: nonexistent_claim" in str(exc)
+    else:
+        raise AssertionError("unknown claim id should fail")
+
+
+def test_finetuning_step_loader_rejects_method_claim_mismatch(tmp_path) -> None:
+    config = tmp_path / "steps.yaml"
+    config.write_text(
+        """
+schema_version: 1
+steps:
+  - step_id: wrong_method_claim_step
+    method: Direct SQL SFT
+    stage: train
+    purpose: test
+    benchmark_protocol_ids:
+      - cosql_dev_100_teacher_forced_proxy
+    train_rows: []
+    eval_rows: []
+    control_rows: []
+    commands:
+      - uv run --active --no-sync python -m train.finetune
+    evidence_gate: manifest
+    clears_claim_ids:
+      - metric_dsl_beats_direct_sql
+    blocks_claim_ids: []
+    leakage_boundary: no leakage
+""",
+        encoding="utf-8",
+    )
+
+    try:
+        load_finetuning_steps(
+            config,
+            method_config_path=REPO_ROOT / "configs" / "finetuning_methods.yaml",
+            protocol_config_path=REPO_ROOT / "configs" / "benchmark_protocols.yaml",
+            claim_ledger_path=REPO_ROOT / "docs" / "claim_ledgers" / "cosql_dev_100.jsonl",
+            repo_root=REPO_ROOT,
+        )
+    except ValueError as exc:
+        assert (
+            "wrong_method_claim_step: claim ids are not declared by method Direct SQL SFT: "
+            "metric_dsl_beats_direct_sql"
+        ) in str(exc)
+    else:
+        raise AssertionError("method claim mismatch should fail")
