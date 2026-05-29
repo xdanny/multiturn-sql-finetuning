@@ -1276,6 +1276,9 @@ def finetuning_step_plan() -> pd.DataFrame:
                 "cheap_preflight_available": step["cheap_preflight_available"],
                 "command_count": step["command_count"],
                 "primary_metric": step["measurement"]["primary_metric"],
+                "benchmark_metric_refs": "; ".join(
+                    step["measurement"]["benchmark_metric_refs"]
+                ),
                 "comparison_artifact": step["measurement"]["comparison_artifact"],
                 "evidence_gate": step["evidence_gate"],
                 "clears_claim_ids": "; ".join(step["clears_claim_ids"]),

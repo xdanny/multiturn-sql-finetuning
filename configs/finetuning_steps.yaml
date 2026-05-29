@@ -31,6 +31,8 @@ steps:
     evidence_gate: training smoke completes; benchmark claims still require eval.run_eval manifest
     measurement:
       primary_metric: value_accuracy
+      benchmark_metric_refs:
+        - cosql_dev_100_teacher_forced_proxy:value_accuracy
       supporting_metrics:
         - strict_accuracy
         - syntax_validity
@@ -81,6 +83,8 @@ steps:
     evidence_gate: positive same-row value-accuracy delta versus direct SQL
     measurement:
       primary_metric: value_accuracy_delta_vs_direct_sql
+      benchmark_metric_refs:
+        - cosql_dev_100_teacher_forced_proxy:value_accuracy
       supporting_metrics:
         - planner_table_f1
         - planner_column_f1
@@ -137,6 +141,8 @@ steps:
     evidence_gate: semantic comparison manifest with positive same-row value delta
     measurement:
       primary_metric: value_accuracy_delta_vs_direct_sql
+      benchmark_metric_refs:
+        - cosql_dev_100_teacher_forced_proxy:value_accuracy
       supporting_metrics:
         - strict_accuracy_delta
         - value_grounding_match_rate
@@ -207,6 +213,9 @@ steps:
     evidence_gate: parse, compile, measure-preservation, and positive compiled value delta
     measurement:
       primary_metric: compiled_value_accuracy_delta_vs_direct_sql
+      benchmark_metric_refs:
+        - synthetic_schema_rich_method_fixture:value_accuracy
+        - synthetic_schema_rich_method_fixture:measure_preservation
       supporting_metrics:
         - dsl_parse_rate
         - dsl_compile_rate
@@ -277,6 +286,10 @@ steps:
     evidence_gate: recovery adapter beats direct-SQL control under generated-history rollout
     measurement:
       primary_metric: rollout_value_accuracy_delta_vs_direct_sql
+      benchmark_metric_refs:
+        - cosql_generated_history_rollout:rollout_value_accuracy
+        - cosql_generated_history_rollout:empty_result_repair_rate
+        - cosql_generated_history_rollout:syntax_validity_after_error
       supporting_metrics:
         - strict_rollout_accuracy_delta
         - empty_result_repair_rate
@@ -313,6 +326,11 @@ steps:
     evidence_gate: local and hosted manifests share inputs, scorer, row ids, latency, and cost fields
     measurement:
       primary_metric: value_accuracy_delta_vs_hosted_baseline
+      benchmark_metric_refs:
+        - bird_interact_same_protocol_transfer:value_accuracy
+        - bird_interact_same_protocol_transfer:task_success
+        - bird_interact_same_protocol_transfer:latency
+        - bird_interact_same_protocol_transfer:cost
       supporting_metrics:
         - task_success
         - latency

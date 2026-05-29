@@ -73,11 +73,40 @@ def _normalize_measurement(step_id: str, value: Any) -> dict[str, Any]:
         raise ValueError(
             f"{step_id}: measurement missing {', '.join(missing_text_fields)}"
         )
-    supporting_metrics = measurement.get("supporting_metrics")
-    if not isinstance(supporting_metrics, list) or not supporting_metrics:
-        raise ValueError(f"{step_id}: measurement missing supporting_metrics")
-    measurement["supporting_metrics"] = tuple(str(metric) for metric in supporting_metrics)
+    for field in ("benchmark_metric_refs", "supporting_metrics"):
+        values = measurement.get(field)
+        if not isinstance(values, list) or not values:
+            raise ValueError(f"{step_id}: measurement missing {field}")
+        measurement[field] = tuple(str(value) for value in values)
     return measurement
+
+
+def _validate_benchmark_metric_refs(
+    *,
+    step_id: str,
+    benchmark_protocol_ids: tuple[str, ...],
+    measurement: dict[str, Any],
+    protocols: dict[str, dict[str, Any]],
+) -> None:
+    allowed_protocol_ids = set(benchmark_protocol_ids)
+    for metric_ref in measurement["benchmark_metric_refs"]:
+        protocol_id, separator, metric = metric_ref.partition(":")
+        if not separator or not protocol_id or not metric:
+            raise ValueError(
+                f"{step_id}: measurement benchmark_metric_refs must use "
+                "<protocol_id>:<metric>"
+            )
+        if protocol_id not in allowed_protocol_ids:
+            raise ValueError(
+                f"{step_id}: benchmark metric ref {metric_ref} does not belong "
+                "to the step benchmark_protocol_ids"
+            )
+        primary_metrics = set(protocols[protocol_id]["primary_metrics"])
+        if metric not in primary_metrics:
+            raise ValueError(
+                f"{step_id}: benchmark metric ref {metric_ref} is not a primary "
+                f"metric for protocol {protocol_id}"
+            )
 
 
 def load_finetuning_steps(
@@ -159,6 +188,12 @@ def load_finetuning_steps(
         if any("reference SQL" in command for command in all_commands):
             raise ValueError(f"{step_id}: command text mentions reference SQL")
         row["measurement"] = _normalize_measurement(step_id, row.get("measurement"))
+        _validate_benchmark_metric_refs(
+            step_id=step_id,
+            benchmark_protocol_ids=row["benchmark_protocol_ids"],
+            measurement=row["measurement"],
+            protocols=protocols,
+        )
         row["train_rows_status"] = _path_status(repo_root, row["train_rows"])
         row["eval_rows_status"] = _path_status(repo_root, row["eval_rows"])
         row["control_rows_status"] = _path_status(repo_root, row["control_rows"])
@@ -198,6 +233,9 @@ def finetuning_step_summary(
                 "evidence_gate": step["evidence_gate"],
                 "measurement": {
                     "primary_metric": step["measurement"]["primary_metric"],
+                    "benchmark_metric_refs": list(
+                        step["measurement"]["benchmark_metric_refs"]
+                    ),
                     "supporting_metrics": list(step["measurement"]["supporting_metrics"]),
                     "comparison_artifact": step["measurement"]["comparison_artifact"],
                     "promoted_when": step["measurement"]["promoted_when"],
@@ -296,6 +334,7 @@ def build_step_command_record(
         "evidence_gate": step["evidence_gate"],
         "measurement": {
             "primary_metric": step["measurement"]["primary_metric"],
+            "benchmark_metric_refs": list(step["measurement"]["benchmark_metric_refs"]),
             "supporting_metrics": list(step["measurement"]["supporting_metrics"]),
             "comparison_artifact": step["measurement"]["comparison_artifact"],
             "promoted_when": step["measurement"]["promoted_when"],
