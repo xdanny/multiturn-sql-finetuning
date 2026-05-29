@@ -102,6 +102,10 @@ identities, non-oracle output rows, execution scores, and value-only and strict
 deltas against direct SQL. Semantic prompt gains on the CoSQL proxy are useful,
 but they are not a hosted or BIRD-Interact claim.
 
+Preflight: `docs/semantic_value_retrieval_comparison_preflight.json` proves the
+current direct and semantic prepared inputs align before endpoint generation.
+It is readiness evidence only.
+
 Next useful movement: generate the semantic prepared input on the fixed CoSQL
 rows, run the paired endpoint experiment versus direct SQL, then inspect whether
 the remaining misses are value lookup, entity resolution, join path, or query
