@@ -1,0 +1,87 @@
+{
+  "artifact_type": "metric_dsl_prompt_baseline_evidence",
+  "claim_boundary": "Tiny synthetic fixture prompt-only baseline. This is hypothesis evidence, not a benchmark or SOTA claim.",
+  "date": "2026-05-29",
+  "direct_sql_control_outputs": [
+    {
+      "fixture_id": "grain_fanout_bridge",
+      "generated_sql": "SELECT \n    c.name AS campaign_name,\n    SUM(o.amount) AS total_revenue\nFROM \n    campaigns c\nJOIN \n    order_promotions op ON c.id = op.campaign_id\nJOIN \n    orders o ON op.order_id = o.id\nGROUP BY \n    c.id, c.name\nORDER BY \n    total_revenue DESC;",
+      "strict_execution_score": 0.0,
+      "value_execution_score": 0.0
+    },
+    {
+      "fixture_id": "measure_preservation_metric",
+      "generated_sql": "SELECT \n    c.country_code,\n    SUM(o.amount) AS revenue\nFROM \n    orders o\nJOIN \n    customers c ON o.customer_id = c.id\nGROUP BY \n    c.country_code\nORDER BY \n    revenue DESC;",
+      "strict_execution_score": 1.0,
+      "value_execution_score": 1.0
+    }
+  ],
+  "interpretation": [
+    "Prompting alone did not make the model obey the strict metric DSL.",
+    "The base direct-SQL prompt solved the simple governed-revenue row and failed the fanout bridge row.",
+    "The 5-step LoRA arm did not improve this tiny fixture slice over the prompt-only baseline."
+  ],
+  "metrics": {
+    "compiled_sql_execution_attempt_rate": 0.0,
+    "compiled_sql_execution_evaluated_rows": 0,
+    "dimension_f1": 0.0,
+    "direct_sql_comparison_run_id": "metric_dsl_prompt_baseline.direct_sql",
+    "direct_sql_input_sha256": "3e885cf3701fac86df9233a4760ff538c56c64ac0af1f16a5dceed9dc12ed5ee",
+    "direct_sql_model_name": "qwen35_9b_prompt_direct_sql",
+    "direct_sql_output_sha256": "c93f1c24aaf5dda730bfde9a3dd89d607a908f5e9387340b0882ebcd2dd80ddf",
+    "direct_sql_strict_execution_accuracy": 0.5,
+    "direct_sql_value_execution_accuracy": 0.5,
+    "filter_f1": 0.0,
+    "measure_f1": 0.0,
+    "measure_preservation": 0.0,
+    "metric_dsl_comparable_row_count": 2,
+    "metric_dsl_compile_rate": 0.0,
+    "metric_dsl_measure_preservation": 0.0,
+    "metric_dsl_parse_rate": 0.0,
+    "metric_dsl_strict_delta_vs_direct_sql": -0.5,
+    "metric_dsl_value_delta_vs_direct_sql": -0.5,
+    "rows": 2,
+    "semantic_model_oracle_derived_rows": 0,
+    "semantic_model_sha256s": [
+      "74fe87cb89f837769872140a37a2833f8d313741f792038f5d377c87a3b0f3d6"
+    ],
+    "semantic_model_sources": {
+      "synthetic_non_oracle_fixture": 2
+    },
+    "strict_execution_accuracy": 0.0,
+    "syntax_accuracy": 0.0,
+    "value_execution_accuracy": 0.0
+  },
+  "model": "unsloth/Qwen3.5-9B",
+  "observed_failures": [
+    {
+      "fixture_id": "grain_fanout_bridge",
+      "parse_error": "invalid metric DSL: SQL keyword found outside DSL contract",
+      "prediction": "SELECT\n  MEASURE(campaign_name) AS campaign_name,\n  MEASURE(revenue) AS total_revenue\nFROM\n  campaign\nJOIN\n  order_promotions ON campaign.id = order_promotions.campaign_id\nJOIN\n  orders ON order_promotions.order_id = orders.id\nJOIN\n  customers ON orders.customer_id = customers.id\nWHERE\n  orders.order_date >= '2023-01-01'\nGROUP BY\n  campaign_name\nORDER BY\n  total_revenue DESC\nLIMIT 10"
+    },
+    {
+      "fixture_id": "measure_preservation_metric",
+      "parse_error": "invalid metric DSL measure segment; expected MEASURE(name)",
+      "prediction": "MEASURE(revenue)\nDIMENSION(customer_country)"
+    }
+  ],
+  "prompt_arms": {
+    "direct_sql": "docs/data_artifacts/metric_dsl_direct_sql_prediction_inputs.jsonl",
+    "metric_dsl": "docs/data_artifacts/metric_dsl_prediction_inputs.jsonl"
+  },
+  "result_artifacts": {
+    "comparison_manifest_path": "results/metric_dsl/metric_dsl_prompt_baseline.comparison.manifest.json",
+    "comparison_manifest_sha256": "198a208b1eaaa943b148058662e987e5dc78ec85df9a34e63e2734ba26d264aa",
+    "direct_manifest_path": "results/metric_dsl/metric_dsl_prompt_baseline.direct_sql.manifest.json",
+    "direct_manifest_sha256": "85842bb4f09f0c06c2745ed6f2e0cf5795d885e61581945f90cb5746d8617290",
+    "direct_rows_path": "results/metric_dsl/metric_dsl_prompt_baseline.direct_sql.jsonl",
+    "direct_rows_sha256": "c93f1c24aaf5dda730bfde9a3dd89d607a908f5e9387340b0882ebcd2dd80ddf",
+    "metric_manifest_path": "results/metric_dsl/metric_dsl_prompt_baseline.metric_dsl.manifest.json",
+    "metric_manifest_sha256": "f980e68bea7f2d6c4320dc7109a863585977a2fef1d506c410307a3e0adffd95",
+    "metric_rows_path": "results/metric_dsl/metric_dsl_prompt_baseline.metric_dsl.jsonl",
+    "metric_rows_sha256": "8f780f164da0f7ca1b8ef5f08f7942571b7deb558fa26e5d670de06ba0ab6b20"
+  },
+  "run_id": "metric_dsl_prompt_baseline",
+  "schema_version": 1,
+  "training": null
+}
