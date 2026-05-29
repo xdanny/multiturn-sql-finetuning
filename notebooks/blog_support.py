@@ -17,8 +17,12 @@ from data.metric_dsl import compile_metric_query, parse_metric_query, score_metr
 from eval.classify_errors import validate_sql_against_visible_schema
 from eval.method_readiness import build_method_readiness
 from notebooks.labs.local_multiturn_sql_lab_support import run_multiturn_lab
+from train.finetuning_steps import finetuning_step_summary
 
 BLOG_EVIDENCE_SOURCES = (
+    "configs/benchmark_protocols.yaml",
+    "configs/finetuning_methods.yaml",
+    "configs/finetuning_steps.yaml",
     "docs/claim_ledgers/cosql_dev_100.jsonl",
     "docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl",
     "docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json",
@@ -130,6 +134,15 @@ ASSET_CLAIM_IDS = {
         "local_beats_hosted_same_protocol",
         "bird_interact_local_vs_hosted",
     ),
+    "finetuning_step_plan_md": (
+        "predicted_planner_sql_execution",
+        "semantic_value_retrieval_improves_sql",
+        "metric_dsl_beats_direct_sql",
+        "behavior_recovery_beats_direct_sql",
+        "hosted_sota_same_protocol",
+        "local_beats_hosted_same_protocol",
+        "bird_interact_local_vs_hosted",
+    ),
 }
 ASSET_REQUIRED_IN_POST = {
     "accuracy_ladder_svg",
@@ -145,6 +158,7 @@ ASSET_REQUIRED_REFERENCE = {
     "experiment_ladder_md",
     "evaluation_harness_map_md",
     "method_readiness_report_md",
+    "finetuning_step_plan_md",
     "hosted_comparison_protocol_md",
     "single_to_multiturn_gap_md",
     "synthetic_method_fixtures_md",
@@ -1239,6 +1253,32 @@ def method_readiness_report() -> pd.DataFrame:
             "claim_boundary",
         ]
     ]
+
+
+def finetuning_step_plan() -> pd.DataFrame:
+    """Summarize concrete train/evaluate/compare steps for each method arm."""
+
+    summary = finetuning_step_summary(repo_root=repo_root())
+    rows = []
+    for step in summary["steps"]:
+        rows.append(
+            {
+                "step_id": step["step_id"],
+                "method": step["method"],
+                "stage": step["stage"],
+                "protocols": "; ".join(step["benchmark_protocol_ids"]),
+                "rows_ready": (
+                    f"train={step['train_rows_ready']}; "
+                    f"eval={step['eval_rows_ready']}; "
+                    f"control={step['control_rows_ready']}"
+                ),
+                "command_count": step["command_count"],
+                "evidence_gate": step["evidence_gate"],
+                "clears_claim_ids": "; ".join(step["clears_claim_ids"]),
+                "blocks_claim_ids": "; ".join(step["blocks_claim_ids"]),
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def _manifest_json_value(value: Any) -> Any:
@@ -2734,6 +2774,7 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
     hosted_protocol = hosted_comparison_protocol()
     harness = evaluation_harness_map()
     method_readiness = method_readiness_report()
+    finetuning_steps = finetuning_step_plan()
     metric_contract = metric_dsl_eval_contract()
     shareable_lab = shareable_lab_attachment()
     reader_flow = lab_reader_flow()
@@ -2799,6 +2840,10 @@ def export_blog_evidence(output_dir: Path | str = Path("docs/blog/generated")) -
         "method_readiness_report_md": _write_text(
             output / "method-readiness-report.md",
             _markdown_table(method_readiness),
+        ),
+        "finetuning_step_plan_md": _write_text(
+            output / "finetuning-step-plan.md",
+            _markdown_table(finetuning_steps),
         ),
         "metric_dsl_contract_md": _write_text(
             output / "metric-dsl-contract.md",
