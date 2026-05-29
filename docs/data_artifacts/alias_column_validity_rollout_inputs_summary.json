@@ -1,0 +1,22 @@
+{
+  "artifact_type": "alias_column_validity_rollout_inputs",
+  "column_role_constraints_source": "schema_introspection_plus_visible_failure",
+  "column_role_constraints_visible_to_model": true,
+  "column_validity_scoring_gate": "eval.alias_column_validity",
+  "comparison_contract": "same_dialog_alias_column_validity_rollout",
+  "evaluation_gate": "eval.run_behavior_recovery_comparison",
+  "failure_mode_counts": {
+    "entity_resolution": 1,
+    "recovery": 1,
+    "value_normalization": 1
+  },
+  "fixture_ids": [
+    "recovery_empty_result"
+  ],
+  "history_policy_counts": {
+    "seeded_generated_failure_then_alias_column_repair": 1
+  },
+  "oracle_policy": "seeded_failure_visible_non_oracle_alias_column_context",
+  "rollout_input_count": 1,
+  "schema_version": 1
+}

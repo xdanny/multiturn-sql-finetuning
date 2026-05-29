@@ -121,6 +121,19 @@ text, including the `France` to `FR` candidate and a `US` distractor. The
 expected storage value remains scorer-side so `eval.value_choice_consistency`
 can score value choice separately from full SQL execution.
 
+### Alias/Column-Validity Rollout Inputs
+
+- `alias_column_validity_rollout_inputs.jsonl`
+- `alias_column_validity_rollout_inputs_summary.json`
+- `alias_column_validity_rollout_inputs.manifest.json`
+
+These rows continue the same recovery fixture after value choice succeeds but
+SQL execution still fails. They show column-role constraints from schema
+introspection and the visible failed pattern, then let
+`eval.alias_column_validity` score whether generated SQL uses only valid
+table-column references and resolvable aliases. This keeps schema validity
+separate from value choice and result matching.
+
 ### Value Grounding Labels
 
 - `value_grounding_labels_cosql_dev_100.jsonl`

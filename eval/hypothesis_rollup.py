@@ -15,6 +15,7 @@ DEFAULT_EVIDENCE_PATHS = (
     Path("docs/training_runs/behavior_recovery_5steps.json"),
     Path("docs/training_runs/value_schema_repair_prompt.json"),
     Path("docs/training_runs/value_choice_consistency_prompt.json"),
+    Path("docs/training_runs/alias_column_validity_prompt.json"),
 )
 
 RUN_SUMMARIES = {
@@ -65,6 +66,16 @@ RUN_SUMMARIES = {
         ),
         "next_action": "Add alias/column-validity supervision after value choice is correct.",
     },
+    "alias_column_validity_prompt": {
+        "hypothesis_id": "value_schema_repair",
+        "arm_type": "prompt_only_alias_column_diagnostic",
+        "control": "teacher_forced_reference",
+        "decision": "passed_single_synthetic_diagnostic",
+        "primary_failure_mode": (
+            "The explicit column-role constraints fixed the known invalid-column failure."
+        ),
+        "next_action": "Scale the artifact to validation rows before any adapter or blog claim.",
+    },
 }
 
 METRIC_KEYS = (
@@ -80,6 +91,9 @@ METRIC_KEYS = (
     "behavior_recovery_value_delta_vs_direct_sql",
     "rollout_value_delta_vs_teacher_forced",
     "value_choice_accuracy",
+    "column_validity_accuracy",
+    "schema_valid_sql_rate",
+    "alias_resolution_success_rate",
 )
 
 
@@ -145,13 +159,13 @@ def build_hypothesis_rollup(
         "overall_decision": {
             "status": "no_method_promoted",
             "reason": (
-                "Every completed method arm either lost to its control, matched "
-                "a failed control, or changed the failure mode without solving "
-                "the fixture."
+                "Only the final alias/column diagnostic passes, and it does so "
+                "on one synthetic row. No method has passed broader validation "
+                "or a locked proxy gate."
             ),
             "next_repo_step": (
-                "Build alias/column-validity supervision before another GPU "
-                "fine-tuning run or blog claim."
+                "Scale alias/column-validity context to validation rows before "
+                "another GPU fine-tuning run or blog claim."
             ),
         },
     }
