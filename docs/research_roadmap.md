@@ -4,7 +4,7 @@ This is the canonical long-term roadmap for the multi-turn SQL fine-tuning
 program. It replaces the old gate-heavy day-to-day direction with smaller,
 row-matched method comparisons.
 
-Last audited: 2026-05-31 on commit `1a8054c`.
+Last audited: 2026-05-31 after the Checkpoint 3 local LoRA training run.
 
 Checkpoint status legend:
 
@@ -160,8 +160,9 @@ for scoring, keep it scorer-side.
 ## Checkpoint 3: Rebuild Baselines At Real Scale
 
 Status: `[~]` in progress. Split-based non-oracle input preparation exists for
-the direct-SQL control, but current scored evidence is still proxy-scale; the
-full-scale direct-SQL base and direct-SQL LoRA controls have not been rebuilt.
+the direct-SQL control, and the full direct-SQL LoRA adapter has been trained
+locally. Current scored evidence is still proxy-scale; the full-scale
+direct-SQL base and LoRA endpoint evaluations have not been rebuilt.
 
 Run direct SQL base and direct SQL LoRA on full available non-oracle training
 data, not 64-row or 128-row samples. Direct SQL is the stable control for every
@@ -199,8 +200,10 @@ Current Checkpoint 3 preparation artifacts:
 - `eval.roadmap_status` summarizes the current checkpoint statuses from the
   experiment registry and Checkpoint 3 artifact audit without running training
   or endpoint-backed evaluation.
+- `docs/training_runs/direct_sql_full_lora_20260531.json` records the completed
+  local full direct-SQL LoRA training artifact and its claim boundary.
 - `configs/experiments.yaml` marks `direct_sql_full_non_oracle_control` as
-  `input_prep_ready`, not as a measured baseline.
+  `lora_trained_pending_endpoint_eval`, not as a measured baseline.
 
 Latest local Checkpoint 3 run state from 2026-05-31:
 
@@ -212,9 +215,14 @@ Latest local Checkpoint 3 run state from 2026-05-31:
 - The RTX 5090 LoRA training path reached the active training loop only after
   running unsandboxed with `CC=/home/dan/.local/bin/cc` and Zig cache env vars
   for Triton runtime compilation.
-- The training run was intentionally stopped before a checkpoint or final
-  adapter was written. There is still no full direct-SQL LoRA artifact, no
-  base/LoRA endpoint eval manifest, and no generated-history rollout manifest.
+- Full LoRA training completed for 1,620 steps / 3 epochs and saved the final
+  adapter at `outputs/experiments/direct_sql_full/final`. The final adapter
+  weights SHA-256 is
+  `906347d66bb05c1668a8cc82979433c1c1b2056adfcd48f31ae0026a4a7ecdaf`.
+- Training eval loss is language-model loss on the proxy eval split, not SQL
+  execution accuracy: `0.5369` at step 1000, `0.5629` at step 1500, and
+  `0.6191` at step 1620. There is still no base/LoRA endpoint eval manifest
+  and no generated-history rollout manifest.
 
 Print the complete Checkpoint 3 workflow before running anything expensive:
 

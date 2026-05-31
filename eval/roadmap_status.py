@@ -98,6 +98,7 @@ def summarize_roadmap_status(
             evidence=[
                 str(checkpoint3_config_path),
                 "eval.checkpoint3_artifact_audit",
+                "docs/training_runs/direct_sql_full_lora_20260531.json",
                 f"experiment_status={_experiment_status(experiments, 'direct_sql_full_non_oracle_control')}",
             ],
             open_items=checkpoint3_open_items,

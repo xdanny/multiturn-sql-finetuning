@@ -15,7 +15,13 @@ def _write_json(path: Path, payload: dict) -> None:
 
 def _write_registry(path: Path) -> None:
     experiments = [
-        ("direct_sql_full_non_oracle_control", 3, "input_prep_ready", "direct_sql", ""),
+        (
+            "direct_sql_full_non_oracle_control",
+            3,
+            "lora_trained_pending_endpoint_eval",
+            "direct_sql",
+            "",
+        ),
         (
             "predicted_planner_sql_vs_direct",
             5,
@@ -281,6 +287,7 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
     assert summary["status_counts"] == {"complete": 4, "in_progress": 5, "pending": 1}
     by_checkpoint = {row["checkpoint"]: row for row in summary["checkpoints"]}
     assert by_checkpoint[3]["status"] == "complete"
+    assert "docs/training_runs/direct_sql_full_lora_20260531.json" in by_checkpoint[3]["evidence"]
     assert "eval.planner_readiness promotion policy" in by_checkpoint[5]["evidence"]
     assert by_checkpoint[5]["open_items"] == [
         "planner readiness must pass before another predicted-planner SQL run"
