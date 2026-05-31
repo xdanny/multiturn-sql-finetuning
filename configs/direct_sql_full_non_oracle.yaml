@@ -62,6 +62,51 @@ prepared_data:
     path: "data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl"
     manifest: "data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.manifest.json"
 
+checkpoint3_artifacts:
+  required_eval_metrics:
+    - "value_execution_accuracy"
+    - "strict_execution_accuracy"
+    - "interaction_match_rate"
+    - "mean_latency_ms"
+    - "total_tokens"
+    - "total_estimated_generation_cost_usd"
+  result_manifests:
+    base_proxy_dev_seen:
+      model_role: "base"
+      split_id: "cosql_dev_100_proxy_seen_v1"
+      split_role: "proxy_dev_seen"
+      manifest: "results/runs/direct_sql_full_non_oracle_control/base_proxy_dev_seen.manifest.json"
+    lora_proxy_dev_seen:
+      model_role: "lora"
+      split_id: "cosql_dev_100_proxy_seen_v1"
+      split_role: "proxy_dev_seen"
+      manifest: "results/runs/direct_sql_full_non_oracle_control/lora_proxy_dev_seen.manifest.json"
+    base_clean_holdout:
+      model_role: "base"
+      split_id: "cosql_dev_clean_holdout_v1"
+      split_role: "clean_local_holdout"
+      manifest: "results/runs/direct_sql_full_non_oracle_control/base_clean_holdout.manifest.json"
+    lora_clean_holdout:
+      model_role: "lora"
+      split_id: "cosql_dev_clean_holdout_v1"
+      split_role: "clean_local_holdout"
+      manifest: "results/runs/direct_sql_full_non_oracle_control/lora_clean_holdout.manifest.json"
+  generated_history_rollout_manifests:
+    base:
+      model_role: "base"
+      required_metrics:
+        - "value_execution_accuracy"
+        - "strict_execution_accuracy"
+        - "mean_latency_ms"
+      manifest: "results/runs/direct_sql_full_non_oracle_control/base_generated_history_rollout.manifest.json"
+    lora:
+      model_role: "lora"
+      required_metrics:
+        - "value_execution_accuracy"
+        - "strict_execution_accuracy"
+        - "mean_latency_ms"
+      manifest: "results/runs/direct_sql_full_non_oracle_control/lora_generated_history_rollout.manifest.json"
+
 wandb:
   project: "multiturn-sql-finetuning"
   run_name: "direct_sql_full_non_oracle_control"
