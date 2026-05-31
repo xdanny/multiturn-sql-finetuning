@@ -218,9 +218,13 @@ def summarize_roadmap_status(
                 f"experiment_status={_experiment_status(experiments, 'predicted_planner_sql_vs_direct')}",
                 "eval.planner_readiness promotion policy",
                 "docs/training_runs/lexical_predicted_planner_limit24.json",
+                "docs/training_runs/planner_schema_context_repair_20260531.json",
             ],
             open_items=[
-                "planner readiness must pass before another predicted-planner SQL run"
+                (
+                    "improve non-oracle column linking and projection quality before "
+                    "another predicted-planner SQL run"
+                )
             ],
         ),
         _entry(

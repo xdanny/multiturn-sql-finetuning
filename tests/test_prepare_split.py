@@ -35,6 +35,28 @@ def _write_fixture_pack(path: Path) -> None:
     path.write_text("\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8")
 
 
+def _write_spider_tables(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rows = [
+        {
+            "db_id": "db_0",
+            "table_names_original": ["orders", "customers"],
+            "column_names_original": [
+                [-1, "*"],
+                [0, "id"],
+                [0, "customer_id"],
+                [0, "amount"],
+                [1, "id"],
+                [1, "name"],
+            ],
+            "column_types": ["text", "number", "number", "number", "number", "text"],
+            "primary_keys": [1, 4],
+            "foreign_keys": [[2, 4]],
+        }
+    ]
+    path.write_text(json.dumps(rows), encoding="utf-8")
+
+
 def _write_split_manifests(tmp_path: Path) -> dict[str, Path]:
     cosql_root = tmp_path / "data" / "raw" / "cosql_dataset" / "sql_state_tracking"
     _write_cosql(cosql_root / "cosql_train.json", count=4, turns_per_dialog=2)
@@ -77,6 +99,27 @@ def test_prepare_records_from_split_selects_clean_holdout_range(tmp_path) -> Non
     )
     assert "Oracle SQL planning hints" not in user_text
     assert "derived from reference SQL" not in user_text
+
+
+def test_prepare_records_from_split_resolves_tables_path_from_source_root(tmp_path) -> None:
+    split_paths = _write_split_manifests(tmp_path)
+    relative_tables = Path("fixtures/source_root/tables.json")
+    _write_spider_tables(tmp_path / relative_tables)
+
+    records, _ = prepare_records_from_split(
+        split_paths["cosql_train_v1"],
+        tables_path=relative_tables,
+        source_roots=[tmp_path],
+        limit=1,
+    )
+
+    first_user_message = records[0]["messages"][1]["content"]
+    assert "Schema/context:" in first_user_message
+    assert "orders(id number, customer_id number, amount number)" in first_user_message
+    assert "Semantic model:" in first_user_message
+    assert "orders.customer_id -> customers.id" in first_user_message
+    assert records[0]["schema_link_labels"][0]["relevant_tables"] == []
+    assert not records[0]["uses_oracle_planning_hints"]
 
 
 def test_prepare_records_from_proxy_and_holdout_are_disjoint(tmp_path) -> None:

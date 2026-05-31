@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "artifact_type": "planner_schema_context_repair_evidence",
+  "checkpoint": 5,
+  "created_at": "2026-05-31",
+  "claim_boundary": "Planner-quality infrastructure evidence only. This does not claim a predicted-planner SQL execution win.",
+  "root_cause": "Split preparation resolved CoSQL source rows from --source-root but left the repo-relative tables_path unresolved in fresh worktrees. Prepared rows therefore had database IDs and questions but no schema or semantic model context.",
+  "fix": "Resolve repo-relative tables_path against --source-root before building split-based prepared rows.",
+  "oracle_policy": "non_oracle_generation",
+  "reference_sql_visible_to_model": false,
+  "gold_plans_visible_to_model": false,
+  "prepared_command": [
+    "uv",
+    "run",
+    "--active",
+    "--no-sync",
+    "python",
+    "-m",
+    "scripts.direct_sql_full_control",
+    "--stage",
+    "prepare",
+    "--source-root",
+    "/home/dan/docs/multiturn-sql-finetuning",
+    "--run"
+  ],
+  "planner_eval_commands": [
+    "uv run --active --no-sync python -m eval.planner_eval --input data/processed/direct_sql_full/cosql_dev_100_proxy_seen_v1.jsonl --output /tmp/checkpoint5_proxy_schema_lexical.planner_eval.jsonl --summary-output /tmp/checkpoint5_proxy_schema_lexical.summary.json",
+    "uv run --active --no-sync python -m eval.planner_eval --input data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl --output /tmp/checkpoint5_holdout_schema_lexical.planner_eval.jsonl --summary-output /tmp/checkpoint5_holdout_schema_lexical.summary.json"
+  ],
+  "before": {
+    "description": "Fresh-worktree prepared rows lacked schema context.",
+    "proxy_dev_seen": {
+      "rows": 327,
+      "dialog_count": 100,
+      "table_f1": 0.0,
+      "column_f1": 0.06422018348623854,
+      "skeleton_f1": 0.6781830979078686,
+      "selected_count_match": 0.8470948012232415,
+      "macro_planner_score": 0.5750251808164653
+    },
+    "clean_local_holdout": {
+      "rows": 680,
+      "dialog_count": 193,
+      "table_f1": 0.0,
+      "column_f1": 0.033823529411764704,
+      "skeleton_f1": 0.6614624183006536,
+      "selected_count_match": 0.8382352941176471,
+      "macro_planner_score": 0.5743188316993464
+    }
+  },
+  "after": {
+    "description": "Fresh-worktree prepared rows include schema and semantic model context from tables.json.",
+    "proxy_dev_seen": {
+      "rows": 327,
+      "dialog_count": 100,
+      "table_f1": 0.6500882569689909,
+      "column_f1": 0.1346180896750592,
+      "skeleton_f1": 0.654113877967089,
+      "selected_count_match": 0.18654434250764526,
+      "macro_planner_score": 0.5795084913791446
+    },
+    "clean_local_holdout": {
+      "rows": 680,
+      "dialog_count": 193,
+      "table_f1": 0.6325642331524685,
+      "column_f1": 0.1456048193380943,
+      "skeleton_f1": 0.6510877684407096,
+      "selected_count_match": 0.17058823529411765,
+      "macro_planner_score": 0.582609308498762
+    }
+  },
+  "interpretation": [
+    "Schema context restoration fixes the table-linking blind spot: table F1 moves from 0.0 to 0.650 on proxy and 0.633 on clean holdout.",
+    "Column and projection-shape quality remain too weak for another predicted-planner SQL endpoint run.",
+    "The next Checkpoint 5 work should improve non-oracle column linking and selected-count/projection prediction before running eval.run_predicted_planner_comparison."
+  ]
+}

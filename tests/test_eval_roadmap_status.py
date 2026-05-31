@@ -25,7 +25,7 @@ def _write_registry(path: Path) -> None:
         (
             "predicted_planner_sql_vs_direct",
             5,
-            "blocked_by_planner_quality",
+            "schema_context_restored_needs_planner_quality",
             "predicted_planner_sql",
             "direct_sql_full_non_oracle_control",
         ),
@@ -317,8 +317,15 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
     assert by_checkpoint[3]["status"] == "complete"
     assert "docs/training_runs/direct_sql_full_lora_20260531.json" in by_checkpoint[3]["evidence"]
     assert "eval.planner_readiness promotion policy" in by_checkpoint[5]["evidence"]
+    assert (
+        "docs/training_runs/planner_schema_context_repair_20260531.json"
+        in by_checkpoint[5]["evidence"]
+    )
     assert by_checkpoint[5]["open_items"] == [
-        "planner readiness must pass before another predicted-planner SQL run"
+        (
+            "improve non-oracle column linking and projection quality before "
+            "another predicted-planner SQL run"
+        )
     ]
     assert (
         "eval.compare_semantic_value_retrieval promotion policy"

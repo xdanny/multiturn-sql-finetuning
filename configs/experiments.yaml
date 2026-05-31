@@ -32,7 +32,7 @@ experiments:
 
   - experiment_id: predicted_planner_sql_vs_direct
     checkpoint: 5
-    status: blocked_by_planner_quality
+    status: schema_context_restored_needs_planner_quality
     hypothesis_id: planner_state
     hypothesis: >-
       Non-oracle predicted planner state improves SQL execution only after
@@ -51,8 +51,9 @@ experiments:
     control_experiment_id: direct_sql_full_non_oracle_control
     primary_metric: predicted_planner_value_delta_vs_direct_sql
     claim_boundary: >-
-      Current lexical planner evidence is negative; do not run another endpoint
-      comparison until planner quality improves.
+      Split-prepared rows now restore schema context for planner scoring, but
+      column linking and projection quality remain too weak for another
+      endpoint comparison.
 
   - experiment_id: semantic_value_retrieval_vs_direct
     checkpoint: 6

@@ -5,7 +5,8 @@ program. It replaces the old gate-heavy day-to-day direction with smaller,
 row-matched method comparisons.
 
 Last audited: 2026-05-31 after the Checkpoint 3 endpoint evaluation,
-generated-history rollout, and clean-holdout failure analysis.
+generated-history rollout, clean-holdout failure analysis, and Checkpoint 5
+planner schema-context repair.
 
 Checkpoint status legend:
 
@@ -335,9 +336,9 @@ uv run --active --no-sync python -m scripts.direct_sql_full_control \
 
 ## Checkpoint 5: Planner First, But Non-Oracle
 
-Status: `[~]` in progress. Non-oracle planner scoring and a 24-turn negative
-predicted-planner comparison exist; planner quality is not yet high enough to
-promote another SQL-generation run.
+Status: `[~]` in progress. Non-oracle planner scoring, a 24-turn negative
+predicted-planner comparison, and a schema-context repair exist; planner
+quality is not yet high enough to promote another SQL-generation run.
 
 Train or prompt a planner only on training-split gold labels. Evaluate planner
 F1 on held-out rows before feeding predicted plans into SQL generation.
@@ -364,6 +365,23 @@ enough rows, no planner parse errors, bounded low-macro-score rate, minimum
 mean table/column/skeleton/projection scores, and a ready endpoint-pair
 preflight. A readiness summary is not a SQL win; it only decides whether the
 next same-row predicted-planner SQL comparison is worth running.
+
+Latest Checkpoint 5 evidence from 2026-05-31:
+
+- Split preparation now resolves repo-relative `tables_path` through
+  `--source-root`, so fresh worktrees include schema and semantic model context
+  in prepared CoSQL rows instead of database IDs and questions only.
+- Lexical planner table F1 moved from `0.000` to `0.650` on the proxy rows and
+  from `0.000` to `0.633` on the clean holdout rows.
+- Macro planner score moved only from `0.575` to `0.580` on proxy and from
+  `0.574` to `0.583` on clean holdout because column linking and projection
+  shape remain weak.
+- The evidence file is
+  `docs/training_runs/planner_schema_context_repair_20260531.json`.
+
+The next Checkpoint 5 work should improve non-oracle column linking and
+selected-count/projection prediction before running another
+`eval.run_predicted_planner_comparison` endpoint pair.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 
