@@ -220,10 +220,11 @@ def summarize_roadmap_status(
                 "docs/training_runs/lexical_predicted_planner_limit24.json",
                 "docs/training_runs/planner_schema_context_repair_20260531.json",
                 "docs/training_runs/planner_projection_prior_20260531.json",
+                "docs/training_runs/planner_generic_column_prior_20260531.json",
             ],
             open_items=[
                 (
-                    "improve non-oracle table, column, and skeleton quality before "
+                    "improve non-oracle column and skeleton quality before "
                     "another predicted-planner SQL run"
                 )
             ],
