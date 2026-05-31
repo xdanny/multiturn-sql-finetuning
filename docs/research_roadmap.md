@@ -4,7 +4,7 @@ This is the canonical long-term roadmap for the multi-turn SQL fine-tuning
 program. It replaces the old gate-heavy day-to-day direction with smaller,
 row-matched method comparisons.
 
-Last audited: 2026-05-31 on commit `2e1b804`.
+Last audited: 2026-05-31 on commit `53747d3`.
 
 Checkpoint status legend:
 
@@ -193,6 +193,20 @@ Current Checkpoint 3 preparation artifacts:
 - `configs/experiments.yaml` marks `direct_sql_full_non_oracle_control` as
   `input_prep_ready`, not as a measured baseline.
 
+Latest local Checkpoint 3 run state from 2026-05-31:
+
+- A non-`/tmp` GPU worktree prepared the direct-SQL train, proxy, and clean
+  holdout JSONL files from the frozen split manifests.
+- The prepared train/proxy validation path loaded 2,159 train rows and 100
+  proxy rows; the train/clean-holdout validation path loaded 2,159 train rows
+  and 193 clean-holdout rows.
+- The RTX 5090 LoRA training path reached the active training loop only after
+  running unsandboxed with `CC=/home/dan/.local/bin/cc` and Zig cache env vars
+  for Triton runtime compilation.
+- The training run was intentionally stopped before a checkpoint or final
+  adapter was written. There is still no full direct-SQL LoRA artifact, no
+  base/LoRA endpoint eval manifest, and no generated-history rollout manifest.
+
 Print the complete Checkpoint 3 workflow before running anything expensive:
 
 ```bash
@@ -205,6 +219,19 @@ Run only the cheap preparation and validation stages first:
 uv run --active --no-sync python -m scripts.direct_sql_full_control \
   --stage prepare \
   --stage validate \
+  --source-root /home/dan/docs/multiturn-sql-finetuning \
+  --run
+```
+
+When resuming GPU LoRA training in a fresh worktree, use the runner's explicit
+compiler flags and run it unsandboxed so WSL CUDA is visible:
+
+```bash
+uv run --active --no-sync python -m scripts.direct_sql_full_control \
+  --stage train \
+  --cc /home/dan/.local/bin/cc \
+  --zig-cache-dir /tmp/zig-cache \
+  --train-report-to none \
   --run
 ```
 

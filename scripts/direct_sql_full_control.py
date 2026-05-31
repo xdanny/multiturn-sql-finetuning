@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shlex
 import subprocess
 from collections.abc import Iterable, Sequence
@@ -27,9 +28,11 @@ class WorkflowStep:
     stage: str
     name: str
     command: tuple[str, ...]
+    env: tuple[tuple[str, str], ...] = ()
 
     def shell_command(self) -> str:
-        return shlex.join(self.command)
+        env_prefix = tuple(f"{key}={value}" for key, value in self.env)
+        return shlex.join((*env_prefix, *self.command))
 
 
 def _uv_python_module_command(module: str, *args: str) -> tuple[str, ...]:
@@ -55,6 +58,16 @@ def _append_optional_path(command: list[str], flag: str, path: Path | None) -> N
 def _append_optional_int(command: list[str], flag: str, value: int | None) -> None:
     if value is not None:
         command.extend([flag, str(value)])
+
+
+def _append_optional_str(command: list[str], flag: str, value: str | None) -> None:
+    if value is not None:
+        command.extend([flag, value])
+
+
+def _append_source_roots(command: list[str], source_roots: Sequence[Path]) -> None:
+    for source_root in source_roots:
+        command.extend(["--source-root", str(source_root)])
 
 
 def _append_cost_flags(
@@ -96,6 +109,10 @@ def build_workflow_steps(
     base_model_name: str | None = None,
     lora_model_name: str = DEFAULT_LORA_MODEL_NAME,
     database_root: Path | None = None,
+    source_roots: Sequence[Path] = (),
+    cc: str | None = None,
+    zig_cache_dir: Path | None = None,
+    train_report_to: str | None = None,
     eval_limit: int | None = None,
     rollout_limit_dialogs: int | None = None,
     prompt_token_cost_usd_per_1k: float = 0.0,
@@ -113,6 +130,16 @@ def build_workflow_steps(
     holdout_entry = _prepared_entry(config, "clean_local_holdout")
     result_manifests = _artifact_entries(config, "result_manifests")
     rollout_manifests = _artifact_entries(config, "generated_history_rollout_manifests")
+    train_env: list[tuple[str, str]] = []
+    if cc:
+        train_env.append(("CC", cc))
+    if zig_cache_dir is not None:
+        train_env.extend(
+            (
+                ("ZIG_GLOBAL_CACHE_DIR", str(zig_cache_dir)),
+                ("ZIG_LOCAL_CACHE_DIR", str(zig_cache_dir)),
+            )
+        )
 
     steps: list[WorkflowStep] = []
     for name, entry in (
@@ -120,19 +147,23 @@ def build_workflow_steps(
         ("proxy_dev_seen", proxy_entry),
         ("clean_local_holdout", holdout_entry),
     ):
+        command = list(
+            _uv_python_module_command(
+                "data.prepare_split",
+                "--split-id",
+                str(entry["split_id"]),
+                "--output",
+                str(entry["path"]),
+                "--manifest-output",
+                str(entry["manifest"]),
+            )
+        )
+        _append_source_roots(command, source_roots)
         steps.append(
             WorkflowStep(
                 stage="prepare",
                 name=f"prepare_{name}",
-                command=_uv_python_module_command(
-                    "data.prepare_split",
-                    "--split-id",
-                    str(entry["split_id"]),
-                    "--output",
-                    str(entry["path"]),
-                    "--manifest-output",
-                    str(entry["manifest"]),
-                ),
+                command=tuple(command),
             )
         )
 
@@ -157,19 +188,24 @@ def build_workflow_steps(
             )
         )
 
+    train_command = list(
+        _uv_python_module_command(
+            "train.finetune",
+            "--config",
+            str(config_path),
+            "--data",
+            str(train_entry["path"]),
+            "--eval-data",
+            str(proxy_entry["path"]),
+        )
+    )
+    _append_optional_str(train_command, "--report-to", train_report_to)
     steps.append(
         WorkflowStep(
             stage="train",
             name="train_lora",
-            command=_uv_python_module_command(
-                "train.finetune",
-                "--config",
-                str(config_path),
-                "--data",
-                str(train_entry["path"]),
-                "--eval-data",
-                str(proxy_entry["path"]),
-            ),
+            command=tuple(train_command),
+            env=tuple(train_env),
         )
     )
 
@@ -298,7 +334,9 @@ def print_steps(steps: Sequence[WorkflowStep]) -> None:
 def run_steps(steps: Sequence[WorkflowStep]) -> None:
     for step in steps:
         print(f"$ {step.shell_command()}", flush=True)
-        subprocess.run(step.command, check=True)
+        env = os.environ.copy()
+        env.update(step.env)
+        subprocess.run(step.command, check=True, env=env)
 
 
 def main() -> int:
@@ -311,6 +349,25 @@ def main() -> int:
     parser.add_argument("--base-model-name", default=None)
     parser.add_argument("--lora-model-name", default=DEFAULT_LORA_MODEL_NAME)
     parser.add_argument("--database-root", type=Path, default=None)
+    parser.add_argument(
+        "--source-root",
+        action="append",
+        type=Path,
+        default=[],
+        help="Additional roots data.prepare_split can read raw data from.",
+    )
+    parser.add_argument("--cc", default=None, help="Set CC for the training step.")
+    parser.add_argument(
+        "--zig-cache-dir",
+        type=Path,
+        default=None,
+        help="Set both ZIG_GLOBAL_CACHE_DIR and ZIG_LOCAL_CACHE_DIR for training.",
+    )
+    parser.add_argument(
+        "--train-report-to",
+        default=None,
+        help="Override train.finetune --report-to for the training step.",
+    )
     parser.add_argument("--eval-limit", type=int, default=None)
     parser.add_argument("--rollout-limit-dialogs", type=int, default=None)
     parser.add_argument("--prompt-token-cost-usd-per-1k", type=float, default=0.0)
@@ -326,6 +383,10 @@ def main() -> int:
             base_model_name=args.base_model_name,
             lora_model_name=args.lora_model_name,
             database_root=args.database_root,
+            source_roots=tuple(args.source_root),
+            cc=args.cc,
+            zig_cache_dir=args.zig_cache_dir,
+            train_report_to=args.train_report_to,
             eval_limit=args.eval_limit,
             rollout_limit_dialogs=args.rollout_limit_dialogs,
             prompt_token_cost_usd_per_1k=args.prompt_token_cost_usd_per_1k,

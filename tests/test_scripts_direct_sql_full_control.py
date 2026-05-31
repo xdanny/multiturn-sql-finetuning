@@ -106,6 +106,35 @@ def test_build_workflow_steps_supports_smoke_limits_and_model_names() -> None:
     assert _flag_value(rollout, "--limit-dialogs") == "3"
 
 
+def test_build_workflow_steps_supports_source_roots_and_training_compiler_env() -> None:
+    steps = build_workflow_steps(
+        config_path=Path("configs/direct_sql_full_non_oracle.yaml"),
+        source_roots=(Path("/home/dan/docs/multiturn-sql-finetuning"),),
+        cc="/home/dan/.local/bin/cc",
+        zig_cache_dir=Path("/tmp/zig-cache"),
+        train_report_to="none",
+    )
+    by_name = {step.name: step for step in steps}
+
+    prepare_train = by_name["prepare_train"]
+    assert _flag_value(prepare_train.command, "--source-root") == (
+        "/home/dan/docs/multiturn-sql-finetuning"
+    )
+
+    train = by_name["train_lora"]
+    assert train.env == (
+        ("CC", "/home/dan/.local/bin/cc"),
+        ("ZIG_GLOBAL_CACHE_DIR", "/tmp/zig-cache"),
+        ("ZIG_LOCAL_CACHE_DIR", "/tmp/zig-cache"),
+    )
+    assert _flag_value(train.command, "--report-to") == "none"
+    assert train.shell_command().startswith(
+        "CC=/home/dan/.local/bin/cc "
+        "ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache "
+        "ZIG_LOCAL_CACHE_DIR=/tmp/zig-cache "
+    )
+
+
 def test_filter_steps_selects_explicit_stages() -> None:
     steps = build_workflow_steps(config_path=Path("configs/direct_sql_full_non_oracle.yaml"))
 
