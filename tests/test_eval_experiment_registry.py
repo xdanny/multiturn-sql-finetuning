@@ -73,6 +73,94 @@ experiments:
         raise AssertionError("missing scorer should fail")
 
 
+def test_experiment_registry_loader_rejects_missing_comparison_control(tmp_path) -> None:
+    config = tmp_path / "experiments.yaml"
+    config.write_text(
+        """
+schema_version: 1
+experiments:
+  - experiment_id: direct
+    checkpoint: 3
+    status: planned
+    hypothesis_id: direct_sql
+    hypothesis: direct control
+    train_split_id: train
+    validation_split_id: validation
+    test_split_id: test
+    dataset_role: validation
+    benchmark_protocol_id: synthetic_schema_rich_method_fixture
+    model: model
+    method: direct_sql
+    oracle_policy: non_oracle_generation
+    scorer: scorer
+    output_path: results/runs/direct
+    primary_metric: value_accuracy
+    claim_boundary: test only
+  - experiment_id: method
+    checkpoint: 5
+    status: planned
+    hypothesis_id: planner
+    hypothesis: method comparison
+    train_split_id: train
+    validation_split_id: validation
+    test_split_id: test
+    dataset_role: validation
+    benchmark_protocol_id: synthetic_schema_rich_method_fixture
+    model: model
+    method: predicted_planner_sql
+    oracle_policy: non_oracle_generation
+    scorer: scorer
+    output_path: results/runs/method
+    primary_metric: value_delta
+    claim_boundary: test only
+""",
+        encoding="utf-8",
+    )
+
+    try:
+        load_experiment_registry(config)
+    except ValueError as exc:
+        assert "method: comparison experiments must name control_experiment_id" in str(exc)
+    else:
+        raise AssertionError("missing comparison control should fail")
+
+
+def test_experiment_registry_loader_rejects_unknown_control(tmp_path) -> None:
+    config = tmp_path / "experiments.yaml"
+    config.write_text(
+        """
+schema_version: 1
+experiments:
+  - experiment_id: method
+    checkpoint: 5
+    status: planned
+    hypothesis_id: planner
+    hypothesis: method comparison
+    train_split_id: train
+    validation_split_id: validation
+    test_split_id: test
+    dataset_role: validation
+    benchmark_protocol_id: synthetic_schema_rich_method_fixture
+    model: model
+    method: predicted_planner_sql
+    oracle_policy: non_oracle_generation
+    scorer: scorer
+    output_path: results/runs/method
+    control_experiment_id: typo_control
+    primary_metric: value_delta
+    claim_boundary: test only
+""",
+        encoding="utf-8",
+    )
+
+    try:
+        load_experiment_registry(config)
+    except ValueError as exc:
+        assert "method: unknown control_experiment_id 'typo_control'" in str(exc)
+    else:
+        raise AssertionError("unknown control should fail")
+
+
 def test_experiment_registry_map_is_keyed_by_stable_id() -> None:
     experiments = experiment_registry_map(REPO_ROOT / "configs" / "experiments.yaml")
 
