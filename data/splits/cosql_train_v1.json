@@ -2314,7 +2314,7 @@
     "start_inclusive": 0,
     "type": "dialog_index_range"
   },
-  "source_path": "/home/dan/docs/multiturn-sql-finetuning/data/raw/cosql_dataset/sql_state_tracking/cosql_train.json",
+  "source_path": "data/raw/cosql_dataset/sql_state_tracking/cosql_train.json",
   "source_sha256": "e8d063db374a9a7b046c7406b573dc55d4ec0983b6bde927d5153058ad5ae8ef",
   "source_split": "train",
   "split_id": "cosql_train_v1",

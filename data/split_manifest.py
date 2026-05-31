@@ -40,6 +40,14 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _portable_source_path(path: Path) -> str:
+    parts = path.parts
+    for index in range(len(parts) - 1):
+        if parts[index : index + 2] in (("data", "raw"), ("docs", "data_artifacts")):
+            return str(Path(*parts[index:]))
+    return str(path)
+
+
 def _cosql_dialog_id(split_name: str, index: int, database_id: str) -> str:
     return f"cosql_{split_name}:{index:04d}:{database_id}"
 
@@ -78,7 +86,7 @@ def _cosql_manifest(
         "dataset": "CoSQL",
         "role": role,
         "status": status,
-        "source_path": str(source_path),
+        "source_path": _portable_source_path(source_path),
         "source_sha256": _sha256_bytes(source_path.read_bytes()),
         "source_split": source_split,
         "selection": {
@@ -109,7 +117,7 @@ def _synthetic_manifest(path: Path) -> dict[str, Any]:
         "dataset": "synthetic_method_fixtures",
         "role": "validation",
         "status": "ready",
-        "source_path": str(path),
+        "source_path": _portable_source_path(path),
         "source_sha256": _sha256_bytes(path.read_bytes()),
         "row_id_policy": "fixture_id",
         "row_ids": fixture_ids,

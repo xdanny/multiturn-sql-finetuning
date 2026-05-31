@@ -228,7 +228,7 @@
     "start_inclusive": 100,
     "type": "dialog_index_range"
   },
-  "source_path": "/home/dan/docs/multiturn-sql-finetuning/data/raw/cosql_dataset/sql_state_tracking/cosql_dev.json",
+  "source_path": "data/raw/cosql_dataset/sql_state_tracking/cosql_dev.json",
   "source_sha256": "fd93ff8534f1fb4031b1ff52e8520c98aa8d082162599061e753b44ea26ce96d",
   "source_split": "dev",
   "split_id": "cosql_dev_clean_holdout_v1",

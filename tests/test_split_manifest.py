@@ -116,3 +116,13 @@ def test_split_manifest_writer_round_trips(tmp_path) -> None:
     assert len(written) == 7
     for path in written:
         assert load_split_manifest(path)["split_id"] == path.stem
+
+
+def test_checked_in_source_paths_are_portable() -> None:
+    split_dir = REPO_ROOT / "data" / "splits"
+
+    for path in sorted(split_dir.glob("*.json")):
+        manifest = load_split_manifest(path)
+        source_path = manifest.get("source_path", "")
+        assert not source_path.startswith("/")
+        assert "/home/" not in source_path
