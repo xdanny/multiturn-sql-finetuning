@@ -16,6 +16,16 @@ from typing import Any
 METRIC_DSL = "metric_dsl"
 METRIC_DSL_DIRECT_SQL = "metric_dsl_direct_sql"
 NON_ORACLE_GENERATION = "non_oracle_generation"
+METRIC_DSL_PROMOTION_POLICY = {
+    "minimum_comparable_row_count": 24,
+    "required_split_role": "clean_local_holdout",
+    "minimum_parse_rate": 1.0,
+    "minimum_compile_rate": 1.0,
+    "minimum_measure_preservation": 1.0,
+    "minimum_value_delta_vs_direct_sql": 0.0,
+    "minimum_strict_delta_vs_direct_sql": 0.0,
+    "maximum_semantic_model_oracle_derived_rows": 0,
+}
 ORACLE_MARKERS = (
     "Oracle SQL planning hints",
     "SQL planning hints:",
@@ -146,6 +156,9 @@ def compare_metric_dsl_direct_sql_manifests(
     metric_strict = _metric(metric_dsl_manifest, "strict_execution_accuracy")
     direct_value = _metric(direct_sql_manifest, "value_execution_accuracy")
     direct_strict = _metric(direct_sql_manifest, "strict_execution_accuracy")
+    value_delta = metric_value - direct_value
+    strict_delta = metric_strict - direct_strict
+    comparable_row_count = len(metric_dsl_rows)
 
     compared = dict(metric_dsl_manifest)
     compared_metrics = dict(metric_dsl_manifest.get("metrics") or {})
@@ -157,12 +170,20 @@ def compare_metric_dsl_direct_sql_manifests(
             "direct_sql_output_sha256": direct_sql_manifest.get("output_sha256"),
             "direct_sql_value_execution_accuracy": direct_value,
             "direct_sql_strict_execution_accuracy": direct_strict,
-            "metric_dsl_value_delta_vs_direct_sql": metric_value - direct_value,
-            "metric_dsl_strict_delta_vs_direct_sql": metric_strict - direct_strict,
+            "metric_dsl_value_delta_vs_direct_sql": value_delta,
+            "metric_dsl_strict_delta_vs_direct_sql": strict_delta,
             "metric_dsl_measure_preservation": _metric(
                 metric_dsl_manifest, "measure_preservation"
             ),
-            "metric_dsl_comparable_row_count": len(metric_dsl_rows),
+            "metric_dsl_comparable_row_count": comparable_row_count,
+        }
+    )
+    promotion_blockers = metric_dsl_promotion_blockers(compared_metrics)
+    compared_metrics.update(
+        {
+            "metric_dsl_promotion_policy": METRIC_DSL_PROMOTION_POLICY,
+            "metric_dsl_promotion_blockers": promotion_blockers,
+            "metric_dsl_promotion_ready": not promotion_blockers,
         }
     )
     compared["metrics"] = compared_metrics
@@ -171,6 +192,47 @@ def compare_metric_dsl_direct_sql_manifests(
         str(direct_sql_manifest.get("run_id")),
     ]
     return compared
+
+
+def metric_dsl_promotion_blockers(metrics: dict[str, Any]) -> list[str]:
+    """Return blockers before Metric DSL can support a method claim."""
+
+    policy = METRIC_DSL_PROMOTION_POLICY
+    blockers = []
+    comparable_row_count = int(metrics.get("metric_dsl_comparable_row_count") or 0)
+    if comparable_row_count < policy["minimum_comparable_row_count"]:
+        blockers.append(
+            f"comparable row count below minimum {policy['minimum_comparable_row_count']}"
+        )
+    split_roles = {
+        str(role): int(count)
+        for role, count in (metrics.get("split_roles") or {}).items()
+    }
+    required_split_role = str(policy["required_split_role"])
+    if required_split_role not in split_roles:
+        blockers.append(f"missing required split role {required_split_role}")
+    parse_rate = float(metrics.get("metric_dsl_parse_rate") or 0.0)
+    if parse_rate < float(policy["minimum_parse_rate"]):
+        blockers.append("metric DSL parse rate below promotion policy")
+    compile_rate = float(metrics.get("metric_dsl_compile_rate") or 0.0)
+    if compile_rate < float(policy["minimum_compile_rate"]):
+        blockers.append("metric DSL compile rate below promotion policy")
+    evaluated_rows = int(metrics.get("compiled_sql_execution_evaluated_rows") or 0)
+    if evaluated_rows < comparable_row_count:
+        blockers.append("not all comparable DSL rows have compiled SQL execution scores")
+    measure_preservation = float(metrics.get("metric_dsl_measure_preservation") or 0.0)
+    if measure_preservation < float(policy["minimum_measure_preservation"]):
+        blockers.append("measure preservation below promotion policy")
+    value_delta = float(metrics.get("metric_dsl_value_delta_vs_direct_sql") or 0.0)
+    if value_delta <= float(policy["minimum_value_delta_vs_direct_sql"]):
+        blockers.append("value delta vs direct SQL must be positive")
+    strict_delta = float(metrics.get("metric_dsl_strict_delta_vs_direct_sql") or 0.0)
+    if strict_delta < float(policy["minimum_strict_delta_vs_direct_sql"]):
+        blockers.append("strict delta vs direct SQL must not regress")
+    oracle_rows = int(metrics.get("semantic_model_oracle_derived_rows") or 0)
+    if oracle_rows > int(policy["maximum_semantic_model_oracle_derived_rows"]):
+        blockers.append("semantic model must not be oracle-derived")
+    return blockers
 
 
 def _load_manifest(path: Path) -> dict[str, Any]:
