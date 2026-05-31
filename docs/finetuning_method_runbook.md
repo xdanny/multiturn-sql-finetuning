@@ -94,9 +94,13 @@ Order-aware readiness update:
 regenerating the train-split planner-SFT rows produced identical targets, while
 rescoring the existing 24-turn clean-holdout planner predictions found ordered
 selected-expression match `0.792`, below the `0.900` readiness threshold.
+`docs/training_runs/planner_orderaware_readiness_rerun_20260531.json` then
+records the local 24-turn planner prediction rerun under the same policy:
+selected-count match stays `1.000`, but ordered selected-expression match stays
+`0.792`, so readiness still recommends `improve_planner_before_comparison`.
 
-Next useful movement: rerun planner predictions under the order-aware readiness
-policy, then rerun a bounded same-row SQL pair before any broader endpoint pair.
+Next useful movement: improve planner projection-expression sequence quality,
+then rerun a bounded same-row SQL pair before any broader endpoint pair.
 
 ## Semantic-Layer Tuning
 
