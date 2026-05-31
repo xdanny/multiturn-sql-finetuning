@@ -1,0 +1,155 @@
+{
+  "artifact_type": "predicted_planner_sql_regression_analysis",
+  "examples": [
+    {
+      "bucket": "both_wrong",
+      "database_id": "car_1",
+      "direct_error": null,
+      "direct_sql": "SELECT FullName FROM car_makers WHERE Maker  =  \"AMC\"",
+      "id": "prepared-0:0",
+      "planner_macro_score": 1.0,
+      "predicted_error": null,
+      "predicted_sql": "SELECT fullname FROM car_makers WHERE maker  =  \"AMC\"",
+      "question": "tell me the FullName of the maker amc",
+      "reference_sql": "SELECT Fullname FROM car_makers WHERE maker  =  \"amc\"",
+      "regression_cause": null
+    },
+    {
+      "bucket": "both_wrong",
+      "database_id": "car_1",
+      "direct_error": "Execution failed on sql 'SELECT countryname FROM countries WHERE countryid = 1 or countryid = 2 or countryid = 3 )': near \")\": syntax error",
+      "direct_sql": "SELECT CountryName FROM countries WHERE countryid  =  1 or countryid  =  2 or countryid  =  3",
+      "id": "prepared-0:1",
+      "planner_macro_score": 1.0,
+      "predicted_error": "Execution failed on sql 'SELECT countryname FROM countries WHERE countryid = 1 or countryid = 2 or countryid = 3 )': near \")\": syntax error",
+      "predicted_sql": "SELECT CountryName FROM countries WHERE CountryId  =  1 or CountryId  =  2 or CountryId  =  3",
+      "question": "Tell me CountryName for Countryid 1, 2, and 3.",
+      "reference_sql": "SELECT countryname FROM countries WHERE countryid = 1 or countryid = 2 or countryid = 3 ) ",
+      "regression_cause": null
+    },
+    {
+      "bucket": "direct_only_regression",
+      "database_id": "car_1",
+      "direct_error": null,
+      "direct_sql": "SELECT T1.modelid FROM model_list AS T1 JOIN car_makers AS T2 ON T1.maker  =  T2.id WHERE T2.maker  =  \"amc\"",
+      "id": "prepared-0:2",
+      "planner_macro_score": 0.6833333333333333,
+      "predicted_error": null,
+      "predicted_sql": "SELECT T2.ModelID FROM car_makers AS T1 JOIN model_list AS T2 ON T1.id  =  T2.maker WHERE T1.fullname  =  \"AMC\"",
+      "question": "Tell me the model id made by amc...",
+      "reference_sql": "SELECT modelid FROM model_list WHERE model  =  \"amc\"",
+      "regression_cause": "planner_state_error"
+    },
+    {
+      "bucket": "planner_only_fix",
+      "database_id": "car_1",
+      "direct_error": "Execution failed on sql 'SELECT T1.countryid ,  T1.countryname FROM countries AS T1 JOIN car_makers AS T2 ON T1.countryid   =   T2.country WHERE T2.num_of_makers  >  3 UNION SELECT T1.countryid ,  T1.countryname FROM countries AS T1 JOIN car_makers AS T2 ON T1.countryid   =   T2.country JOIN model_list AS T3 ON T2.id   =   T3.maker WHERE T3.model   =   'Fiat'': no such column: T2.num_of_makers",
+      "direct_sql": "SELECT T1.countryid ,  T1.countryname FROM countries AS T1 JOIN car_makers AS T2 ON T1.countryid   =   T2.country WHERE T2.num_of_makers  >  3 UNION SELECT T1.countryid ,  T1.countryname FROM countries AS T1 JOIN car_makers AS T2 ON T1.countryid   =   T2.country JOIN model_list AS T3 ON T2.id   =   T3.maker WHERE T3.model   =   'Fiat'",
+      "id": "prepared-0:3",
+      "planner_macro_score": 0.9514957264957264,
+      "predicted_error": null,
+      "predicted_sql": "SELECT t1.countryid ,  t1.countryname FROM countries AS t1 JOIN car_makers AS t2 ON t1.countryid   =   t2.country GROUP BY t1.countryid HAVING count ( * )   >  3 UNION SELECT t1.countryid ,  t1.countryname FROM countries AS t1 JOIN car_makers AS t2 ON t1.countryid   =   t2.country JOIN model_list AS t3 ON t2.id   =   t3.maker WHERE t3.model   =   'fiat'",
+      "question": "What are the id and names of the countries which have more than 3 car makers or produce the 'fiat' model ?",
+      "reference_sql": "SELECT T1.countryId ,  T1.CountryName FROM Countries AS T1 JOIN CAR_MAKERS AS T2 ON T1.CountryId   =   T2.Country GROUP BY T1.countryId HAVING count ( * )   >  3 UNION SELECT T1.countryId ,  T1.CountryName FROM Countries AS T1 JOIN CAR_MAKERS AS T2 ON T1.CountryId   =   T2.Country JOIN MODEL_LIST AS T3 ON T2.Id   =   T3.Maker WHERE T3.Model   =   'fiat'",
+      "regression_cause": null
+    },
+    {
+      "bucket": "direct_only_regression",
+      "database_id": "orchestra",
+      "direct_error": null,
+      "direct_sql": "SELECT Orchestra_ID, Orchestra FROM orchestra WHERE Orchestra_ID NOT IN  ( SELECT Orchestra_ID FROM performance )",
+      "id": "prepared-2:2",
+      "planner_macro_score": 0.9583333333333334,
+      "predicted_error": null,
+      "predicted_sql": "SELECT Orchestra ,  Orchestra_ID FROM orchestra WHERE Orchestra_ID NOT IN  ( SELECT Orchestra_ID FROM performance )",
+      "question": "Can you show me its id and its name please?",
+      "reference_sql": "SELECT Orchestra_ID, Orchestra FROM orchestra WHERE Orchestra_ID NOT IN  ( SELECT Orchestra_ID FROM performance ) ",
+      "regression_cause": "projection_order_flip"
+    },
+    {
+      "bucket": "direct_only_regression",
+      "database_id": "concert_singer",
+      "direct_error": null,
+      "direct_sql": "SELECT T1.Name ,  T1.Location FROM stadium AS T1 JOIN concert AS T2 ON T1.Stadium_ID   =   T2.Stadium_ID WHERE T2.Year   =   2014 INTERSECT SELECT T1.Name ,  T1.Location FROM stadium AS T1 JOIN concert AS T2 ON T1.Stadium_ID   =   T2.Stadium_ID WHERE T2.Year   =   2015",
+      "id": "prepared-3:0",
+      "planner_macro_score": 1.0,
+      "predicted_error": null,
+      "predicted_sql": "SELECT T1.Location ,  T1.Name FROM stadium AS T1 JOIN concert AS T2 ON T1.Stadium_ID   =   T2.Stadium_ID WHERE T2.Year   =   2014 INTERSECT SELECT T1.Location ,  T1.Name FROM stadium AS T1 JOIN concert AS T2 ON T1.Stadium_ID   =   T2.Stadium_ID WHERE T2.Year   =   2015",
+      "question": "Find the name and location of the stadiums which some concerts happened in the years of both 2014 and 2015.",
+      "reference_sql": "SELECT T2.name ,  T2.location FROM concert AS T1 JOIN stadium AS T2 ON T1.stadium_id   =   T2.stadium_id WHERE T1.Year   =   2014 INTERSECT SELECT T2.name ,  T2.location FROM concert AS T1 JOIN stadium AS T2 ON T1.stadium_id   =   T2.stadium_id WHERE T1.Year   =   2015",
+      "regression_cause": "projection_order_flip"
+    },
+    {
+      "bucket": "direct_only_regression",
+      "database_id": "flight_2",
+      "direct_error": null,
+      "direct_sql": "SELECT count ( * )  FROM airlines AS T1 JOIN flights AS T2 ON T1.uid   =   T2.Airline WHERE T1.Airline   =   \"United Airlines\"",
+      "id": "prepared-4:0",
+      "planner_macro_score": 0.6833333333333333,
+      "predicted_error": "Execution failed on sql 'SELECT count ( * )  FROM airlines AS T1 JOIN flights AS T2 ON T1.uid   =   T2.airline WHERE T1.name   =   'United Airlines'': no such column: T1.name",
+      "predicted_sql": "SELECT count ( * )  FROM airlines AS T1 JOIN flights AS T2 ON T1.uid   =   T2.airline WHERE T1.name   =   'United Airlines'",
+      "question": "how many flights does United Airlines operate in USA? | What do you mean by operate in USA? | how many flights does United Airlines have?",
+      "reference_sql": "SELECT count ( * )  FROM AIRLINES AS T1 JOIN FLIGHTS AS T2 ON T2.Airline   =   T1.uid WHERE T1.Airline   =   \"United Airlines\"",
+      "regression_cause": "predicted_sql_execution_error"
+    },
+    {
+      "bucket": "direct_only_regression",
+      "database_id": "student_transcripts_tracking",
+      "direct_error": null,
+      "direct_sql": "SELECT T1.semester_name ,  T1.semester_id FROM semesters AS T1 JOIN student_enrolment AS T2 ON T1.semester_id   =   T2.semester_id GROUP BY T1.semester_id ORDER BY count ( * )  DESC LIMIT 1",
+      "id": "prepared-5:3",
+      "planner_macro_score": 1.0,
+      "predicted_error": null,
+      "predicted_sql": "SELECT T1.semester_id ,  T1.semester_name FROM semesters AS T1 JOIN student_enrolment AS T2 ON T1.semester_id   =   T2.semester_id GROUP BY T1.semester_id ORDER BY count ( * )  DESC LIMIT 1",
+      "question": "what is the semester which most student registered in? show both the name and the id.",
+      "reference_sql": "SELECT T1.semester_name ,  T1.semester_id FROM Semesters AS T1 JOIN Student_Enrolment AS T2 ON T1.semester_id   =   T2.semester_id GROUP BY T1.semester_id ORDER BY count ( * )  DESC LIMIT 1",
+      "regression_cause": "projection_order_flip"
+    },
+    {
+      "bucket": "direct_only_regression",
+      "database_id": "world_1",
+      "direct_error": null,
+      "direct_sql": "SELECT GovernmentForm ,  avg ( LifeExpectancy )  FROM country GROUP BY GovernmentForm",
+      "id": "prepared-6:0",
+      "planner_macro_score": 1.0,
+      "predicted_error": null,
+      "predicted_sql": "SELECT avg ( LifeExpectancy )  ,  GovernmentForm FROM country GROUP BY GovernmentForm",
+      "question": "What is the average life expectancy for each government form?",
+      "reference_sql": "SELECT GovernmentForm, avg ( LifeExpectancy )  FROM country GROUP BY GovernmentForm",
+      "regression_cause": "projection_order_flip"
+    }
+  ],
+  "inputs": {
+    "direct_output": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_sql_limit24.direct.jsonl",
+    "predicted_output": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_sql_limit24.predicted_planner.jsonl"
+  },
+  "interpretation": [
+    "Corrected SQL extraction removes the local chat-continuation syntax artifact.",
+    "Most direct-only regressions are projection-order flips after injecting predicted planner state.",
+    "A positive value-accuracy delta is still required before Checkpoint 5 can promote the planner path."
+  ],
+  "metrics": {
+    "bucket_counts": {
+      "both_correct": 15,
+      "both_wrong": 2,
+      "direct_only_regression": 6,
+      "planner_only_fix": 1
+    },
+    "direct_sql_strict_execution_accuracy": 0.7916666666666666,
+    "direct_sql_syntax_valid_count": 24,
+    "direct_sql_value_execution_accuracy": 0.875,
+    "mean_planner_macro_score": 0.9420762108262108,
+    "predicted_planner_strict_delta_vs_direct_sql": -0.25,
+    "predicted_planner_strict_execution_accuracy": 0.5416666666666666,
+    "predicted_planner_syntax_valid_count": 24,
+    "predicted_planner_value_delta_vs_direct_sql": -0.20833333333333337,
+    "predicted_planner_value_execution_accuracy": 0.6666666666666666,
+    "regression_cause_counts": {
+      "planner_state_error": 1,
+      "predicted_sql_execution_error": 1,
+      "projection_order_flip": 4
+    }
+  },
+  "row_count": 24,
+  "schema_version": 1
+}

@@ -439,11 +439,18 @@ Latest Checkpoint 5 evidence from 2026-05-31:
   negative downstream evidence despite strong bounded planner-label quality.
 - The evidence file is
   `docs/training_runs/planner_sft_1000_sql_limit24_negative_20260531.json`.
+- Row-level failure analysis of the corrected 24-turn pair found 15 rows both
+  arms answered correctly, 6 direct-only regressions, 1 planner-only fix, and 2
+  rows both arms missed. Of the 6 direct-only regressions, 4 were projection
+  order flips after predicted-plan injection, 1 was a planner-state error, and
+  1 was a generated SQL execution error.
+- The evidence file is
+  `docs/training_runs/planner_sft_1000_sql_failure_analysis_20260531.json`.
 
 The next Checkpoint 5 work should analyze the corrected bounded SQL regression,
+starting with projection order preservation in predicted-plan prompts, then
 inspect whether predicted plans hurt SQL prompt grounding or whether the
-direct-SQL adapter cannot exploit the plan format, and improve the non-oracle
-planner path before spending a broader endpoint pair. A positive value-accuracy
+direct-SQL adapter cannot exploit the plan format. A positive value-accuracy
 delta remains required before promoting the planner path.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding

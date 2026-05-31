@@ -79,9 +79,14 @@ extraction failures, and after correcting SQL extraction the 24-turn
 clean-holdout same-row SQL pair still regressed by `-0.2083` value accuracy
 versus the direct-SQL control.
 
-Next useful movement: analyze why the predicted plans did not help downstream
-SQL generation under the corrected extractor, then improve the non-oracle
-planner path before running a broader endpoint pair.
+Failure analysis: `docs/training_runs/planner_sft_1000_sql_failure_analysis_20260531.json`
+shows 15 rows both arms answered correctly, 6 direct-only regressions, 1
+planner-only fix, and 2 rows both arms missed. Four of the six direct-only
+regressions are projection-order flips after predicted-plan injection.
+
+Next useful movement: preserve projection order in the predicted-plan prompt and
+then improve the remaining non-oracle planner grounding issues before running a
+broader endpoint pair.
 
 ## Semantic-Layer Tuning
 

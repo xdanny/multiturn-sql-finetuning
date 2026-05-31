@@ -341,6 +341,10 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         "docs/training_runs/planner_sft_1000_sql_limit24_negative_20260531.json"
         in by_checkpoint[5]["evidence"]
     )
+    assert (
+        "docs/training_runs/planner_sft_1000_sql_failure_analysis_20260531.json"
+        in by_checkpoint[5]["evidence"]
+    )
     assert by_checkpoint[5]["open_items"] == [
         (
             "analyze the bounded SQL regression and improve the "
