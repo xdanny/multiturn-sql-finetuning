@@ -9,12 +9,15 @@ from eval.run_eval import (
     assistant_turn_indices,
     database_path_for_record,
     enforce_sql_only_instruction,
+    estimate_generation_cost_usd,
     expand_prepared_record,
     extract_reference_sql,
     generate_sql,
+    generate_sql_with_usage,
     load_prepared_records,
     messages_for_generation,
     summarize_eval_metrics,
+    usage_from_response,
     write_results,
 )
 
@@ -406,6 +409,45 @@ def test_summarize_eval_metrics_records_split_provenance_hashes() -> None:
     assert metrics["split_row_ids_sha256"] != metrics["split_eval_turn_ids_sha256"]
 
 
+def test_summarize_eval_metrics_records_token_and_cost_totals() -> None:
+    metrics = summarize_eval_metrics(
+        [
+            {
+                "execution_score": 1.0,
+                "strict_execution_score": 1.0,
+                "value_execution_score": 1.0,
+                "syntax_valid": True,
+                "generation_latency_ms": 10.0,
+                "prompt_tokens": 100,
+                "completion_tokens": 25,
+                "total_tokens": 125,
+                "estimated_generation_cost_usd": 0.00025,
+            },
+            {
+                "execution_score": 0.0,
+                "strict_execution_score": 0.0,
+                "value_execution_score": 0.0,
+                "syntax_valid": True,
+                "generation_latency_ms": 20.0,
+                "prompt_tokens": 80,
+                "completion_tokens": 20,
+                "total_tokens": 100,
+                "estimated_generation_cost_usd": 0.00020,
+            },
+        ]
+    )
+
+    assert metrics["token_usage_available_rows"] == 2
+    assert metrics["total_prompt_tokens"] == 180
+    assert metrics["total_completion_tokens"] == 45
+    assert metrics["total_tokens"] == 225
+    assert metrics["mean_prompt_tokens"] == 90
+    assert metrics["mean_completion_tokens"] == 22.5
+    assert metrics["mean_total_tokens"] == 112.5
+    assert metrics["total_estimated_generation_cost_usd"] == pytest.approx(0.00045)
+    assert metrics["mean_estimated_generation_cost_usd"] == pytest.approx(0.000225)
+
+
 def test_run_eval_manifest_records_prepared_split_provenance(tmp_path, monkeypatch) -> None:
     input_path = tmp_path / "prepared.jsonl"
     output_path = tmp_path / "results.jsonl"
@@ -442,10 +484,14 @@ def test_run_eval_manifest_records_prepared_split_provenance(tmp_path, monkeypat
         encoding="utf-8",
     )
 
-    def fake_generate_sql(*args, **kwargs):
-        return "SELECT 1", 12.0
+    def fake_generate_sql_with_usage(*args, **kwargs):
+        return "SELECT 1", 12.0, {
+            "prompt_tokens": 100,
+            "completion_tokens": 25,
+            "total_tokens": 125,
+        }
 
-    monkeypatch.setattr(run_eval_module, "generate_sql", fake_generate_sql)
+    monkeypatch.setattr(run_eval_module, "generate_sql_with_usage", fake_generate_sql_with_usage)
 
     assert (
         run_eval_module.run_eval(
@@ -462,6 +508,8 @@ def test_run_eval_manifest_records_prepared_split_provenance(tmp_path, monkeypat
             allow_oracle_plan=False,
             manifest_output=manifest_path,
             command=["uv", "run", "python", "-m", "eval.run_eval"],
+            prompt_token_cost_usd_per_1k=0.001,
+            completion_token_cost_usd_per_1k=0.002,
         )
         == 0
     )
@@ -476,6 +524,14 @@ def test_run_eval_manifest_records_prepared_split_provenance(tmp_path, monkeypat
     assert manifest["metrics"]["split_source_sha256s"] == ["source-hash"]
     assert manifest["metrics"]["split_row_ids_sha256"]
     assert manifest["metrics"]["split_eval_turn_ids_sha256"]
+    assert manifest["metrics"]["total_prompt_tokens"] == 100
+    assert manifest["metrics"]["total_completion_tokens"] == 25
+    assert manifest["metrics"]["total_tokens"] == 125
+    assert manifest["metrics"]["total_estimated_generation_cost_usd"] == pytest.approx(0.00015)
+    assert manifest["metrics"]["token_cost_rates_usd_per_1k"] == {
+        "prompt": 0.001,
+        "completion": 0.002,
+    }
 
 
 def test_enforce_sql_only_instruction_appends_to_system_message() -> None:
@@ -528,3 +584,69 @@ def test_generate_sql_disables_qwen_thinking() -> None:
 
     assert text == "SELECT 1"
     assert latency_ms >= 0
+
+
+def test_generate_sql_with_usage_records_openai_token_usage() -> None:
+    class Message:
+        content = "SELECT 1"
+
+    class Choice:
+        message = Message()
+
+    class Usage:
+        prompt_tokens = 10
+        completion_tokens = 3
+        total_tokens = 13
+
+    class Response:
+        choices = [Choice()]
+        usage = Usage()
+
+    class Completions:
+        def create(self, **kwargs):
+            return Response()
+
+    class Chat:
+        completions = Completions()
+
+    class Client:
+        chat = Chat()
+
+    text, latency_ms, usage = generate_sql_with_usage(
+        Client(),
+        model_name="model",
+        messages=[{"role": "user", "content": "q"}],
+        temperature=0.0,
+        max_tokens=8,
+    )
+
+    assert text == "SELECT 1"
+    assert latency_ms >= 0
+    assert usage == {"prompt_tokens": 10, "completion_tokens": 3, "total_tokens": 13}
+
+
+def test_usage_from_response_accepts_dict_style_usage_and_derives_total() -> None:
+    class Response:
+        usage = {"input_tokens": 4, "output_tokens": 6}
+
+    assert usage_from_response(Response()) == {
+        "prompt_tokens": 4,
+        "completion_tokens": 6,
+        "total_tokens": 10,
+    }
+
+
+def test_estimate_generation_cost_returns_none_without_usage() -> None:
+    assert (
+        estimate_generation_cost_usd(
+            {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None},
+            prompt_token_cost_usd_per_1k=0.001,
+            completion_token_cost_usd_per_1k=0.002,
+        )
+        is None
+    )
+    assert estimate_generation_cost_usd(
+        {"prompt_tokens": 100, "completion_tokens": 25, "total_tokens": 125},
+        prompt_token_cost_usd_per_1k=0.001,
+        completion_token_cost_usd_per_1k=0.002,
+    ) == pytest.approx(0.00015)

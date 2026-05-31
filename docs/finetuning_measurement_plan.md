@@ -55,13 +55,14 @@ Supporting measurements:
 - strict execution accuracy,
 - syntax validity,
 - normalized SQL match,
-- latency and generation count.
+- latency, token usage, estimated generation cost, and generation count.
 
 Evidence artifact:
 
 - a result manifest from `eval.run_eval` or `eval.local_benchmark` that records
   input path, output path, model, endpoint, evaluation mode, command, and row
-  count.
+  count. Endpoint runs should include token usage and cost-rate assumptions when
+  the serving endpoint returns OpenAI-compatible usage fields.
 - for prepared split inputs, the result manifest should preserve split id,
   split role, source hash, dialog-row count, and ordered turn-identity hash so
   the base and LoRA runs can be compared on exactly the same rows.
