@@ -4,7 +4,7 @@ This is the canonical long-term roadmap for the multi-turn SQL fine-tuning
 program. It replaces the old gate-heavy day-to-day direction with smaller,
 row-matched method comparisons.
 
-Last audited: 2026-05-31 on commit `53747d3`.
+Last audited: 2026-05-31 on commit `1a8054c`.
 
 Checkpoint status legend:
 
@@ -25,6 +25,12 @@ Current checkpoint progress:
 - `[~]` Checkpoint 7: Metric DSL.
 - `[~]` Checkpoint 8: Generated-History Recovery.
 - `[ ]` Checkpoint 9: Hosted And Target Benchmark Transfer.
+
+Audit the current checkpoint statuses without running GPU training or endpoints:
+
+```bash
+uv run --active --no-sync python -m eval.roadmap_status --format markdown
+```
 
 The publishable benchmark claim is simple:
 
@@ -190,6 +196,9 @@ Current Checkpoint 3 preparation artifacts:
   base/LoRA proxy and clean-holdout result manifests, generated-history rollout
   manifests, non-oracle policy, required metrics, and base/LoRA row identity
   matching before this checkpoint can move to `[x]`.
+- `eval.roadmap_status` summarizes the current checkpoint statuses from the
+  experiment registry and Checkpoint 3 artifact audit without running training
+  or endpoint-backed evaluation.
 - `configs/experiments.yaml` marks `direct_sql_full_non_oracle_control` as
   `input_prep_ready`, not as a measured baseline.
 
