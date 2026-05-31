@@ -26,6 +26,7 @@ def test_score_plans_separates_table_column_and_shape_scores() -> None:
         "query_skeleton": {"select": True, "join": True, "where": True},
         "projection_shape": {
             "selected_count": 1,
+            "selected_expressions": ["airlines.name"],
             "aggregations": [],
             "group_by": [],
             "preserve_duplicates": False,
@@ -38,6 +39,7 @@ def test_score_plans_separates_table_column_and_shape_scores() -> None:
         "query_skeleton": {"select": True, "join": False, "where": True},
         "projection_shape": {
             "selected_count": 1,
+            "selected_expressions": ["airlines.name"],
             "aggregations": [],
             "group_by": [],
             "preserve_duplicates": True,
@@ -50,8 +52,30 @@ def test_score_plans_separates_table_column_and_shape_scores() -> None:
     assert scores["column_f1"] == pytest.approx(2 / 3)
     assert scores["join_f1"] == 0.0
     assert scores["selected_count_match"] == 1.0
+    assert scores["selected_expression_order_match"] == 1.0
     assert scores["duplicate_policy_match"] == 0.0
     assert 0.0 < scores["macro_planner_score"] < 1.0
+
+
+def test_score_plans_tracks_projection_order_separately_from_count() -> None:
+    gold = {
+        "projection_shape": {
+            "selected_count": 2,
+            "selected_expressions": ["stadium.name", "stadium.location"],
+        },
+    }
+    predicted = {
+        "projection_shape": {
+            "selected_count": 2,
+            "selected_expressions": ["stadium.location", "stadium.name"],
+        },
+    }
+
+    scores = score_plans(gold, predicted)
+
+    assert scores["selected_count_match"] == 1.0
+    assert scores["selected_expression_order_match"] == 0.0
+    assert scores["macro_planner_score"] < 1.0
 
 
 def test_extract_schema_inventory_reads_compact_and_create_table_schema() -> None:

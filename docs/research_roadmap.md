@@ -452,10 +452,21 @@ Latest Checkpoint 5 evidence from 2026-05-31:
   not a SQL win for the existing `planner_sft_20260531_1000` adapter.
 - The evidence file is
   `docs/training_runs/planner_projection_order_contract_20260531.json`.
+- Regenerating train-split planner-SFT rows under the order-preserving contract
+  produced the same 7,343-row target JSONL: output SHA-256 stayed
+  `49bf4caab2478b491bddae7b52689f317f119eaba0f211df1553423673fb8502`, with
+  `changed_target_plan_count=0`.
+- `eval.planner_eval` and `eval.planner_readiness` now score
+  `selected_expression_order_match` so selected-count success cannot hide
+  ordered projection-sequence failures. Rescoring the existing 24-turn
+  planner-SFT clean-holdout predictions found ordered selected-expression match
+  `0.792` with 5 mismatches, below the `0.900` readiness threshold.
+- The evidence file is
+  `docs/training_runs/planner_projection_order_metric_20260531.json`.
 
-The next Checkpoint 5 work should regenerate planner-SFT targets and predictions
-with the order-preserving contract, then run another bounded same-row SQL pair.
-A positive value-accuracy delta remains required before promoting the planner
+The next Checkpoint 5 work should rerun planner predictions under the
+order-aware readiness policy before another bounded same-row SQL pair. A
+positive value-accuracy delta remains required before promoting the planner
 path.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding

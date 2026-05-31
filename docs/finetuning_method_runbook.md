@@ -89,9 +89,14 @@ records that `projection_shape.selected_expressions` now keeps sequence order
 in `normalize_plan`, predicted-plan prompt hints, and newly generated
 planner-SFT targets.
 
-Next useful movement: regenerate planner-SFT rows and planner predictions under
-the order-preserving contract, then rerun a bounded same-row SQL pair before any
-broader endpoint pair.
+Order-aware readiness update:
+`docs/training_runs/planner_projection_order_metric_20260531.json` records that
+regenerating the train-split planner-SFT rows produced identical targets, while
+rescoring the existing 24-turn clean-holdout planner predictions found ordered
+selected-expression match `0.792`, below the `0.900` readiness threshold.
+
+Next useful movement: rerun planner predictions under the order-aware readiness
+policy, then rerun a bounded same-row SQL pair before any broader endpoint pair.
 
 ## Semantic-Layer Tuning
 

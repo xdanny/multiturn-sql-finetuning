@@ -349,9 +349,13 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         "docs/training_runs/planner_projection_order_contract_20260531.json"
         in by_checkpoint[5]["evidence"]
     )
+    assert (
+        "docs/training_runs/planner_projection_order_metric_20260531.json"
+        in by_checkpoint[5]["evidence"]
+    )
     assert by_checkpoint[5]["open_items"] == [
         (
-            "regenerate order-preserving planner data/predictions and "
+            "rerun planner predictions under order-aware readiness and "
             "require a positive same-row value-accuracy delta"
         )
     ]
