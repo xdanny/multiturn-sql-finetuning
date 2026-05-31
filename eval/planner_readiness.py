@@ -18,6 +18,7 @@ PLANNER_PROMOTION_POLICY = {
         "column_f1": 0.60,
         "skeleton_f1": 0.70,
         "selected_count_match": 0.70,
+        "selected_expression_order_match": 0.90,
         "duplicate_policy_match": 0.90,
     },
     "maximum_conditional_zero_rates": {
@@ -66,6 +67,7 @@ def _risk_names(summary: dict[str, Any]) -> list[str]:
     risks = {
         "column_linking": summary["column_zero_count"],
         "projection_shape": summary["selected_count_mismatch_count"],
+        "projection_order": summary["selected_expression_order_mismatch_count"],
         "empty_projection_expression": summary["empty_projection_expression_count"],
         "join_path": summary["join_zero_when_gold_join_count"],
         "group_by": summary["group_by_zero_when_gold_group_by_count"],
@@ -110,6 +112,9 @@ def summarize_planner_readiness(
     macro_below = sum(1 for row in rows if _score(row, "macro_planner_score") < 0.5)
     column_zero = sum(1 for row in rows if _score(row, "column_f1") == 0.0)
     selected_mismatch = sum(1 for row in rows if _score(row, "selected_count_match") == 0.0)
+    selected_order_mismatch = sum(
+        1 for row in rows if _score(row, "selected_expression_order_match") == 0.0
+    )
     empty_projection = sum(1 for row in rows if _predicted_projection_empty(row))
     join_zero = sum(
         1 for row in rows if _gold_join_required(row) and _score(row, "join_f1") == 0.0
@@ -138,6 +143,8 @@ def summarize_planner_readiness(
         "column_zero_rate": _rate(column_zero, total),
         "selected_count_mismatch_count": selected_mismatch,
         "selected_count_mismatch_rate": _rate(selected_mismatch, total),
+        "selected_expression_order_mismatch_count": selected_order_mismatch,
+        "selected_expression_order_mismatch_rate": _rate(selected_order_mismatch, total),
         "empty_projection_expression_count": empty_projection,
         "empty_projection_expression_rate": _rate(empty_projection, total),
         "join_zero_when_gold_join_count": join_zero,

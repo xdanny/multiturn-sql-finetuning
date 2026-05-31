@@ -1,0 +1,122 @@
+{
+  "artifact_type": "planner_projection_order_metric_evidence",
+  "checkpoint": 5,
+  "claim_boundary": "Planner scoring/readiness and regeneration audit only; no SQL execution improvement is claimed.",
+  "inputs": {
+    "old_planner_sft": "data/processed/planner_sft/cosql_train_v1.jsonl",
+    "planner_eval": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_limit24.eval.jsonl",
+    "preflight": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_limit24.preflight.json",
+    "regenerated_planner_sft": "data/processed/planner_sft_ordered/cosql_train_v1.jsonl"
+  },
+  "interpretation": [
+    "Regenerating train-split planner-SFT rows under the order-preserving contract produced identical target JSONL, so the existing downstream regression is not explained by stale train target order in this dataset.",
+    "The existing 24-row planner-SFT clean-holdout predictions contain selected-expression order mismatches that the prior selected_count_match metric did not measure.",
+    "eval.planner_readiness now blocks endpoint-pair promotion when selected_expression_order_match falls below policy.",
+    "Checkpoint 5 remains in progress until fresh planner predictions pass the order-aware readiness check and a same-row SQL comparison shows a positive value-accuracy delta."
+  ],
+  "order_mismatch_examples": [
+    {
+      "database_id": "car_1",
+      "dialog_id": "prepared-0",
+      "gold_selected_expressions": [
+        "modelid"
+      ],
+      "id": "prepared-0:2",
+      "new_macro_planner_score": 0.6074074074074074,
+      "old_macro_planner_score": 0.6833333333333333,
+      "predicted_selected_expressions": [
+        "t2.modelid"
+      ]
+    },
+    {
+      "database_id": "orchestra",
+      "dialog_id": "prepared-2",
+      "gold_selected_expressions": [
+        "count(distinct orchestra)"
+      ],
+      "id": "prepared-2:0",
+      "new_macro_planner_score": 0.6666666666666666,
+      "old_macro_planner_score": 0.75,
+      "predicted_selected_expressions": [
+        "count(*)"
+      ]
+    },
+    {
+      "database_id": "orchestra",
+      "dialog_id": "prepared-2",
+      "gold_selected_expressions": [
+        "count(orchestra)"
+      ],
+      "id": "prepared-2:1",
+      "new_macro_planner_score": 0.7407407407407408,
+      "old_macro_planner_score": 0.8333333333333334,
+      "predicted_selected_expressions": [
+        "count(*)"
+      ]
+    },
+    {
+      "database_id": "concert_singer",
+      "dialog_id": "prepared-3",
+      "gold_selected_expressions": [
+        "t2.location",
+        "t2.name"
+      ],
+      "id": "prepared-3:0",
+      "new_macro_planner_score": 0.8888888888888888,
+      "old_macro_planner_score": 1.0,
+      "predicted_selected_expressions": [
+        "t1.location",
+        "t1.name"
+      ]
+    },
+    {
+      "database_id": "concert_singer",
+      "dialog_id": "prepared-3",
+      "gold_selected_expressions": [
+        "t1.name"
+      ],
+      "id": "prepared-3:3",
+      "new_macro_planner_score": 0.8888888888888888,
+      "old_macro_planner_score": 1.0,
+      "predicted_selected_expressions": [
+        "t2.name"
+      ]
+    }
+  ],
+  "regeneration_audit": {
+    "changed_target_plan_count": 0,
+    "database_count": 140,
+    "dialog_count": 2159,
+    "new_manifest_output_sha256": "49bf4caab2478b491bddae7b52689f317f119eaba0f211df1553423673fb8502",
+    "new_manifest_sha256": "a1e4d75c95d3ad36595c5582ea6ac51e8d45912aa21a3291193d2e5c69ed6f00",
+    "new_output_sha256": "49bf4caab2478b491bddae7b52689f317f119eaba0f211df1553423673fb8502",
+    "old_manifest_output_sha256": "49bf4caab2478b491bddae7b52689f317f119eaba0f211df1553423673fb8502",
+    "old_manifest_sha256": "e96fee41817cac4c2ca731ac17d055d32b9ef780a91a758febdc8353eeb548f2",
+    "old_output_sha256": "49bf4caab2478b491bddae7b52689f317f119eaba0f211df1553423673fb8502",
+    "projection_order_changed_count": 0,
+    "row_count": 7343,
+    "split_roles": {
+      "train": 7343
+    }
+  },
+  "rescored_clean_holdout_limit24": {
+    "database_count": 7,
+    "dialog_count": 7,
+    "new_mean_macro_planner_score": 0.9253640392529281,
+    "old_mean_macro_planner_score": 0.9420762108262108,
+    "promotion_blockers_after_order_metric": [
+      "selected_expression_order_match below minimum 0.90"
+    ],
+    "promotion_ready_after_order_metric": false,
+    "row_count": 24,
+    "selected_expression_order_match": 0.7916666666666666,
+    "selected_expression_order_mismatch_count": 5,
+    "selected_expression_order_mismatch_rate": 0.20833333333333334,
+    "top_risks_after_order_metric": [
+      "projection_order",
+      "column_linking",
+      "join_path"
+    ]
+  },
+  "schema_version": 1
+}

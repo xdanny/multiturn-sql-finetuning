@@ -128,6 +128,7 @@ def test_summarize_planner_variant_reports_macro_and_parse_rate() -> None:
                 "aggregation_f1": 1.0,
                 "group_by_f1": 1.0,
                 "selected_count_match": 1.0,
+                "selected_expression_order_match": 1.0,
                 "duplicate_policy_match": 1.0,
                 "macro_planner_score": 1.0,
             },
@@ -143,8 +144,9 @@ def test_summarize_planner_variant_reports_macro_and_parse_rate() -> None:
                 "aggregation_f1": 1.0,
                 "group_by_f1": 1.0,
                 "selected_count_match": 0.0,
+                "selected_expression_order_match": 0.0,
                 "duplicate_policy_match": 1.0,
-                "macro_planner_score": 0.5625,
+                "macro_planner_score": 0.5,
             },
             "predicted_plan": {"parseable": False},
             "planner_latency_ms": 30.0,
@@ -156,7 +158,7 @@ def test_summarize_planner_variant_reports_macro_and_parse_rate() -> None:
     assert summary["samples"] == 2
     assert summary["parse_rate"] == 0.5
     assert summary["mean_latency_ms"] == 20.0
-    assert summary["macro_planner_score"] == pytest.approx(0.78125)
+    assert summary["macro_planner_score"] == pytest.approx(0.75)
     assert summary["table_f1"] == pytest.approx(0.5)
 
 
@@ -178,6 +180,7 @@ def test_malformed_planner_output_gets_zero_score_and_cannot_win_ranking() -> No
         "aggregation_f1": 0.0,
         "group_by_f1": 0.0,
         "selected_count_match": 0.0,
+        "selected_expression_order_match": 0.0,
         "duplicate_policy_match": 0.0,
         "macro_planner_score": 0.0,
     }
@@ -224,6 +227,7 @@ def test_write_planner_summary_writes_csv(tmp_path) -> None:
                 "aggregation_f1": 1.0,
                 "group_by_f1": 1.0,
                 "selected_count_match": 0.0,
+                "selected_expression_order_match": 0.0,
                 "duplicate_policy_match": 1.0,
             }
         ],

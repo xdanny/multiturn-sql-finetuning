@@ -38,6 +38,7 @@ PLAN_FIELDS = (
     "aggregation_f1",
     "group_by_f1",
     "selected_count_match",
+    "selected_expression_order_match",
     "duplicate_policy_match",
     "macro_planner_score",
 )
@@ -134,6 +135,9 @@ def score_plans(gold_plan: dict[str, Any] | None, predicted_plan: dict[str, Any]
         "group_by_f1": _f1(gold_projection["group_by"], predicted_projection["group_by"]),
         "selected_count_match": float(
             gold_projection["selected_count"] == predicted_projection["selected_count"]
+        ),
+        "selected_expression_order_match": float(
+            gold_projection["selected_expressions"] == predicted_projection["selected_expressions"]
         ),
         "duplicate_policy_match": float(
             gold_projection["preserve_duplicates"] == predicted_projection["preserve_duplicates"]
