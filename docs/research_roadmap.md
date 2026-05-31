@@ -182,8 +182,8 @@ Current Checkpoint 3 preparation artifacts:
   adapter and prepared train/proxy/holdout paths.
 - `scripts.direct_sql_full_control` prints or runs the ordered Checkpoint 3
   workflow from that config, including split prep, data validation, full LoRA
-  training, row-matched endpoint evals, generated-history rollouts, and the
-  final artifact audit.
+  training, row-matched endpoint evals, generated-history rollouts,
+  clean-holdout failure analysis, and the final artifact audit.
 - `eval.run_eval` result manifests preserve split provenance, latency, token
   usage, and estimated generation cost when the endpoint returns usage fields.
 - `eval.checkpoint3_artifact_audit` verifies the required prepared inputs,
@@ -265,8 +265,9 @@ After Checkpoint 3 produces the base and LoRA clean-holdout manifests, write the
 failure-analysis artifact with:
 
 ```bash
-uv run --active --no-sync python -m eval.clean_holdout_failure_analysis \
-  --config configs/direct_sql_full_non_oracle.yaml
+uv run --active --no-sync python -m scripts.direct_sql_full_control \
+  --stage analysis \
+  --run
 ```
 
 ## Checkpoint 5: Planner First, But Non-Oracle

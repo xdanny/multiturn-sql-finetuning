@@ -55,6 +55,17 @@ def test_build_workflow_steps_names_checkpoint3_artifact_paths() -> None:
         "results/runs/direct_sql_full_non_oracle_control/"
         "lora_generated_history_rollout.manifest.json"
     ) in commands["rollout_lora"]
+    assert commands["analyze_clean_holdout_failures"] == (
+        "uv",
+        "run",
+        "--active",
+        "--no-sync",
+        "python",
+        "-m",
+        "eval.clean_holdout_failure_analysis",
+        "--config",
+        "configs/direct_sql_full_non_oracle.yaml",
+    )
     assert commands["audit_checkpoint3_artifacts"] == (
         "uv",
         "run",
@@ -98,6 +109,13 @@ def test_build_workflow_steps_supports_smoke_limits_and_model_names() -> None:
 def test_filter_steps_selects_explicit_stages() -> None:
     steps = build_workflow_steps(config_path=Path("configs/direct_sql_full_non_oracle.yaml"))
 
-    selected = filter_steps(steps, selected_stages(["eval", "audit"]))
+    selected = filter_steps(steps, selected_stages(["eval", "analysis", "audit"]))
 
-    assert [step.stage for step in selected] == ["eval", "eval", "eval", "eval", "audit"]
+    assert [step.stage for step in selected] == [
+        "eval",
+        "eval",
+        "eval",
+        "eval",
+        "analysis",
+        "audit",
+    ]

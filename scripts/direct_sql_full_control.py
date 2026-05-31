@@ -17,7 +17,7 @@ DEFAULT_CONFIG = Path("configs/direct_sql_full_non_oracle.yaml")
 DEFAULT_ENDPOINT = "http://localhost:8000/v1"
 DEFAULT_API_KEY = "EMPTY"
 DEFAULT_LORA_MODEL_NAME = "direct_sql_full_non_oracle_lora"
-STAGES = ("prepare", "validate", "train", "eval", "rollout", "audit")
+STAGES = ("prepare", "validate", "train", "eval", "rollout", "analysis", "audit")
 
 
 @dataclass(frozen=True)
@@ -248,6 +248,18 @@ def build_workflow_steps(
                 command=tuple(command),
             )
         )
+
+    steps.append(
+        WorkflowStep(
+            stage="analysis",
+            name="analyze_clean_holdout_failures",
+            command=_uv_python_module_command(
+                "eval.clean_holdout_failure_analysis",
+                "--config",
+                str(config_path),
+            ),
+        )
+    )
 
     steps.append(
         WorkflowStep(
