@@ -57,7 +57,7 @@ def test_summarize_planner_readiness_counts_endpoint_risks() -> None:
         },
     )
 
-    assert summary["artifact_type"] == "predicted_planner_readiness_report"
+    assert summary["artifact_type"] == "predicted_planner_risk_summary"
     assert summary["row_count"] == 2
     assert summary["preflight_status"] == "ready_for_endpoint_pair"
     assert summary["endpoint_pair_ready"] is True
@@ -67,7 +67,7 @@ def test_summarize_planner_readiness_counts_endpoint_risks() -> None:
     assert summary["empty_projection_expression_count"] == 1
     assert summary["join_zero_when_gold_join_count"] == 1
     assert summary["group_by_zero_when_gold_group_by_count"] == 1
-    assert summary["recommendation"] == "improve_planner_before_claim"
+    assert summary["recommendation"] == "improve_planner_before_comparison"
     assert "column_linking" in summary["top_risks"]
 
 
@@ -108,4 +108,4 @@ def test_run_planner_readiness_report_writes_summary(tmp_path) -> None:
 
     written = json.loads(output_path.read_text())
     assert written["row_count"] == 2
-    assert written["claim_boundary"] == "readiness only; no SQL execution claim"
+    assert written["claim_boundary"] == "risk summary only; no SQL execution claim"

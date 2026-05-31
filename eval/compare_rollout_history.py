@@ -3,7 +3,7 @@ Compare generated-history rollout against matching teacher-forced evaluation.
 
 This does not run either evaluation. It verifies two result manifests are
 comparable and writes an augmented rollout manifest carrying the comparison
-metrics required by the claim ledger.
+metrics required for a generated-history diagnostic.
 """
 
 from __future__ import annotations

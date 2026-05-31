@@ -30,7 +30,5 @@ When editing here, inspect:
 
 - `docs/finetuning_measurement_plan.md`
 - `docs/evidence_contract.md`
-- `configs/finetuning_methods.yaml`
 - `eval/result_manifest.py`
-- `eval/method_readiness.py`
 - `data/prepare.py`

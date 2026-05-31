@@ -10,9 +10,9 @@ step says what the model is supposed to learn, what it should be compared
 against, and what evidence would make the step useful.
 
 The executable registry for these method arms is
-`configs/finetuning_methods.yaml`. Keep that config aligned with this ladder
-when adding a method, changing a control arm, or tightening an evidence gate.
-For the practical per-method runbook, use `docs/finetuning_method_runbook.md`.
+this document and the measurement plan. Keep them aligned when adding a method,
+changing a control arm, or tightening the evidence requirement. For the
+practical per-method runbook, use `docs/finetuning_method_runbook.md`.
 
 ## Ground Rules
 
@@ -121,9 +121,9 @@ Control arm: direct SQL trained on the same generated-history repair rows.
 Teacher-forced history is a diagnostic comparison for rollout viability, not
 the recovery method's win condition.
 
-Win condition: generated-history rollout beats teacher-forced evaluation as a
-diagnostic gate, then the recovery-tuned adapter beats the direct-SQL control
-adapter under generated-history rollout.
+Win condition: rollout-vs-teacher-forced metrics explain the diagnostic gap,
+then the recovery-tuned adapter beats the direct-SQL control adapter under
+generated-history rollout.
 
 Current status: the rollout evaluator exists, and tiny recovery/control SFT rows
 exist for smoke testing. Recovery is not proven until generated predictions from

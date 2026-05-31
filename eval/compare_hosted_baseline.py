@@ -3,8 +3,8 @@ Compare a local SQL result manifest against a same-protocol hosted baseline.
 
 This does not run either model. It verifies that both result manifests were
 produced on the same rows under the same non-oracle protocol, then writes an
-augmented local manifest carrying the hosted comparison metrics required by the
-claim ledger.
+augmented local manifest carrying the hosted comparison metrics required for a
+hosted-baseline claim.
 """
 
 from __future__ import annotations

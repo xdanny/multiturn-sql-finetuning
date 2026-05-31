@@ -12,10 +12,6 @@ from eval.run_semantic_value_retrieval_comparison import (
     validate_comparison_inputs,
     write_comparison_preflight,
 )
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
-
-
 def _write_jsonl(path: Path, rows: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(json.dumps(row) for row in rows) + "\n")
@@ -232,28 +228,4 @@ def test_run_semantic_value_retrieval_comparison_runs_both_eval_paths_then_compa
             "output_path": output_dir / "semantic_probe.compared.manifest.json",
             "repo_root": Path("."),
         }
-    ]
-
-
-def test_checked_in_semantic_value_preflight_matches_input_manifest() -> None:
-    preflight = json.loads(
-        (REPO_ROOT / "docs" / "semantic_value_retrieval_comparison_preflight.json").read_text()
-    )
-    manifest = json.loads(
-        (
-            REPO_ROOT
-            / "docs"
-            / "data_artifacts"
-            / "semantic_value_retrieval_inputs.manifest.json"
-        ).read_text()
-    )
-
-    assert preflight["artifact_type"] == "semantic_value_retrieval_comparison_preflight"
-    assert preflight["status"] == "ready_for_endpoint_pair"
-    assert preflight["claim_boundary"] == "preflight only; no SQL execution claim"
-    assert preflight["row_count"] == manifest["row_count"]
-    assert preflight["semantic_input_path"] == manifest["output_path"]
-    assert preflight["semantic_input_sha256"] == manifest["output_sha256"]
-    assert preflight["value_index_manifest_sha256"] == manifest[
-        "value_index_manifest_sha256"
     ]

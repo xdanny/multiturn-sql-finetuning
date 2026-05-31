@@ -1,8 +1,7 @@
 # Finetuning Method Runbook
 
-This is the operational companion to `configs/finetuning_methods.yaml`. The
-YAML file is the machine-readable source of truth; this file explains how each
-blog-derived idea becomes a concrete finetuning or evaluation step.
+This runbook explains how each research idea becomes a concrete finetuning or
+evaluation comparison.
 
 Use this when deciding what to run next. A method is not ranked because it has a
 nice story or a completed smoke run. It becomes rankable only after the right
@@ -19,112 +18,37 @@ Every method step needs the same minimum shape:
 - **Primary metric**: usually value-only execution accuracy for SQL outcomes,
   with method-specific supporting metrics.
 - **Leakage boundary**: which fields are scorer-only and must not enter prompts?
-- **Evidence gate**: which manifest or comparison artifact makes the result
+- **Evidence artifact**: which manifest or comparison artifact makes the result
   interpretable?
 
 Runtime outputs belong under `results/` or `outputs/experiments/`. Checked-in
 files under `docs/data_artifacts/` should be small canonical inputs, summaries,
 or manifests that another developer can regenerate and inspect.
 
-`configs/finetuning_methods.yaml` carries the machine-readable version of this
-contract. Every method arm must define:
+The durable checklist is:
 
-- `finetuning_objective`
-- `benchmark_scope`
-- `primary_metric`
-- `leakage_boundary`
-- `evidence_gate`
+- keep train, validation, proxy, and test split roles explicit;
+- keep reference SQL, expected rows, future turns, gold plans, gold DSL, and
+  repair labels out of production-style prompts;
+- compare method and control on the same row identities;
+- retain run manifests for scored generations and comparisons.
 
-Those fields are emitted by `eval.method_readiness` so method status can be
-reviewed without reading this runbook first. Keep them concrete: name the
-behavior being trained, the benchmark rows or fixture family, the metric that
-settles the comparison, the fields that must not enter prompts, and the artifact
-that would clear the gate.
-
-`configs/finetuning_steps.yaml` is the concrete sequence of train, evaluation,
-and comparison commands. Validate it with:
-
-```bash
-uv run --active --no-sync python -m train.finetuning_steps
-```
-
-The step summary is not a benchmark result. It is a checklist for which row
-artifacts, controls, protocols, and claim gates the next run must use.
-
-The loader enforces the stage ladder in this order:
-
-- `train_control`
-- `endpoint_comparison`
-- `train_and_compare`
-- `train_and_rollout`
-- `transfer_gate`
-
-Do not move hosted or transfer gates before the proxy/control steps they depend
-on. If a new stage is needed, add it to `train.finetuning_steps.STAGE_ORDER` and
-document what evidence must exist before that stage can run.
-
-Each step also declares `requires_step_ids`. Dependencies must point to earlier
-steps in the same file. Use this to make control and promotion gates explicit:
-for example, hosted/BIRD transfer depends on the direct control and the method
-comparison steps it may promote.
-
-Step `benchmark_protocol_ids` must also be declared by the owning method in
-`configs/finetuning_methods.yaml`. Add a protocol to the method first if the
-step expands the benchmark scope; do not let one step silently broaden what a
-method is allowed to claim.
-
-Print the cheap preflight commands for one step before spending GPU or endpoint
-time:
-
-```bash
-uv run --active --no-sync python -m train.finetuning_steps \
-  --step-id metric_dsl_vs_direct_sql \
-  --commands preflight
-```
-
-Use `--commands run` for the full training/evaluation commands and
-`--commands all` when preparing a complete run checklist.
-
-To hand a step to another process or save an execution checklist, add
-`--output`:
-
-```bash
-uv run --active --no-sync python -m train.finetuning_steps \
-  --step-id semantic_value_retrieval_pair \
-  --commands preflight \
-  --output results/step_records/<run-id>.semantic_preflight.json
-```
-
-That JSON record includes the selected commands, row readiness, protocol ids,
-claim ids, evidence gate, measurement contract, and leakage boundary.
-
-Each step also carries a `measurement` block:
-
-- `primary_metric`: the metric that decides the step.
-- `benchmark_metric_refs`: protocol-backed metrics in
-  `<protocol_id>:<metric>` form. Each metric must be a primary metric declared
-  by one of the step's benchmark protocols.
-- `supporting_metrics`: diagnostics that explain why the primary metric moved.
-- `comparison_artifact`: the manifest or comparison file that should exist
-  after a real run.
-- `promoted_when`: the condition that lets the step clear its claim gate.
-
-Use this block to keep smoke runs, benchmark proxies, synthetic fixtures, and
-hosted/BIRD-style transfer claims separate. If the comparison artifact is
-missing, the step may be wired, but its claim is not cleared.
+Use this checklist to keep smoke runs, benchmark proxies, synthetic fixtures,
+and hosted/BIRD-style transfer claims separate. If the comparison artifact is
+missing, the method may be wired, but it is not a supported win.
 
 ## Direct SQL SFT
 
 Hypothesis: ordinary supervised SQL chat finetuning is the control arm for the
 program.
 
-Finetuning step: train on prepared chat-format rows such as
+Implementation path: train on prepared chat-format rows such as
 `data/processed/train_smoke.jsonl` for smoke checks, then larger non-oracle
 prepared rows for proxy runs.
 
 Control: none. This is the baseline other methods must beat.
 
-Evidence gate: `eval.run_eval` or `eval.local_benchmark` writes a result
+Evidence artifact: `eval.run_eval` or `eval.local_benchmark` writes a result
 manifest with model, input hash, output hash, endpoint or local runner, and
 value/strict/syntax metrics.
 
@@ -137,14 +61,14 @@ Hypothesis: SQL generation improves if the model first predicts a compact plan:
 relevant tables, columns, joins, projection shape, grouping, duplicate policy,
 and value/entity hints.
 
-Finetuning step: improve planner predictions before spending endpoint time on
+Implementation path: improve planner predictions before spending endpoint time on
 SQL generation. Score planner outputs with `eval.planner_eval` and
 `eval.planner_readiness`.
 
 Control: direct SQL on the same row identities, same model, same scorer, and
 same database root.
 
-Evidence gate: `eval.run_predicted_planner_comparison` produces direct-SQL,
+Evidence artifact: `eval.run_predicted_planner_comparison` produces direct-SQL,
 predicted-planner, and comparison manifests. The comparison must show a positive
 value-accuracy delta before `predicted_planner_sql_execution` can clear.
 
@@ -157,7 +81,7 @@ full SQL pair.
 Hypothesis: governed semantic context helps the model ground entities,
 dimensions, measures, joins, grain, and values that raw DDL does not explain.
 
-Finetuning step: train or prompt with semantic context that is available at
+Implementation path: train or prompt with semantic context that is available at
 inference time. `data.semantic_value_retrieval_inputs` turns the database-derived
 value index into prepared prompt context by matching aliases against user text
 seen up to each turn. It does not retrieve from reference SQL, assistant SQL,
@@ -166,7 +90,7 @@ expected rows, or future turns.
 Control: same rows without the semantic-layer context, or the same model under a
 matching direct-SQL prompt.
 
-Evidence gate: `eval.run_semantic_value_retrieval_comparison` runs the direct
+Evidence artifact: `eval.run_semantic_value_retrieval_comparison` runs the direct
 SQL control and semantic value-retrieval arm as one endpoint pair, annotates the
 semantic manifest with the database-derived value-index SHA, and calls
 `eval.compare_semantic_value_retrieval`. The comparison verifies matching row
@@ -174,9 +98,9 @@ identities, non-oracle output rows, execution scores, and value-only and strict
 deltas against direct SQL. Semantic prompt gains on the CoSQL proxy are useful,
 but they are not a hosted or BIRD-Interact claim.
 
-Preflight: `docs/semantic_value_retrieval_comparison_preflight.json` proves the
-current direct and semantic prepared inputs align before endpoint generation.
-It is readiness evidence only.
+Preflight outputs from this runner are run-specific and should be written under
+`results/`. They prove input compatibility only; they are not evidence that the
+method improved SQL execution.
 
 Next useful movement: generate the semantic prepared input on the fixed CoSQL
 rows, run the paired endpoint experiment versus direct SQL, then inspect whether
@@ -188,7 +112,7 @@ shape failures.
 Hypothesis: for metric-heavy analysis, the model should preserve governed metric
 intent as `MEASURE(name)` and let a compiler expand it to SQL.
 
-Finetuning step: use `docs/data_artifacts/metric_dsl_training_rows.jsonl` for
+Implementation path: use `docs/data_artifacts/metric_dsl_training_rows.jsonl` for
 the DSL target and `metric_dsl_direct_sql_training_rows.jsonl` as the direct-SQL
 control. Use `metric_dsl_prediction_inputs.jsonl` and
 `metric_dsl_direct_sql_prediction_inputs.jsonl` only for generation-time
@@ -201,7 +125,7 @@ Primary metrics: DSL parse rate, compile rate, measure preservation,
 measure/dimension/filter F1, and compiled-SQL value accuracy where database
 execution is available.
 
-Evidence gate: `eval.run_metric_dsl_comparison` writes metric-DSL, direct-SQL,
+Evidence artifact: `eval.run_metric_dsl_comparison` writes metric-DSL, direct-SQL,
 and comparison manifests. A method win needs a positive compiled value delta and
 must preserve `MEASURE(...)`; executable SQL alone is not enough.
 
@@ -214,7 +138,7 @@ Hypothesis: a useful multi-turn SQL model must continue after its own earlier
 SQL, empty results, or bad value grounding. Clean teacher-forced history hides
 this failure mode.
 
-Finetuning step: use `behavior_recovery_training_rows.jsonl` for the recovery
+Implementation path: use `behavior_recovery_training_rows.jsonl` for the recovery
 target and `behavior_recovery_direct_sql_training_rows.jsonl` as the same-fixture
 control.
 
@@ -222,9 +146,9 @@ Control: direct SQL trained on the same generated-history repair fixture.
 Teacher-forced history is diagnostic; it shows how much clean history hides
 rollout failures, but it is not the recovery method's win condition.
 
-Evidence gate: `eval.run_behavior_recovery_comparison` writes rollout,
+Evidence artifact: `eval.run_behavior_recovery_comparison` writes rollout,
 teacher-forced, and comparison manifests from one run id. That clears only the
-generated-history diagnostic gate. A recovery-tuning win still needs generated
+generated-history diagnostic comparison. A recovery-tuning win still needs generated
 predictions from the recovery adapter and the direct-SQL control adapter on the
 same row identities, then a positive value delta under generated-history
 rollout.
@@ -239,18 +163,18 @@ Hypothesis: the final question is whether the best local 9B candidate can
 compete with larger hosted systems under the same interactive data-analysis
 protocol.
 
-Finetuning step: do not start here. Promote only a method that has already
+Implementation path: do not start here. Promote only a method that has already
 cleared same-row proxy comparisons.
 
 Control: hosted baseline manifests with the same inputs, scorer, latency, cost,
 and model metadata.
 
-Evidence gate: `eval.compare_hosted_baseline` plus a frozen BIRD-Interact or
+Evidence artifact: `eval.compare_hosted_baseline` plus a frozen BIRD-Interact or
 BIRD-style transfer manifest. CoSQL proxy movement alone cannot support this
 claim.
 
 Next useful movement: keep hosted and BIRD-Interact blockers explicit in the
-claim ledger until a same-protocol run exists.
+roadmap until a same-protocol run exists.
 
 ## Adding A New Method Arm
 
@@ -260,11 +184,7 @@ Start with one small PR:
 - Add the direct control or explain why the control is teacher-forced.
 - Add an evaluator or comparison runner only if existing runners do not cover
   the method.
-- Update `configs/finetuning_methods.yaml`.
 - Update this runbook only when the method's operational contract changes.
-- Run `uv run --active --no-sync python -m eval.method_readiness
-  --output results/method_readiness/<run-id>.json
-  --fail-on-missing-required`.
 
 Do not start by committing large generated outputs. Make the row identity,
 leakage boundary, and comparison artifact clear first.

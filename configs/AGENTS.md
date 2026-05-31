@@ -8,13 +8,9 @@ Primary responsibilities:
 - Keep training configs aligned with the method ladder: direct SQL, semantic
   context, metric DSL, behavior recovery, planner runs, and hosted/BIRD-style
   comparisons.
-- Keep `configs/finetuning_methods.yaml` as the source of truth for method
-  readiness arms consumed by `eval.method_readiness`.
 - Keep `configs/benchmark_protocols.yaml` as the source of truth for what each
   dataset or benchmark protocol can prove, what it blocks, and which leakage
   boundary applies.
-- Keep `configs/finetuning_steps.yaml` as the source of truth for the concrete
-  train/evaluate/compare sequence behind each method arm.
 - Make prompt variants explicit about whether they are production-style,
   diagnostic, or oracle-derived.
 - Keep dataset splits, row limits, model names, and output directories
@@ -38,17 +34,15 @@ Rules:
   slice support a benchmark claim.
 - If a config changes a method comparison, update
   `docs/finetuning_measurement_plan.md` or `docs/finetuning_smoke_matrix.md`.
-- If a method arm or benchmark protocol changes, update
-  `configs/finetuning_methods.yaml`, `configs/benchmark_protocols.yaml`, or
-  `configs/finetuning_steps.yaml`, then run the method-readiness and
-  finetuning-step summary commands before claiming the gate is wired.
+- If a benchmark protocol changes, update `configs/benchmark_protocols.yaml`
+  and the docs that describe the row identity, leakage boundary, and run
+  manifest requirements.
 
 When editing here, inspect:
 
 - `train/finetune.py`
 - `data/prepare.py`
 - `eval/run_eval.py`
-- `eval/method_readiness.py`
 - `docs/finetuning_ladder.md`
 - `docs/finetuning_smoke_matrix.md`
 - `docs/finetuning_measurement_plan.md`

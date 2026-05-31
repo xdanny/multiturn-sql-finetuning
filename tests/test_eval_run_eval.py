@@ -248,7 +248,7 @@ def test_write_results_writes_jsonl(tmp_path) -> None:
     assert json.loads(output.read_text()) == {"id": 1, "score": 1.0}
 
 
-def test_summarize_eval_metrics_records_ledger_compatible_latency_alias() -> None:
+def test_summarize_eval_metrics_records_manifest_compatible_latency_alias() -> None:
     metrics = summarize_eval_metrics(
         [
             {
