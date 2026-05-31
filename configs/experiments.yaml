@@ -6,7 +6,7 @@ description: >-
 experiments:
   - experiment_id: direct_sql_full_non_oracle_control
     checkpoint: 3
-    status: lora_trained_pending_endpoint_eval
+    status: checkpoint3_complete_direct_sql_control
     hypothesis_id: direct_sql_sft
     hypothesis: >-
       A direct SQL SFT adapter is the stable control arm for every structured
@@ -25,9 +25,10 @@ experiments:
     control_experiment_id: null
     primary_metric: value_accuracy
     claim_boundary: >-
-      Full direct-SQL LoRA training has completed locally, but no benchmark
-      claim is allowed until base and LoRA generations, clean-holdout metrics,
-      generated-history rollouts, and row-matched run manifests exist.
+      The full direct-SQL control baseline is measured on the configured
+      proxy, clean-holdout, and generated-history rollout rows. This is the
+      control baseline for later method comparisons, not a hosted benchmark or
+      structured-method win.
 
   - experiment_id: predicted_planner_sql_vs_direct
     checkpoint: 5

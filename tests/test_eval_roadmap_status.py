@@ -139,6 +139,34 @@ def _rollout_manifest() -> dict:
     }
 
 
+def _recorded_endpoint_evidence() -> dict:
+    return {
+        "schema_version": 1,
+        "artifact_type": "direct_sql_full_endpoint_evidence",
+        "checkpoint3_artifact_audit": {"ok": True},
+        "result_manifests": {
+            name: {"row_count": 3}
+            for name in (
+                "base_proxy_dev_seen",
+                "lora_proxy_dev_seen",
+                "base_clean_holdout",
+                "lora_clean_holdout",
+                "base_generated_history_rollout",
+                "lora_generated_history_rollout",
+            )
+        },
+        "failure_analysis": {
+            "artifact_type": "clean_holdout_failure_analysis",
+            "split_role": "clean_local_holdout",
+            "row_counts": {"base": 3, "lora": 3},
+            "roadmap_method_hint_counts": {
+                "base": {"planner_schema_linking": 2},
+                "lora": {"planner_schema_linking": 1},
+            },
+        },
+    }
+
+
 def _write_checkpoint3_config(tmp_path: Path, *, complete: bool) -> Path:
     config_path = tmp_path / "configs" / "direct_sql_full_non_oracle.yaml"
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -328,3 +356,29 @@ def test_summarize_roadmap_status_keeps_checkpoint3_in_progress_until_artifacts_
     by_checkpoint = {row["checkpoint"]: row for row in summary["checkpoints"]}
     assert by_checkpoint[3]["status"] == "in_progress"
     assert any("missing manifest" in issue for issue in by_checkpoint[3]["open_items"])
+
+
+def test_summarize_roadmap_status_accepts_recorded_endpoint_evidence(
+    tmp_path: Path,
+) -> None:
+    registry = tmp_path / "configs" / "experiments.yaml"
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    _write_registry(registry)
+    checkpoint3 = _write_checkpoint3_config(tmp_path, complete=False)
+    evidence_path = tmp_path / "docs" / "training_runs" / "direct_sql_full_eval.json"
+    _write_json(evidence_path, _recorded_endpoint_evidence())
+
+    summary = summarize_roadmap_status(
+        experiment_registry_path=registry,
+        checkpoint3_config_path=checkpoint3,
+        checkpoint3_evidence_path=evidence_path,
+    )
+
+    assert summary["status_counts"] == {"complete": 5, "in_progress": 4, "pending": 1}
+    by_checkpoint = {row["checkpoint"]: row for row in summary["checkpoints"]}
+    assert by_checkpoint[3]["status"] == "complete"
+    assert by_checkpoint[3]["open_items"] == []
+    assert str(evidence_path) in by_checkpoint[3]["evidence"]
+    assert by_checkpoint[4]["status"] == "complete"
+    assert by_checkpoint[4]["open_items"] == []
+    assert str(evidence_path) in by_checkpoint[4]["evidence"]

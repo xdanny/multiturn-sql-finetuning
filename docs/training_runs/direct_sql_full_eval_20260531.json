@@ -1,0 +1,167 @@
+{
+  "artifact_type": "direct_sql_full_endpoint_evidence",
+  "checkpoint3_artifact_audit": {
+    "command": "uv run --active --no-sync python -m eval.checkpoint3_artifact_audit",
+    "ok": true
+  },
+  "claim_boundary": "The direct-SQL full-control endpoint and generated-history evaluations are complete for the configured CoSQL proxy and clean-holdout splits. This supports Checkpoint 3 as the direct-SQL control baseline, but it is not a hosted benchmark or a structured-method win.",
+  "date": "2026-05-31",
+  "endpoint": {
+    "base_model_name": "unsloth/Qwen3.5-9B",
+    "lora_model_name": "direct_sql_full_non_oracle_lora",
+    "server": "local vLLM OpenAI-compatible endpoint",
+    "serving_note": "Served unsloth/Qwen3.5-9B with outputs/experiments/direct_sql_full/final mounted as direct_sql_full_non_oracle_lora."
+  },
+  "failure_analysis": {
+    "artifact_type": "clean_holdout_failure_analysis",
+    "manifest_path": "results/runs/direct_sql_full_non_oracle_control/clean_holdout_failure_analysis/manifest.json",
+    "manifest_sha256": "b44c4477bd52403eabeb3c4a64c30dc1648fe0ea4144e9aaab41f3a6941d2cae",
+    "model_error_summary_sha256": "df909edb0f0f8d61996b30c190192818648a2bce986042eb359dc7c44601c053",
+    "pairwise_vs_base_sha256": "48eb7d844c0aa431ae09d014f771ff955add14de916e9a9acad761fa07e72070",
+    "primary_error_counts": {
+      "base": {
+        "aggregation": 51,
+        "correct": 148,
+        "grain_fanout": 37,
+        "invalid_sql": 2,
+        "join_path": 34,
+        "ordering_limit": 24,
+        "other": 1,
+        "projection": 48,
+        "schema_link": 226,
+        "value_grounding": 109
+      },
+      "lora": {
+        "aggregation": 41,
+        "correct": 237,
+        "grain_fanout": 20,
+        "invalid_sql": 1,
+        "join_path": 21,
+        "ordering_limit": 16,
+        "other": 6,
+        "projection": 53,
+        "schema_link": 218,
+        "value_grounding": 67
+      }
+    },
+    "roadmap_method_hint_counts": {
+      "base": {
+        "metric_definitions": 88,
+        "planner_schema_linking": 420,
+        "recovery": 2,
+        "semantic_value_grounding": 109,
+        "unresolved_other": 1
+      },
+      "lora": {
+        "metric_definitions": 61,
+        "planner_schema_linking": 369,
+        "recovery": 1,
+        "semantic_value_grounding": 67,
+        "unresolved_other": 6
+      }
+    },
+    "row_counts": {
+      "base": 680,
+      "lora": 680
+    },
+    "split_id": "cosql_dev_clean_holdout_v1",
+    "split_role": "clean_local_holdout"
+  },
+  "interpretation": [
+    "The LoRA improved value/strict execution accuracy over the base direct-SQL control on both proxy_dev_seen and clean_local_holdout.",
+    "Generated-history rollout remains much harder than teacher-forced endpoint evaluation, but the LoRA also improved the rollout score over base.",
+    "Failure analysis still points first at planner/schema-linking and value-grounding errors; recovery is not the next dominant error family."
+  ],
+  "result_manifests": {
+    "base_clean_holdout": {
+      "interaction_match_rate": 0.0051813471502590676,
+      "manifest_path": "results/runs/direct_sql_full_non_oracle_control/base_clean_holdout.manifest.json",
+      "manifest_sha256": "aeee2921538523c18943562692a1ef42e572798a9a4d85a0f5666df57b802a74",
+      "mean_latency_ms": 332.4085966926144,
+      "model_name": "unsloth/Qwen3.5-9B",
+      "output_sha256": "0beac4d1b8052118400a0e9da0c62aee9fdcbbd2c0dfa56be730c9ffd31f591d",
+      "row_count": 680,
+      "split_eval_turn_ids_sha256": "9df2b813b8f6feb0e4c6d3c29083c3cc330d5372fbdce2b63c8b1bec915f35d0",
+      "split_row_ids_sha256": "bc3f77dbac836f487db0712cea34c1d4196d6bcd1d288bd2dd33962a7802d7cc",
+      "strict_execution_accuracy": 0.21764705882352942,
+      "syntax_accuracy": 0.9970588235294118,
+      "total_estimated_generation_cost_usd": 0.0,
+      "total_tokens": 160907,
+      "value_execution_accuracy": 0.21764705882352942
+    },
+    "base_generated_history_rollout": {
+      "interaction_match_rate": 0.0,
+      "manifest_path": "results/runs/direct_sql_full_non_oracle_control/base_generated_history_rollout.manifest.json",
+      "manifest_sha256": "ae3fa51a6259f1dbabab78bb5ec6aaec62faef4226c7bbe89aae9c881b94b640",
+      "mean_latency_ms": 316.34388852501297,
+      "model_name": "unsloth/Qwen3.5-9B",
+      "output_sha256": "704726dfe2d422630450584843393dd6b48931a5516a721337aa698a08f9fbd5",
+      "row_count": 680,
+      "strict_execution_accuracy": 0.04852941176470588,
+      "syntax_accuracy": 0.9970588235294118,
+      "value_execution_accuracy": 0.04852941176470588
+    },
+    "base_proxy_dev_seen": {
+      "interaction_match_rate": 0.0,
+      "manifest_path": "results/runs/direct_sql_full_non_oracle_control/base_proxy_dev_seen.manifest.json",
+      "manifest_sha256": "2cc9bed6524a2aa5ac71f4a84623abac38344e5b5a3b131f38c74f252262443a",
+      "mean_latency_ms": 307.77876273999163,
+      "model_name": "unsloth/Qwen3.5-9B",
+      "output_sha256": "c45d65a67f2b6281be6ce2004d464135c88e7709d35e0a24f25e4b384fc02430",
+      "row_count": 327,
+      "split_eval_turn_ids_sha256": "c82f55a76704d610fd72957bdec6ded5bf4675fa22e70a6eba9d24a5842243b5",
+      "split_row_ids_sha256": "db704eed2c603e8476afa5c5eeb86dfdd936b241a68f4a5bd6cb5fe0d5201583",
+      "strict_execution_accuracy": 0.22324159021406728,
+      "syntax_accuracy": 0.9969418960244648,
+      "total_estimated_generation_cost_usd": 0.0,
+      "total_tokens": 73607,
+      "value_execution_accuracy": 0.22324159021406728
+    },
+    "lora_clean_holdout": {
+      "interaction_match_rate": 0.031088082901554404,
+      "manifest_path": "results/runs/direct_sql_full_non_oracle_control/lora_clean_holdout.manifest.json",
+      "manifest_sha256": "93d18340805b30829d438c286507ed4b817e01cc6459243ea7aa8a11cadc7751",
+      "mean_latency_ms": 466.75006214560625,
+      "model_name": "direct_sql_full_non_oracle_lora",
+      "output_sha256": "23dbc090fc36f20542466c66f10cc01779a752f0962284d9b3acd038e6da5314",
+      "row_count": 680,
+      "split_eval_turn_ids_sha256": "9df2b813b8f6feb0e4c6d3c29083c3cc330d5372fbdce2b63c8b1bec915f35d0",
+      "split_row_ids_sha256": "bc3f77dbac836f487db0712cea34c1d4196d6bcd1d288bd2dd33962a7802d7cc",
+      "strict_execution_accuracy": 0.34852941176470587,
+      "syntax_accuracy": 0.9985294117647059,
+      "total_estimated_generation_cost_usd": 0.0,
+      "total_tokens": 162841,
+      "value_execution_accuracy": 0.34852941176470587
+    },
+    "lora_generated_history_rollout": {
+      "interaction_match_rate": 0.025906735751295335,
+      "manifest_path": "results/runs/direct_sql_full_non_oracle_control/lora_generated_history_rollout.manifest.json",
+      "manifest_sha256": "b524cc4f337bed595f16c5eb381ee6024055c27dc018e13349a884b565a7f3ec",
+      "mean_latency_ms": 459.64868434261916,
+      "model_name": "direct_sql_full_non_oracle_lora",
+      "output_sha256": "737760531d32108eff6bc4166d5c4c68ed06abac2e8d032663590cdf405c4681",
+      "row_count": 680,
+      "strict_execution_accuracy": 0.08970588235294118,
+      "syntax_accuracy": 1.0,
+      "value_execution_accuracy": 0.08970588235294118
+    },
+    "lora_proxy_dev_seen": {
+      "interaction_match_rate": 0.03,
+      "manifest_path": "results/runs/direct_sql_full_non_oracle_control/lora_proxy_dev_seen.manifest.json",
+      "manifest_sha256": "613a489790a9b31cf6651c0ef965ca3ad4161b8e7dc739ffc7c18ee50a6e63bd",
+      "mean_latency_ms": 432.57469199688956,
+      "model_name": "direct_sql_full_non_oracle_lora",
+      "output_sha256": "637a7b2855f53787c54e147365ae558d2b584b316de545f2bc4c02091e63fb61",
+      "row_count": 327,
+      "split_eval_turn_ids_sha256": "c82f55a76704d610fd72957bdec6ded5bf4675fa22e70a6eba9d24a5842243b5",
+      "split_row_ids_sha256": "db704eed2c603e8476afa5c5eeb86dfdd936b241a68f4a5bd6cb5fe0d5201583",
+      "strict_execution_accuracy": 0.3547400611620795,
+      "syntax_accuracy": 1.0,
+      "total_estimated_generation_cost_usd": 0.0,
+      "total_tokens": 74563,
+      "value_execution_accuracy": 0.3547400611620795
+    }
+  },
+  "run_id": "direct_sql_full_eval_20260531",
+  "schema_version": 1
+}
