@@ -72,10 +72,11 @@ Evidence artifact: `eval.run_predicted_planner_comparison` produces direct-SQL,
 predicted-planner, and comparison manifests. The comparison must show a positive
 value-accuracy delta before `predicted_planner_sql_execution` can clear.
 
-Next useful movement: train or prompt a non-oracle planner using train-split
-planner-SFT rows from `data.planner_sft`, then prove column and skeleton quality
-on held-out rows before running the full SQL pair. Lexical projection count and
-generic table over-selection are no longer the dominant blockers.
+Next useful movement: run the same-row direct-SQL versus predicted-planner SQL
+endpoint pair. Train-split planner-SFT rows from `data.planner_sft` produced a
+1000-step planner adapter that passed bounded proxy and clean-holdout planner
+readiness; the remaining Checkpoint 5 question is whether those predicted plans
+improve SQL value accuracy against the direct-SQL control.
 
 ## Semantic-Layer Tuning
 

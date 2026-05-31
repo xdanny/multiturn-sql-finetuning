@@ -25,7 +25,7 @@ def _write_registry(path: Path) -> None:
         (
             "predicted_planner_sql_vs_direct",
             5,
-            "planner_sft_data_ready_needs_training",
+            "planner_readiness_passed_limit24_needs_sql_pair",
             "predicted_planner_sql",
             "direct_sql_full_non_oracle_control",
         ),
@@ -333,10 +333,14 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         "docs/training_runs/planner_sft_data_path_20260531.json"
         in by_checkpoint[5]["evidence"]
     )
+    assert (
+        "docs/training_runs/planner_sft_1000_readiness_20260531.json"
+        in by_checkpoint[5]["evidence"]
+    )
     assert by_checkpoint[5]["open_items"] == [
         (
-            "train or prompt a non-oracle planner and pass held-out "
-            "planner readiness before another predicted-planner SQL run"
+            "run the same-row direct-SQL versus predicted-planner SQL "
+            "endpoint pair and require a positive value-accuracy delta"
         )
     ]
     assert (

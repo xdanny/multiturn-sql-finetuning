@@ -1,0 +1,80 @@
+{
+  "artifact_type": "planner_sft_readiness_evidence",
+  "claim_boundary": "Planner SFT training and bounded planner-readiness evidence only; no SQL execution win is claimed.",
+  "checkpoint": 5,
+  "commands": {
+    "prepare_train": "uv run --active --no-sync python -m data.prepare_split --split-id cosql_train_v1 --output data/processed/direct_sql_full/cosql_train_v1.jsonl --manifest-output data/processed/direct_sql_full/cosql_train_v1.manifest.json --source-root /home/dan/docs/multiturn-sql-finetuning",
+    "build_planner_sft": "uv run --active --no-sync python -m data.planner_sft --input data/processed/direct_sql_full/cosql_train_v1.jsonl --output data/processed/planner_sft/cosql_train_v1.jsonl --manifest-output data/processed/planner_sft/cosql_train_v1.manifest.json",
+    "train": "CC=/home/dan/.local/bin/cc ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache ZIG_LOCAL_CACHE_DIR=/tmp/zig-cache uv run --active --no-sync python -m train.finetune --config configs/direct_sql_full_non_oracle.yaml --data data/processed/planner_sft/cosql_train_v1.jsonl --output-dir outputs/experiments/predicted_planner_sql/planner_sft_20260531_1000 --max-steps 1000 --report-to none",
+    "predict_proxy_limit24": "uv run --active --no-sync python -m eval.planner_predict --backend local --model-name unsloth/Qwen3.5-9B --adapter-path outputs/experiments/predicted_planner_sql/planner_sft_20260531_1000/final --input data/processed/direct_sql_full/cosql_dev_100_proxy_seen_v1.jsonl --output results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_proxy_limit24.predictions.jsonl --max-tokens 512 --max-memory-gb 30 --limit 24",
+    "predict_clean_holdout_limit24": "uv run --active --no-sync python -m eval.planner_predict --backend local --model-name unsloth/Qwen3.5-9B --adapter-path outputs/experiments/predicted_planner_sql/planner_sft_20260531_1000/final --input data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl --output results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_limit24.predictions.jsonl --max-tokens 512 --max-memory-gb 30 --limit 24"
+  },
+  "planner_sft_dataset": {
+    "path": "data/processed/planner_sft/cosql_train_v1.jsonl",
+    "manifest": "data/processed/planner_sft/cosql_train_v1.manifest.json",
+    "manifest_sha256": "e96fee41817cac4c2ca731ac17d055d32b9ef780a91a758febdc8353eeb548f2",
+    "output_sha256": "49bf4caab2478b491bddae7b52689f317f119eaba0f211df1553423673fb8502",
+    "row_count": 7343,
+    "dialog_count": 2159,
+    "database_count": 140,
+    "split_roles": {
+      "train": 7343
+    },
+    "oracle_policy": "train_split_supervision_current_answer_key_not_in_prompt"
+  },
+  "training": {
+    "base_model": "unsloth/Qwen3.5-9B",
+    "adapter_path": "outputs/experiments/predicted_planner_sql/planner_sft_20260531_1000/final",
+    "adapter_config_sha256": "41880ef579b7df2c2d1c487f7062ad87512fb9ce608456c959ef1a8d9008a223",
+    "adapter_weights_sha256": "c27115f3d26625f02ad2b979ead303c0bbebf2afe205e2e5e612bd4be1c9bcd5",
+    "adapter_weights_bytes": 232821904,
+    "max_steps": 1000,
+    "train_runtime_seconds": 6239,
+    "train_loss": 0.09776,
+    "epoch": 0.5447,
+    "gpu_observed": "NVIDIA GeForce RTX 5090, 1 GPU, 31.842 GB reported by Unsloth"
+  },
+  "planner_quality": {
+    "proxy_limit24": {
+      "split_id": "cosql_dev_100_proxy_seen_v1",
+      "rows": 24,
+      "dialogs": 8,
+      "databases": 7,
+      "summary_path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_proxy_limit24.summary.json",
+      "summary_sha256": "dd7d9f5e5f9513c81ca56080de2415214cca88d2bc1ab113c782a3fc8f2b1ca3",
+      "macro_planner_score": 0.8771494708994708,
+      "table_f1": 0.9444444444444445,
+      "column_f1": 0.8263888888888888,
+      "skeleton_f1": 0.9269179894179894,
+      "selected_count_match": 0.9166666666666666,
+      "parse_error_rate": 0.0,
+      "readiness_path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_proxy_limit24.readiness.json",
+      "preflight_status": "ready_for_endpoint_pair",
+      "promotion_ready": true,
+      "recommendation": "run_endpoint_pair"
+    },
+    "clean_holdout_limit24": {
+      "split_id": "cosql_dev_clean_holdout_v1",
+      "rows": 24,
+      "dialogs": 7,
+      "databases": 7,
+      "summary_path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_limit24.summary.json",
+      "summary_sha256": "c8cfb5a268891c86cb7fb3e636478e0a80182d3b64b55141c529d6a6710ebfbd",
+      "macro_planner_score": 0.9420762108262108,
+      "table_f1": 0.9722222222222222,
+      "column_f1": 0.844017094017094,
+      "skeleton_f1": 0.9787037037037037,
+      "selected_count_match": 1.0,
+      "parse_error_rate": 0.0,
+      "readiness_path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_limit24.readiness.json",
+      "preflight_status": "ready_for_endpoint_pair",
+      "promotion_ready": true,
+      "recommendation": "run_endpoint_pair"
+    }
+  },
+  "interpretation": [
+    "The trained planner adapter produces parseable JSON planner outputs on bounded proxy and clean-holdout slices.",
+    "Both bounded slices pass the current eval.planner_readiness policy once the predicted-prepared preflight is present.",
+    "The next checkpoint step is the same-row direct-SQL versus predicted-planner SQL endpoint pair; this evidence does not claim SQL execution improvement."
+  ]
+}

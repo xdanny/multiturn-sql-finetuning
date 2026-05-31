@@ -135,35 +135,55 @@ def run_planner_predict(
     input_path: Path,
     output: Path,
     model_name: str,
+    backend: str,
     endpoint: str,
     api_key: str,
     temperature: float,
     max_tokens: int,
+    adapter_path: Path | None,
+    max_memory_gb: int | None,
     limit: int | None,
     command: Sequence[str] | None = None,
 ) -> int:
     records = load_prepared_records(input_path, limit=limit, allow_oracle_plan=False)
-    client = OpenAI(base_url=endpoint, api_key=api_key)
+    if backend == "endpoint":
+        client = OpenAI(base_url=endpoint, api_key=api_key)
 
-    def endpoint_generate(messages: list[dict[str, str]]) -> tuple[str, float]:
-        return generate_planner_json(
-            client,
+        def generate_fn(messages: list[dict[str, str]]) -> tuple[str, float]:
+            return generate_planner_json(
+                client,
+                model_name=model_name,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+
+    elif backend == "local":
+        if temperature != 0.0:
+            raise ValueError("local planner prediction currently supports only temperature=0.0")
+        from eval.local_generation import local_adapter_generate_fn  # noqa: PLC0415
+
+        generate_fn = local_adapter_generate_fn(
             model_name=model_name,
-            messages=messages,
-            temperature=temperature,
+            adapter_path=adapter_path,
             max_tokens=max_tokens,
+            max_memory_gb=max_memory_gb,
         )
+    else:
+        raise ValueError(f"unknown planner prediction backend: {backend}")
 
     predictions = predict_planner_records(
         records,
-        generate_fn=endpoint_generate,
+        generate_fn=generate_fn,
         model_name=model_name,
     )
     written = write_planner_predictions(predictions, output)
     metadata = {
         "command": list(command or sys.argv),
+        "backend": backend,
         "input_path": str(input_path),
         "model_name": model_name,
+        "adapter_path": str(adapter_path) if adapter_path else None,
         "prediction_source": JSON_PLANNER_PREDICTIONS_SOURCE,
         "row_count": written,
     }
@@ -179,10 +199,13 @@ def main() -> int:
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--model-name", required=True)
+    parser.add_argument("--backend", choices=["endpoint", "local"], default="endpoint")
     parser.add_argument("--endpoint", default="http://localhost:8000/v1")
     parser.add_argument("--api-key", default="EMPTY")
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--max-tokens", type=int, default=512)
+    parser.add_argument("--adapter-path", type=Path, default=None)
+    parser.add_argument("--max-memory-gb", type=int, default=None)
     parser.add_argument("--limit", type=int, default=None)
     args = parser.parse_args()
 
@@ -190,10 +213,13 @@ def main() -> int:
         input_path=args.input,
         output=args.output,
         model_name=args.model_name,
+        backend=args.backend,
         endpoint=args.endpoint,
         api_key=args.api_key,
         temperature=args.temperature,
         max_tokens=args.max_tokens,
+        adapter_path=args.adapter_path,
+        max_memory_gb=args.max_memory_gb,
         limit=args.limit,
         command=sys.argv,
     )
