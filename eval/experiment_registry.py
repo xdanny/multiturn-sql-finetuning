@@ -74,6 +74,17 @@ def load_experiment_registry(path: Path = DEFAULT_EXPERIMENT_REGISTRY) -> tuple[
         if not output_path.startswith("results/"):
             raise ValueError(f"{experiment_id}: output_path must be under results/")
         normalized.append(row)
+    experiment_ids = {row["experiment_id"] for row in normalized}
+    for row in normalized:
+        experiment_id = row["experiment_id"]
+        control_id = row["control_experiment_id"]
+        if row["method"] != "direct_sql" and not control_id:
+            raise ValueError(f"{experiment_id}: comparison experiments must name control_experiment_id")
+        if control_id:
+            if control_id == experiment_id:
+                raise ValueError(f"{experiment_id}: control_experiment_id cannot reference itself")
+            if control_id not in experiment_ids:
+                raise ValueError(f"{experiment_id}: unknown control_experiment_id {control_id!r}")
     return tuple(normalized)
 
 
