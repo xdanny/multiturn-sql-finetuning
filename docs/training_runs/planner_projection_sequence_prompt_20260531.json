@@ -1,0 +1,98 @@
+{
+  "artifact_type": "planner_projection_sequence_prompt_evidence",
+  "artifacts": {
+    "planner_eval": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_sequence_prompt_limit24.eval.jsonl",
+      "row_count": 24,
+      "sha256": "dcdc588ef35a02c4ffad61e0219d35e07acf8be3a95fd71d74d3adae943695d5"
+    },
+    "predicted_prepared": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_sequence_prompt_limit24.predicted_prepared.jsonl",
+      "row_count": 7,
+      "sha256": "5f89c661d9ba410c35ba4c2743da2e58081c32fd054c9f26b94cbe779ab6fdf7"
+    },
+    "prediction_metadata": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_sequence_prompt_limit24.predictions.jsonl.meta.json",
+      "sha256": "df46d4a0479baf04d2b0217873bc46b9727c16e1d64e7fa78990f1feb4c504d6"
+    },
+    "predictions": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_sequence_prompt_limit24.predictions.jsonl",
+      "row_count": 24,
+      "sha256": "952b6455d60fafa8ade11250c41d60ddefb1beeed166f183930191c0c096c923"
+    },
+    "preflight": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_sequence_prompt_limit24.preflight.json",
+      "sha256": "bce41da02d5448a85b0e06a05057f4b79f55d526d4aa38e350b42ec792d3db18"
+    },
+    "readiness": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_sequence_prompt_limit24.readiness.json",
+      "sha256": "6ac23ecac1bc016b258fcdc360812e8fa7db1accffe5de9a33edab2bbc0b92b0"
+    },
+    "summary": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_sequence_prompt_limit24.summary.json",
+      "sha256": "359b43a67a52c2cdd430385bfe8c17ce9dc2859341624cd0f33c43128d2756e7"
+    }
+  },
+  "baseline_comparison": {
+    "baseline_predicted_prepared_sha256": "5f89c661d9ba410c35ba4c2743da2e58081c32fd054c9f26b94cbe779ab6fdf7",
+    "baseline_prediction_sha256": "b79b716f43a730dfc183159fd38c1eacd142f4aa3e914c3300a8192488998a21",
+    "baseline_promotion_ready": false,
+    "baseline_run_id": "planner_sft_1000_clean_holdout_orderaware_limit24",
+    "baseline_selected_expression_order_match": 0.7916666666666666,
+    "sequence_prompt_predicted_prepared_sha256": "5f89c661d9ba410c35ba4c2743da2e58081c32fd054c9f26b94cbe779ab6fdf7",
+    "sequence_prompt_prediction_sha256": "952b6455d60fafa8ade11250c41d60ddefb1beeed166f183930191c0c096c923",
+    "sequence_prompt_promotion_ready": false,
+    "sequence_prompt_selected_expression_order_match": 0.7916666666666666
+  },
+  "checkpoint": 5,
+  "claim_boundary": "Prompt-only planner projection-sequence rerun; no downstream SQL execution comparison was run or claimed.",
+  "inputs": {
+    "adapter_path": "outputs/experiments/predicted_planner_sql/planner_sft_20260531_1000/final",
+    "backend": "local",
+    "database_count": 7,
+    "dialog_count": 7,
+    "model_name": "unsloth/Qwen3.5-9B",
+    "oracle_prompt_rows": 0,
+    "row_count": 24,
+    "split_id": "cosql_dev_clean_holdout_v1",
+    "split_role": "clean_local_holdout"
+  },
+  "interpretation": [
+    "The explicit projection-sequence prompt did not improve the 24-row clean-holdout order-aware planner readiness result.",
+    "The predicted-prepared SHA-256 matches the previous order-aware rerun, so this prompt-only change did not alter planner plans on this slice.",
+    "Checkpoint 5 should move from prompt wording to training data/objective changes that directly target selected expression identity and sequence."
+  ],
+  "planner_quality": {
+    "column_f1": 0.844017094017094,
+    "join_f1": 0.8250000000000001,
+    "macro_planner_score": 0.9253640392529281,
+    "parse_error_rate": 0.0,
+    "selected_count_match": 1.0,
+    "selected_expression_order_match": 0.7916666666666666,
+    "selected_expression_order_mismatch_count": 5,
+    "selected_expression_order_mismatch_rate": 0.20833333333333334,
+    "skeleton_f1": 0.9787037037037037,
+    "table_f1": 0.9722222222222222
+  },
+  "prompt_change": {
+    "planner_optimize": "The projection_shape prompt variant now asks for user-requested answer-column order without alphabetizing or SQL alias names.",
+    "planner_predict": "PLANNER_JSON_INSTRUCTION now explicitly says selected_expressions is the final answer column sequence, preserves user-requested order, avoids alphabetizing, avoids generated SQL aliases, and keeps selected_count equal to selected_expressions length."
+  },
+  "readiness": {
+    "endpoint_pair_ready": true,
+    "policy_minimum_selected_expression_order_match": 0.9,
+    "preflight_status": "ready_for_endpoint_pair",
+    "promotion_blockers": [
+      "selected_expression_order_match below minimum 0.90"
+    ],
+    "promotion_ready": false,
+    "recommendation": "improve_planner_before_comparison",
+    "top_risks": [
+      "projection_order",
+      "column_linking",
+      "join_path"
+    ]
+  },
+  "run_id": "planner_sft_1000_clean_holdout_sequence_prompt_limit24",
+  "schema_version": 1
+}

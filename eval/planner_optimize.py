@@ -50,7 +50,9 @@ DEFAULT_PLANNER_PROMPT_VARIANTS = [
         "projection_shape",
         (
             "Be precise about selected_count, selected_expressions, aggregation outputs, "
-            "group_by fields, distinct, limit, order_by, and duplicate policy."
+            "group_by fields, distinct, limit, order_by, and duplicate policy. "
+            "List selected_expressions in the user's requested answer-column order, "
+            "without alphabetizing or SQL alias names."
         ),
     ),
     PlannerPromptVariant(

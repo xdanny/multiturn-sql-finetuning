@@ -472,10 +472,19 @@ Latest Checkpoint 5 evidence from 2026-05-31:
   recommendation remains `improve_planner_before_comparison`.
 - The evidence file is
   `docs/training_runs/planner_orderaware_readiness_rerun_20260531.json`.
+- The planner prompt now explicitly defines `selected_expressions` as the final
+  answer-column sequence, tells the model to preserve user-requested order, and
+  avoids generated SQL aliases. A 24-row rerun with that prompt produced the
+  same predicted-prepared hash as the previous order-aware run, so prompt
+  wording alone did not move the blocker.
+- Ordered selected-expression match remained `0.792`, below the `0.900`
+  readiness threshold. The evidence file is
+  `docs/training_runs/planner_projection_sequence_prompt_20260531.json`.
 
 The next Checkpoint 5 work should improve planner projection-expression
-sequence quality before another bounded same-row SQL pair. A positive
-value-accuracy delta remains required before promoting the planner path.
+sequence quality through data or training changes before another bounded
+same-row SQL pair. A positive value-accuracy delta remains required before
+promoting the planner path.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 

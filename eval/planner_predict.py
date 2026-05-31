@@ -54,6 +54,14 @@ Use this schema:
     "preserve_duplicates": true
   }
 }
+
+Projection rules:
+- `projection_shape.selected_expressions` is the final answer column sequence.
+- Preserve the user's requested output order exactly; do not alphabetize or sort.
+- Use visible schema table/column names, not generated SQL aliases such as T1 or T2.
+- Keep `selected_count` equal to the length of `selected_expressions`.
+- For "name and id", output name before id; for "average X for each Y", output Y before avg(X)
+  unless the user asks for the aggregate first.
 """.strip()
 
 GeneratePlannerFn = Callable[[list[dict[str, str]]], tuple[str, float]]
