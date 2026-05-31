@@ -1,0 +1,109 @@
+{
+  "artifact_type": "direct_sql_full_lora_training_evidence",
+  "claim_boundary": "Full direct-SQL LoRA training completed locally on the configured non-oracle CoSQL train split. This is training evidence only; it is not a benchmark claim because base/LoRA endpoint evaluation, clean-holdout metrics, generated-history rollout metrics, and row-matched result manifests are still pending.",
+  "command": "CC=/home/dan/.local/bin/cc ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache ZIG_LOCAL_CACHE_DIR=/tmp/zig-cache VIRTUAL_ENV=/home/dan/docs/multiturn-sql-finetuning/.venv PATH=/home/dan/docs/multiturn-sql-finetuning/.venv/bin:$PATH PYTHONPATH=/home/dan/docs/multiturn-sql-finetuning-finetune-run UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m scripts.direct_sql_full_control --stage train --cc /home/dan/.local/bin/cc --zig-cache-dir /tmp/zig-cache --train-report-to none --run",
+  "date": "2026-05-31",
+  "environment": {
+    "compiler": "CC=/home/dan/.local/bin/cc",
+    "cuda_runtime_check": "torch.cuda.is_available() True; device_count 1; device_name NVIDIA GeForce RTX 5090",
+    "gpu": "NVIDIA GeForce RTX 5090, 32607 MiB",
+    "nvidia_smi": "NVIDIA-SMI 590.57; Driver Version 591.86; CUDA Version 13.1",
+    "sandbox_boundary": "Training ran escalated/unsandboxed because default Codex sandboxing can hide WSL CUDA.",
+    "train_report_to": "none",
+    "triton_cache": "ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache; ZIG_LOCAL_CACHE_DIR=/tmp/zig-cache"
+  },
+  "input_artifacts": {
+    "clean_local_holdout": {
+      "evaluation_modes": {
+        "non_oracle_generation": 193
+      },
+      "manifest_path": "data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.manifest.json",
+      "manifest_sha256": "3f8b742052d8d1c034b930848f4e30e58895c38778c1d9d3fe1be7a7516816c5",
+      "oracle_policy": "non_oracle_generation",
+      "row_count": 193,
+      "semantic_context_pruned_by_oracle_labels": false,
+      "split_id": "cosql_dev_clean_holdout_v1",
+      "split_role": "clean_local_holdout",
+      "uses_oracle_planning_hints": false
+    },
+    "proxy_dev_seen": {
+      "evaluation_modes": {
+        "non_oracle_generation": 100
+      },
+      "manifest_path": "data/processed/direct_sql_full/cosql_dev_100_proxy_seen_v1.manifest.json",
+      "manifest_sha256": "723ba47d59d7a729b8293e1916af7b3a5c634d95d0b200fe36a5f44589b8103a",
+      "oracle_policy": "non_oracle_generation",
+      "row_count": 100,
+      "semantic_context_pruned_by_oracle_labels": false,
+      "split_id": "cosql_dev_100_proxy_seen_v1",
+      "split_role": "proxy_dev_seen",
+      "uses_oracle_planning_hints": false
+    },
+    "train": {
+      "evaluation_modes": {
+        "non_oracle_generation": 2159
+      },
+      "manifest_path": "data/processed/direct_sql_full/cosql_train_v1.manifest.json",
+      "manifest_sha256": "8033b8c4e40d3ba6c6d44a280abd43d31022cdd915d1106c69529c703e6cae89",
+      "oracle_policy": "non_oracle_generation",
+      "row_count": 2159,
+      "semantic_context_pruned_by_oracle_labels": false,
+      "split_id": "cosql_train_v1",
+      "split_role": "train",
+      "uses_oracle_planning_hints": false
+    }
+  },
+  "interpretation": [
+    "The full configured 3-epoch direct-SQL LoRA training run completed and saved a final adapter.",
+    "The run used the proxy_dev_seen split only as eval-data for language-model eval loss during training; it did not produce SQL execution metrics.",
+    "Checkpoint 3 remains in progress until base and LoRA endpoint evaluations, clean-holdout manifests, generated-history rollout manifests, and row identity checks are present."
+  ],
+  "model": {
+    "base_model": "unsloth/Qwen3.5-9B",
+    "lora_alpha": 64,
+    "lora_dropout": 0.05,
+    "lora_r": 32,
+    "max_seq_length": 2048,
+    "target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ]
+  },
+  "output_artifacts": {
+    "checkpoints_kept": [
+      "outputs/experiments/direct_sql_full/checkpoint-1000",
+      "outputs/experiments/direct_sql_full/checkpoint-1500",
+      "outputs/experiments/direct_sql_full/checkpoint-1620"
+    ],
+    "final_adapter_config_path": "outputs/experiments/direct_sql_full/final/adapter_config.json",
+    "final_adapter_config_sha256": "052708860183e527c8a91c4e6c16e7db0b17182c929ccae32d4335d6ef573afc",
+    "final_adapter_path": "outputs/experiments/direct_sql_full/final/adapter_model.safetensors",
+    "final_adapter_sha256": "906347d66bb05c1668a8cc82979433c1c1b2056adfcd48f31ae0026a4a7ecdaf",
+    "final_adapter_size": "223M",
+    "final_output_dir": "outputs/experiments/direct_sql_full/final",
+    "save_total_limit": 3,
+    "trainer_state_path": "outputs/experiments/direct_sql_full/checkpoint-1620/trainer_state.json",
+    "trainer_state_sha256": "eda32fbbcae781b64c6c6c7d4c435aea602250fe77d955a919c9915d37c0725f"
+  },
+  "run_id": "direct_sql_full_lora_20260531",
+  "schema_version": 1,
+  "training": {
+    "eval_loss": {
+      "step_1000": 0.5369,
+      "step_1500": 0.5629,
+      "step_1620": 0.6191
+    },
+    "final_epoch": 3.0,
+    "global_step": 1620,
+    "last_logged_loss": 0.2154,
+    "logged_train_runtime_seconds": 6162,
+    "train_loss": 0.361,
+    "train_steps_per_second": 0.263,
+    "wall_time": "1:42:41"
+  }
+}
