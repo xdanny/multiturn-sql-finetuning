@@ -6,7 +6,7 @@ description: >-
 experiments:
   - experiment_id: direct_sql_full_non_oracle_control
     checkpoint: 3
-    status: planned
+    status: input_prep_ready
     hypothesis_id: direct_sql_sft
     hypothesis: >-
       A direct SQL SFT adapter is the stable control arm for every structured
@@ -25,8 +25,8 @@ experiments:
     control_experiment_id: null
     primary_metric: value_accuracy
     claim_boundary: >-
-      Planned full-scale local control. No benchmark claim until split
-      manifests and generated outputs exist.
+      Split-based non-oracle input preparation is ready. No benchmark claim
+      until full base and LoRA generations, metrics, and run manifests exist.
 
   - experiment_id: predicted_planner_sql_vs_direct
     checkpoint: 5

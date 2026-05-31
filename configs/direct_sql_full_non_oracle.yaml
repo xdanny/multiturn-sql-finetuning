@@ -1,0 +1,72 @@
+# Direct-SQL full non-oracle control for Roadmap Checkpoint 3.
+#
+# This config assumes prepared inputs have already been materialized from
+# data/splits/*.json with `uv run --active --no-sync python -m data.prepare_split`.
+
+model:
+  name: "unsloth/Qwen3.5-9B"
+  max_seq_length: 2048
+  dtype: "bfloat16"
+  load_in_4bit: false
+  load_in_16bit: true
+
+lora:
+  r: 32
+  alpha: 64
+  dropout: 0.05
+  bias: "none"
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+  use_rslora: false
+  use_gradient_checkpointing: "unsloth"
+
+training:
+  output_dir: "outputs/experiments/direct_sql_full"
+  num_train_epochs: 3
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 4
+  learning_rate: 2.0e-4
+  lr_scheduler_type: "cosine"
+  warmup_steps: 100
+  weight_decay: 0.01
+  max_grad_norm: 1.0
+  optim: "adamw_8bit"
+  bf16: true
+  tf32: true
+  logging_steps: 10
+  save_strategy: "steps"
+  save_steps: 500
+  save_total_limit: 3
+  eval_strategy: "steps"
+  eval_steps: 500
+  seed: 42
+  report_to: "wandb"
+
+prepared_data:
+  train:
+    split_id: "cosql_train_v1"
+    path: "data/processed/direct_sql_full/cosql_train_v1.jsonl"
+    manifest: "data/processed/direct_sql_full/cosql_train_v1.manifest.json"
+  proxy_dev_seen:
+    split_id: "cosql_dev_100_proxy_seen_v1"
+    path: "data/processed/direct_sql_full/cosql_dev_100_proxy_seen_v1.jsonl"
+    manifest: "data/processed/direct_sql_full/cosql_dev_100_proxy_seen_v1.manifest.json"
+  clean_local_holdout:
+    split_id: "cosql_dev_clean_holdout_v1"
+    path: "data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl"
+    manifest: "data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.manifest.json"
+
+wandb:
+  project: "multiturn-sql-finetuning"
+  run_name: "direct_sql_full_non_oracle_control"
+  tags:
+    - "checkpoint-3"
+    - "direct-sql"
+    - "non-oracle"
+    - "full-cosql-train"
