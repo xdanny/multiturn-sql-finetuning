@@ -48,6 +48,15 @@ def _normalized_list(values: Iterable[Any] | None) -> list[str]:
     return sorted({_normalize_identifier(value) for value in values or [] if value not in (None, "")})
 
 
+def _normalized_ordered_list(values: Iterable[Any] | None) -> list[str]:
+    ordered = []
+    for value in values or []:
+        if value in (None, ""):
+            continue
+        ordered.append(_normalize_identifier(value))
+    return ordered
+
+
 def normalize_plan(plan: dict[str, Any] | None) -> dict[str, Any]:
     """Return the stable planner schema used in JSONL outputs and summaries."""
 
@@ -61,7 +70,9 @@ def normalize_plan(plan: dict[str, Any] | None) -> dict[str, Any]:
         "join_path": _normalized_list(plan.get("join_path")),
         "query_skeleton": {field: bool(skeleton.get(field, False)) for field in SKELETON_FIELDS},
         "projection_shape": {
-            "selected_expressions": _normalized_list(projection.get("selected_expressions")),
+            "selected_expressions": _normalized_ordered_list(
+                projection.get("selected_expressions")
+            ),
             "selected_count": int(projection.get("selected_count") or 0),
             "aggregations": _normalized_list(projection.get("aggregations")),
             "group_by": _normalized_list(projection.get("group_by")),
@@ -185,7 +196,7 @@ def predicted_planning_hint_from_plan(plan: dict[str, Any]) -> str:
         f"Query skeleton: {', '.join(skeleton_flags) or 'select'}",
         (
             "Projection shape: "
-            f"{projection['selected_count']} selected expression(s) in this order: "
+            f"{projection['selected_count']} selected expression(s); output columns must follow exactly this order: "
             f"{'; '.join(projection['selected_expressions']) or 'unknown'}"
         ),
     ]

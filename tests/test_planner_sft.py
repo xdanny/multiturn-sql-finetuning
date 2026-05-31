@@ -75,6 +75,23 @@ def test_planner_sft_record_uses_train_gold_plan_as_target_not_prompt() -> None:
     assert row["target_plan_visible_as_assistant_label"] is True
 
 
+def test_planner_sft_record_preserves_target_projection_order() -> None:
+    turn = _turn()
+    turn["gold_plan"]["projection_shape"]["selected_expressions"] = [
+        "orders.total",
+        "orders.id",
+    ]
+    turn["gold_plan"]["projection_shape"]["selected_count"] = 2
+
+    row = planner_sft_record_from_turn(turn)
+    target = json.loads(row["messages"][-1]["content"])
+
+    assert target["projection_shape"]["selected_expressions"] == [
+        "orders.total",
+        "orders.id",
+    ]
+
+
 def test_planner_sft_record_rejects_non_train_split() -> None:
     with pytest.raises(ValueError, match="split_role=train"):
         planner_sft_record_from_turn(_turn(split_role="clean_local_holdout"))

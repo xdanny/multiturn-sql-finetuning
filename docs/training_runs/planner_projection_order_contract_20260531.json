@@ -1,0 +1,33 @@
+{
+  "artifact_type": "planner_projection_order_contract_evidence",
+  "checkpoint": 5,
+  "claim_boundary": "Contract and prompt fix only; no SQL execution improvement is claimed until planner data/predictions are regenerated and rerun.",
+  "root_cause": "The shared planner contract normalized projection selected_expressions with a sorted set. That made selected expressions deterministic but destroyed selected column order before planner-SFT targets and predicted-plan prompt hints used the plan.",
+  "change": {
+    "contract": "data.plan_contract.normalize_plan now preserves selected_expressions sequence while keeping set-like fields sorted.",
+    "prompt_hint": "data.plan_contract.predicted_planning_hint_from_plan now says output columns must follow exactly the listed selected-expression order.",
+    "planner_sft": "data.planner_sft continues to use normalize_plan, so newly generated planner-SFT targets inherit the order-preserving contract."
+  },
+  "diagnostic_example": {
+    "input_selected_expressions": [
+      "Users.name",
+      "Users.id"
+    ],
+    "normalized_selected_expressions": [
+      "users.name",
+      "users.id"
+    ],
+    "hint_line": "Projection shape: 2 selected expression(s); output columns must follow exactly this order: users.name; users.id"
+  },
+  "relationship_to_previous_evidence": {
+    "failure_analysis": "docs/training_runs/planner_sft_1000_sql_failure_analysis_20260531.json",
+    "direct_only_regressions": 6,
+    "projection_order_flip_regressions": 4,
+    "note": "The existing planner_sft_20260531_1000 adapter and its generated predictions were created before this contract fix and are not repaired by this artifact."
+  },
+  "next_action": [
+    "Regenerate planner-SFT train targets with the order-preserving contract.",
+    "Retrain or refresh the planner adapter/predictions before another same-row SQL endpoint pair.",
+    "Keep Checkpoint 5 in progress until a fresh predicted-planner SQL comparison shows a positive value-accuracy delta."
+  ]
+}
