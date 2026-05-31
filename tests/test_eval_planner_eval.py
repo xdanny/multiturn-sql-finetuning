@@ -132,6 +132,28 @@ def test_lexical_planner_splits_camel_case_column_tokens() -> None:
     assert "countries.countryid" not in plan["relevant_columns"]
 
 
+def test_lexical_planner_generic_name_column_does_not_pull_unmentioned_table() -> None:
+    messages = [
+        {
+            "role": "user",
+            "content": (
+                "Schema/context:\n"
+                "airlines(airline_id int, name text, country text)\n"
+                "routes(route_id int, airline_id int, destination_airport_id int)\n"
+                "airports(airport_id int, name text, city text)\n\n"
+                "Question:\nList airline names."
+            ),
+        }
+    ]
+
+    plan = lexical_planner(messages)
+
+    assert plan["relevant_tables"] == ["airlines"]
+    assert "airlines.name" in plan["relevant_columns"]
+    assert "airports.name" not in plan["relevant_columns"]
+    assert plan["query_skeleton"]["join"] is False
+
+
 def test_lexical_planner_selected_count_uses_projection_prior_not_column_hits() -> None:
     messages = [
         {

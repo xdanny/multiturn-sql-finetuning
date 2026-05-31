@@ -44,6 +44,17 @@ PLAN_FIELDS = (
 LEXICAL_PLANNER_SOURCE = "lexical_schema_baseline"
 JSON_PLANNER_PREDICTIONS_SOURCE = "json_planner_predictions"
 PLANNER_SOURCES = (LEXICAL_PLANNER_SOURCE, JSON_PLANNER_PREDICTIONS_SOURCE)
+GENERIC_COLUMN_TOKENS = {
+    "id",
+    "name",
+    "title",
+    "code",
+    "type",
+    "year",
+    "date",
+    "number",
+    "amount",
+}
 
 
 def _normalize_identifier(value: Any) -> str:
@@ -226,6 +237,10 @@ def _column_name_matches_question(question_tokens: set[str], column: str) -> boo
     return not ((normalized.endswith("_id") or compact.endswith("id")) and "id" not in question_tokens)
 
 
+def _generic_column_match(question_tokens: set[str], column: str) -> bool:
+    return bool(_identifier_tokens(column, split_compound_parts=True) & question_tokens & GENERIC_COLUMN_TOKENS)
+
+
 def _estimate_selected_count(question_tokens: set[str]) -> int:
     """Estimate projected expressions, not every relevant filter/group column.
 
@@ -258,14 +273,18 @@ def lexical_planner(messages: list[dict[str, str]]) -> dict[str, Any]:
 
     for table, columns in inventory.items():
         table_tokens = _identifier_tokens(table)
+        table_matches_question = bool(table_tokens & question_tokens)
         column_hits = []
         for column in columns:
             if _column_name_matches_question(
                 question_tokens, column
             ) or _value_hint_matches_column(question_text, column):
                 column_hits.append(column)
-                selected_columns.add(f"{table}.{column}")
-        if table_tokens & question_tokens or column_hits:
+                if table_matches_question or not _generic_column_match(question_tokens, column):
+                    selected_columns.add(f"{table}.{column}")
+        if table_matches_question or any(
+            not _generic_column_match(question_tokens, column) for column in column_hits
+        ):
             selected_tables.add(table)
 
     skeleton = {
