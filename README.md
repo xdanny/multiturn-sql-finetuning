@@ -14,6 +14,9 @@ See `docs/research_roadmap.md` for the checkpointed empirical reset roadmap:
 freeze the current proxy evidence, simplify the research loop, establish clean
 dataset roles, rebuild full-scale controls, and move only row-matched method
 comparisons toward hosted or BIRD-style claims.
+See `docs/current_research_inventory.md` for the current audited inventory that
+backs Roadmap Checkpoint 0: checked-in rows, manifests, evidence snapshots,
+runtime output references, and active claim boundaries.
 See `docs/research_goal.md` for the explicit research program, including the
 fine-tuning methods this repo should compare: direct SQL SFT, planner/DSL first
 then SQL, semantic-layer tuning, `MEASURE()`-preserving metric DSLs, and

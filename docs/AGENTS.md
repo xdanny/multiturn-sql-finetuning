@@ -31,6 +31,8 @@ Rules:
 
 When editing here, inspect:
 
+- `docs/research_roadmap.md`
+- `docs/current_research_inventory.md`
 - `docs/research_goal.md`
 - `docs/methodology.md`
 - `docs/evidence_contract.md`
