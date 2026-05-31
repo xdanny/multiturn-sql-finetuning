@@ -237,7 +237,10 @@ rollout manifests listed in `configs/direct_sql_full_non_oracle.yaml` exist.
 ## Checkpoint 4: Let Failure Analysis Choose Methods
 
 Status: `[~]` in progress. Current diagnostic artifacts preserve failures and
-next actions, but failure analysis on clean validation is not yet available.
+next actions. `eval.clean_holdout_failure_analysis` can classify the
+Checkpoint 3 base/LoRA clean-holdout outputs and write same-row error summaries
+once those result manifests exist; the actual clean-holdout analysis artifact
+is still pending the full direct-SQL runs.
 
 Do not add another method arm because the ladder has a slot for it. Classify
 failures on clean validation first, then choose the method whose hypothesis
@@ -257,6 +260,14 @@ Use this mapping:
 Tiny synthetic wins should not be scaled until they also move a real validation
 slice. Synthetic fixtures are useful for isolating failure modes, not for
 declaring a benchmark improvement.
+
+After Checkpoint 3 produces the base and LoRA clean-holdout manifests, write the
+failure-analysis artifact with:
+
+```bash
+uv run --active --no-sync python -m eval.clean_holdout_failure_analysis \
+  --config configs/direct_sql_full_non_oracle.yaml
+```
 
 ## Checkpoint 5: Planner First, But Non-Oracle
 
