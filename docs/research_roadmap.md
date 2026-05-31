@@ -4,6 +4,28 @@ This is the canonical long-term roadmap for the multi-turn SQL fine-tuning
 program. It replaces the old gate-heavy day-to-day direction with smaller,
 row-matched method comparisons.
 
+Last audited: 2026-05-31 on commit `2e1b804`.
+
+Checkpoint status legend:
+
+- `[x]` complete for the current repo state.
+- `[~]` in progress with useful artifacts or code present, but the checkpoint's
+  evidence requirement is not fully satisfied.
+- `[ ]` pending; no sufficient current evidence exists yet.
+
+Current checkpoint progress:
+
+- `[x]` Checkpoint 0: Freeze The Current State.
+- `[~]` Checkpoint 1: Simplify The Research Loop.
+- `[ ]` Checkpoint 2: Establish Honest Dataset Roles.
+- `[ ]` Checkpoint 3: Rebuild Baselines At Real Scale.
+- `[~]` Checkpoint 4: Let Failure Analysis Choose Methods.
+- `[~]` Checkpoint 5: Planner First, But Non-Oracle.
+- `[~]` Checkpoint 6: Semantic Layer And Value Grounding.
+- `[~]` Checkpoint 7: Metric DSL.
+- `[~]` Checkpoint 8: Generated-History Recovery.
+- `[ ]` Checkpoint 9: Hosted And Target Benchmark Transfer.
+
 The publishable benchmark claim is simple:
 
 > A local fine-tuned method must beat the right direct-SQL control on clean
@@ -14,8 +36,9 @@ The current repo is not there yet. It has useful proxy evidence, method
 surfaces, and diagnostic artifacts, but most scored model evidence is still a
 100-turn CoSQL proxy slice. Many method artifacts are intentionally small:
 2 metric-DSL rows, 1 behavior-recovery row, and 5 synthetic fixtures.
-`data/processed/train.jsonl` is empty, so current training evidence mostly comes
-from small prepared files and outputs under `outputs/`.
+`data/processed/train.jsonl` is absent or empty in the checked-in tree, so
+current training evidence mostly comes from small prepared files and recorded
+outputs under `outputs/`.
 
 Supported non-oracle proxy claims are narrow: the base model reaches `0.590`
 value accuracy on the inspected 100-turn CoSQL proxy, the 100-step LoRA reaches
@@ -39,6 +62,9 @@ borrow their claims until it runs matching protocols:
 
 ## Checkpoint 0: Freeze The Current State
 
+Status: `[x]` complete for current `main`. The inventory is
+`docs/current_research_inventory.md`.
+
 The first checkpoint is historical cleanup, not new modeling.
 
 - Mark CoSQL dev 100 as `proxy_dev_seen`: an inspected, reproducible proxy
@@ -52,14 +78,18 @@ The first checkpoint is historical cleanup, not new modeling.
 - Record that the raw local CoSQL data is much larger than the current scored
   slice: 2,159 train dialogs / 7,343 train turns and 293 dev dialogs /
   1,007 dev turns.
-- Record that `data/processed/train.jsonl` is empty and should not be treated as
-  evidence of full-scale training.
+- Record that `data/processed/train.jsonl` is absent or empty in the checked-in
+  tree and should not be treated as evidence of full-scale training.
 
-The output of this checkpoint should be an inventory file or notebook section
-that names the actual rows, manifests, adapters, outputs, and claims currently
+The output of this checkpoint is `docs/current_research_inventory.md`, which
+names the actual rows, manifests, adapters, outputs, and claims currently
 available.
 
 ## Checkpoint 1: Simplify The Research Loop
+
+Status: `[~]` in progress. The old gate workflow and generated ledgers are
+removed, and the active guardrails are documented. The compact experiment
+registry is still pending.
 
 Replace the gate-first workflow with four required guardrails:
 
@@ -87,6 +117,9 @@ This registry should answer "what did we test and why?" before any generated
 status table or runbook checklist tries to rank the method.
 
 ## Checkpoint 2: Establish Honest Dataset Roles
+
+Status: `[ ]` pending. Dataset roles are named here, but frozen split manifests
+do not exist yet.
 
 Build explicit split manifests for:
 
@@ -116,6 +149,9 @@ for scoring, keep it scorer-side.
 
 ## Checkpoint 3: Rebuild Baselines At Real Scale
 
+Status: `[ ]` pending. Current scored evidence is still proxy-scale; the
+full-scale direct-SQL base and direct-SQL LoRA controls have not been rebuilt.
+
 Run direct SQL base and direct SQL LoRA on full available non-oracle training
 data, not 64-row or 128-row samples. Direct SQL is the stable control for every
 structured method.
@@ -134,6 +170,9 @@ semantic-layer, metric-DSL, and recovery comparison should use the same row IDs,
 scorer, oracle policy, and manifest shape.
 
 ## Checkpoint 4: Let Failure Analysis Choose Methods
+
+Status: `[~]` in progress. Current diagnostic artifacts preserve failures and
+next actions, but failure analysis on clean validation is not yet available.
 
 Do not add another method arm because the ladder has a slot for it. Classify
 failures on clean validation first, then choose the method whose hypothesis
@@ -156,6 +195,10 @@ declaring a benchmark improvement.
 
 ## Checkpoint 5: Planner First, But Non-Oracle
 
+Status: `[~]` in progress. Non-oracle planner scoring and a 24-turn negative
+predicted-planner comparison exist; planner quality is not yet high enough to
+promote another SQL-generation run.
+
 Train or prompt a planner only on training-split gold labels. Evaluate planner
 F1 on held-out rows before feeding predicted plans into SQL generation.
 
@@ -177,6 +220,10 @@ diagnostics.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 
+Status: `[~]` in progress. Value labels, a non-oracle value index, semantic
+retrieval inputs, and alias/column context inputs exist; a same-row semantic
+SQL win on a clean holdout does not.
+
 Replace mechanically generated semantic hints with versioned semantic artifacts:
 
 - entities;
@@ -197,6 +244,10 @@ supervision, diagnostics, and scoring, but not as production prompt context.
 
 ## Checkpoint 7: Metric DSL
 
+Status: `[~]` in progress. Parser/evaluator code and two-row fixtures exist,
+but prompt-only and 5-step evidence are negative diagnostics rather than a DSL
+method win.
+
 Expand beyond the current 2-row DSL fixture before training a serious adapter.
 Parse rate and compile rate are prerequisites, not wins.
 
@@ -212,6 +263,10 @@ If the DSL compiles but loses to direct SQL, the result is still useful: it says
 metric intent was represented but the method did not improve SQL outcomes.
 
 ## Checkpoint 8: Generated-History Recovery
+
+Status: `[~]` in progress. Rollout evaluators and one-row recovery diagnostics
+exist; generated-history recovery has not beaten direct SQL on multi-dialog
+rollout.
 
 Move recovery evaluation from one synthetic row to multi-dialog rollout. Later
 turns must see generated SQL and observed results, not prior gold SQL.
@@ -231,6 +286,9 @@ The minimum rollout manifest should record:
 - value-only, strict, syntax, and interaction-level metrics.
 
 ## Checkpoint 9: Hosted And Target Benchmark Transfer
+
+Status: `[ ]` pending. Hosted and BIRD-Interact-style transfer should wait until
+a local method beats direct SQL on a clean local holdout.
 
 Run hosted baselines only after a local method beats direct SQL on a clean local
 holdout. The first real external target should be BIRD-Interact Lite or
@@ -252,6 +310,8 @@ The final claim requires:
 The reset should converge on these interfaces:
 
 - `docs/research_roadmap.md`: this checkpointed roadmap.
+- `docs/current_research_inventory.md`: audited current-state inventory for
+  Checkpoint 0.
 - `configs/experiments.yaml`: compact registry for experiment hypotheses and
   run definitions.
 - `configs/datasets.yaml` or `data/splits/*.json`: dataset roles and frozen row
