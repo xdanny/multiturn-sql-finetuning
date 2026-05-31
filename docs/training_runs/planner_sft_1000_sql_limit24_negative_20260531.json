@@ -1,0 +1,44 @@
+{
+  "artifact_type": "predicted_planner_sql_comparison_evidence",
+  "claim_boundary": "Negative bounded clean-holdout SQL evidence for Checkpoint 5; no planner-path SQL win is claimed.",
+  "checkpoint": 5,
+  "run_id": "planner_sft_1000_clean_holdout_sql_limit24",
+  "command": "CC=/home/dan/.local/bin/cc ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache ZIG_LOCAL_CACHE_DIR=/tmp/zig-cache VIRTUAL_ENV=/home/dan/docs/multiturn-sql-finetuning/.venv PATH=/home/dan/docs/multiturn-sql-finetuning/.venv/bin:$PATH PYTHONPATH=/tmp/multiturn-sql-finetuning-checkpoint5-planner-sft-data UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m eval.run_predicted_planner_comparison --backend local --model-name unsloth/Qwen3.5-9B --adapter-path /home/dan/docs/multiturn-sql-finetuning-finetune-run/outputs/experiments/direct_sql_full/final --direct-input /home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl --predicted-input /home/dan/docs/multiturn-sql-finetuning/results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_limit24.predicted_prepared.jsonl --output-dir /home/dan/docs/multiturn-sql-finetuning/results/runs/predicted_planner_sql_vs_direct --run-id planner_sft_1000_clean_holdout_sql_limit24 --preflight-output /home/dan/docs/multiturn-sql-finetuning/results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_sql_limit24.preflight.json --database-root /home/dan/docs/multiturn-sql-finetuning/data/raw/cosql_dataset/database --repo-root /tmp/multiturn-sql-finetuning-checkpoint5-planner-sft-data --max-tokens 512 --max-memory-gb 30 --limit 24",
+  "comparison_manifest": {
+    "path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_sql_limit24.compared.manifest.json",
+    "sha256": "f72d90d7b0f47cd6ff9bd3695de1ff18d5861c7a4dcd8670b90b726ccca1208c"
+  },
+  "input": {
+    "split_id": "cosql_dev_clean_holdout_v1",
+    "split_role": "clean_local_holdout",
+    "row_count": 24,
+    "dialog_count": 7,
+    "database_count": 7,
+    "turn_ids_sha256": "e5f5be2b562e4399d84e16e7ed4c642b46410291552f9e2c013e2a07768aa45c"
+  },
+  "modeling": {
+    "base_model": "unsloth/Qwen3.5-9B",
+    "sql_adapter_path": "/home/dan/docs/multiturn-sql-finetuning-finetune-run/outputs/experiments/direct_sql_full/final",
+    "registered_sql_adapter_path": "outputs/experiments/direct_sql_full/final",
+    "planner_adapter_path": "outputs/experiments/predicted_planner_sql/planner_sft_20260531_1000/final",
+    "backend": "local",
+    "history_policy": "gold_sql_teacher_forced",
+    "oracle_allowed": false
+  },
+  "metrics": {
+    "direct_sql_value_execution_accuracy": 0.08333333333333333,
+    "direct_sql_strict_execution_accuracy": 0.041666666666666664,
+    "predicted_planner_value_execution_accuracy": 0.041666666666666664,
+    "predicted_planner_strict_execution_accuracy": 0.0,
+    "predicted_planner_value_delta_vs_direct_sql": -0.041666666666666664,
+    "predicted_planner_strict_delta_vs_direct_sql": -0.041666666666666664,
+    "predicted_planner_syntax_accuracy": 0.08333333333333333,
+    "interaction_match_rate": 0.0,
+    "mean_generation_latency_ms": 22454.79510566671
+  },
+  "interpretation": [
+    "The trained planner SFT adapter passed bounded planner-readiness checks, but the downstream same-row SQL comparison regressed on the clean-holdout slice.",
+    "Checkpoint 5 remains in progress because the planner path still needs a positive value-accuracy delta against direct SQL before promotion.",
+    "The next useful work is failure analysis on the prepared predicted plans and generated SQL before spending broader SQL-generation budget."
+  ]
+}
