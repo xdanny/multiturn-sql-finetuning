@@ -118,10 +118,11 @@ def summarize_roadmap_status(
             status="in_progress",
             evidence=[
                 f"experiment_status={_experiment_status(experiments, 'predicted_planner_sql_vs_direct')}",
+                "eval.planner_readiness promotion policy",
                 "docs/training_runs/lexical_predicted_planner_limit24.json",
             ],
             open_items=[
-                "planner quality must improve before another predicted-planner SQL run"
+                "planner readiness must pass before another predicted-planner SQL run"
             ],
         ),
         _entry(
