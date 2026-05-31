@@ -75,8 +75,8 @@ def summarize_planner_readiness(
     source_counts = Counter(str(row.get("predicted_plan_source") or "unknown") for row in rows)
     summary = {
         "schema_version": 1,
-        "artifact_type": "predicted_planner_readiness_report",
-        "claim_boundary": "readiness only; no SQL execution claim",
+        "artifact_type": "predicted_planner_risk_summary",
+        "claim_boundary": "risk summary only; no SQL execution claim",
         "row_count": total,
         "dialog_count": len({row.get("dialog_id") for row in rows}),
         "database_count": len({row.get("database_id") for row in rows}),
@@ -101,7 +101,7 @@ def summarize_planner_readiness(
     summary["recommendation"] = (
         "run_endpoint_pair"
         if summary["endpoint_pair_ready"] and summary["macro_below_0_50_rate"] <= 0.2
-        else "improve_planner_before_claim"
+        else "improve_planner_before_comparison"
     )
     return summary
 
@@ -117,7 +117,7 @@ def run_planner_readiness_report(
     summary = summarize_planner_readiness(rows, preflight=preflight)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
-    print(f"Wrote planner readiness report to {output}")
+    print(f"Wrote planner risk summary to {output}")
     return 0
 
 
@@ -131,12 +131,12 @@ def main() -> int:
     parser.add_argument(
         "--preflight-input",
         type=Path,
-        default=Path("docs/predicted_planner_comparison_preflight.json"),
+        default=None,
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("docs/planner_readiness_cosql_dev_100.json"),
+        default=Path("results/predicted_planner/planner_risk.json"),
     )
     args = parser.parse_args()
     return run_planner_readiness_report(

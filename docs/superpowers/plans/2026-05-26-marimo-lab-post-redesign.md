@@ -82,8 +82,8 @@ Expected: pass.
 - Modify: `README.md`
 - Modify: `docs/research_goal.md`
 - Modify: `docs/blog/README.md`
-- Modify: `notebooks/blog_support.py`
-- Modify: generated files under `docs/blog/generated/`
+- Modify: the blog evidence support module
+- Modify: generated blog evidence files
 - Modify: `tests/test_blog_notebooks.py`
 - Modify: `tests/test_local_multiturn_sql_lab.py`
 
@@ -98,7 +98,7 @@ assert lab_row["alternate_command"] == "jupyter lab notebooks/labs/local_multitu
 
 The docs should say Marimo is the primary walkthrough and Jupyter is the portable export.
 
-- [ ] **Step 2: Update `notebooks/blog_support.py`**
+- [ ] **Step 2: Update the blog evidence support module**
 
 Change `shareable_lab_attachment()` and `lab_reader_flow()` so `run_command` points to Marimo first and `alternate_command` points to Jupyter.
 
@@ -114,7 +114,7 @@ Make these docs state the actual research program:
 Run:
 
 ```bash
-.venv/bin/python -m notebooks.blog_support --output-dir docs/blog/generated
+.venv/bin/python -m <blog evidence generator> --output-dir <blog evidence output>
 ```
 
 - [ ] **Step 5: Verify generated evidence is current**
@@ -199,7 +199,7 @@ Run:
 Run:
 
 ```bash
-git add README.md docs/research_goal.md docs/blog/README.md docs/blog/generated notebooks tests
+git add README.md docs/research_goal.md docs/blog/README.md notebooks tests
 git commit -m "Make Marimo the primary SQL lab walkthrough"
 ```
 

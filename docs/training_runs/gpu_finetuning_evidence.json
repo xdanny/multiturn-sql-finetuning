@@ -23,7 +23,7 @@
     "training_manifest_path": "outputs/gpu_access_smoke_1step/training.manifest.json",
     "training_manifest_sha256": "d57260cfef8aa8dbf3782ae746ce4f03bc6e5acbb0e0f916339ed0ab39ca6b6b"
   },
-  "interpretation": "Existing local LoRA artifacts and claim-ledger results support previous GPU fine-tuning measurements. A fresh one-step LoRA smoke also completed on the RTX 5090 when run outside the sandbox; the sandboxed command path cannot initialize NVML and should not be used as the GPU-access signal.",
+  "interpretation": "Existing local LoRA artifacts and run manifests support previous GPU fine-tuning measurements. A fresh one-step LoRA smoke also completed on the RTX 5090 when run outside the sandbox; the sandboxed command path cannot initialize NVML and should not be used as the GPU-access signal.",
   "runs": [
     {
       "adapter_config_path": "outputs/qwen35_9b_multiturn_sql_100steps/final/adapter_config.json",

@@ -120,9 +120,8 @@ The direct manifest must use `benchmark=metric_dsl_direct_sql` and
 `evaluation_mode=non_oracle_generation`. The comparer rejects oracle manifests,
 oracle prompt markers in rows, row-count mismatches, row-identity mismatches,
 unscored direct-SQL rows, and metric-DSL rows without database-backed compiled
-SQL execution. The claim ledger then requires the compared manifest, the
-referenced direct-SQL manifest, and a positive metric-DSL value delta before it
-clears the `metric_dsl_beats_direct_sql` pending claim.
+SQL execution. A method claim requires the compared manifest, the referenced
+direct-SQL manifest, and a positive metric-DSL value delta.
 
 This is intentionally small. It is not a full semantic-layer compiler yet. Its job is
 to create a runnable experiment surface for the next fine-tuning question:

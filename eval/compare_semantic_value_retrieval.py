@@ -3,7 +3,7 @@ Compare semantic value-retrieval SQL against a direct-SQL baseline.
 
 This does not run generation. It verifies two prepared result manifests and
 their output rows are comparable, then writes an augmented semantic manifest
-with the same-row deltas required by the claim ledger.
+with the same-row deltas required for a method claim.
 """
 
 from __future__ import annotations

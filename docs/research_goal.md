@@ -68,21 +68,14 @@ manifest, a planner score, a semantic-artifact report, a metric-DSL comparison, 
 rollout manifest, or a hosted comparison. A prose claim without one of those artifacts
 is not ready for publication.
 
-The generated `docs/blog/generated/hosted-comparison-protocol.md` is the public
-contract for the hosted comparison rung. It spells out the same input rows,
-scorer, oracle boundary, hosted model manifest, local model manifest,
-generated-history rollout, latency and cost accounting, and BIRD-Interact
-transfer evidence required before the pending hosted/SOTA claim can move.
+The hosted comparison rung must spell out the same input rows, scorer, oracle
+boundary, hosted model manifest, local model manifest, generated-history
+rollout, latency and cost accounting, and BIRD-Interact transfer evidence
+required before a hosted/SOTA claim can move.
 
-The generated `docs/blog/generated/evaluation-harness-map.md` ties those claims
-back to code. Each row names the module and command surface that can produce or
-check the evidence, so a method is not "next" unless there is an executable path
-for preparing, scoring, or comparing it.
-
-The generated `docs/blog/generated/method-readiness-report.md` is the stricter
-ranking guard. It maps each method to supported claims, blocking claims, the
-next executable command, and the artifact needed before the method can be called
-rankable.
+Each method should name the module and command surface that can produce or check
+its evidence. A method is not "next" unless there is an executable path for
+preparing, scoring, or comparing it against the right control.
 
 ## Fine-Tuning Methods To Compare
 
@@ -94,7 +87,7 @@ The repo should compare training methods as first-class hypotheses:
 | Planner/DSL first, SQL second | The model should first predict a typed plan or DSL, then compile or generate SQL. | Planner F1 improves and predicted-plan SQL execution beats direct SQL. |
 | Semantic-layer tuning | The model should learn governed entities, dimensions, measures, grain, and allowed joins. | Semantic artifact retrieval and use improves metric and join correctness. |
 | MEASURE()-preserving metric DSL | The model should preserve governed metrics such as `MEASURE(revenue)` instead of expanding metric SQL too early. | Metric DSL accuracy and compiled SQL execution beat raw SQL generation on metric-heavy tasks. |
-| Behavior/recovery tuning | The model should learn to clarify, inspect values, repair failures, and recover after its own earlier errors. | Recovery-adapter rollout beats the direct-SQL control under generated-history evaluation; rollout-vs-teacher-forced remains a diagnostic gate. |
+| Behavior/recovery tuning | The model should learn to clarify, inspect values, repair failures, and recover after its own earlier errors. | Recovery-adapter rollout beats the direct-SQL control under generated-history evaluation; rollout-vs-teacher-forced remains a diagnostic comparison. |
 
 ## Why The Current Work Is Incomplete
 
@@ -139,9 +132,8 @@ rows, with the same scorer, the same prompt boundary, and the same oracle policy
   model has to recover from its own prior bad SQL or empty result instead of reading
   clean teacher-forced history.
 
-The generated `method-decision-rules.md` and `method-priority-backlog.md` assets are
-the public form of these rules. They should change only when the claim ledger and
-evaluation code can enforce the new rule.
+These rules should change only when evaluation code and comparison artifacts can
+enforce the new rule.
 
 ## Data Artifact Contract
 
@@ -192,7 +184,7 @@ runnable from the codebase:
 2. `notebooks/labs/local_multiturn_sql_lab.ipynb`
 
 The post explains the narrative, but every public claim should name a lab
-checkpoint or generated evidence artifact that backs it. The lab
+checkpoint, run manifest, or canonical data artifact that backs it. The lab
 auto-selects CUDA, MPS, or XPU when PyTorch detects an available
 accelerator and falls back to CPU. It should not require the full GPU training
 setup, dependency installation cells, or vLLM serving path.
@@ -208,23 +200,22 @@ should behave like a lab walkthrough inside the attached codebase:
 4. Separate production-style proxy results from oracle diagnostics.
 5. Turn the remaining failures into next repo artifacts.
 
-Every public claim should name a lab section or generated evidence artifact
-that produced it. The public post should be readable
+Every public claim should name a lab section, run manifest, or comparison
+artifact that produced it. The public post should be readable
 on its own, but it should also let readers rerun the companion lab to see the
 boundary between current proxy evidence, oracle diagnostics, and future
 BIRD-Interact or hosted-model claims.
-The generated `target-evidence-matrix.md` is the public bridge between the toy lab
-behaviors and manifest-backed model evidence, so readers can see which targets are
-supported, pending, or only diagnostic.
+Run manifests and comparison artifacts are the bridge between toy lab behaviors
+and model evidence, so readers can see which targets are supported, pending, or
+only diagnostic.
 
-The generated `planner-readiness.md` adds one more guardrail: before the blog
-treats predicted-planner SQL as the next result, the repo must show that the
-planner can recover columns and projection shape well enough to justify endpoint
-time. The current lexical planner is row-pair ready, but its readiness report
-still recommends `improve_planner_before_claim`.
+Before the blog treats predicted-planner SQL as the next result, the repo must
+show that the planner can recover columns and projection shape well enough to
+justify endpoint time.
 
-Expensive model serving and GPU training stay in scripts. The public reader path stays
-focused on the published lab, the attached codebase, and generated evidence assets.
+Expensive model serving and GPU training stay in scripts. The public reader path
+stays focused on the published lab, the attached codebase, and cited run
+manifests.
 
 ## First DSL Experiment Surface
 

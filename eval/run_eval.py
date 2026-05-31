@@ -270,7 +270,7 @@ def write_results(records: Iterable[dict[str, Any]], output: Path) -> int:
 
 
 def summarize_eval_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
-    """Aggregate metrics for result manifests and claim ledgers."""
+    """Aggregate metrics for result manifests and comparison reports."""
 
     if not results:
         return {}

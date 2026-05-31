@@ -13,7 +13,7 @@ protocols:
     required_artifacts:
       - prepared input manifest
       - result manifest
-      - claim-ledger row
+      - same-row comparison manifest when reporting a method delta
     allowed_claims:
       - proxy SQL generation improved on the fixed CoSQL slice
       - planner/value/DSL artifacts are measurable on a stable local slice

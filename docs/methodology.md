@@ -71,8 +71,8 @@ The fixed proxy result is intentionally decomposed before making broader claims:
    estimate how much a correct intermediate plan helps.
 4. Planner scoring: predicted plans are compared with `gold_plan` before SQL is
    generated.
-5. Future BIRD-Interact run: same claim ledger, manifests, and mode separation
-   applied to the real target benchmark.
+5. Future BIRD-Interact run: same manifest shape, row identity checks, and mode
+   separation applied to the real target benchmark.
 
 This split is there to avoid a common failure mode: mixing datasets, prompts,
 models, and evaluators until a number improves but no one knows why.
@@ -141,8 +141,8 @@ Every publishable number should have:
 - row and dialog counts;
 - the exact command or enough command metadata to rerun it.
 
-`eval.run_eval` writes result manifests by default. Historical proxy manifests
-are tracked in `docs/result_manifests/cosql_dev_100_proxy.json`.
+`eval.run_eval` writes result manifests by default. Keep run-specific manifests
+under `results/` and cite them directly when reporting proxy numbers.
 
 Strict execution accuracy checks returned values and output labels. Value-only
 accuracy ignores harmless alias differences but still cares about row values,
@@ -183,8 +183,8 @@ enter the SQL prompt.
 Predicted-planner SQL execution is compared against direct SQL, not judged in
 isolation. A raw `predicted_planner` manifest proves only that the planner path
 ran. The repo requires a comparison artifact from `eval.compare_predicted_planner`
-and the referenced direct-SQL manifest in the ledger input before clearing the
-planner-to-SQL improvement claim.
+and the referenced direct-SQL manifest before reporting a planner-to-SQL
+improvement claim.
 
 ## Current Claim Boundary
 

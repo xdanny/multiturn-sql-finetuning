@@ -10,6 +10,10 @@ small, reproducible multi-turn proxy slice. The longer benchmark direction is a
 BIRD-Interact-style comparison with the same interaction protocol, SQL execution
 checks, cost accounting, and larger-model baselines.
 
+See `docs/research_roadmap.md` for the checkpointed empirical reset roadmap:
+freeze the current proxy evidence, simplify the research loop, establish clean
+dataset roles, rebuild full-scale controls, and move only row-matched method
+comparisons toward hosted or BIRD-style claims.
 See `docs/research_goal.md` for the explicit research program, including the
 fine-tuning methods this repo should compare: direct SQL SFT, planner/DSL first
 then SQL, semantic-layer tuning, `MEASURE()`-preserving metric DSLs, and
@@ -24,10 +28,7 @@ See `docs/finetuning_measurement_plan.md` for the metrics, controls, and
 comparison artifacts required before any smoke run becomes a benchmark claim.
 See `docs/finetuning_method_runbook.md` for the practical runbook that turns
 planner, semantic-layer, metric-DSL, behavior/recovery, and hosted benchmark
-ideas into finetuning steps with controls and evidence gates.
-The machine-readable method registry is `configs/finetuning_methods.yaml`; it
-drives `eval.method_readiness` so method arms, controls, gates, and next
-commands are reviewed as config rather than hidden in evaluator code.
+ideas into row-matched comparisons with explicit controls.
 
 The first metric-DSL experiment surface is documented in
 `docs/metric_dsl_contract.md`, implemented in `data.metric_dsl`, and evaluated
@@ -52,20 +53,17 @@ reference fields.
 
 ## Current State
 
-This repo is now organized around verified, runnable gates:
+This repo is now organized around four research guardrails:
 
 - BIRD-Interact/BIRD-style evaluation is the target direction; CoSQL is the
   current local proxy while that harness is built.
+- Split integrity, prompt leakage prevention, row identity matching, and run
+  manifests are the required checks before a result can support a method claim.
 - Data preparation writes TRL-compatible `messages` JSONL.
 - Data preparation now injects Cube-inspired semantic model hints from Spider/CoSQL `tables.json` when available.
 - Training consumes prepared JSONL and supports bounded smoke tests with `--max-steps`.
 - Evaluation compares base and fine-tuned models through either a local Transformers runner or an OpenAI-compatible endpoint.
 - Endpoint evaluation writes a manifest that records the input hash, output hash, model, mode, command, and metrics behind each reported number.
-- The claim ledger in `docs/claim_ledgers/` verifies those manifests, marks
-  non-oracle CoSQL results as proxy-only, marks oracle rows as diagnostics, and
-  keeps predicted-planner SQL, metric-DSL-vs-direct-SQL, hosted baselines,
-  local-vs-hosted wins, and BIRD-Interact claims pending until matching artifacts
-  and positive comparison deltas exist.
 - Generated-history rollout evaluation is now wired so behavior/recovery can be
   tested without teacher-forcing prior gold SQL into later turns.
 - Tests cover dataset formatting, training-data validation, SQL scoring, result loading, and plotting.
@@ -86,9 +84,8 @@ Known constraints:
 - Semantic model context increases prompt length. The current semantic endpoint run shows this cost directly, so future semantic prompts need retrieval and pruning.
 - DSPy-backed prompt search is available through `eval.prompt_optimize`; it can propose and score prompt variants against execution accuracy.
 - A non-oracle `predicted_planner` path is now wired: lexical planner output can be written back into prepared JSONL and injected into the SQL-generation prompt without reference SQL.
-- A planner-readiness report now checks the paired input before endpoint time and
-  records why the current lexical planner should be improved before treating the
-  predicted-planner path as a likely SQL win.
+- Predicted-planner comparison runners check paired inputs before endpoint time
+  and keep planner-quality diagnostics separate from SQL execution claims.
 - A `MEASURE()`-preserving metric-DSL evaluator is now wired for offline
   JSONL predictions; it scores semantic intent, compiles through a semantic
   model, optionally executes compiled SQL, and writes result manifests.
@@ -109,8 +106,8 @@ Known constraints:
 - Schema-link label generation and semantic prompt pruning are available through `data.prepare --include-sql-labels --prune-semantic-model`. These flags now mark produced rows as `evaluation_mode=oracle_planner_diagnostic`. On the fixed 100-turn CoSQL slice, the best oracle prompt-only pruned-label run reaches `0.850` value accuracy, and training on that oracle-labelled format reaches `0.890`.
 - The end-to-end methodology, dataset roles, training strategy boundaries, and
   benchmark claim rules are documented in `docs/methodology.md`.
-- The public post now has one attached codebase, a published HTML lab, and generated evidence
-  assets; see `docs/blog/README.md`.
+- The public post now has one attached codebase and a published HTML lab; see
+  `docs/blog/README.md`.
 
 ## Blog-Attached Lab
 
@@ -134,16 +131,8 @@ It also separates dataset roles for BIRD-Interact, BIRD mini-dev, CoSQL, SParC,
 synthetic schema-rich SQL, and the tiny SQLite lab so the repo does not treat
 every SQL row as interchangeable training data.
 It auto-selects CUDA, MPS, or XPU when PyTorch can see an accelerator and falls
-back to CPU. It should stay a portable lab, not a serving or dependency
-installation guide. The public site consumes generated evidence such as
-`docs/blog/generated/shareable-lab.md`,
-`docs/blog/generated/dataset-role-matrix.md`,
-`docs/blog/generated/lab-method-scores.md`,
-`docs/blog/generated/data-artifact-contract.md`,
-`docs/blog/generated/value-grounding-labels.md`,
-`docs/blog/generated/synthetic-method-fixtures.md`,
-`docs/blog/generated/target-evidence-matrix.md`, and
-`docs/blog/generated/lab-failure-trace.md`.
+back to CPU. It should stay a portable lab, not a serving, dependency
+installation, or generated-evidence publishing guide.
 
 Deeper evidence maintenance stays separate from the public reader path. Expensive
 GPU training, vLLM serving, and local setup notes stay in scripts and docs outside
@@ -289,10 +278,9 @@ python -m eval.compare_predicted_planner \
 ```
 
 The comparison command refuses oracle diagnostics, non-prepared manifests,
-model mismatches, wrong output modes, and row-identity mismatches. The claim
-ledger only clears the predicted-planner SQL execution claim when the compared
-predicted-planner run beats direct SQL on value accuracy and the referenced
-direct-SQL manifest is included in the ledger input.
+model mismatches, wrong output modes, and row-identity mismatches. A
+predicted-planner SQL claim needs the compared predicted-planner run to beat the
+same-row direct SQL control on value accuracy, with both run manifests retained.
 
 The safer way to produce that pair is the paired runner, which preflights row
 identity before spending endpoint time, runs the direct-SQL control and
@@ -309,7 +297,7 @@ python -m eval.run_predicted_planner_comparison \
   --endpoint http://localhost:8000/v1 \
   --database-root data/raw/cosql_dataset/database \
   --limit 100 \
-  --preflight-output docs/predicted_planner_comparison_preflight.json
+  --preflight-output results/predicted_planner/<run-id>.preflight.json
 ```
 
 For endpoint-free validation, run only the preflight:
@@ -321,13 +309,12 @@ python -m eval.run_predicted_planner_comparison \
   --output-dir results/predicted_planner \
   --run-id lexical_planner_cosql_dev_100 \
   --model-name <served-model> \
-  --preflight-output docs/predicted_planner_comparison_preflight.json \
+  --preflight-output results/predicted_planner/<run-id>.preflight.json \
   --preflight-only
 ```
 
-The tracked preflight currently shows that the direct and predicted inputs align
-for 100 turns across 32 dialogs. It is a readiness artifact only; it does not
-support a SQL execution claim.
+That preflight is run-specific and belongs under `results/`. It is an input
+compatibility artifact only; it does not support a SQL execution claim.
 
 Before running that endpoint pair, summarize whether the planner is ready enough
 to make the endpoint spend useful:
@@ -335,17 +322,13 @@ to make the endpoint spend useful:
 ```bash
 python -m eval.planner_readiness \
   --planner-input results/planner_eval_cosql_dev_100.jsonl \
-  --preflight-input docs/predicted_planner_comparison_preflight.json \
-  --output docs/planner_readiness_cosql_dev_100.json
+  --preflight-input results/predicted_planner/<run-id>.preflight.json \
+  --output results/predicted_planner/<run-id>.planner_risk.json
 ```
 
-The current tracked report is deliberately conservative. It says the paired
-direct/predicted inputs are row-matched, but the lexical planner still has
-`0.790` zero-column-F1 turns, `0.820` selected-count mismatches, and `1.000`
-empty projection-expression turns on the 100-turn CoSQL proxy. The recommendation
-is `improve_planner_before_claim`. That is not a SQL execution score; it is the
-reason to improve column linking and projection shape before making the endpoint
-comparison the next public claim.
+Treat this as a run-specific planner-risk summary, not checked-in evidence.
+Planner quality is not a SQL execution score; improve column linking and
+projection shape before making an endpoint comparison the next public claim.
 
 ## Value Grounding Artifacts
 
@@ -392,7 +375,7 @@ before SQL generation.
 
 ## Metric DSL Evaluation
 
-Metric-DSL evaluation is the first runnable gate for testing whether a model
+Metric-DSL evaluation is the first runnable check for testing whether a model
 should produce semantic intent before SQL. Input rows contain a predicted DSL, a
 reference DSL, a semantic model, and optional reference SQL/database path:
 
@@ -422,7 +405,7 @@ dimension F1, filter F1, database-backed compiled-SQL value accuracy, and the
 semantic-model hashes used by the run. Execution accuracy is computed only over
 rows with both `reference_sql` and `database_path`. A row that expands
 `SUM(orders.amount)` instead of emitting `MEASURE(revenue)` fails the metric-DSL
-parse gate, so it cannot be hidden by a compiled SQL score.
+parse check, so it cannot be hidden by a compiled SQL score.
 
 Before claiming DSL-first generation is better than direct SQL, run a direct-SQL
 baseline on the same metric-heavy rows and compare manifests:
@@ -437,9 +420,9 @@ python -m eval.compare_metric_dsl_direct_sql \
 The direct baseline must use `benchmark=metric_dsl_direct_sql` and
 `evaluation_mode=non_oracle_generation`. The metric-DSL and direct-SQL models may
 differ, but the output rows must have matching identities and no oracle markers.
-The claim ledger clears `metric_dsl_beats_direct_sql` only when the compared
-metric-DSL manifest references the direct manifest, preserves `MEASURE(...)`,
-covers every row with database-backed execution, and has a positive value delta.
+A metric-DSL win requires the compared manifest to reference the direct
+manifest, preserve `MEASURE(...)`, cover every row with database-backed
+execution, and show a positive value delta.
 
 ## Generated-History Rollout
 
@@ -480,8 +463,8 @@ Current fixed-slice lexical planner baseline:
 The tracked summary is `docs/planner_baseline_cosql_dev_100_summary.json`.
 This is intentionally not a SQL execution result. It measures whether the
 non-oracle planner can recover the answer-key plan fields before SQL generation.
-The claim ledger and historical result manifests are tracked under
-`docs/evidence_contract.md` and `docs/result_manifests/`.
+Historical proxy numbers should be reported through run manifests and the
+current claim boundaries in `docs/evidence_contract.md`.
 
 ## Stack
 

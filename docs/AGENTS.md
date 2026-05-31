@@ -8,7 +8,7 @@ Primary responsibilities:
 - Keep blog-derived ideas grounded in runnable repo steps: direct SQL controls,
   planner work, semantic context, metric DSL, behavior recovery, and hosted or
   BIRD-style comparisons.
-- Separate smoke-run readiness from scored evaluation and benchmark claims.
+- Separate smoke-run viability from scored evaluation and benchmark claims.
 - Keep claim language human-readable, specific, and tied to visible artifacts.
 - Make docs point to the exact code, data artifact, command, manifest, or
   comparison file they rely on.
@@ -23,7 +23,7 @@ Rules:
 - Do not expose future turns, reference SQL, gold plans, gold metric DSL,
   expected rows, or repair labels as production-style model inputs.
 - When adding a method doc, state the control arm, primary metric, supporting
-  metrics, leakage boundary, and evidence gate.
+  metrics, leakage boundary, and comparison artifact.
 - Prefer short prose and compact bullet lists over large markdown tables.
 - If a doc cites CoSQL, SParC, BIRD, or BIRD-Interact, explain the role of that
   benchmark in this repo instead of assuming the reader already knows it.

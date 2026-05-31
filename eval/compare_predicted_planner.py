@@ -3,7 +3,7 @@ Compare predicted-planner SQL against the matching direct-SQL baseline.
 
 This does not run either evaluation. It verifies two prepared result manifests
 and their output rows are comparable, then writes an augmented predicted-planner
-manifest carrying the comparison metrics required by the claim ledger.
+manifest carrying the comparison metrics required for a method claim.
 """
 
 from __future__ import annotations

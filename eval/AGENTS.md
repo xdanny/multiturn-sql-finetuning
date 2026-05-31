@@ -1,14 +1,14 @@
 # Eval AGENTS
 
-This subtree owns local and endpoint evaluation, scoring, comparison manifests,
-and claim ledger inputs.
+This subtree owns local and endpoint evaluation, scoring, and comparison
+manifests.
 
 Primary responsibilities:
 
 - Compare methods on the same rows, same databases, and same oracle policy.
 - Keep direct-SQL controls explicit for planner, semantic-layer, metric-DSL, and
   recovery experiments.
-- Separate readiness checks from measured claims.
+- Separate input compatibility checks from measured claims.
 - Write run outputs to `results/` unless a file is a small canonical benchmark
   input or claim artifact.
 
@@ -28,6 +28,5 @@ When editing here, inspect:
 - `eval/metric_dsl_eval.py`
 - `eval/run_semantic_value_retrieval_comparison.py`
 - `eval/compare_semantic_value_retrieval.py`
-- `eval/claim_ledger.py`
 - `docs/evidence_contract.md`
 - `docs/data_artifacts/README.md`

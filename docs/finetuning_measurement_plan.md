@@ -11,20 +11,15 @@ Do not call a method better because its smoke run completed. A method becomes
 evidence only after generated outputs are scored and compared against the
 control arm listed here.
 
-`configs/hypothesis_experiment_matrix.yaml` is the machine-readable contract for
-that rule. It names each hypothesis, its control, its training artifacts, its
-validation artifacts, its locked benchmark artifacts, and the promotion gate.
-Regenerate the checked-in summary with:
+The next machine-readable interface should be a compact experiment registry,
+not the old gate matrix. It should name each hypothesis, split role, model or
+adapter, method, scorer, output path, and control run. Do not add that registry
+in cleanup-only changes; keep this file focused on the measurement rules.
 
-```bash
-uv run --active --no-sync python -m train.experiment_matrix \
-  --output docs/experiment_matrix_summary.json
-```
-
-The matrix intentionally says CoSQL dev 100 is a locked proxy benchmark, not a
-pristine holdout. Earlier prompt and evidence iteration inspected that slice.
-Use it for reproducible proxy gates, then reserve hosted/BIRD-Interact transfer
-rows for the broader claim.
+CoSQL dev 100 is an inspected proxy slice, not a pristine holdout. Earlier
+prompt and evidence iteration inspected that slice. Use it for continuity while
+reserving clean local holdouts and hosted/BIRD-Interact transfer rows for the
+broader claim.
 
 ## Shared Rules
 
@@ -61,7 +56,7 @@ Supporting measurements:
 - normalized SQL match,
 - latency and generation count.
 
-Evidence gate:
+Evidence artifact:
 
 - a result manifest from `eval.run_eval` or `eval.local_benchmark` that records
   input path, output path, model, endpoint, evaluation mode, command, and row
@@ -89,7 +84,7 @@ Supporting measurements:
 - value-grounding failure counts,
 - join/path failure counts when classified.
 
-Evidence gate:
+Evidence artifact:
 
 - same-row result manifests for semantic-context and direct-SQL runs, plus a
   comparison artifact that records the delta and the prompt/evaluation policy.
@@ -124,7 +119,7 @@ Supporting measurements:
 - `filter_f1`,
 - strict execution accuracy for compiled SQL.
 
-Evidence gate:
+Evidence artifact:
 
 - generated prediction JSONL for both arms from
   `eval.generate_metric_dsl_predictions`,
@@ -169,7 +164,7 @@ Supporting measurements:
 - value-normalization repair rate,
 - whether later turns contain generated SQL history instead of reference SQL.
 
-Evidence gate:
+Evidence artifact:
 
 - generated-history rollout input from `data.behavior_recovery_rollout_inputs`,
 - `eval.run_behavior_recovery_comparison` output containing the generated-history
@@ -210,7 +205,7 @@ Supporting measurements:
 - duplicate-row policy match,
 - value/entity grounding accuracy.
 
-Evidence gate:
+Evidence artifact:
 
 - planner evaluation manifest before using the planner as SQL-generation
   context,
@@ -232,27 +227,9 @@ answer these questions:
 - Which comparison artifact proves the delta?
 
 If any of those answers are missing, the run can still be useful exploration,
-but it should not clear a claim in the ledger.
+but it should not support a method claim.
 
-To see the current method readiness state from the claim ledger and checked-in
-row artifacts, run:
-
-```bash
-uv run --active --no-sync python -m eval.method_readiness \
-  --output results/method_readiness/<run-id>.json \
-  --fail-on-missing-required
-```
-
-This report is a status summary. It does not replace scored generations or the
-comparison manifests listed above.
-
-The method arms in that report are loaded from `configs/finetuning_methods.yaml`.
-When adding a new finetuning approach, put its training rows, control rows,
-evaluator paths, next command, and claim boundary there first. Then update the
-matching section in this plan only if the measurement rule itself changes.
-
-The concrete run sequence is loaded from `configs/finetuning_steps.yaml`. Each
-step carries its own measurement contract: deciding metric, protocol-backed
-metric references, supporting diagnostics, expected comparison artifact, and
-promotion rule. Keep that block aligned with this plan whenever a step changes
-from a smoke check into a real benchmark comparison.
+When adding a new finetuning approach, start with canonical rows, the direct
+control, leakage boundary, scorer, and output locations. Update this plan only
+if the measurement rule itself changes from a smoke check into a real benchmark
+comparison.

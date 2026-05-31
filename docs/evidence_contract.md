@@ -7,8 +7,9 @@ The broader methodology, dataset roles, training boundaries, and benchmark
 rules are defined in `docs/methodology.md`.
 
 The machine-readable benchmark protocol registry is
-`configs/benchmark_protocols.yaml`. Method readiness rows must name protocol ids
-from that registry before they can make benchmark or transfer claims.
+`configs/benchmark_protocols.yaml`. Run manifests and comparison artifacts
+should name protocol ids from that registry before they can support benchmark or
+transfer claims.
 
 ## Evaluation Modes
 
@@ -22,57 +23,20 @@ from that registry before they can make benchmark or transfer claims.
 Gold SQL-derived labels may be used as scorer targets in every mode. They may
 enter the prompt only in `oracle_planner_diagnostic`.
 
-## Claim Ledger
+## Current Claim Boundaries
 
-The claim ledger turns this contract into a checked artifact. It reads result
-manifests, verifies referenced hashes, scans input/output rows for oracle
-planning leakage, joins classified failure counts, and writes one row per
-claimable artifact plus explicit pending rows for missing evidence:
-
-```bash
-python -m eval.claim_ledger
-```
-
-Tracked outputs:
-
-- `docs/claim_ledgers/cosql_dev_100.jsonl`
-- `docs/claim_ledgers/cosql_dev_100_summary.csv`
-
-The current ledger is intentionally conservative:
-
-- non-oracle CoSQL results are `supported_proxy`;
-- oracle-planner rows are `diagnostic_upper_bound`;
-- planner summaries are `supported_planner_quality`, not SQL accuracy;
-- value-index rows are `supported_value_retrieval_coverage`, not SQL accuracy;
-- generated-history rollout existence, rollout-vs-teacher-forced improvement,
-  predicted-planner SQL execution, semantic value-retrieval SQL improvement,
-  metric-DSL-vs-direct-SQL improvement, hosted baseline existence,
-  local-vs-hosted outperformance, and BIRD-Interact comparison remain `pending`
-  until same-protocol result manifests and positive comparison deltas exist;
-- the metric-DSL bootstrap is supported as metric-DSL quality evidence only. It
-  is not direct-SQL superiority because its value delta versus direct SQL is
-  `0.000`.
-
-Any hash mismatch, missing manifest field, non-oracle oracle marker, or
-predicted-planner manifest whose output rows are not also marked
-`predicted_planner` is downgraded to `pending` with a blocker. A `metric_dsl`
-manifest is also downgraded unless it reports positive parse, compile, execution,
-and measure-preservation metrics.
-
-## Claim Ledger Rows
-
-| Claim | Status | Artifact | Mode | Allowed in blog |
+| Claim | Status | Evidence | Mode | Allowed in blog |
 | --- | --- | --- | --- | --- |
-| Base local Qwen 3.5 9B reaches `0.370` strict and `0.590` value accuracy on the fixed CoSQL proxy turns. | `supported_proxy` | `docs/result_manifests/cosql_dev_100_proxy.json` | `non_oracle_generation` | Yes, as a proxy result. |
-| The 100-step LoRA reaches `0.530` strict and `0.630` value accuracy on the same proxy turns. | `supported_proxy` | `docs/result_manifests/cosql_dev_100_proxy.json` | `non_oracle_generation` | Yes, as a proxy result. |
-| The best non-oracle prompt/result currently reaches `0.640` value accuracy. | `supported_proxy` | `docs/result_manifests/cosql_dev_100_proxy.json` | `non_oracle_generation` | Yes, if labeled value-only. |
-| A prompt-only oracle diagnostic reaches `0.850` value accuracy. | `diagnostic_upper_bound` | `docs/result_manifests/cosql_dev_100_proxy.json` | `oracle_planner_diagnostic` | Yes, only as a ceiling test. |
-| Gold SQL-derived planning hints can push the best diagnostic run to `0.890` value accuracy. | `diagnostic_upper_bound` | `docs/result_manifests/cosql_dev_100_proxy.json` | `oracle_planner_diagnostic` | Yes, only as a ceiling test. |
+| Base local Qwen 3.5 9B reaches `0.370` strict and `0.590` value accuracy on the fixed CoSQL proxy turns. | `supported_proxy` | historical run manifests under `results/` or regenerated run manifests | `non_oracle_generation` | Yes, as a proxy result. |
+| The 100-step LoRA reaches `0.530` strict and `0.630` value accuracy on the same proxy turns. | `supported_proxy` | historical run manifests under `results/` or regenerated run manifests | `non_oracle_generation` | Yes, as a proxy result. |
+| The best non-oracle prompt/result currently reaches `0.640` value accuracy. | `supported_proxy` | historical run manifests under `results/` or regenerated run manifests | `non_oracle_generation` | Yes, if labeled value-only. |
+| A prompt-only oracle diagnostic reaches `0.850` value accuracy. | `diagnostic_upper_bound` | diagnostic run manifest | `oracle_planner_diagnostic` | Yes, only as a ceiling test. |
+| Gold SQL-derived planning hints can push the best diagnostic run to `0.890` value accuracy. | `diagnostic_upper_bound` | diagnostic run manifest | `oracle_planner_diagnostic` | Yes, only as a ceiling test. |
 | The lexical planner baseline has macro score `0.571`, table F1 `0.599`, column F1 `0.117`, and skeleton F1 `0.648`. | `supported_planner_quality` | `docs/planner_baseline_cosql_dev_100_summary.json` | planner scoring | Yes, as planner quality, not SQL accuracy. |
 | The non-oracle value index covers `0.783` of resolved SQL values and `0.755` of user-visible mention aliases on the fixed proxy labels. | `supported_value_retrieval_coverage` | `docs/data_artifacts/value_index_cosql_dev_100.manifest.json` | value retrieval coverage | Yes, as retrieval coverage only. |
 | Semantic value retrieval improves SQL outcomes. | Pending | `data.value_index` plus same-row result manifests | `non_oracle_generation` | No, until a row-matched semantic/value retrieval run beats direct SQL. |
 | A non-oracle predicted planner improves SQL execution. | Pending | `data/processed/eval_cosql_dev_predicted_planner_100.jsonl` can now be generated | `predicted_planner` | No, until same-model direct-SQL comparison metrics show a positive value-accuracy delta. |
-| A metric-DSL result exists with parse, compile, execution, and measure-preservation metrics. | `supported_metric_dsl_quality` | `docs/result_manifests/metric_dsl_bootstrap.json` | `metric_dsl` | Yes, as metric-DSL quality only. |
+| A metric-DSL result exists with parse, compile, execution, and measure-preservation metrics. | `supported_metric_dsl_quality` | metric-DSL result manifest | `metric_dsl` | Yes, as metric-DSL quality only. |
 | Metric-DSL generation beats direct SQL on metric-heavy rows. | Pending | `eval.compare_metric_dsl_direct_sql` is implemented | `metric_dsl` | No, until the compared manifest has a positive value delta and references the direct-SQL manifest. |
 | A generated-history rollout result exists for the fixed CoSQL proxy. | Pending | `eval.rollout_eval` is implemented | `non_oracle_generation` | No, until a rollout result manifest exists. |
 | Generated-history rollout beats teacher-forced history for the same model/input. | Pending | none | not run | No, diagnostic only until side-by-side comparison metrics exist. |
@@ -149,9 +113,9 @@ python -m eval.planner_optimize \
 
 The planner optimizer writes `summary.csv` and per-variant JSONL files. It ranks
 parseable planner output before field-level F1, and malformed JSON receives zero
-planner credit. These are planner-quality artifacts only; they do not clear the
-`predicted_planner_sql_execution` claim until a predicted-planner SQL manifest
-beats a row-matched direct-SQL manifest.
+planner credit. These are planner-quality artifacts only; they do not support a
+predicted-planner SQL claim until a predicted-planner SQL manifest beats a
+row-matched direct-SQL manifest.
 
 Create the first 100-turn predicted-planner artifact from those predictions:
 
@@ -167,8 +131,7 @@ python -m eval.planner_eval \
 ```
 
 Future endpoint runs through `eval.run_eval` write a manifest next to the JSONL
-output by default. Historical manifest snapshots for the currently cited proxy
-numbers live in `docs/result_manifests/cosql_dev_100_proxy.json`.
+output by default. Keep run-specific manifest snapshots under `results/`.
 
 Compare a predicted-planner SQL run against direct SQL before claiming the
 planner improved execution:
@@ -182,10 +145,9 @@ python -m eval.compare_predicted_planner \
 
 The comparison command requires non-oracle `prepared` manifests, the same model,
 `predicted_planner` output rows, direct `non_oracle_generation` output rows, and
-matching row identities. The claim ledger clears
-`predicted_planner_sql_execution` only when the predicted-planner value accuracy
-beats the direct-SQL value accuracy and the referenced direct-SQL manifest is
-present in the same ledger input.
+matching row identities. A predicted-planner SQL claim requires the compared
+manifest to show that predicted-planner value accuracy beats the same-row direct
+SQL control.
 
 Use the paired runner for the actual endpoint experiment:
 
@@ -199,13 +161,13 @@ python -m eval.run_predicted_planner_comparison \
   --endpoint http://localhost:8000/v1 \
   --database-root data/raw/cosql_dataset/database \
   --limit 100 \
-  --preflight-output docs/predicted_planner_comparison_preflight.json
+  --preflight-output results/predicted_planner/<run-id>.preflight.json
 ```
 
-`docs/predicted_planner_comparison_preflight.json` records that the current
-direct and predicted prepared inputs have matching row identities for the fixed
-100-turn proxy. This is only a readiness artifact. It cannot clear the claim
-without the endpoint result manifests and comparison metrics.
+This preflight records whether the current direct and predicted prepared inputs
+have matching row identities for the fixed proxy. It is run-specific and belongs
+under `results/`; it cannot support a method claim without endpoint result
+manifests and comparison metrics.
 
 Run a semantic value-retrieval SQL pair against direct SQL before claiming the
 value index improved execution:
@@ -236,7 +198,7 @@ python -m eval.run_semantic_value_retrieval_comparison \
   --endpoint http://localhost:8000/v1 \
   --database-root data/raw/cosql_dataset/database \
   --limit 100 \
-  --preflight-output docs/semantic_value_retrieval_comparison_preflight.json
+  --preflight-output results/semantic_value_retrieval/<run-id>.preflight.json
 ```
 
 The paired runner validates that both prepared inputs expand to the same
@@ -245,16 +207,13 @@ control, and that the value-index manifest is database-derived. It then writes
 direct, semantic, and compared manifests. The lower-level
 `eval.compare_semantic_value_retrieval` still enforces the final comparison
 contract: same model, matching row identities, non-oracle output rows, execution
-scores on both sides, and the value-index manifest SHA. The claim ledger clears
-`semantic_value_retrieval_improves_sql` only when the compared manifest reports
-a positive value-accuracy delta versus direct SQL. Coverage alone remains a
-retrieval artifact, not a SQL win.
+scores on both sides, and the value-index manifest SHA. A semantic
+value-retrieval SQL claim requires a positive value-accuracy delta versus direct
+SQL. Coverage alone remains a retrieval artifact, not a SQL win.
 
-`docs/semantic_value_retrieval_comparison_preflight.json` records that the
-current direct and semantic prepared inputs match on the fixed 100-turn proxy:
-100 turns, 32 dialogs, and 15 databases under the comparison limit. Like the
-predicted-planner preflight, this is only readiness evidence. It does not clear
-the SQL-improvement claim without endpoint result manifests.
+Write semantic value-retrieval preflight outputs under `results/`. Like the
+predicted-planner preflight, this is only input-compatibility evidence. It does
+not support a SQL-improvement claim without endpoint result manifests.
 
 Summarize whether that endpoint pair is worth running before spending model
 time:
@@ -262,15 +221,13 @@ time:
 ```bash
 python -m eval.planner_readiness \
   --planner-input results/planner_eval_cosql_dev_100.jsonl \
-  --preflight-input docs/predicted_planner_comparison_preflight.json \
-  --output docs/planner_readiness_cosql_dev_100.json
+  --preflight-input results/predicted_planner/<run-id>.preflight.json \
+  --output results/predicted_planner/<run-id>.planner_risk.json
 ```
 
-The tracked readiness report is bounded to `readiness only; no SQL execution
-claim`. It records that the row pair is ready, but the lexical planner still has
-high column-linking and projection-shape risk: `0.790` zero-column-F1 turns,
-`0.820` selected-count mismatches, and `1.000` empty projection-expression
-turns. Its recommendation is `improve_planner_before_claim`, not `run_endpoint_pair`.
+This planner-risk summary is bounded to `risk summary only; no SQL execution
+claim`. It can explain why a planner needs improvement before endpoint spend,
+but it is not checked-in evidence.
 
 For non-lexical planners, write JSONL predictions keyed by expanded turn id and
 run `eval.planner_eval --planner-source json_planner_predictions
@@ -301,8 +258,8 @@ python -m eval.compare_metric_dsl_direct_sql \
 The direct manifest must use `benchmark=metric_dsl_direct_sql` and
 `evaluation_mode=non_oracle_generation`. The models may differ, but row
 identities, hashes, non-oracle status, direct execution scores, and the comparer
-provenance marker must match before the ledger can clear
-`metric_dsl_beats_direct_sql`.
+provenance marker must match before a metric-DSL comparison can support a method
+claim.
 
 Run generated-history rollout without teacher-forcing prior gold SQL:
 
@@ -317,8 +274,8 @@ uv run --active --no-sync python -m eval.rollout_eval \
 
 Rollout rows use `history_policy=model_generated_sql_rollout`. A rollout result
 can support a proxy rollout claim, but not a behavior/recovery method win.
-Teacher-forced comparison metrics are a diagnostic gate that show whether clean
-history was hiding generated-history failure.
+Teacher-forced comparison metrics are a diagnostic comparison that shows whether
+clean history was hiding generated-history failure.
 
 Create those comparison metrics with:
 
@@ -334,11 +291,9 @@ produces the rollout, teacher-forced diagnostic, and comparison manifest
 together.
 
 The comparison command requires the same model, same input hash, and non-oracle
-manifests before the claim ledger can clear the diagnostic
-`rollout_beats_teacher_forced_history` gate. The separate
-`behavior_recovery_beats_direct_sql` claim still requires recovery-adapter
-generations compared with the direct-SQL control adapter under generated-history
-rollout.
+manifests before a rollout-vs-teacher-forced diagnostic can be reported. A
+separate behavior/recovery claim still requires recovery-adapter generations
+compared with the direct-SQL control adapter under generated-history rollout.
 
 ## Blog Rule
 
