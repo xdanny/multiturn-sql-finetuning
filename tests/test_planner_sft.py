@@ -8,6 +8,7 @@ import pytest
 from data.planner_sft import (
     PLANNER_SFT_LABEL_SOURCE,
     PLANNER_SFT_ORACLE_POLICY,
+    PLANNER_SFT_PROMPT_POLICY,
     build_planner_sft_records,
     planner_sft_record_from_turn,
     write_planner_sft_dataset,
@@ -70,6 +71,7 @@ def test_planner_sft_record_uses_train_gold_plan_as_target_not_prompt() -> None:
     assert target["projection_shape"]["aggregations"] == ["sum"]
     assert row["planner_label_source"] == PLANNER_SFT_LABEL_SOURCE
     assert row["oracle_policy"] == PLANNER_SFT_ORACLE_POLICY
+    assert row["planner_prompt_policy"] == PLANNER_SFT_PROMPT_POLICY
     assert row["reference_sql_visible_to_model"] is False
     assert row["gold_plan_visible_to_model_prompt"] is False
     assert row["target_plan_visible_as_assistant_label"] is True
@@ -161,6 +163,7 @@ def test_write_planner_sft_dataset_writes_manifest(tmp_path: Path) -> None:
     assert manifest["reference_sql_visible_to_model"] is False
     assert manifest["gold_plan_visible_to_model_prompt"] is False
     assert manifest["target_plan_visible_as_assistant_label"] is True
+    assert manifest["planner_prompt_policy"] == PLANNER_SFT_PROMPT_POLICY
     assert manifest["output_sha256"]
     assert rows[0]["split_role"] == "train"
     assert json.loads(rows[0]["messages"][-1]["content"])["relevant_tables"] == ["customers"]

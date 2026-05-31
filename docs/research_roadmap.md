@@ -480,11 +480,18 @@ Latest Checkpoint 5 evidence from 2026-05-31:
 - Ordered selected-expression match remained `0.792`, below the `0.900`
   readiness threshold. The evidence file is
   `docs/training_runs/planner_projection_sequence_prompt_20260531.json`.
+- `data.planner_sft` now writes `planner_prompt_policy=
+  projection_sequence_instruction_v1` into rows and manifests. Regenerating the
+  full 7,343-row train-split planner-SFT dataset changed all prompt rows,
+  preserved all target plans (`changed_target_plan_count=0`), and added the
+  projection-sequence instruction to every prompt.
+- The evidence file is
+  `docs/training_runs/planner_sft_sequence_instruction_dataset_20260531.json`.
 
-The next Checkpoint 5 work should improve planner projection-expression
-sequence quality through data or training changes before another bounded
-same-row SQL pair. A positive value-accuracy delta remains required before
-promoting the planner path.
+The next Checkpoint 5 work should train a planner adapter on the
+projection-sequence SFT dataset before another bounded same-row SQL pair. A
+positive value-accuracy delta remains required before promoting the planner
+path.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 

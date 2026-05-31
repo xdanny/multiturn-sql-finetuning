@@ -102,10 +102,13 @@ selected-count match stays `1.000`, but ordered selected-expression match stays
 follow-up prompt-only attempt that explicitly defines `selected_expressions` as
 the final answer-column sequence; it produced the same predicted-prepared hash
 and the same `0.792` ordered selected-expression match.
+`docs/training_runs/planner_sft_sequence_instruction_dataset_20260531.json`
+records the next data step: the full 7,343-row train-split planner-SFT dataset
+now carries `planner_prompt_policy=projection_sequence_instruction_v1`; all
+prompt rows changed, while target plans stayed unchanged.
 
-Next useful movement: improve planner projection-expression sequence quality
-through data or training changes, then rerun a bounded same-row SQL pair before
-any broader endpoint pair.
+Next useful movement: train a planner adapter on the projection-sequence SFT
+dataset, then rerun order-aware readiness before any broader endpoint pair.
 
 ## Semantic-Layer Tuning
 

@@ -17,6 +17,7 @@ from eval.run_eval import load_prepared_records
 
 PLANNER_SFT_LABEL_SOURCE = "train_split_gold_reference_sql"
 PLANNER_SFT_ORACLE_POLICY = "train_split_supervision_current_answer_key_not_in_prompt"
+PLANNER_SFT_PROMPT_POLICY = "projection_sequence_instruction_v1"
 
 
 def _sha256_file(path: Path) -> str:
@@ -78,6 +79,7 @@ def planner_sft_record_from_turn(turn: dict[str, Any]) -> dict[str, Any]:
         "target_plan": gold_plan,
         "planner_label_source": PLANNER_SFT_LABEL_SOURCE,
         "oracle_policy": PLANNER_SFT_ORACLE_POLICY,
+        "planner_prompt_policy": PLANNER_SFT_PROMPT_POLICY,
         "reference_sql_visible_to_model": False,
         "gold_plan_visible_to_model_prompt": False,
         "target_plan_visible_as_assistant_label": True,
@@ -117,6 +119,7 @@ def build_planner_sft_manifest(
         "split_roles": dict(split_roles),
         "planner_label_source": PLANNER_SFT_LABEL_SOURCE,
         "oracle_policy": PLANNER_SFT_ORACLE_POLICY,
+        "planner_prompt_policy": PLANNER_SFT_PROMPT_POLICY,
         "reference_sql_visible_to_model": False,
         "gold_plan_visible_to_model_prompt": False,
         "target_plan_visible_as_assistant_label": True,
