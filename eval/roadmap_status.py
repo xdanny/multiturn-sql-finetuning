@@ -229,10 +229,11 @@ def summarize_roadmap_status(
                 "docs/training_runs/planner_projection_order_metric_20260531.json",
                 "docs/training_runs/planner_orderaware_readiness_rerun_20260531.json",
                 "docs/training_runs/planner_projection_sequence_prompt_20260531.json",
+                "docs/training_runs/planner_sft_sequence_instruction_dataset_20260531.json",
             ],
             open_items=[
                 (
-                    "improve planner projection-expression sequence quality with data or training changes and "
+                    "train a planner adapter on the projection-sequence SFT dataset and "
                     "require a positive same-row value-accuracy delta"
                 )
             ],
