@@ -463,11 +463,19 @@ Latest Checkpoint 5 evidence from 2026-05-31:
   `0.792` with 5 mismatches, below the `0.900` readiness threshold.
 - The evidence file is
   `docs/training_runs/planner_projection_order_metric_20260531.json`.
+- Rerunning the same 1000-step planner adapter on the 24-turn clean-holdout
+  slice under the order-aware readiness policy reproduced strong table F1
+  `0.972`, column F1 `0.844`, skeleton F1 `0.979`, selected-count match
+  `1.000`, and parse error rate `0.000`.
+- Readiness still blocks promotion: ordered selected-expression match is
+  `0.792` with 5 mismatches, below the `0.900` threshold, so the
+  recommendation remains `improve_planner_before_comparison`.
+- The evidence file is
+  `docs/training_runs/planner_orderaware_readiness_rerun_20260531.json`.
 
-The next Checkpoint 5 work should rerun planner predictions under the
-order-aware readiness policy before another bounded same-row SQL pair. A
-positive value-accuracy delta remains required before promoting the planner
-path.
+The next Checkpoint 5 work should improve planner projection-expression
+sequence quality before another bounded same-row SQL pair. A positive
+value-accuracy delta remains required before promoting the planner path.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 

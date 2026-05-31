@@ -1,0 +1,85 @@
+{
+  "artifact_type": "planner_orderaware_readiness_rerun_evidence",
+  "artifacts": {
+    "planner_eval": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_orderaware_limit24.eval.jsonl",
+      "row_count": 24,
+      "sha256": "dcdc588ef35a02c4ffad61e0219d35e07acf8be3a95fd71d74d3adae943695d5"
+    },
+    "predicted_prepared": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_orderaware_limit24.predicted_prepared.jsonl",
+      "row_count": 7,
+      "sha256": "5f89c661d9ba410c35ba4c2743da2e58081c32fd054c9f26b94cbe779ab6fdf7"
+    },
+    "prediction_metadata": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_orderaware_limit24.predictions.jsonl.meta.json",
+      "sha256": "0b7eb3e4279386d2669f0d49ea35f9d67ddb1e63ee0ff131ff86e15462c35e9c"
+    },
+    "predictions": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_orderaware_limit24.predictions.jsonl",
+      "row_count": 24,
+      "sha256": "b79b716f43a730dfc183159fd38c1eacd142f4aa3e914c3300a8192488998a21"
+    },
+    "preflight": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_orderaware_limit24.preflight.json",
+      "sha256": "a87ec65373c082ae030e82fe92ab05501050b09c64d44005a646dc677f4609aa"
+    },
+    "readiness": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_orderaware_limit24.readiness.json",
+      "sha256": "6ac23ecac1bc016b258fcdc360812e8fa7db1accffe5de9a33edab2bbc0b92b0"
+    },
+    "summary": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_orderaware_limit24.summary.json",
+      "sha256": "359b43a67a52c2cdd430385bfe8c17ce9dc2859341624cd0f33c43128d2756e7"
+    }
+  },
+  "checkpoint": 5,
+  "claim_boundary": "Order-aware planner-readiness rerun only; no downstream SQL execution comparison was run or claimed.",
+  "command": "CC=/home/dan/.local/bin/cc ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache ZIG_LOCAL_CACHE_DIR=/tmp/zig-cache uv run --active --no-sync python -m eval.planner_predict --backend local --model-name unsloth/Qwen3.5-9B --adapter-path outputs/experiments/predicted_planner_sql/planner_sft_20260531_1000/final --input data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl --output results/runs/predicted_planner_sql_vs_direct/planner_sft_1000_clean_holdout_orderaware_limit24.predictions.jsonl --max-tokens 512 --max-memory-gb 30 --limit 24",
+  "inputs": {
+    "adapter_path": "outputs/experiments/predicted_planner_sql/planner_sft_20260531_1000/final",
+    "backend": "local",
+    "database_count": 7,
+    "dialog_count": 7,
+    "model_name": "unsloth/Qwen3.5-9B",
+    "oracle_prompt_rows": 0,
+    "row_count": 24,
+    "split_id": "cosql_dev_clean_holdout_v1",
+    "split_role": "clean_local_holdout"
+  },
+  "interpretation": [
+    "The 24-row clean-holdout planner prediction rerun reproduces strong table, column, skeleton, and selected-count scores with no parse errors.",
+    "The new order-aware readiness policy blocks promotion because selected_expression_order_match remains 0.792, below the 0.900 threshold.",
+    "Because readiness recommends improve_planner_before_comparison, no bounded same-row SQL pair was run for this rerun.",
+    "Checkpoint 5 should now focus on improving projection expression sequence quality before another SQL comparison."
+  ],
+  "planner_quality": {
+    "column_f1": 0.844017094017094,
+    "join_f1": 0.8250000000000001,
+    "macro_planner_score": 0.9253640392529281,
+    "parse_error_rate": 0.0,
+    "selected_count_match": 1.0,
+    "selected_expression_order_match": 0.7916666666666666,
+    "selected_expression_order_mismatch_count": 5,
+    "selected_expression_order_mismatch_rate": 0.20833333333333334,
+    "skeleton_f1": 0.9787037037037037,
+    "table_f1": 0.9722222222222222
+  },
+  "readiness": {
+    "endpoint_pair_ready": true,
+    "policy_minimum_selected_expression_order_match": 0.9,
+    "preflight_status": "ready_for_endpoint_pair",
+    "promotion_blockers": [
+      "selected_expression_order_match below minimum 0.90"
+    ],
+    "promotion_ready": false,
+    "recommendation": "improve_planner_before_comparison",
+    "top_risks": [
+      "projection_order",
+      "column_linking",
+      "join_path"
+    ]
+  },
+  "run_id": "planner_sft_1000_clean_holdout_orderaware_limit24",
+  "schema_version": 1
+}

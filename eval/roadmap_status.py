@@ -227,10 +227,11 @@ def summarize_roadmap_status(
                 "docs/training_runs/planner_sft_1000_sql_failure_analysis_20260531.json",
                 "docs/training_runs/planner_projection_order_contract_20260531.json",
                 "docs/training_runs/planner_projection_order_metric_20260531.json",
+                "docs/training_runs/planner_orderaware_readiness_rerun_20260531.json",
             ],
             open_items=[
                 (
-                    "rerun planner predictions under order-aware readiness and "
+                    "improve planner projection-expression sequence quality and "
                     "require a positive same-row value-accuracy delta"
                 )
             ],
