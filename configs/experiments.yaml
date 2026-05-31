@@ -32,7 +32,7 @@ experiments:
 
   - experiment_id: predicted_planner_sql_vs_direct
     checkpoint: 5
-    status: generic_column_prior_needs_trained_planner
+    status: planner_sft_data_ready_needs_training
     hypothesis_id: planner_state
     hypothesis: >-
       Non-oracle predicted planner state improves SQL execution only after
@@ -53,8 +53,9 @@ experiments:
     claim_boundary: >-
       Split-prepared rows restore schema context, lexical projection counts are
       no longer the dominant failure, and generic column hits no longer pull in
-      as many unrelated tables. Clean-holdout column and skeleton quality remain
-      too weak for another endpoint comparison.
+      as many unrelated tables. Train-split planner-SFT rows can now be
+      materialized without prompt leakage, but held-out planner readiness still
+      needs a trained or prompted planner before another endpoint comparison.
 
   - experiment_id: semantic_value_retrieval_vs_direct
     checkpoint: 6

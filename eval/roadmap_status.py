@@ -221,11 +221,12 @@ def summarize_roadmap_status(
                 "docs/training_runs/planner_schema_context_repair_20260531.json",
                 "docs/training_runs/planner_projection_prior_20260531.json",
                 "docs/training_runs/planner_generic_column_prior_20260531.json",
+                "docs/training_runs/planner_sft_data_path_20260531.json",
             ],
             open_items=[
                 (
-                    "improve non-oracle column and skeleton quality before "
-                    "another predicted-planner SQL run"
+                    "train or prompt a non-oracle planner and pass held-out "
+                    "planner readiness before another predicted-planner SQL run"
                 )
             ],
         ),
