@@ -11,10 +11,11 @@ Do not call a method better because its smoke run completed. A method becomes
 evidence only after generated outputs are scored and compared against the
 control arm listed here.
 
-The next machine-readable interface should be a compact experiment registry,
-not the old gate matrix. It should name each hypothesis, split role, model or
-adapter, method, scorer, output path, and control run. Do not add that registry
-in cleanup-only changes; keep this file focused on the measurement rules.
+The machine-readable interface is the compact experiment registry in
+`configs/experiments.yaml`, not the old gate matrix. It names each hypothesis,
+split role, model or adapter, method, scorer, output path, and control run.
+Keep this file focused on the measurement rules and update the registry when a
+roadmap experiment changes.
 
 CoSQL dev 100 is an inspected proxy slice, not a pristine holdout. Earlier
 prompt and evidence iteration inspected that slice. Use it for continuity while

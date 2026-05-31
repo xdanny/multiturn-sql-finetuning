@@ -11,6 +11,8 @@ Primary responsibilities:
 - Keep `configs/benchmark_protocols.yaml` as the source of truth for what each
   dataset or benchmark protocol can prove, what it blocks, and which leakage
   boundary applies.
+- Keep `configs/experiments.yaml` as the compact registry for roadmap method
+  hypotheses, split ids, controls, scorers, and output locations.
 - Make prompt variants explicit about whether they are production-style,
   diagnostic, or oracle-derived.
 - Keep dataset splits, row limits, model names, and output directories
@@ -34,6 +36,8 @@ Rules:
   slice support a benchmark claim.
 - If a config changes a method comparison, update
   `docs/finetuning_measurement_plan.md` or `docs/finetuning_smoke_matrix.md`.
+- If a roadmap experiment changes, update `configs/experiments.yaml` and keep
+  control arms, split ids, and scorer names explicit.
 - If a benchmark protocol changes, update `configs/benchmark_protocols.yaml`
   and the docs that describe the row identity, leakage boundary, and run
   manifest requirements.

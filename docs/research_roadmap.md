@@ -16,7 +16,7 @@ Checkpoint status legend:
 Current checkpoint progress:
 
 - `[x]` Checkpoint 0: Freeze The Current State.
-- `[~]` Checkpoint 1: Simplify The Research Loop.
+- `[x]` Checkpoint 1: Simplify The Research Loop.
 - `[ ]` Checkpoint 2: Establish Honest Dataset Roles.
 - `[ ]` Checkpoint 3: Rebuild Baselines At Real Scale.
 - `[~]` Checkpoint 4: Let Failure Analysis Choose Methods.
@@ -87,9 +87,9 @@ available.
 
 ## Checkpoint 1: Simplify The Research Loop
 
-Status: `[~]` in progress. The old gate workflow and generated ledgers are
-removed, and the active guardrails are documented. The compact experiment
-registry is still pending.
+Status: `[x]` complete for the current roadmap interface. The old gate workflow
+and generated ledgers are removed, the active guardrails are documented, and
+the compact experiment registry is `configs/experiments.yaml`.
 
 Replace the gate-first workflow with four required guardrails:
 
@@ -102,7 +102,8 @@ Everything else should become optional reporting until the empirical base is
 larger. Keep contract tests for leakage and scoring correctness. Stop expanding
 tests that only prove docs/config freshness.
 
-Introduce a compact experiment registry. Each run should name:
+The compact experiment registry is `configs/experiments.yaml`. Each run should
+name:
 
 - hypothesis;
 - train split;
