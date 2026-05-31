@@ -182,6 +182,10 @@ Current Checkpoint 3 preparation artifacts:
   adapter and prepared train/proxy/holdout paths.
 - `eval.run_eval` result manifests preserve split provenance, latency, token
   usage, and estimated generation cost when the endpoint returns usage fields.
+- `eval.checkpoint3_artifact_audit` verifies the required prepared inputs,
+  base/LoRA proxy and clean-holdout result manifests, generated-history rollout
+  manifests, non-oracle policy, required metrics, and base/LoRA row identity
+  matching before this checkpoint can move to `[x]`.
 - `configs/experiments.yaml` marks `direct_sql_full_non_oracle_control` as
   `input_prep_ready`, not as a measured baseline.
 
@@ -216,6 +220,16 @@ uv run --active --no-sync python -m train.finetune \
 
 Checkpoint 3 is complete only after both base and LoRA direct-SQL runs report
 the required metrics on row-matched proxy and clean-holdout manifests.
+
+Audit the full evidence contract with:
+
+```bash
+uv run --active --no-sync python -m eval.checkpoint3_artifact_audit \
+  --config configs/direct_sql_full_non_oracle.yaml
+```
+
+The audit is expected to fail until the full base, LoRA, and generated-history
+rollout manifests listed in `configs/direct_sql_full_non_oracle.yaml` exist.
 
 ## Checkpoint 4: Let Failure Analysis Choose Methods
 
