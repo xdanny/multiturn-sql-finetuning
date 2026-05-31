@@ -338,8 +338,9 @@ uv run --active --no-sync python -m scripts.direct_sql_full_control \
 
 Status: `[~]` in progress. Non-oracle planner scoring, a 24-turn negative
 predicted-planner comparison, schema-context repair, and lexical projection
-and table-selection repairs exist; planner quality is not yet high enough to
-promote another SQL-generation run.
+and table-selection repairs exist. A train-split planner-SFT data path exists,
+but planner quality is not yet high enough to promote another SQL-generation
+run.
 
 Train or prompt a planner only on training-split gold labels. Evaluate planner
 F1 on held-out rows before feeding predicted plans into SQL generation.
@@ -400,10 +401,21 @@ Latest Checkpoint 5 evidence from 2026-05-31:
   is still just below the `0.700` threshold.
 - The evidence file is
   `docs/training_runs/planner_generic_column_prior_20260531.json`.
+- `data.planner_sft` now materializes train-split-only planner supervision rows.
+  The prompt contains system/user context only, removes teacher-forced assistant
+  SQL history, and keeps the normalized gold plan as the assistant training
+  target rather than prompt context.
+- A 16-row sample from `cosql_train_v1` wrote a `planner_sft_dataset` manifest
+  with `split_roles={"train": 16}`, `reference_sql_visible_to_model=false`,
+  `gold_plan_visible_to_model_prompt=false`, and
+  `target_plan_visible_as_assistant_label=true`.
+- The evidence file is
+  `docs/training_runs/planner_sft_data_path_20260531.json`.
 
-The next Checkpoint 5 work should move beyond lexical heuristics to a trained
-or prompted non-oracle planner that improves column and skeleton scores
-before running another `eval.run_predicted_planner_comparison` endpoint pair.
+The next Checkpoint 5 work should train or prompt a non-oracle planner with
+this data path, then evaluate planner quality on proxy and clean-holdout rows
+with `eval.planner_eval` and `eval.planner_readiness` before running another
+`eval.run_predicted_planner_comparison` endpoint pair.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 

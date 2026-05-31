@@ -36,7 +36,7 @@ def test_experiment_registry_names_roadmap_runs() -> None:
 
     planner = next(row for row in experiments if row["method"] == "predicted_planner_sql")
     assert planner["control_experiment_id"] == "direct_sql_full_non_oracle_control"
-    assert planner["status"] == "generic_column_prior_needs_trained_planner"
+    assert planner["status"] == "planner_sft_data_ready_needs_training"
 
 
 def test_experiment_registry_loader_rejects_missing_required_field(tmp_path) -> None:
