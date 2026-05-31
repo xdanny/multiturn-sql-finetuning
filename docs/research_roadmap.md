@@ -18,7 +18,7 @@ Current checkpoint progress:
 - `[x]` Checkpoint 0: Freeze The Current State.
 - `[x]` Checkpoint 1: Simplify The Research Loop.
 - `[x]` Checkpoint 2: Establish Honest Dataset Roles.
-- `[ ]` Checkpoint 3: Rebuild Baselines At Real Scale.
+- `[~]` Checkpoint 3: Rebuild Baselines At Real Scale.
 - `[~]` Checkpoint 4: Let Failure Analysis Choose Methods.
 - `[~]` Checkpoint 5: Planner First, But Non-Oracle.
 - `[~]` Checkpoint 6: Semantic Layer And Value Grounding.
@@ -153,7 +153,8 @@ for scoring, keep it scorer-side.
 
 ## Checkpoint 3: Rebuild Baselines At Real Scale
 
-Status: `[ ]` pending. Current scored evidence is still proxy-scale; the
+Status: `[~]` in progress. Split-based non-oracle input preparation exists for
+the direct-SQL control, but current scored evidence is still proxy-scale; the
 full-scale direct-SQL base and direct-SQL LoRA controls have not been rebuilt.
 
 Run direct SQL base and direct SQL LoRA on full available non-oracle training
@@ -172,6 +173,47 @@ Report at least:
 The direct-SQL baseline must be boring, durable, and row-matched. Every planner,
 semantic-layer, metric-DSL, and recovery comparison should use the same row IDs,
 scorer, oracle policy, and manifest shape.
+
+Current Checkpoint 3 preparation artifacts:
+
+- `data.prepare_split` materializes prepared JSONL from frozen split manifests
+  without oracle planning hints or oracle-pruned semantic context.
+- `configs/direct_sql_full_non_oracle.yaml` names the direct-SQL full-control
+  adapter and prepared train/proxy/holdout paths.
+- `configs/experiments.yaml` marks `direct_sql_full_non_oracle_control` as
+  `input_prep_ready`, not as a measured baseline.
+
+Prepare the three CoSQL direct-SQL inputs with:
+
+```bash
+uv run --active --no-sync python -m data.prepare_split \
+  --split-id cosql_train_v1 \
+  --output data/processed/direct_sql_full/cosql_train_v1.jsonl \
+  --manifest-output data/processed/direct_sql_full/cosql_train_v1.manifest.json
+
+uv run --active --no-sync python -m data.prepare_split \
+  --split-id cosql_dev_100_proxy_seen_v1 \
+  --output data/processed/direct_sql_full/cosql_dev_100_proxy_seen_v1.jsonl \
+  --manifest-output data/processed/direct_sql_full/cosql_dev_100_proxy_seen_v1.manifest.json
+
+uv run --active --no-sync python -m data.prepare_split \
+  --split-id cosql_dev_clean_holdout_v1 \
+  --output data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl \
+  --manifest-output data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.manifest.json
+```
+
+Then validate the training inputs before spending GPU time:
+
+```bash
+uv run --active --no-sync python -m train.finetune \
+  --config configs/direct_sql_full_non_oracle.yaml \
+  --data data/processed/direct_sql_full/cosql_train_v1.jsonl \
+  --eval-data data/processed/direct_sql_full/cosql_dev_100_proxy_seen_v1.jsonl \
+  --validate-data-only
+```
+
+Checkpoint 3 is complete only after both base and LoRA direct-SQL runs report
+the required metrics on row-matched proxy and clean-holdout manifests.
 
 ## Checkpoint 4: Let Failure Analysis Choose Methods
 
