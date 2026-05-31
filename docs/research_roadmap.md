@@ -17,7 +17,7 @@ Current checkpoint progress:
 
 - `[x]` Checkpoint 0: Freeze The Current State.
 - `[x]` Checkpoint 1: Simplify The Research Loop.
-- `[ ]` Checkpoint 2: Establish Honest Dataset Roles.
+- `[x]` Checkpoint 2: Establish Honest Dataset Roles.
 - `[ ]` Checkpoint 3: Rebuild Baselines At Real Scale.
 - `[~]` Checkpoint 4: Let Failure Analysis Choose Methods.
 - `[~]` Checkpoint 5: Planner First, But Non-Oracle.
@@ -119,16 +119,19 @@ status table or runbook checklist tries to rank the method.
 
 ## Checkpoint 2: Establish Honest Dataset Roles
 
-Status: `[ ]` pending. Dataset roles are named here, but frozen split manifests
-do not exist yet.
+Status: `[x]` complete for the current split interface. Frozen split manifests
+live under `data/splits/`; external target manifests are explicit pending
+records until those rows are available.
 
-Build explicit split manifests for:
+The explicit split manifests are:
 
-- CoSQL train and dev;
-- SParC;
-- BIRD mini-dev;
-- synthetic fixtures;
-- future BIRD-Interact or LiveSQLBench tasks.
+- `data/splits/cosql_train_v1.json`;
+- `data/splits/cosql_dev_100_proxy_seen_v1.json`;
+- `data/splits/cosql_dev_clean_holdout_v1.json`;
+- `data/splits/synthetic_method_fixtures_v1.json`;
+- `data/splits/sparc_context_transfer_pending_v1.json`;
+- `data/splits/bird_mini_dev_pending_v1.json`;
+- `data/splits/bird_interact_lite_pending_v1.json`.
 
 Treat existing CoSQL dev 100 as `proxy_dev_seen`. Create at least one clean
 local holdout slice that is not used for prompt search, method selection,
@@ -315,8 +318,7 @@ The reset should converge on these interfaces:
   Checkpoint 0.
 - `configs/experiments.yaml`: compact registry for experiment hypotheses and
   run definitions.
-- `configs/datasets.yaml` or `data/splits/*.json`: dataset roles and frozen row
-  IDs.
+- `data/splits/*.json`: dataset roles and frozen row IDs.
 - `results/runs/<run_id>/manifest.json`: one standard manifest shape for every
   model run.
 

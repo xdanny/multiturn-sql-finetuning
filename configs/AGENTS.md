@@ -17,6 +17,8 @@ Primary responsibilities:
   diagnostic, or oracle-derived.
 - Keep dataset splits, row limits, model names, and output directories
   reproducible and easy to trace from docs and manifests.
+- Keep split ids in `configs/experiments.yaml` aligned with
+  `data/splits/*.json`.
 
 Rules:
 

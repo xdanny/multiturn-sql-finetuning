@@ -1,0 +1,12 @@
+{
+  "dataset": "BIRD-Interact Lite or LiveSQLBench",
+  "leakage_boundary": "Do not train on evaluation gold SQL, hidden answers, expected rows, or future turns; keep scorer-only fields outside production prompts.",
+  "notes": "Pending target interactive benchmark rows after the local loop is stable.",
+  "role": "external_target",
+  "row_id_policy": "pending",
+  "row_ids": [],
+  "row_ids_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "schema_version": 1,
+  "split_id": "bird_interact_lite_pending_v1",
+  "status": "pending_external_data"
+}

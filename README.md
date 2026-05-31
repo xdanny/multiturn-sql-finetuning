@@ -35,6 +35,9 @@ ideas into row-matched comparisons with explicit controls.
 See `configs/experiments.yaml` for the compact registry of roadmap experiments,
 including each hypothesis, split ids, method, scorer, output path, and control
 arm.
+See `data/splits/` for the frozen split-role manifests that separate CoSQL
+train, the inspected CoSQL dev proxy, the clean local holdout, synthetic
+fixtures, and pending external targets.
 
 The first metric-DSL experiment surface is documented in
 `docs/metric_dsl_contract.md`, implemented in `data.metric_dsl`, and evaluated

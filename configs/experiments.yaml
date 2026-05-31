@@ -11,9 +11,9 @@ experiments:
     hypothesis: >-
       A direct SQL SFT adapter is the stable control arm for every structured
       method comparison.
-    train_split_id: cosql_train_v1_pending_manifest
-    validation_split_id: cosql_validation_v1_pending_manifest
-    test_split_id: cosql_clean_holdout_v1_pending_manifest
+    train_split_id: cosql_train_v1
+    validation_split_id: cosql_dev_100_proxy_seen_v1
+    test_split_id: cosql_dev_clean_holdout_v1
     dataset_role: clean_local_holdout
     benchmark_protocol_id: cosql_dev_100_teacher_forced_proxy
     model: unsloth/Qwen3.5-9B
@@ -35,9 +35,9 @@ experiments:
     hypothesis: >-
       Non-oracle predicted planner state improves SQL execution only after
       planner labels reach useful held-out quality.
-    train_split_id: cosql_train_v1_pending_manifest
-    validation_split_id: cosql_validation_v1_pending_manifest
-    test_split_id: cosql_clean_holdout_v1_pending_manifest
+    train_split_id: cosql_train_v1
+    validation_split_id: cosql_dev_100_proxy_seen_v1
+    test_split_id: cosql_dev_clean_holdout_v1
     dataset_role: clean_local_holdout
     benchmark_protocol_id: cosql_dev_100_teacher_forced_proxy
     model: unsloth/Qwen3.5-9B
@@ -59,9 +59,9 @@ experiments:
     hypothesis: >-
       Database-derived value retrieval and semantic context improve
       display-to-storage value grounding without exposing scorer-only labels.
-    train_split_id: cosql_train_v1_pending_manifest
-    validation_split_id: cosql_dev_100_proxy_seen
-    test_split_id: cosql_clean_holdout_v1_pending_manifest
+    train_split_id: cosql_train_v1
+    validation_split_id: cosql_dev_100_proxy_seen_v1
+    test_split_id: cosql_dev_clean_holdout_v1
     dataset_role: proxy_dev_seen
     benchmark_protocol_id: cosql_dev_100_teacher_forced_proxy
     model: unsloth/Qwen3.5-9B
@@ -85,7 +85,7 @@ experiments:
       before SQL compilation.
     train_split_id: synthetic_method_fixtures_v1
     validation_split_id: synthetic_method_fixtures_v1
-    test_split_id: metric_dsl_holdout_pending_manifest
+    test_split_id: synthetic_method_fixtures_v1
     dataset_role: validation
     benchmark_protocol_id: synthetic_schema_rich_method_fixture
     model: unsloth/Qwen3.5-9B
@@ -109,7 +109,7 @@ experiments:
       observed results better than the direct-SQL control.
     train_split_id: synthetic_method_fixtures_v1
     validation_split_id: synthetic_method_fixtures_v1
-    test_split_id: generated_history_holdout_pending_manifest
+    test_split_id: synthetic_method_fixtures_v1
     dataset_role: validation
     benchmark_protocol_id: cosql_generated_history_rollout
     model: unsloth/Qwen3.5-9B
@@ -131,9 +131,9 @@ experiments:
     hypothesis: >-
       The best local candidate can be compared against hosted baselines only
       after it beats direct SQL on a clean local holdout.
-    train_split_id: best_local_candidate_manifest_pending
-    validation_split_id: cosql_clean_holdout_v1_pending_manifest
-    test_split_id: bird_interact_lite_pending_manifest
+    train_split_id: cosql_train_v1
+    validation_split_id: cosql_dev_clean_holdout_v1
+    test_split_id: bird_interact_lite_pending_v1
     dataset_role: external_target
     benchmark_protocol_id: bird_interact_same_protocol_transfer
     model: unsloth/Qwen3.5-9B

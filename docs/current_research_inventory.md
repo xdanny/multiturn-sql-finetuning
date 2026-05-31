@@ -21,6 +21,17 @@ old gate workflow cleanup. Runtime outputs are expected under `outputs/` and
 `data/processed/train.jsonl` is not checked in on current `main`. Treat that as
 no durable full-scale training evidence from the default training path.
 
+The frozen split-role manifests live under `data/splits/`:
+
+- `cosql_train_v1`: 2,159 CoSQL train dialogs / 7,343 turns.
+- `cosql_dev_100_proxy_seen_v1`: the inspected 100-dialog CoSQL dev proxy /
+  327 turns.
+- `cosql_dev_clean_holdout_v1`: the held-out 193-dialog CoSQL dev remainder /
+  680 turns.
+- `synthetic_method_fixtures_v1`: 5 diagnostic fixture rows.
+- `sparc_context_transfer_pending_v1`, `bird_mini_dev_pending_v1`, and
+  `bird_interact_lite_pending_v1`: explicit pending external-target manifests.
+
 ## Checked-In Canonical Inputs
 
 | Artifact | Rows or entries | Role |

@@ -12,6 +12,8 @@ Primary responsibilities:
   run-specific outputs.
 - Maintain small canonical inputs that let another developer inspect a method
   before running a larger experiment.
+- Maintain `data/splits/*.json` as the frozen split-role manifests used by the
+  roadmap experiment registry.
 
 Rules:
 
@@ -32,4 +34,5 @@ When editing here, inspect:
 - `data/value_artifacts.py`
 - `data/value_index.py`
 - `data/synthetic_method_fixtures.py`
+- `data/split_manifest.py`
 - `docs/evidence_contract.md`
