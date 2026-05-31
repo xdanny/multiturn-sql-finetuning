@@ -14,6 +14,26 @@ STRING_COMPARISON_RE = re.compile(
     r"(?P<table>[A-Za-z_][\w]*)\.(?P<column>[A-Za-z_][\w]*)\s*=\s*'(?P<value>[^']*)'",
     re.IGNORECASE,
 )
+TABLE_ALIAS_RE = re.compile(
+    r"\b(?:FROM|JOIN)\s+(?P<table>[A-Za-z_][\w]*)"
+    r"(?:\s+(?:AS\s+)?(?P<alias>[A-Za-z_][\w]*))?",
+    re.IGNORECASE,
+)
+SQL_KEYWORDS = {
+    "where",
+    "join",
+    "on",
+    "group",
+    "order",
+    "limit",
+    "having",
+    "left",
+    "right",
+    "inner",
+    "outer",
+    "full",
+    "cross",
+}
 
 
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -21,10 +41,24 @@ def _load_jsonl(path: Path) -> list[dict[str, Any]]:
         return [json.loads(line) for line in handle if line.strip()]
 
 
+def _table_aliases(sql: str) -> dict[str, str]:
+    aliases: dict[str, str] = {}
+    for match in TABLE_ALIAS_RE.finditer(sql):
+        table = match.group("table").lower()
+        aliases[table] = table
+        alias = match.group("alias")
+        if alias and alias.lower() not in SQL_KEYWORDS:
+            aliases[alias.lower()] = table
+    return aliases
+
+
 def _extract_selected_value(sql: str, *, table: str, column: str) -> str | None:
+    aliases = _table_aliases(sql)
     for match in STRING_COMPARISON_RE.finditer(sql):
+        qualifier = match.group("table").lower()
+        resolved_table = aliases.get(qualifier, qualifier)
         if (
-            match.group("table").lower() == table.lower()
+            resolved_table == table.lower()
             and match.group("column").lower() == column.lower()
         ):
             return match.group("value")

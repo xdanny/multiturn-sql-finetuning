@@ -82,3 +82,44 @@ def test_score_value_choice_consistency_accepts_expected_storage_value(tmp_path)
 
     assert payload["value_choice_accuracy"] == 1.0
     assert payload["rows"][0]["value_choice_match"] is True
+
+
+def test_score_value_choice_consistency_resolves_table_alias(tmp_path) -> None:
+    input_path = tmp_path / "input.jsonl"
+    rollout_path = tmp_path / "rollout.jsonl"
+    _write_jsonl(
+        input_path,
+        [
+            {
+                "dialog_id": "d1",
+                "expected_value_choice": {
+                    "table": "customers",
+                    "column": "country_code",
+                    "source_mention": "France",
+                    "storage_value": "FR",
+                },
+            }
+        ],
+    )
+    _write_jsonl(
+        rollout_path,
+        [
+            {
+                "id": "d1:1",
+                "dialog_id": "d1",
+                "generated_sql": (
+                    "SELECT * FROM customers c "
+                    "JOIN orders o ON o.customer_id = c.id "
+                    "WHERE c.country_code = 'FR'"
+                ),
+            }
+        ],
+    )
+
+    payload = score_value_choice_consistency(
+        input_path=input_path,
+        rollout_output_path=rollout_path,
+    )
+
+    assert payload["value_choice_accuracy"] == 1.0
+    assert payload["rows"][0]["selected_storage_value"] == "FR"

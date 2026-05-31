@@ -307,7 +307,7 @@ experiment registry lands, but the manual checkpoints should remain:
 uv run --active --no-sync python -m train.finetune \
   --config configs/qwen35_9b_5090.yaml \
   --data data/processed/train_smoke.jsonl \
-  --validate-only
+  --validate-data-only
 ```
 
 ```bash
