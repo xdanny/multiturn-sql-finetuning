@@ -50,14 +50,37 @@ def _normalize_identifier(value: Any) -> str:
     return re.sub(r"\s+", " ", str(value).strip().strip("`\"[]").lower())
 
 
-def _identifier_tokens(value: str) -> set[str]:
+def _identifier_tokens(value: str, *, split_compound_parts: bool = False) -> set[str]:
+    expanded = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", str(value))
     tokens = {
         token
-        for token in re.split(r"[^a-z0-9]+", value.lower())
+        for token in re.split(r"[^a-z0-9]+", expanded.lower())
         if len(token) > 1 and token not in {"the", "and", "for", "with", "from"}
     }
     singulars = {token[:-1] for token in tokens if len(token) > 3 and token.endswith("s")}
-    return tokens | singulars
+    singulars.update({f"{token[:-3]}y" for token in tokens if len(token) > 4 and token.endswith("ies")})
+    components = set()
+    if split_compound_parts:
+        components = {
+            part
+            for token in tokens
+            for part in (
+                "amount",
+                "code",
+                "country",
+                "date",
+                "full",
+                "id",
+                "maker",
+                "model",
+                "name",
+                "number",
+                "type",
+                "year",
+            )
+            if part in token and token != part
+        }
+    return tokens | singulars | components
 
 
 def _f1(gold: Iterable[Any], predicted: Iterable[Any]) -> float:
@@ -195,11 +218,33 @@ def _value_hint_matches_column(question_text: str, column: str) -> bool:
 
 
 def _column_name_matches_question(question_tokens: set[str], column: str) -> bool:
-    column_tokens = _identifier_tokens(column)
+    column_tokens = _identifier_tokens(column, split_compound_parts=True)
     if not column_tokens & question_tokens:
         return False
     normalized = _normalize_identifier(column)
-    return not (normalized.endswith("_id") and "id" not in question_tokens)
+    compact = re.sub(r"[^a-z0-9]+", "", normalized)
+    return not ((normalized.endswith("_id") or compact.endswith("id")) and "id" not in question_tokens)
+
+
+def _estimate_selected_count(question_tokens: set[str]) -> int:
+    """Estimate projected expressions, not every relevant filter/group column.
+
+    CoSQL turns are usually single-answer projections. Keep a conservative
+    non-oracle prior until a stronger projection-shape model replaces this
+    lexical baseline.
+    """
+
+    return 1
+
+
+def _estimate_selected_expressions(
+    *,
+    aggregations: list[str],
+    selected_columns: set[str],
+    selected_count: int,
+) -> list[str]:
+    candidates = [*aggregations, *sorted(selected_columns), "unknown_projection"]
+    return candidates[:selected_count]
 
 
 def lexical_planner(messages: list[dict[str, str]]) -> dict[str, Any]:
@@ -250,6 +295,7 @@ def lexical_planner(messages: list[dict[str, str]]) -> dict[str, Any]:
         "lowest": "min",
     }
     aggregations = sorted({value for token, value in aggregation_words.items() if token in question_tokens})
+    selected_count = _estimate_selected_count(question_tokens)
     return {
         "parseable": True,
         "prediction_source": LEXICAL_PLANNER_SOURCE,
@@ -258,7 +304,12 @@ def lexical_planner(messages: list[dict[str, str]]) -> dict[str, Any]:
         "join_path": [],
         "query_skeleton": skeleton,
         "projection_shape": {
-            "selected_count": max(1, len(selected_columns)) if selected_columns else 1,
+            "selected_expressions": _estimate_selected_expressions(
+                aggregations=aggregations,
+                selected_columns=selected_columns,
+                selected_count=selected_count,
+            ),
+            "selected_count": selected_count,
             "aggregations": aggregations,
             "group_by": [],
             "preserve_duplicates": not skeleton["distinct"],
