@@ -60,6 +60,51 @@ def _ordered_unique(values: Iterable[str]) -> list[str]:
     return ordered
 
 
+def _usage_value(usage: Any, *names: str) -> int | None:
+    for name in names:
+        if usage is None:
+            return None
+        if isinstance(usage, dict):
+            value = usage.get(name)
+        else:
+            value = getattr(usage, name, None)
+        if value is not None:
+            return int(value)
+    return None
+
+
+def usage_from_response(response: Any) -> dict[str, int | None]:
+    """Extract OpenAI-compatible token usage when the endpoint returns it."""
+
+    usage = getattr(response, "usage", None)
+    prompt_tokens = _usage_value(usage, "prompt_tokens", "input_tokens")
+    completion_tokens = _usage_value(usage, "completion_tokens", "output_tokens")
+    total_tokens = _usage_value(usage, "total_tokens")
+    if total_tokens is None and prompt_tokens is not None and completion_tokens is not None:
+        total_tokens = prompt_tokens + completion_tokens
+    return {
+        "prompt_tokens": prompt_tokens,
+        "completion_tokens": completion_tokens,
+        "total_tokens": total_tokens,
+    }
+
+
+def estimate_generation_cost_usd(
+    usage: dict[str, int | None],
+    *,
+    prompt_token_cost_usd_per_1k: float,
+    completion_token_cost_usd_per_1k: float,
+) -> float | None:
+    prompt_tokens = usage.get("prompt_tokens")
+    completion_tokens = usage.get("completion_tokens")
+    if prompt_tokens is None and completion_tokens is None:
+        return None
+    return (
+        ((prompt_tokens or 0) / 1000.0 * prompt_token_cost_usd_per_1k)
+        + ((completion_tokens or 0) / 1000.0 * completion_token_cost_usd_per_1k)
+    )
+
+
 def extract_reference_sql(messages: list[dict[str, str]]) -> str:
     for message in reversed(messages):
         if message.get("role") == "assistant":
@@ -275,6 +320,24 @@ def generate_sql(
     temperature: float,
     max_tokens: int,
 ) -> tuple[str, float]:
+    raw_generation, latency_ms, _usage = generate_sql_with_usage(
+        client,
+        model_name=model_name,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+    )
+    return raw_generation, latency_ms
+
+
+def generate_sql_with_usage(
+    client: OpenAI,
+    *,
+    model_name: str,
+    messages: list[dict[str, str]],
+    temperature: float,
+    max_tokens: int,
+) -> tuple[str, float, dict[str, int | None]]:
     started = time.perf_counter()
     response = client.chat.completions.create(
         model=model_name,
@@ -284,7 +347,7 @@ def generate_sql(
         extra_body={"chat_template_kwargs": {"enable_thinking": False}},
     )
     latency_ms = (time.perf_counter() - started) * 1000
-    return response.choices[0].message.content or "", latency_ms
+    return response.choices[0].message.content or "", latency_ms, usage_from_response(response)
 
 
 def write_results(records: Iterable[dict[str, Any]], output: Path) -> int:
@@ -375,6 +438,28 @@ def summarize_eval_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
         )
         if source_sha256s:
             metrics["split_source_sha256s"] = source_sha256s
+    token_rows = [result for result in results if result.get("total_tokens") is not None]
+    if token_rows:
+        prompt_tokens = [int(result.get("prompt_tokens") or 0) for result in token_rows]
+        completion_tokens = [int(result.get("completion_tokens") or 0) for result in token_rows]
+        total_tokens = [int(result.get("total_tokens") or 0) for result in token_rows]
+        estimated_costs = [
+            float(result["estimated_generation_cost_usd"])
+            for result in token_rows
+            if result.get("estimated_generation_cost_usd") is not None
+        ]
+        metrics["token_usage_available_rows"] = len(token_rows)
+        metrics["total_prompt_tokens"] = sum(prompt_tokens)
+        metrics["total_completion_tokens"] = sum(completion_tokens)
+        metrics["total_tokens"] = sum(total_tokens)
+        metrics["mean_prompt_tokens"] = sum(prompt_tokens) / len(token_rows)
+        metrics["mean_completion_tokens"] = sum(completion_tokens) / len(token_rows)
+        metrics["mean_total_tokens"] = sum(total_tokens) / len(token_rows)
+        if estimated_costs:
+            metrics["total_estimated_generation_cost_usd"] = sum(estimated_costs)
+            metrics["mean_estimated_generation_cost_usd"] = sum(estimated_costs) / len(
+                estimated_costs
+            )
     return metrics
 
 
@@ -402,6 +487,8 @@ def run_eval(
     manifest_output: Path | None = None,
     prompt_variant: str | None = None,
     command: Sequence[str] | None = None,
+    prompt_token_cost_usd_per_1k: float = 0.0,
+    completion_token_cost_usd_per_1k: float = 0.0,
 ) -> int:
     client = OpenAI(base_url=endpoint, api_key=api_key)
     records = load_benchmark_records(
@@ -414,12 +501,17 @@ def run_eval(
         print(f"WARNING: {ORACLE_DIAGNOSTIC_WARNING}")
     results = []
     for record in records:
-        raw_generation, generation_latency_ms = generate_sql(
+        raw_generation, generation_latency_ms, token_usage = generate_sql_with_usage(
             client,
             model_name=model_name,
             messages=messages_for_generation(record),
             temperature=temperature,
             max_tokens=max_tokens,
+        )
+        estimated_cost = estimate_generation_cost_usd(
+            token_usage,
+            prompt_token_cost_usd_per_1k=prompt_token_cost_usd_per_1k,
+            completion_token_cost_usd_per_1k=completion_token_cost_usd_per_1k,
         )
         generated_sql = extract_sql(raw_generation)
         database_path = database_path_for_record(record, database_root)
@@ -431,6 +523,10 @@ def run_eval(
                 "raw_generation": raw_generation,
                 "generated_sql": generated_sql,
                 "generation_latency_ms": generation_latency_ms,
+                "prompt_tokens": token_usage["prompt_tokens"],
+                "completion_tokens": token_usage["completion_tokens"],
+                "total_tokens": token_usage["total_tokens"],
+                "estimated_generation_cost_usd": estimated_cost,
                 "execution_score": score.execution_score,
                 "strict_execution_score": score.strict_execution_score,
                 "value_execution_score": score.value_execution_score,
@@ -444,6 +540,10 @@ def run_eval(
 
     written = write_results(results, output)
     metrics = summarize_eval_metrics(results)
+    metrics["token_cost_rates_usd_per_1k"] = {
+        "prompt": prompt_token_cost_usd_per_1k,
+        "completion": completion_token_cost_usd_per_1k,
+    }
     if manifest_output is None:
         manifest_output = output.with_suffix(".manifest.json")
     evaluation_modes = metrics.get("evaluation_modes", {})
@@ -489,6 +589,8 @@ def main() -> int:
     parser.add_argument("--max-tokens", type=int, default=512)
     parser.add_argument("--manifest-output", type=Path, default=None)
     parser.add_argument("--prompt-variant", default=None)
+    parser.add_argument("--prompt-token-cost-usd-per-1k", type=float, default=0.0)
+    parser.add_argument("--completion-token-cost-usd-per-1k", type=float, default=0.0)
     parser.add_argument(
         "--allow-oracle-plan",
         action="store_true",
@@ -510,6 +612,8 @@ def main() -> int:
         allow_oracle_plan=args.allow_oracle_plan,
         manifest_output=args.manifest_output,
         prompt_variant=args.prompt_variant,
+        prompt_token_cost_usd_per_1k=args.prompt_token_cost_usd_per_1k,
+        completion_token_cost_usd_per_1k=args.completion_token_cost_usd_per_1k,
         command=sys.argv,
     )
 

@@ -180,6 +180,8 @@ Current Checkpoint 3 preparation artifacts:
   without oracle planning hints or oracle-pruned semantic context.
 - `configs/direct_sql_full_non_oracle.yaml` names the direct-SQL full-control
   adapter and prepared train/proxy/holdout paths.
+- `eval.run_eval` result manifests preserve split provenance, latency, token
+  usage, and estimated generation cost when the endpoint returns usage fields.
 - `configs/experiments.yaml` marks `direct_sql_full_non_oracle_control` as
   `input_prep_ready`, not as a measured baseline.
 
