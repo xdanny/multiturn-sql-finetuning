@@ -180,6 +180,10 @@ Current Checkpoint 3 preparation artifacts:
   without oracle planning hints or oracle-pruned semantic context.
 - `configs/direct_sql_full_non_oracle.yaml` names the direct-SQL full-control
   adapter and prepared train/proxy/holdout paths.
+- `scripts.direct_sql_full_control` prints or runs the ordered Checkpoint 3
+  workflow from that config, including split prep, data validation, full LoRA
+  training, row-matched endpoint evals, generated-history rollouts, and the
+  final artifact audit.
 - `eval.run_eval` result manifests preserve split provenance, latency, token
   usage, and estimated generation cost when the endpoint returns usage fields.
 - `eval.checkpoint3_artifact_audit` verifies the required prepared inputs,
@@ -189,43 +193,42 @@ Current Checkpoint 3 preparation artifacts:
 - `configs/experiments.yaml` marks `direct_sql_full_non_oracle_control` as
   `input_prep_ready`, not as a measured baseline.
 
-Prepare the three CoSQL direct-SQL inputs with:
+Print the complete Checkpoint 3 workflow before running anything expensive:
 
 ```bash
-uv run --active --no-sync python -m data.prepare_split \
-  --split-id cosql_train_v1 \
-  --output data/processed/direct_sql_full/cosql_train_v1.jsonl \
-  --manifest-output data/processed/direct_sql_full/cosql_train_v1.manifest.json
-
-uv run --active --no-sync python -m data.prepare_split \
-  --split-id cosql_dev_100_proxy_seen_v1 \
-  --output data/processed/direct_sql_full/cosql_dev_100_proxy_seen_v1.jsonl \
-  --manifest-output data/processed/direct_sql_full/cosql_dev_100_proxy_seen_v1.manifest.json
-
-uv run --active --no-sync python -m data.prepare_split \
-  --split-id cosql_dev_clean_holdout_v1 \
-  --output data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl \
-  --manifest-output data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.manifest.json
+uv run --active --no-sync python -m scripts.direct_sql_full_control
 ```
 
-Then validate the training inputs before spending GPU time:
+Run only the cheap preparation and validation stages first:
 
 ```bash
-uv run --active --no-sync python -m train.finetune \
-  --config configs/direct_sql_full_non_oracle.yaml \
-  --data data/processed/direct_sql_full/cosql_train_v1.jsonl \
-  --eval-data data/processed/direct_sql_full/cosql_dev_100_proxy_seen_v1.jsonl \
-  --validate-data-only
+uv run --active --no-sync python -m scripts.direct_sql_full_control \
+  --stage prepare \
+  --stage validate \
+  --run
 ```
 
 Checkpoint 3 is complete only after both base and LoRA direct-SQL runs report
 the required metrics on row-matched proxy and clean-holdout manifests.
 
+Run the endpoint-backed stages after the base and LoRA endpoints are available:
+
+```bash
+uv run --active --no-sync python -m scripts.direct_sql_full_control \
+  --stage eval \
+  --stage rollout \
+  --base-model-name <served-base-model> \
+  --lora-model-name <served-lora-model> \
+  --database-root data/raw/cosql_dataset/database \
+  --run
+```
+
 Audit the full evidence contract with:
 
 ```bash
-uv run --active --no-sync python -m eval.checkpoint3_artifact_audit \
-  --config configs/direct_sql_full_non_oracle.yaml
+uv run --active --no-sync python -m scripts.direct_sql_full_control \
+  --stage audit \
+  --run
 ```
 
 The audit is expected to fail until the full base, LoRA, and generated-history

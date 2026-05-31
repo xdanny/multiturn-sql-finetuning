@@ -1,7 +1,8 @@
 # Direct-SQL full non-oracle control for Roadmap Checkpoint 3.
 #
-# This config assumes prepared inputs have already been materialized from
-# data/splits/*.json with `uv run --active --no-sync python -m data.prepare_split`.
+# `uv run --active --no-sync python -m scripts.direct_sql_full_control` uses
+# this config to prepare inputs, validate data, train, evaluate, run rollouts,
+# and audit the final evidence contract.
 
 model:
   name: "unsloth/Qwen3.5-9B"
