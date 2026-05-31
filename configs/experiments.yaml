@@ -1,0 +1,149 @@
+schema_version: 1
+registry_status: checkpoint_1_compact_registry
+description: >-
+  Compact experiment registry for roadmap work. It names what each method is
+  trying to test before runbooks or status tables rank the result.
+experiments:
+  - experiment_id: direct_sql_full_non_oracle_control
+    checkpoint: 3
+    status: planned
+    hypothesis_id: direct_sql_sft
+    hypothesis: >-
+      A direct SQL SFT adapter is the stable control arm for every structured
+      method comparison.
+    train_split_id: cosql_train_v1_pending_manifest
+    validation_split_id: cosql_validation_v1_pending_manifest
+    test_split_id: cosql_clean_holdout_v1_pending_manifest
+    dataset_role: clean_local_holdout
+    benchmark_protocol_id: cosql_dev_100_teacher_forced_proxy
+    model: unsloth/Qwen3.5-9B
+    adapter: outputs/experiments/direct_sql_full/final
+    method: direct_sql
+    oracle_policy: non_oracle_generation
+    scorer: eval.run_eval:value_and_strict_execution_v1
+    output_path: results/runs/direct_sql_full_non_oracle_control
+    control_experiment_id: null
+    primary_metric: value_accuracy
+    claim_boundary: >-
+      Planned full-scale local control. No benchmark claim until split
+      manifests and generated outputs exist.
+
+  - experiment_id: predicted_planner_sql_vs_direct
+    checkpoint: 5
+    status: blocked_by_planner_quality
+    hypothesis_id: planner_state
+    hypothesis: >-
+      Non-oracle predicted planner state improves SQL execution only after
+      planner labels reach useful held-out quality.
+    train_split_id: cosql_train_v1_pending_manifest
+    validation_split_id: cosql_validation_v1_pending_manifest
+    test_split_id: cosql_clean_holdout_v1_pending_manifest
+    dataset_role: clean_local_holdout
+    benchmark_protocol_id: cosql_dev_100_teacher_forced_proxy
+    model: unsloth/Qwen3.5-9B
+    adapter: outputs/experiments/predicted_planner_sql/final
+    method: predicted_planner_sql
+    oracle_policy: non_oracle_generation
+    scorer: eval.run_predicted_planner_comparison:value_delta_vs_direct_sql
+    output_path: results/runs/predicted_planner_sql_vs_direct
+    control_experiment_id: direct_sql_full_non_oracle_control
+    primary_metric: predicted_planner_value_delta_vs_direct_sql
+    claim_boundary: >-
+      Current lexical planner evidence is negative; do not run another endpoint
+      comparison until planner quality improves.
+
+  - experiment_id: semantic_value_retrieval_vs_direct
+    checkpoint: 6
+    status: ready_for_proxy_pair
+    hypothesis_id: semantic_value_grounding
+    hypothesis: >-
+      Database-derived value retrieval and semantic context improve
+      display-to-storage value grounding without exposing scorer-only labels.
+    train_split_id: cosql_train_v1_pending_manifest
+    validation_split_id: cosql_dev_100_proxy_seen
+    test_split_id: cosql_clean_holdout_v1_pending_manifest
+    dataset_role: proxy_dev_seen
+    benchmark_protocol_id: cosql_dev_100_teacher_forced_proxy
+    model: unsloth/Qwen3.5-9B
+    adapter: outputs/experiments/semantic_value_retrieval/final
+    method: semantic_value_retrieval
+    oracle_policy: non_oracle_generation
+    scorer: eval.run_semantic_value_retrieval_comparison:value_delta_vs_direct_sql
+    output_path: results/runs/semantic_value_retrieval_vs_direct
+    control_experiment_id: direct_sql_full_non_oracle_control
+    primary_metric: semantic_value_delta_vs_direct_sql
+    claim_boundary: >-
+      Proxy pair is ready to run, but a clean holdout win is still required for
+      a publishable method claim.
+
+  - experiment_id: metric_dsl_vs_direct_sql
+    checkpoint: 7
+    status: diagnostic_negative
+    hypothesis_id: metric_dsl
+    hypothesis: >-
+      Metric-heavy questions benefit from preserving governed MEASURE intent
+      before SQL compilation.
+    train_split_id: synthetic_method_fixtures_v1
+    validation_split_id: synthetic_method_fixtures_v1
+    test_split_id: metric_dsl_holdout_pending_manifest
+    dataset_role: validation
+    benchmark_protocol_id: synthetic_schema_rich_method_fixture
+    model: unsloth/Qwen3.5-9B
+    adapter: outputs/experiments/metric_dsl/final
+    method: metric_dsl
+    oracle_policy: non_oracle_generation
+    scorer: eval.run_metric_dsl_comparison:compiled_value_delta_vs_direct_sql
+    output_path: results/runs/metric_dsl_vs_direct_sql
+    control_experiment_id: direct_sql_full_non_oracle_control
+    primary_metric: metric_dsl_value_delta_vs_direct_sql
+    claim_boundary: >-
+      Existing two-row prompt and five-step evidence is negative diagnostic
+      evidence, not a method win.
+
+  - experiment_id: generated_history_recovery_vs_direct
+    checkpoint: 8
+    status: diagnostic_negative
+    hypothesis_id: behavior_recovery
+    hypothesis: >-
+      A recovery-tuned adapter should continue after its own generated SQL and
+      observed results better than the direct-SQL control.
+    train_split_id: synthetic_method_fixtures_v1
+    validation_split_id: synthetic_method_fixtures_v1
+    test_split_id: generated_history_holdout_pending_manifest
+    dataset_role: validation
+    benchmark_protocol_id: cosql_generated_history_rollout
+    model: unsloth/Qwen3.5-9B
+    adapter: outputs/experiments/behavior_recovery/final
+    method: behavior_recovery
+    oracle_policy: non_oracle_generation
+    scorer: eval.run_behavior_recovery_comparison:rollout_value_delta_vs_direct_sql
+    output_path: results/runs/generated_history_recovery_vs_direct
+    control_experiment_id: direct_sql_full_non_oracle_control
+    primary_metric: rollout_value_accuracy_delta_vs_direct_sql
+    claim_boundary: >-
+      Existing one-row generated-history evidence did not beat direct SQL; scale
+      only after value and schema repair are stable.
+
+  - experiment_id: hosted_bird_interact_transfer
+    checkpoint: 9
+    status: pending_local_winner
+    hypothesis_id: hosted_transfer
+    hypothesis: >-
+      The best local candidate can be compared against hosted baselines only
+      after it beats direct SQL on a clean local holdout.
+    train_split_id: best_local_candidate_manifest_pending
+    validation_split_id: cosql_clean_holdout_v1_pending_manifest
+    test_split_id: bird_interact_lite_pending_manifest
+    dataset_role: external_target
+    benchmark_protocol_id: bird_interact_same_protocol_transfer
+    model: unsloth/Qwen3.5-9B
+    adapter: outputs/experiments/best_local_candidate/final
+    method: hosted_transfer_comparison
+    oracle_policy: non_oracle_generation
+    scorer: eval.compare_hosted_baseline:local_value_delta_vs_hosted
+    output_path: results/runs/hosted_bird_interact_transfer
+    control_experiment_id: direct_sql_full_non_oracle_control
+    primary_metric: local_value_delta_vs_hosted
+    claim_boundary: >-
+      Pending until a local clean-holdout winner exists and hosted baselines run
+      on the same protocol.

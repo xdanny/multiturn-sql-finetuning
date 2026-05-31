@@ -32,6 +32,9 @@ comparison artifacts required before any smoke run becomes a benchmark claim.
 See `docs/finetuning_method_runbook.md` for the practical runbook that turns
 planner, semantic-layer, metric-DSL, behavior/recovery, and hosted benchmark
 ideas into row-matched comparisons with explicit controls.
+See `configs/experiments.yaml` for the compact registry of roadmap experiments,
+including each hypothesis, split ids, method, scorer, output path, and control
+arm.
 
 The first metric-DSL experiment surface is documented in
 `docs/metric_dsl_contract.md`, implemented in `data.metric_dsl`, and evaluated
