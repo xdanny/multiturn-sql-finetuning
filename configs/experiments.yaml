@@ -32,7 +32,7 @@ experiments:
 
   - experiment_id: predicted_planner_sql_vs_direct
     checkpoint: 5
-    status: planner_readiness_passed_limit24_needs_sql_pair
+    status: planner_sft_sql_limit24_negative
     hypothesis_id: planner_state
     hypothesis: >-
       Non-oracle predicted planner state improves SQL execution only after
@@ -55,8 +55,9 @@ experiments:
       no longer the dominant failure, and generic column hits no longer pull in
       as many unrelated tables. Train-split planner-SFT rows can now be
       materialized without prompt leakage. A 1000-step train-split planner SFT
-      adapter passed bounded proxy and clean-holdout planner readiness, but the
-      same-row SQL endpoint pair has not run yet.
+      adapter passed bounded proxy and clean-holdout planner readiness, but a
+      24-turn clean-holdout same-row SQL comparison regressed by 4.17 percentage
+      points in value accuracy versus the direct-SQL control.
 
   - experiment_id: semantic_value_retrieval_vs_direct
     checkpoint: 6
