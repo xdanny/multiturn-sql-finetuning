@@ -98,9 +98,14 @@ selected-expression match `0.792`, below the `0.900` readiness threshold.
 records the local 24-turn planner prediction rerun under the same policy:
 selected-count match stays `1.000`, but ordered selected-expression match stays
 `0.792`, so readiness still recommends `improve_planner_before_comparison`.
+`docs/training_runs/planner_projection_sequence_prompt_20260531.json` records a
+follow-up prompt-only attempt that explicitly defines `selected_expressions` as
+the final answer-column sequence; it produced the same predicted-prepared hash
+and the same `0.792` ordered selected-expression match.
 
-Next useful movement: improve planner projection-expression sequence quality,
-then rerun a bounded same-row SQL pair before any broader endpoint pair.
+Next useful movement: improve planner projection-expression sequence quality
+through data or training changes, then rerun a bounded same-row SQL pair before
+any broader endpoint pair.
 
 ## Semantic-Layer Tuning
 

@@ -45,6 +45,8 @@ def test_planner_messages_exclude_reference_sql_gold_plan_and_oracle_markers() -
 
     assert "return only one json object" in prompt_text
     assert "relevant_tables" in prompt_text
+    assert "preserve the user's requested output order exactly" in prompt_text
+    assert "not generated sql aliases" in prompt_text
     assert "select customers.name" not in prompt_text
     assert "gold_plan" not in prompt_text
     assert "gold_reference_sql" not in prompt_text

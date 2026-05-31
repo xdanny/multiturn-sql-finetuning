@@ -6,6 +6,7 @@ import json
 import pytest
 
 from eval.planner_optimize import (
+    DEFAULT_PLANNER_PROMPT_VARIANTS,
     PlannerPromptVariant,
     apply_planner_prompt_variant,
     evaluate_planner_variant,
@@ -59,6 +60,16 @@ def test_apply_planner_prompt_variant_appends_policy_without_mutating() -> None:
     assert "Planner prompt policy (projection)" in updated[0]["content"]
     assert "Predict selected_count exactly." in updated[0]["content"]
     assert messages[0]["content"] == "sys"
+
+
+def test_default_projection_variant_preserves_answer_column_sequence() -> None:
+    projection_variant = next(
+        variant for variant in DEFAULT_PLANNER_PROMPT_VARIANTS if variant.name == "projection_shape"
+    )
+
+    assert "user's requested answer-column order" in projection_variant.instruction
+    assert "without alphabetizing" in projection_variant.instruction
+    assert "SQL alias names" in projection_variant.instruction
 
 
 def test_load_planner_prompt_variants_from_json(tmp_path) -> None:
