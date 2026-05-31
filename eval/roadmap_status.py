@@ -8,6 +8,8 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from eval.checkpoint3_artifact_audit import audit_checkpoint3_artifacts
 from eval.experiment_registry import (
     DEFAULT_EXPERIMENT_REGISTRY,
@@ -15,6 +17,7 @@ from eval.experiment_registry import (
 )
 
 DEFAULT_CHECKPOINT3_CONFIG = Path("configs/direct_sql_full_non_oracle.yaml")
+DEFAULT_CHECKPOINT3_EVIDENCE = Path("docs/training_runs/direct_sql_full_eval_20260531.json")
 
 
 CHECKPOINTS: dict[int, str] = {
@@ -53,17 +56,121 @@ def _experiment_status(
     return str(experiments[experiment_id]["status"])
 
 
+def _load_optional_json(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _resolve_from_config_root(config_path: Path, path: Path) -> Path:
+    if path.is_absolute():
+        return path
+    return config_path.resolve().parents[1] / path
+
+
+def _positive_int(value: Any) -> bool:
+    try:
+        return int(value) > 0
+    except (TypeError, ValueError):
+        return False
+
+
+def _recorded_checkpoint3_complete(evidence: Mapping[str, Any] | None) -> bool:
+    if not evidence:
+        return False
+    if evidence.get("artifact_type") != "direct_sql_full_endpoint_evidence":
+        return False
+    if not (evidence.get("checkpoint3_artifact_audit") or {}).get("ok"):
+        return False
+    manifests = evidence.get("result_manifests") or {}
+    required = {
+        "base_proxy_dev_seen",
+        "lora_proxy_dev_seen",
+        "base_clean_holdout",
+        "lora_clean_holdout",
+        "base_generated_history_rollout",
+        "lora_generated_history_rollout",
+    }
+    return required.issubset(manifests) and all(
+        _positive_int((manifests.get(name) or {}).get("row_count")) for name in required
+    )
+
+
+def _analysis_manifest_path(checkpoint3_config_path: Path) -> Path:
+    base_dir = checkpoint3_config_path.resolve().parents[1]
+    config = yaml.safe_load(checkpoint3_config_path.read_text(encoding="utf-8"))
+    entries = (config.get("checkpoint3_artifacts") or {}).get("result_manifests") or {}
+    base_entry = entries.get("base_clean_holdout") or {}
+    base_manifest = Path(base_entry.get("manifest", ""))
+    if not base_manifest.is_absolute():
+        base_manifest = base_dir / base_manifest
+    return base_manifest.parent / "clean_holdout_failure_analysis" / "manifest.json"
+
+
+def _analysis_complete(analysis: Mapping[str, Any] | None) -> bool:
+    if not analysis:
+        return False
+    if analysis.get("artifact_type") != "clean_holdout_failure_analysis":
+        return False
+    if analysis.get("split_role") != "clean_local_holdout":
+        return False
+    row_counts = analysis.get("row_counts") or {}
+    if not (_positive_int(row_counts.get("base")) and _positive_int(row_counts.get("lora"))):
+        return False
+    hints = analysis.get("roadmap_method_hint_counts") or {}
+    return bool((hints.get("base") or {}) or (hints.get("lora") or {}))
+
+
 def summarize_roadmap_status(
     *,
     experiment_registry_path: Path = DEFAULT_EXPERIMENT_REGISTRY,
     checkpoint3_config_path: Path = DEFAULT_CHECKPOINT3_CONFIG,
+    checkpoint3_evidence_path: Path = DEFAULT_CHECKPOINT3_EVIDENCE,
 ) -> dict[str, Any]:
     """Return checkpoint statuses derived from current repo evidence."""
 
     experiments = experiment_registry_map(experiment_registry_path)
     checkpoint3 = audit_checkpoint3_artifacts(checkpoint3_config_path)
-    checkpoint3_status = "complete" if checkpoint3.ok else "in_progress"
-    checkpoint3_open_items = list(checkpoint3.issues)
+    resolved_checkpoint3_evidence_path = _resolve_from_config_root(
+        checkpoint3_config_path, checkpoint3_evidence_path
+    )
+    recorded_checkpoint3 = _load_optional_json(resolved_checkpoint3_evidence_path)
+    recorded_checkpoint3_complete = _recorded_checkpoint3_complete(recorded_checkpoint3)
+    checkpoint3_status = (
+        "complete" if checkpoint3.ok or recorded_checkpoint3_complete else "in_progress"
+    )
+    checkpoint3_open_items = [] if recorded_checkpoint3_complete else list(checkpoint3.issues)
+    checkpoint3_evidence = [
+        str(checkpoint3_config_path),
+        "eval.checkpoint3_artifact_audit",
+        "docs/training_runs/direct_sql_full_lora_20260531.json",
+        f"experiment_status={_experiment_status(experiments, 'direct_sql_full_non_oracle_control')}",
+    ]
+    if recorded_checkpoint3:
+        checkpoint3_evidence.append(str(checkpoint3_evidence_path))
+
+    live_analysis = _load_optional_json(_analysis_manifest_path(checkpoint3_config_path))
+    recorded_analysis = (
+        recorded_checkpoint3.get("failure_analysis") if recorded_checkpoint3 else None
+    )
+    checkpoint4_complete = _analysis_complete(live_analysis) or _analysis_complete(
+        recorded_analysis
+    )
+    checkpoint4_evidence = [
+        "eval.clean_holdout_failure_analysis",
+        "scripts.direct_sql_full_control analysis stage",
+    ]
+    if checkpoint4_complete:
+        checkpoint4_evidence.append(
+            "results/runs/direct_sql_full_non_oracle_control/clean_holdout_failure_analysis/manifest.json"
+        )
+        if recorded_checkpoint3:
+            checkpoint4_evidence.append(str(checkpoint3_evidence_path))
+    checkpoint4_open_items = (
+        []
+        if checkpoint4_complete
+        else ["clean-holdout failure analysis waits for Checkpoint 3 base and LoRA manifests"]
+    )
 
     entries = [
         _entry(
@@ -95,24 +202,14 @@ def summarize_roadmap_status(
         _entry(
             3,
             status=checkpoint3_status,
-            evidence=[
-                str(checkpoint3_config_path),
-                "eval.checkpoint3_artifact_audit",
-                "docs/training_runs/direct_sql_full_lora_20260531.json",
-                f"experiment_status={_experiment_status(experiments, 'direct_sql_full_non_oracle_control')}",
-            ],
+            evidence=checkpoint3_evidence,
             open_items=checkpoint3_open_items,
         ),
         _entry(
             4,
-            status="in_progress",
-            evidence=[
-                "eval.clean_holdout_failure_analysis",
-                "scripts.direct_sql_full_control analysis stage",
-            ],
-            open_items=[
-                "clean-holdout failure analysis waits for Checkpoint 3 base and LoRA manifests"
-            ],
+            status="complete" if checkpoint4_complete else "in_progress",
+            evidence=checkpoint4_evidence,
+            open_items=checkpoint4_open_items,
         ),
         _entry(
             5,
@@ -207,12 +304,18 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--experiments", type=Path, default=DEFAULT_EXPERIMENT_REGISTRY)
     parser.add_argument("--checkpoint3-config", type=Path, default=DEFAULT_CHECKPOINT3_CONFIG)
+    parser.add_argument(
+        "--checkpoint3-evidence",
+        type=Path,
+        default=DEFAULT_CHECKPOINT3_EVIDENCE,
+    )
     parser.add_argument("--format", choices=("json", "markdown"), default="json")
     args = parser.parse_args()
 
     summary = summarize_roadmap_status(
         experiment_registry_path=args.experiments,
         checkpoint3_config_path=args.checkpoint3_config,
+        checkpoint3_evidence_path=args.checkpoint3_evidence,
     )
     if args.format == "markdown":
         print(_render_markdown(summary), end="")

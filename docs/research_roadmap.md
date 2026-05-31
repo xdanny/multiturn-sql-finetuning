@@ -4,7 +4,8 @@ This is the canonical long-term roadmap for the multi-turn SQL fine-tuning
 program. It replaces the old gate-heavy day-to-day direction with smaller,
 row-matched method comparisons.
 
-Last audited: 2026-05-31 after the Checkpoint 3 local LoRA training run.
+Last audited: 2026-05-31 after the Checkpoint 3 endpoint evaluation,
+generated-history rollout, and clean-holdout failure analysis.
 
 Checkpoint status legend:
 
@@ -18,8 +19,8 @@ Current checkpoint progress:
 - `[x]` Checkpoint 0: Freeze The Current State.
 - `[x]` Checkpoint 1: Simplify The Research Loop.
 - `[x]` Checkpoint 2: Establish Honest Dataset Roles.
-- `[~]` Checkpoint 3: Rebuild Baselines At Real Scale.
-- `[~]` Checkpoint 4: Let Failure Analysis Choose Methods.
+- `[x]` Checkpoint 3: Rebuild Baselines At Real Scale.
+- `[x]` Checkpoint 4: Let Failure Analysis Choose Methods.
 - `[~]` Checkpoint 5: Planner First, But Non-Oracle.
 - `[~]` Checkpoint 6: Semantic Layer And Value Grounding.
 - `[~]` Checkpoint 7: Metric DSL.
@@ -38,19 +39,19 @@ The publishable benchmark claim is simple:
 > held-out multi-turn SQL tasks, then compare against hosted baselines under the
 > same protocol.
 
-The current repo is not there yet. It has useful proxy evidence, method
-surfaces, and diagnostic artifacts, but most scored model evidence is still a
-100-turn CoSQL proxy slice. Many method artifacts are intentionally small:
-2 metric-DSL rows, 1 behavior-recovery row, and 5 synthetic fixtures.
-`data/processed/train.jsonl` is absent or empty in the checked-in tree, so
-current training evidence mostly comes from small prepared files and recorded
-outputs under `outputs/`.
+The current repo is not at a hosted benchmark claim yet. It now has a full
+direct-SQL local control baseline for the configured CoSQL proxy and clean
+holdout, but the structured method arms still need same-row clean-holdout wins.
+Many method artifacts remain intentionally small: 2 metric-DSL rows, 1
+behavior-recovery row, and 5 synthetic fixtures.
 
-Supported non-oracle proxy claims are narrow: the base model reaches `0.590`
-value accuracy on the inspected 100-turn CoSQL proxy, the 100-step LoRA reaches
-`0.630`, and the best semantic prompt condition reaches `0.640`. The `0.890`
-schema-pruned result is an oracle diagnostic only because reference SQL-derived
-planning hints enter the run.
+Supported non-oracle claims are still scoped. The full direct-SQL LoRA improves
+over its base-model control on the configured local rows: proxy value/strict
+accuracy moves from `0.223` to `0.355`, clean-holdout value/strict accuracy
+moves from `0.218` to `0.349`, and generated-history rollout value/strict
+accuracy moves from `0.049` to `0.090`. The `0.890` schema-pruned result remains
+an oracle diagnostic only because reference SQL-derived planning hints enter
+that older run.
 
 ## Research Anchors
 
@@ -159,10 +160,10 @@ for scoring, keep it scorer-side.
 
 ## Checkpoint 3: Rebuild Baselines At Real Scale
 
-Status: `[~]` in progress. Split-based non-oracle input preparation exists for
-the direct-SQL control, and the full direct-SQL LoRA adapter has been trained
-locally. Current scored evidence is still proxy-scale; the full-scale
-direct-SQL base and LoRA endpoint evaluations have not been rebuilt.
+Status: `[x]` complete for the configured local direct-SQL control. Split-based
+non-oracle inputs exist, the full direct-SQL LoRA adapter has been trained
+locally, base and LoRA endpoint evaluations have run on the proxy and clean
+holdout rows, and generated-history rollouts exist for both model roles.
 
 Run direct SQL base and direct SQL LoRA on full available non-oracle training
 data, not 64-row or 128-row samples. Direct SQL is the stable control for every
@@ -181,7 +182,7 @@ The direct-SQL baseline must be boring, durable, and row-matched. Every planner,
 semantic-layer, metric-DSL, and recovery comparison should use the same row IDs,
 scorer, oracle policy, and manifest shape.
 
-Current Checkpoint 3 preparation artifacts:
+Current Checkpoint 3 artifacts:
 
 - `data.prepare_split` materializes prepared JSONL from frozen split manifests
   without oracle planning hints or oracle-pruned semantic context.
@@ -202,8 +203,11 @@ Current Checkpoint 3 preparation artifacts:
   or endpoint-backed evaluation.
 - `docs/training_runs/direct_sql_full_lora_20260531.json` records the completed
   local full direct-SQL LoRA training artifact and its claim boundary.
+- `docs/training_runs/direct_sql_full_eval_20260531.json` records the endpoint
+  eval, rollout, and failure-analysis metrics while keeping the multi-megabyte
+  generated results under ignored `results/`.
 - `configs/experiments.yaml` marks `direct_sql_full_non_oracle_control` as
-  `lora_trained_pending_endpoint_eval`, not as a measured baseline.
+  `checkpoint3_complete_direct_sql_control`.
 
 Latest local Checkpoint 3 run state from 2026-05-31:
 
@@ -221,8 +225,16 @@ Latest local Checkpoint 3 run state from 2026-05-31:
   `906347d66bb05c1668a8cc82979433c1c1b2056adfcd48f31ae0026a4a7ecdaf`.
 - Training eval loss is language-model loss on the proxy eval split, not SQL
   execution accuracy: `0.5369` at step 1000, `0.5629` at step 1500, and
-  `0.6191` at step 1620. There is still no base/LoRA endpoint eval manifest
-  and no generated-history rollout manifest.
+  `0.6191` at step 1620.
+- Base endpoint evaluation scored `0.223` value/strict accuracy on 327 proxy
+  turns and `0.218` on 680 clean-holdout turns.
+- LoRA endpoint evaluation scored `0.355` value/strict accuracy on the same
+  proxy turns and `0.349` on the same clean-holdout turns.
+- Generated-history rollout scored `0.049` value/strict accuracy for base and
+  `0.090` for LoRA on the same 680 clean-holdout turns.
+- `uv run --active --no-sync python -m eval.checkpoint3_artifact_audit` passes
+  when run in the local worktree that contains the ignored prepared data and
+  result manifests.
 
 Print the complete Checkpoint 3 workflow before running anything expensive:
 
@@ -252,8 +264,8 @@ uv run --active --no-sync python -m scripts.direct_sql_full_control \
   --run
 ```
 
-Checkpoint 3 is complete only after both base and LoRA direct-SQL runs report
-the required metrics on row-matched proxy and clean-holdout manifests.
+Checkpoint 3 is complete for the configured local baseline. Re-run it when the
+model, split, scorer, endpoint, or adapter changes.
 
 Run the endpoint-backed stages after the base and LoRA endpoints are available:
 
@@ -275,16 +287,14 @@ uv run --active --no-sync python -m scripts.direct_sql_full_control \
   --run
 ```
 
-The audit is expected to fail until the full base, LoRA, and generated-history
-rollout manifests listed in `configs/direct_sql_full_non_oracle.yaml` exist.
+The audit is expected to pass only in a worktree that has the ignored prepared
+inputs and result manifests listed in `configs/direct_sql_full_non_oracle.yaml`.
 
 ## Checkpoint 4: Let Failure Analysis Choose Methods
 
-Status: `[~]` in progress. Current diagnostic artifacts preserve failures and
-next actions. `eval.clean_holdout_failure_analysis` can classify the
-Checkpoint 3 base/LoRA clean-holdout outputs and write same-row error summaries
-once those result manifests exist; the actual clean-holdout analysis artifact
-is still pending the full direct-SQL runs.
+Status: `[x]` complete for the first clean-holdout failure-analysis pass.
+`eval.clean_holdout_failure_analysis` classified the Checkpoint 3 base and LoRA
+clean-holdout outputs and wrote same-row error summaries.
 
 Do not add another method arm because the ladder has a slot for it. Classify
 failures on clean validation first, then choose the method whose hypothesis
@@ -305,8 +315,17 @@ Tiny synthetic wins should not be scaled until they also move a real validation
 slice. Synthetic fixtures are useful for isolating failure modes, not for
 declaring a benchmark improvement.
 
-After Checkpoint 3 produces the base and LoRA clean-holdout manifests, write the
-failure-analysis artifact with:
+The 2026-05-31 clean-holdout analysis still points first at planner/schema
+linking, then value grounding and metric definitions. LoRA reduced many errors
+but did not make recovery the dominant next method family:
+
+- base method hints: planner/schema linking `420`, semantic value grounding
+  `109`, metric definitions `88`, recovery `2`;
+- LoRA method hints: planner/schema linking `369`, semantic value grounding
+  `67`, metric definitions `61`, recovery `1`;
+- base correct turns: `148` of 680; LoRA correct turns: `237` of 680.
+
+Regenerate the failure-analysis artifact with:
 
 ```bash
 uv run --active --no-sync python -m scripts.direct_sql_full_control \

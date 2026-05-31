@@ -1,6 +1,6 @@
 {
   "artifact_type": "direct_sql_full_lora_training_evidence",
-  "claim_boundary": "Full direct-SQL LoRA training completed locally on the configured non-oracle CoSQL train split. This is training evidence only; it is not a benchmark claim because base/LoRA endpoint evaluation, clean-holdout metrics, generated-history rollout metrics, and row-matched result manifests are still pending.",
+  "claim_boundary": "Full direct-SQL LoRA training completed locally on the configured non-oracle CoSQL train split. This is training evidence only; endpoint evaluation and rollout evidence are recorded separately in docs/training_runs/direct_sql_full_eval_20260531.json.",
   "command": "CC=/home/dan/.local/bin/cc ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache ZIG_LOCAL_CACHE_DIR=/tmp/zig-cache VIRTUAL_ENV=/home/dan/docs/multiturn-sql-finetuning/.venv PATH=/home/dan/docs/multiturn-sql-finetuning/.venv/bin:$PATH PYTHONPATH=/home/dan/docs/multiturn-sql-finetuning-finetune-run UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m scripts.direct_sql_full_control --stage train --cc /home/dan/.local/bin/cc --zig-cache-dir /tmp/zig-cache --train-report-to none --run",
   "date": "2026-05-31",
   "environment": {
@@ -56,7 +56,7 @@
   "interpretation": [
     "The full configured 3-epoch direct-SQL LoRA training run completed and saved a final adapter.",
     "The run used the proxy_dev_seen split only as eval-data for language-model eval loss during training; it did not produce SQL execution metrics.",
-    "Checkpoint 3 remains in progress until base and LoRA endpoint evaluations, clean-holdout manifests, generated-history rollout manifests, and row identity checks are present."
+    "Endpoint evaluation, clean-holdout manifests, generated-history rollout manifests, and row identity checks are recorded separately in docs/training_runs/direct_sql_full_eval_20260531.json."
   ],
   "model": {
     "base_model": "unsloth/Qwen3.5-9B",
