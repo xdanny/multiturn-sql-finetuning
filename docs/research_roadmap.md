@@ -446,12 +446,17 @@ Latest Checkpoint 5 evidence from 2026-05-31:
   1 was a generated SQL execution error.
 - The evidence file is
   `docs/training_runs/planner_sft_1000_sql_failure_analysis_20260531.json`.
+- The planner contract now preserves `projection_shape.selected_expressions`
+  order for predicted-plan prompt hints and newly generated planner-SFT targets
+  instead of sorting those expressions as a set. This is a contract/data fix,
+  not a SQL win for the existing `planner_sft_20260531_1000` adapter.
+- The evidence file is
+  `docs/training_runs/planner_projection_order_contract_20260531.json`.
 
-The next Checkpoint 5 work should analyze the corrected bounded SQL regression,
-starting with projection order preservation in predicted-plan prompts, then
-inspect whether predicted plans hurt SQL prompt grounding or whether the
-direct-SQL adapter cannot exploit the plan format. A positive value-accuracy
-delta remains required before promoting the planner path.
+The next Checkpoint 5 work should regenerate planner-SFT targets and predictions
+with the order-preserving contract, then run another bounded same-row SQL pair.
+A positive value-accuracy delta remains required before promoting the planner
+path.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 

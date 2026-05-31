@@ -73,6 +73,20 @@ def test_normalize_plan_returns_stable_fields() -> None:
     assert plan["projection_shape"]["preserve_duplicates"] is False
 
 
+def test_normalize_plan_preserves_projection_expression_order() -> None:
+    plan = normalize_plan(
+        {
+            "relevant_tables": ["Users"],
+            "projection_shape": {
+                "selected_expressions": ["Users.name", "Users.id"],
+                "selected_count": 2,
+            },
+        }
+    )
+
+    assert plan["projection_shape"]["selected_expressions"] == ["users.name", "users.id"]
+
+
 def test_validate_prepared_record_contract_requires_gold_plan_per_assistant_turn() -> None:
     record = {
         "messages": [
@@ -138,9 +152,24 @@ def test_predicted_planning_hint_validates_plan_before_prompt_injection() -> Non
     assert "Predicted SQL plan" in hint
     assert "Relevant tables: airlines" in hint
     assert "Relevant columns: airlines.name" in hint
+    assert "output columns must follow exactly this order: airlines.name" in hint
 
     with pytest.raises(ValueError, match="relevant table or column"):
         predicted_planning_hint_from_plan({})
+
+
+def test_predicted_planning_hint_preserves_projection_expression_order() -> None:
+    hint = predicted_planning_hint_from_plan(
+        {
+            "relevant_tables": ["Users"],
+            "projection_shape": {
+                "selected_count": 2,
+                "selected_expressions": ["Users.name", "Users.id"],
+            },
+        }
+    )
+
+    assert "output columns must follow exactly this order: users.name; users.id" in hint
 
 
 def test_predicted_planning_hint_accepts_legacy_minimal_predicted_plan() -> None:

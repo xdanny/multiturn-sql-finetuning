@@ -84,8 +84,13 @@ shows 15 rows both arms answered correctly, 6 direct-only regressions, 1
 planner-only fix, and 2 rows both arms missed. Four of the six direct-only
 regressions are projection-order flips after predicted-plan injection.
 
-Next useful movement: preserve projection order in the predicted-plan prompt and
-then improve the remaining non-oracle planner grounding issues before running a
+Contract update: `docs/training_runs/planner_projection_order_contract_20260531.json`
+records that `projection_shape.selected_expressions` now keeps sequence order
+in `normalize_plan`, predicted-plan prompt hints, and newly generated
+planner-SFT targets.
+
+Next useful movement: regenerate planner-SFT rows and planner predictions under
+the order-preserving contract, then rerun a bounded same-row SQL pair before any
 broader endpoint pair.
 
 ## Semantic-Layer Tuning
