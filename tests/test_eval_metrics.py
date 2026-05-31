@@ -19,6 +19,20 @@ def test_extract_sql_from_prose_and_fence() -> None:
     assert extract_sql("Reasoning first. SELECT name FROM users; extra") == "SELECT name FROM users;"
 
 
+def test_extract_sql_stops_before_chat_role_continuation() -> None:
+    assert (
+        extract_sql(
+            'SELECT name FROM users WHERE role = "assistant"\n'
+            "user\n"
+            "Question:\n"
+            "List user ids\n"
+            "assistant\n"
+            "SELECT id FROM users"
+        )
+        == 'SELECT name FROM users WHERE role = "assistant"'
+    )
+
+
 def test_clean_sql_repairs_split_operators() -> None:
     assert clean_sql("HAVING count ( * ) > = 3 AND x < = 5") == (
         "HAVING count ( * ) >= 3 AND x <= 5"

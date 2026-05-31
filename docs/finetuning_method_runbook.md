@@ -74,12 +74,14 @@ value-accuracy delta before `predicted_planner_sql_execution` can clear.
 
 Latest movement: train-split planner-SFT rows from `data.planner_sft` produced a
 1000-step planner adapter that passed bounded proxy and clean-holdout planner
-readiness, but the 24-turn clean-holdout same-row SQL pair regressed by
-`-0.0417` value accuracy versus the direct-SQL control.
+readiness. The first local SQL manifest exposed chat-role continuation
+extraction failures, and after correcting SQL extraction the 24-turn
+clean-holdout same-row SQL pair still regressed by `-0.2083` value accuracy
+versus the direct-SQL control.
 
 Next useful movement: analyze why the predicted plans did not help downstream
-SQL generation, then improve the non-oracle planner path before running a
-broader endpoint pair.
+SQL generation under the corrected extractor, then improve the non-oracle
+planner path before running a broader endpoint pair.
 
 ## Semantic-Layer Tuning
 
