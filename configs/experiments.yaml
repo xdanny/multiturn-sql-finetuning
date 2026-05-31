@@ -56,8 +56,9 @@ experiments:
       as many unrelated tables. Train-split planner-SFT rows can now be
       materialized without prompt leakage. A 1000-step train-split planner SFT
       adapter passed bounded proxy and clean-holdout planner readiness, but a
-      24-turn clean-holdout same-row SQL comparison regressed by 4.17 percentage
-      points in value accuracy versus the direct-SQL control.
+      24-turn clean-holdout same-row SQL comparison regressed by 20.83
+      percentage points in value accuracy versus the direct-SQL control after
+      correcting SQL extraction for chat-role continuations.
 
   - experiment_id: semantic_value_retrieval_vs_direct
     checkpoint: 6

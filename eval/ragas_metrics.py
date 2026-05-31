@@ -19,6 +19,10 @@ import sqlglot
 from eval.result_compare import compare_dataframes, is_order_sensitive_sql
 
 SQL_START_RE = re.compile(r"\b(select|with|insert|update|delete)\b", re.IGNORECASE)
+CHAT_ROLE_CONTINUATION_RE = re.compile(
+    r"\n\s*(?:system|user|assistant)\s*(?::|\n|$)",
+    re.IGNORECASE,
+)
 
 
 @dataclass
@@ -54,9 +58,15 @@ def extract_sql(text: str) -> str:
     if not match:
         return stripped
     candidate = stripped[match.start() :].strip()
+    stops = []
     semicolon = candidate.find(";")
     if semicolon >= 0:
-        return candidate[: semicolon + 1]
+        stops.append(semicolon + 1)
+    role_marker = CHAT_ROLE_CONTINUATION_RE.search(candidate)
+    if role_marker:
+        stops.append(role_marker.start())
+    if stops:
+        return candidate[: min(stops)].strip()
     return candidate
 
 

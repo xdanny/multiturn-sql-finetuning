@@ -25,7 +25,7 @@
     "history_policy": "gold_sql_teacher_forced",
     "oracle_allowed": false
   },
-  "metrics": {
+  "original_manifest_metrics": {
     "direct_sql_value_execution_accuracy": 0.08333333333333333,
     "direct_sql_strict_execution_accuracy": 0.041666666666666664,
     "predicted_planner_value_execution_accuracy": 0.041666666666666664,
@@ -36,8 +36,22 @@
     "interaction_match_rate": 0.0,
     "mean_generation_latency_ms": 22454.79510566671
   },
+  "rescored_metrics_after_sql_extractor_fix": {
+    "extractor_change": "truncate generated SQL before standalone chat-role continuation markers such as user or assistant",
+    "direct_sql_rows_changed_by_extractor": 21,
+    "predicted_planner_rows_changed_by_extractor": 22,
+    "direct_sql_syntax_valid": 24,
+    "predicted_planner_syntax_valid": 24,
+    "direct_sql_value_execution_accuracy": 0.875,
+    "direct_sql_strict_execution_accuracy": 0.7916666666666666,
+    "predicted_planner_value_execution_accuracy": 0.6666666666666666,
+    "predicted_planner_strict_execution_accuracy": 0.5416666666666666,
+    "predicted_planner_value_delta_vs_direct_sql": -0.20833333333333337,
+    "predicted_planner_strict_delta_vs_direct_sql": -0.25
+  },
   "interpretation": [
-    "The trained planner SFT adapter passed bounded planner-readiness checks, but the downstream same-row SQL comparison regressed on the clean-holdout slice.",
+    "The trained planner SFT adapter passed bounded planner-readiness checks, but the downstream same-row SQL comparison regressed on the clean-holdout slice even after correcting SQL extraction for chat-role continuations.",
+    "Most original syntax failures came from local generations continuing into synthetic user and assistant turns after the first SQL statement when no semicolon was emitted.",
     "Checkpoint 5 remains in progress because the planner path still needs a positive value-accuracy delta against direct SQL before promotion.",
     "The next useful work is failure analysis on the prepared predicted plans and generated SQL before spending broader SQL-generation budget."
   ]

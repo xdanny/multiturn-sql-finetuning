@@ -428,19 +428,23 @@ Latest Checkpoint 5 evidence from 2026-05-31:
 - The evidence file is
   `docs/training_runs/planner_sft_1000_readiness_20260531.json`.
 - The bounded clean-holdout same-row SQL pair ran on 24 turns / 7 dialogs after
-  planner-SFT readiness passed. Direct SQL reached value accuracy `0.083` and
-  strict accuracy `0.042`; predicted-planner SQL reached value accuracy `0.042`
-  and strict accuracy `0.000`.
-- The resulting value-accuracy delta was `-0.0417`, so the planner path remains
+  planner-SFT readiness passed. The original manifest exposed a local extraction
+  problem: most generations continued into synthetic `user`/`assistant` turns
+  after the first SQL statement when no semicolon was emitted.
+- After correcting SQL extraction for those chat-role continuations, direct SQL
+  reached value accuracy `0.875` and strict accuracy `0.792`;
+  predicted-planner SQL reached value accuracy `0.667` and strict accuracy
+  `0.542`.
+- The corrected value-accuracy delta was `-0.2083`, so the planner path remains
   negative downstream evidence despite strong bounded planner-label quality.
 - The evidence file is
   `docs/training_runs/planner_sft_1000_sql_limit24_negative_20260531.json`.
 
-The next Checkpoint 5 work should analyze the bounded SQL regression, inspect
-whether predicted plans hurt SQL prompt grounding or whether the direct-SQL
-adapter cannot exploit the plan format, and improve the non-oracle planner path
-before spending a broader endpoint pair. A positive value-accuracy delta remains
-required before promoting the planner path.
+The next Checkpoint 5 work should analyze the corrected bounded SQL regression,
+inspect whether predicted plans hurt SQL prompt grounding or whether the
+direct-SQL adapter cannot exploit the plan format, and improve the non-oracle
+planner path before spending a broader endpoint pair. A positive value-accuracy
+delta remains required before promoting the planner path.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 
