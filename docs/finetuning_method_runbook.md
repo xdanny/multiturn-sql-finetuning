@@ -73,8 +73,8 @@ predicted-planner, and comparison manifests. The comparison must show a positive
 value-accuracy delta before `predicted_planner_sql_execution` can clear.
 
 Next useful movement: replace weak lexical planner output with a non-oracle
-planner that improves column linking and projection shape before running the
-full SQL pair.
+planner that improves table, column, and skeleton scores before running the
+full SQL pair. Lexical projection count is no longer the dominant blocker.
 
 ## Semantic-Layer Tuning
 

@@ -6,7 +6,7 @@ row-matched method comparisons.
 
 Last audited: 2026-05-31 after the Checkpoint 3 endpoint evaluation,
 generated-history rollout, clean-holdout failure analysis, and Checkpoint 5
-planner schema-context repair.
+planner schema/projection repairs.
 
 Checkpoint status legend:
 
@@ -337,8 +337,9 @@ uv run --active --no-sync python -m scripts.direct_sql_full_control \
 ## Checkpoint 5: Planner First, But Non-Oracle
 
 Status: `[~]` in progress. Non-oracle planner scoring, a 24-turn negative
-predicted-planner comparison, and a schema-context repair exist; planner
-quality is not yet high enough to promote another SQL-generation run.
+predicted-planner comparison, schema-context repair, and lexical projection
+repair exist; planner quality is not yet high enough to promote another
+SQL-generation run.
 
 Train or prompt a planner only on training-split gold labels. Evaluate planner
 F1 on held-out rows before feeding predicted plans into SQL generation.
@@ -378,10 +379,20 @@ Latest Checkpoint 5 evidence from 2026-05-31:
   shape remain weak.
 - The evidence file is
   `docs/training_runs/planner_schema_context_repair_20260531.json`.
+- The lexical planner now separates relevant columns from projected-expression
+  count, splits simple compound column names such as `FullName`, and emits
+  non-empty `selected_expressions` for predicted-plan prompts.
+- After that projection repair, selected-count match moved from `0.187` to
+  `0.847` on proxy and from `0.171` to `0.838` on clean holdout. Macro planner
+  score moved to `0.662` on proxy and `0.666` on clean holdout.
+- The readiness summary is still not promotable: table F1 `0.625`, column F1
+  `0.155`, and skeleton F1 `0.652` on clean holdout remain below policy.
+- The evidence file is
+  `docs/training_runs/planner_projection_prior_20260531.json`.
 
-The next Checkpoint 5 work should improve non-oracle column linking and
-selected-count/projection prediction before running another
-`eval.run_predicted_planner_comparison` endpoint pair.
+The next Checkpoint 5 work should move beyond lexical heuristics to a trained
+or prompted non-oracle planner that improves table, column, and skeleton scores
+before running another `eval.run_predicted_planner_comparison` endpoint pair.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 

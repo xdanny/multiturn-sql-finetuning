@@ -25,7 +25,7 @@ def _write_registry(path: Path) -> None:
         (
             "predicted_planner_sql_vs_direct",
             5,
-            "schema_context_restored_needs_planner_quality",
+            "projection_prior_restored_needs_trained_planner",
             "predicted_planner_sql",
             "direct_sql_full_non_oracle_control",
         ),
@@ -321,9 +321,13 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         "docs/training_runs/planner_schema_context_repair_20260531.json"
         in by_checkpoint[5]["evidence"]
     )
+    assert (
+        "docs/training_runs/planner_projection_prior_20260531.json"
+        in by_checkpoint[5]["evidence"]
+    )
     assert by_checkpoint[5]["open_items"] == [
         (
-            "improve non-oracle column linking and projection quality before "
+            "improve non-oracle table, column, and skeleton quality before "
             "another predicted-planner SQL run"
         )
     ]

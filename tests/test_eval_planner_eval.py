@@ -112,6 +112,46 @@ def test_lexical_planner_matches_simple_plural_question_tokens() -> None:
     assert "count(*)" in plan["projection_shape"]["aggregations"]
 
 
+def test_lexical_planner_splits_camel_case_column_tokens() -> None:
+    messages = [
+        {
+            "role": "user",
+            "content": (
+                "Schema/context:\n"
+                "countries(CountryId number, CountryName text)\n"
+                "car_makers(Id number, FullName text, Country text)\n\n"
+                "Question:\nList the country name and maker full name."
+            ),
+        }
+    ]
+
+    plan = lexical_planner(messages)
+
+    assert "countries.countryname" in plan["relevant_columns"]
+    assert "car_makers.fullname" in plan["relevant_columns"]
+    assert "countries.countryid" not in plan["relevant_columns"]
+
+
+def test_lexical_planner_selected_count_uses_projection_prior_not_column_hits() -> None:
+    messages = [
+        {
+            "role": "user",
+            "content": (
+                "Schema/context:\n"
+                "orders(id number, customer_id number, amount number)\n"
+                "customers(id number, name text, country text)\n\n"
+                "Question:\nShow customers from France with total order amount."
+            ),
+        }
+    ]
+
+    plan = lexical_planner(messages)
+
+    assert len(plan["relevant_columns"]) > 1
+    assert plan["projection_shape"]["selected_count"] == 1
+    assert plan["projection_shape"]["selected_expressions"]
+
+
 def test_evaluate_planner_records_adds_gold_predicted_and_scores() -> None:
     records = [
         {
