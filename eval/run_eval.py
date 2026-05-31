@@ -5,6 +5,7 @@ Run SQL benchmarks against an OpenAI-compatible chat endpoint.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import time
@@ -34,6 +35,29 @@ ORACLE_PLAN_MARKERS = (
     "Oracle SQL planning hints",
     "SQL planning hints:",
 )
+SPLIT_PROVENANCE_FIELDS = (
+    "split_id",
+    "split_role",
+    "split_row_id",
+    "split_source_path",
+    "split_source_sha256",
+    "split_row_ids_sha256",
+)
+
+
+def _sha256_json(value: Any) -> str:
+    encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _ordered_unique(values: Iterable[str]) -> list[str]:
+    seen = set()
+    ordered = []
+    for value in values:
+        if value not in seen:
+            seen.add(value)
+            ordered.append(value)
+    return ordered
 
 
 def extract_reference_sql(messages: list[dict[str, str]]) -> str:
@@ -112,6 +136,9 @@ def expand_prepared_record(record: dict[str, Any], *, index: int) -> list[dict[s
     semantic_context_pruned_by_oracle_labels = bool(
         record.get("semantic_context_pruned_by_oracle_labels")
     )
+    split_provenance = {
+        field: record[field] for field in SPLIT_PROVENANCE_FIELDS if record.get(field) is not None
+    }
     turn_count = len(assistant_indices)
     expanded = []
     for turn_index, assistant_index in enumerate(assistant_indices):
@@ -128,6 +155,7 @@ def expand_prepared_record(record: dict[str, Any], *, index: int) -> list[dict[s
                 "reference_sql": messages[assistant_index]["content"],
                 "source": source,
                 "database_id": database_id,
+                **split_provenance,
                 "history_policy": history_policy,
                 "evaluation_mode": evaluation_mode,
                 "planning_label_source": record.get("planning_label_source"),
@@ -323,6 +351,30 @@ def summarize_eval_metrics(results: list[dict[str, Any]]) -> dict[str, Any]:
             if per_dialog
             else 0.0
         )
+    split_rows = [result for result in results if result.get("split_row_id")]
+    if split_rows:
+        split_row_ids = [str(result["split_row_id"]) for result in split_rows]
+        split_eval_turn_ids = [
+            f"{result['split_row_id']}:{result.get('turn_index', 0)}" for result in split_rows
+        ]
+        unique_split_row_ids = _ordered_unique(split_row_ids)
+        metrics["split_ids"] = dict(
+            Counter(str(result.get("split_id", "unknown")) for result in split_rows)
+        )
+        metrics["split_roles"] = dict(
+            Counter(str(result.get("split_role", "unknown")) for result in split_rows)
+        )
+        metrics["split_row_count"] = len(unique_split_row_ids)
+        metrics["split_eval_turn_count"] = len(split_eval_turn_ids)
+        metrics["split_row_ids_sha256"] = _sha256_json(unique_split_row_ids)
+        metrics["split_eval_turn_ids_sha256"] = _sha256_json(split_eval_turn_ids)
+        source_sha256s = _ordered_unique(
+            str(result["split_source_sha256"])
+            for result in split_rows
+            if result.get("split_source_sha256")
+        )
+        if source_sha256s:
+            metrics["split_source_sha256s"] = source_sha256s
     return metrics
 
 

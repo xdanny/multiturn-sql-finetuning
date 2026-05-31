@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+import eval.run_eval as run_eval_module
 from eval.run_eval import (
     assistant_turn_indices,
     database_path_for_record,
@@ -56,6 +57,55 @@ def test_load_prepared_records_hides_reference_assistant_turn(tmp_path) -> None:
     assert records[0]["messages"][-1]["role"] == "user"
     assert records[0]["turn_index"] == 0
     assert records[0]["turn_count"] == 1
+
+
+def test_load_prepared_records_preserves_split_provenance(tmp_path) -> None:
+    path = tmp_path / "prepared.jsonl"
+    path.write_text(
+        json.dumps(
+            {
+                "source": "cosql_dev_clean_holdout_v1",
+                "database_id": "car_1",
+                "evaluation_mode": "non_oracle_generation",
+                "planning_label_source": "gold_reference_sql",
+                "uses_oracle_planning_hints": False,
+                "semantic_context_pruned_by_oracle_labels": False,
+                "split_id": "cosql_dev_clean_holdout_v1",
+                "split_role": "clean_local_holdout",
+                "split_row_id": "cosql_dev:0100:car_1",
+                "split_source_path": "data/raw/cosql_dataset/sql_state_tracking/cosql_dev.json",
+                "split_source_sha256": "abc123",
+                "split_row_ids_sha256": "row-hash",
+                "schema_link_labels": [
+                    {"relevant_tables": ["cars"], "projection_shape": {"selected_count": 1}},
+                    {"relevant_tables": ["cars"], "projection_shape": {"selected_count": 1}},
+                ],
+                "gold_plans": [
+                    {"relevant_tables": ["cars"], "projection_shape": {"selected_count": 1}},
+                    {"relevant_tables": ["cars"], "projection_shape": {"selected_count": 1}},
+                ],
+                "messages": [
+                    {"role": "system", "content": "sys"},
+                    {"role": "user", "content": "q1"},
+                    {"role": "assistant", "content": "SELECT 1;"},
+                    {"role": "user", "content": "q2"},
+                    {"role": "assistant", "content": "SELECT 2;"},
+                ],
+            }
+        )
+        + "\n"
+    )
+
+    records = load_prepared_records(path)
+
+    assert [record["split_row_id"] for record in records] == [
+        "cosql_dev:0100:car_1",
+        "cosql_dev:0100:car_1",
+    ]
+    assert records[0]["split_id"] == "cosql_dev_clean_holdout_v1"
+    assert records[0]["split_role"] == "clean_local_holdout"
+    assert records[0]["split_source_sha256"] == "abc123"
+    assert records[1]["turn_index"] == 1
 
 
 def test_load_prepared_records_expands_multi_turn_dialogs(tmp_path) -> None:
@@ -302,6 +352,130 @@ def test_summarize_eval_metrics_records_teacher_forced_history_policy() -> None:
 
     assert metrics["history_policy"] == "gold_sql_teacher_forced"
     assert metrics["history_policies"] == {"gold_sql_teacher_forced": 2}
+
+
+def test_summarize_eval_metrics_records_split_provenance_hashes() -> None:
+    metrics = summarize_eval_metrics(
+        [
+            {
+                "execution_score": 1.0,
+                "strict_execution_score": 1.0,
+                "value_execution_score": 1.0,
+                "syntax_valid": True,
+                "generation_latency_ms": 10.0,
+                "split_id": "cosql_dev_clean_holdout_v1",
+                "split_role": "clean_local_holdout",
+                "split_row_id": "cosql_dev:0100:car_1",
+                "split_source_sha256": "source-hash",
+                "turn_index": 0,
+            },
+            {
+                "execution_score": 0.0,
+                "strict_execution_score": 0.0,
+                "value_execution_score": 0.0,
+                "syntax_valid": True,
+                "generation_latency_ms": 20.0,
+                "split_id": "cosql_dev_clean_holdout_v1",
+                "split_role": "clean_local_holdout",
+                "split_row_id": "cosql_dev:0100:car_1",
+                "split_source_sha256": "source-hash",
+                "turn_index": 1,
+            },
+            {
+                "execution_score": 1.0,
+                "strict_execution_score": 1.0,
+                "value_execution_score": 1.0,
+                "syntax_valid": True,
+                "generation_latency_ms": 30.0,
+                "split_id": "cosql_dev_clean_holdout_v1",
+                "split_role": "clean_local_holdout",
+                "split_row_id": "cosql_dev:0101:poker_player",
+                "split_source_sha256": "source-hash",
+                "turn_index": 0,
+            },
+        ]
+    )
+
+    assert metrics["split_ids"] == {"cosql_dev_clean_holdout_v1": 3}
+    assert metrics["split_roles"] == {"clean_local_holdout": 3}
+    assert metrics["split_row_count"] == 2
+    assert metrics["split_eval_turn_count"] == 3
+    assert metrics["split_source_sha256s"] == ["source-hash"]
+    assert metrics["split_row_ids_sha256"]
+    assert metrics["split_eval_turn_ids_sha256"]
+    assert metrics["split_row_ids_sha256"] != metrics["split_eval_turn_ids_sha256"]
+
+
+def test_run_eval_manifest_records_prepared_split_provenance(tmp_path, monkeypatch) -> None:
+    input_path = tmp_path / "prepared.jsonl"
+    output_path = tmp_path / "results.jsonl"
+    manifest_path = tmp_path / "results.manifest.json"
+    input_path.write_text(
+        json.dumps(
+            {
+                "source": "cosql_dev_clean_holdout_v1",
+                "database_id": "car_1",
+                "evaluation_mode": "non_oracle_generation",
+                "planning_label_source": "gold_reference_sql",
+                "uses_oracle_planning_hints": False,
+                "semantic_context_pruned_by_oracle_labels": False,
+                "split_id": "cosql_dev_clean_holdout_v1",
+                "split_role": "clean_local_holdout",
+                "split_row_id": "cosql_dev:0100:car_1",
+                "split_source_path": "data/raw/cosql_dataset/sql_state_tracking/cosql_dev.json",
+                "split_source_sha256": "source-hash",
+                "split_row_ids_sha256": "row-hash",
+                "schema_link_labels": [
+                    {"relevant_tables": [], "projection_shape": {"selected_count": 1}},
+                ],
+                "gold_plans": [
+                    {"relevant_tables": [], "projection_shape": {"selected_count": 1}},
+                ],
+                "messages": [
+                    {"role": "system", "content": "sys"},
+                    {"role": "user", "content": "q1"},
+                    {"role": "assistant", "content": "SELECT 1"},
+                ],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    def fake_generate_sql(*args, **kwargs):
+        return "SELECT 1", 12.0
+
+    monkeypatch.setattr(run_eval_module, "generate_sql", fake_generate_sql)
+
+    assert (
+        run_eval_module.run_eval(
+            benchmark="prepared",
+            endpoint="http://localhost:8000/v1",
+            model_name="unit-model",
+            output=output_path,
+            input_path=input_path,
+            limit=None,
+            database_root=None,
+            api_key="EMPTY",
+            temperature=0.0,
+            max_tokens=16,
+            allow_oracle_plan=False,
+            manifest_output=manifest_path,
+            command=["uv", "run", "python", "-m", "eval.run_eval"],
+        )
+        == 0
+    )
+
+    result = json.loads(output_path.read_text(encoding="utf-8").splitlines()[0])
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert result["split_row_id"] == "cosql_dev:0100:car_1"
+    assert manifest["metrics"]["split_ids"] == {"cosql_dev_clean_holdout_v1": 1}
+    assert manifest["metrics"]["split_roles"] == {"clean_local_holdout": 1}
+    assert manifest["metrics"]["split_row_count"] == 1
+    assert manifest["metrics"]["split_eval_turn_count"] == 1
+    assert manifest["metrics"]["split_source_sha256s"] == ["source-hash"]
+    assert manifest["metrics"]["split_row_ids_sha256"]
+    assert manifest["metrics"]["split_eval_turn_ids_sha256"]
 
 
 def test_enforce_sql_only_instruction_appends_to_system_message() -> None:
