@@ -6,7 +6,7 @@ row-matched method comparisons.
 
 Last audited: 2026-05-31 after the Checkpoint 3 endpoint evaluation,
 generated-history rollout, clean-holdout failure analysis, and Checkpoint 5
-planner schema/projection/table-selection repairs.
+planner schema/projection/table-selection repairs plus planner-SFT readiness.
 
 Checkpoint status legend:
 
@@ -337,10 +337,10 @@ uv run --active --no-sync python -m scripts.direct_sql_full_control \
 ## Checkpoint 5: Planner First, But Non-Oracle
 
 Status: `[~]` in progress. Non-oracle planner scoring, a 24-turn negative
-predicted-planner comparison, schema-context repair, and lexical projection
-and table-selection repairs exist. A train-split planner-SFT data path exists,
-but planner quality is not yet high enough to promote another SQL-generation
-run.
+predicted-planner comparison, schema-context repair, lexical projection and
+table-selection repairs, a train-split planner-SFT data path, and bounded
+planner-SFT readiness evidence exist. The next step is the same-row SQL
+endpoint pair; no SQL execution win is claimed yet.
 
 Train or prompt a planner only on training-split gold labels. Evaluate planner
 F1 on held-out rows before feeding predicted plans into SQL generation.
@@ -411,11 +411,26 @@ Latest Checkpoint 5 evidence from 2026-05-31:
   `target_plan_visible_as_assistant_label=true`.
 - The evidence file is
   `docs/training_runs/planner_sft_data_path_20260531.json`.
+- A 1000-step train-split planner-SFT LoRA run completed on the RTX 5090 and
+  saved a final adapter at
+  `outputs/experiments/predicted_planner_sql/planner_sft_20260531_1000/final`.
+  The full planner-SFT training dataset has 7,343 rows from 2,159 train
+  dialogs, and the final adapter weights SHA-256 is
+  `c27115f3d26625f02ad2b979ead303c0bbebf2afe205e2e5e612bd4be1c9bcd5`.
+- Bounded proxy planner readiness now passes on 24 turns / 8 dialogs:
+  macro planner score `0.877`, table F1 `0.944`, column F1 `0.826`,
+  skeleton F1 `0.927`, parse error rate `0.000`, and
+  `preflight_status=ready_for_endpoint_pair`.
+- Bounded clean-holdout planner readiness now passes on 24 turns / 7 dialogs:
+  macro planner score `0.942`, table F1 `0.972`, column F1 `0.844`,
+  skeleton F1 `0.979`, parse error rate `0.000`, and
+  `preflight_status=ready_for_endpoint_pair`.
+- The evidence file is
+  `docs/training_runs/planner_sft_1000_readiness_20260531.json`.
 
-The next Checkpoint 5 work should train or prompt a non-oracle planner with
-this data path, then evaluate planner quality on proxy and clean-holdout rows
-with `eval.planner_eval` and `eval.planner_readiness` before running another
-`eval.run_predicted_planner_comparison` endpoint pair.
+The next Checkpoint 5 work should run the same-row direct-SQL versus
+predicted-planner SQL endpoint pair with `eval.run_predicted_planner_comparison`
+and require a positive value-accuracy delta before promoting the planner path.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 
