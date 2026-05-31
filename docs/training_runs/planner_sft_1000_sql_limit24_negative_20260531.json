@@ -52,6 +52,7 @@
   "interpretation": [
     "The trained planner SFT adapter passed bounded planner-readiness checks, but the downstream same-row SQL comparison regressed on the clean-holdout slice even after correcting SQL extraction for chat-role continuations.",
     "Most original syntax failures came from local generations continuing into synthetic user and assistant turns after the first SQL statement when no semicolon was emitted.",
+    "A separate row-level analysis in docs/training_runs/planner_sft_1000_sql_failure_analysis_20260531.json found that most direct-only regressions are projection-order flips after predicted-plan injection.",
     "Checkpoint 5 remains in progress because the planner path still needs a positive value-accuracy delta against direct SQL before promotion.",
     "The next useful work is failure analysis on the prepared predicted plans and generated SQL before spending broader SQL-generation budget."
   ]

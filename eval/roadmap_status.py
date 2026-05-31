@@ -224,6 +224,7 @@ def summarize_roadmap_status(
                 "docs/training_runs/planner_sft_data_path_20260531.json",
                 "docs/training_runs/planner_sft_1000_readiness_20260531.json",
                 "docs/training_runs/planner_sft_1000_sql_limit24_negative_20260531.json",
+                "docs/training_runs/planner_sft_1000_sql_failure_analysis_20260531.json",
             ],
             open_items=[
                 (
