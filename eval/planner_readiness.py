@@ -8,6 +8,24 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+PLANNER_PROMOTION_POLICY = {
+    "minimum_row_count": 24,
+    "maximum_parse_error_rate": 0.0,
+    "maximum_macro_below_0_50_rate": 0.2,
+    "minimum_mean_scores": {
+        "macro_planner_score": 0.65,
+        "table_f1": 0.70,
+        "column_f1": 0.60,
+        "skeleton_f1": 0.70,
+        "selected_count_match": 0.70,
+        "duplicate_policy_match": 0.90,
+    },
+    "maximum_conditional_zero_rates": {
+        "join_zero_when_gold_join_rate": 0.40,
+        "group_by_zero_when_gold_group_by_rate": 0.40,
+    },
+}
+
 
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
     with path.open() as handle:
@@ -40,6 +58,10 @@ def _rate(count: int, total: int) -> float:
     return count / total if total else 0.0
 
 
+def _mean_score(rows: list[dict[str, Any]], key: str) -> float:
+    return sum(_score(row, key) for row in rows) / len(rows) if rows else 0.0
+
+
 def _risk_names(summary: dict[str, Any]) -> list[str]:
     risks = {
         "column_linking": summary["column_zero_count"],
@@ -56,12 +78,35 @@ def _risk_names(summary: dict[str, Any]) -> list[str]:
     ][:4]
 
 
+def _promotion_blockers(summary: dict[str, Any]) -> list[str]:
+    policy = summary["promotion_policy"]
+    blockers = []
+    if summary["row_count"] < policy["minimum_row_count"]:
+        blockers.append(
+            f"row_count below minimum {policy['minimum_row_count']}"
+        )
+    if summary["parse_error_rate"] > policy["maximum_parse_error_rate"]:
+        blockers.append("planner parse errors present")
+    if summary["macro_below_0_50_rate"] > policy["maximum_macro_below_0_50_rate"]:
+        blockers.append("too many rows below macro planner score 0.50")
+    for field, minimum in policy["minimum_mean_scores"].items():
+        if summary["mean_scores"][field] < minimum:
+            blockers.append(f"{field} below minimum {minimum:.2f}")
+    for field, maximum in policy["maximum_conditional_zero_rates"].items():
+        if summary[field] > maximum:
+            blockers.append(f"{field} above maximum {maximum:.2f}")
+    if not summary["endpoint_pair_ready"]:
+        blockers.append("endpoint pair preflight is not ready")
+    return blockers
+
+
 def summarize_planner_readiness(
     rows: list[dict[str, Any]],
     *,
     preflight: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     total = len(rows)
+    parse_error = sum(1 for row in rows if row.get("planner_parse_error"))
     macro_below = sum(1 for row in rows if _score(row, "macro_planner_score") < 0.5)
     column_zero = sum(1 for row in rows if _score(row, "column_f1") == 0.0)
     selected_mismatch = sum(1 for row in rows if _score(row, "selected_count_match") == 0.0)
@@ -84,6 +129,9 @@ def summarize_planner_readiness(
         "preflight_status": (preflight or {}).get("status"),
         "endpoint_pair_ready": (preflight or {}).get("status") == "ready_for_endpoint_pair",
         "preflight_row_count": (preflight or {}).get("row_count"),
+        "promotion_policy": PLANNER_PROMOTION_POLICY,
+        "parse_error_count": parse_error,
+        "parse_error_rate": _rate(parse_error, total),
         "macro_below_0_50_count": macro_below,
         "macro_below_0_50_rate": _rate(macro_below, total),
         "column_zero_count": column_zero,
@@ -96,12 +144,16 @@ def summarize_planner_readiness(
         "join_zero_when_gold_join_rate": _rate(join_zero, total),
         "group_by_zero_when_gold_group_by_count": group_zero,
         "group_by_zero_when_gold_group_by_rate": _rate(group_zero, total),
+        "mean_scores": {
+            field: _mean_score(rows, field)
+            for field in PLANNER_PROMOTION_POLICY["minimum_mean_scores"]
+        },
     }
     summary["top_risks"] = _risk_names(summary)
+    summary["promotion_blockers"] = _promotion_blockers(summary)
+    summary["promotion_ready"] = not summary["promotion_blockers"]
     summary["recommendation"] = (
-        "run_endpoint_pair"
-        if summary["endpoint_pair_ready"] and summary["macro_below_0_50_rate"] <= 0.2
-        else "improve_planner_before_comparison"
+        "run_endpoint_pair" if summary["promotion_ready"] else "improve_planner_before_comparison"
     )
     return summary
 

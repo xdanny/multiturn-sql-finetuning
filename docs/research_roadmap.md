@@ -331,6 +331,13 @@ identical rows. Gold plans remain scorer-side labels. Reference SQL-derived
 planner hints can enter prompts only in runs explicitly named as oracle
 diagnostics.
 
+`eval.planner_readiness` is the current promotion audit for this checkpoint. It
+keeps planner-to-SQL endpoint runs behind explicit held-out quality checks:
+enough rows, no planner parse errors, bounded low-macro-score rate, minimum
+mean table/column/skeleton/projection scores, and a ready endpoint-pair
+preflight. A readiness summary is not a SQL win; it only decides whether the
+next same-row predicted-planner SQL comparison is worth running.
+
 ## Checkpoint 6: Semantic Layer And Value Grounding
 
 Status: `[~]` in progress. Value labels, a non-oracle value index, semantic

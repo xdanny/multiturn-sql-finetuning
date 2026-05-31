@@ -281,6 +281,10 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
     assert summary["status_counts"] == {"complete": 4, "in_progress": 5, "pending": 1}
     by_checkpoint = {row["checkpoint"]: row for row in summary["checkpoints"]}
     assert by_checkpoint[3]["status"] == "complete"
+    assert "eval.planner_readiness promotion policy" in by_checkpoint[5]["evidence"]
+    assert by_checkpoint[5]["open_items"] == [
+        "planner readiness must pass before another predicted-planner SQL run"
+    ]
     assert by_checkpoint[9]["status"] == "pending"
     assert by_checkpoint[9]["open_items"] == [
         "hosted transfer waits for a local clean-holdout winner"
