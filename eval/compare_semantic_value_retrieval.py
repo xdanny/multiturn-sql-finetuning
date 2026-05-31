@@ -16,6 +16,13 @@ from typing import Any
 from eval.result_manifest import sha256_file
 
 NON_ORACLE_GENERATION = "non_oracle_generation"
+SEMANTIC_PROMOTION_POLICY = {
+    "minimum_comparable_row_count": 24,
+    "required_split_role": "clean_local_holdout",
+    "minimum_value_delta_vs_direct_sql": 0.0,
+    "minimum_strict_delta_vs_direct_sql": 0.0,
+    "required_value_index_source": "database_contents",
+}
 ORACLE_MARKERS = (
     "Oracle SQL planning hints",
     "SQL planning hints:",
@@ -174,6 +181,9 @@ def compare_semantic_value_retrieval_manifests(
     semantic_strict = _metric(semantic_manifest, "strict_execution_accuracy")
     direct_value = _metric(direct_manifest, "value_execution_accuracy")
     direct_strict = _metric(direct_manifest, "strict_execution_accuracy")
+    value_delta = semantic_value - direct_value
+    strict_delta = semantic_strict - direct_strict
+    comparable_row_count = len(semantic_rows)
 
     compared = dict(semantic_manifest)
     compared_metrics = dict(semantic_manifest.get("metrics") or {})
@@ -185,15 +195,19 @@ def compare_semantic_value_retrieval_manifests(
             "direct_sql_output_sha256": direct_manifest.get("output_sha256"),
             "direct_sql_value_execution_accuracy": direct_value,
             "direct_sql_strict_execution_accuracy": direct_strict,
-            "semantic_value_retrieval_value_delta_vs_direct_sql": (
-                semantic_value - direct_value
-            ),
-            "semantic_value_retrieval_strict_delta_vs_direct_sql": (
-                semantic_strict - direct_strict
-            ),
-            "semantic_value_retrieval_comparable_row_count": len(semantic_rows),
+            "semantic_value_retrieval_value_delta_vs_direct_sql": value_delta,
+            "semantic_value_retrieval_strict_delta_vs_direct_sql": strict_delta,
+            "semantic_value_retrieval_comparable_row_count": comparable_row_count,
             "semantic_value_retrieval_comparer": "eval.compare_semantic_value_retrieval",
             "value_index_manifest_sha256": value_index_manifest_sha256,
+        }
+    )
+    promotion_blockers = semantic_value_retrieval_promotion_blockers(compared_metrics)
+    compared_metrics.update(
+        {
+            "semantic_value_retrieval_promotion_policy": SEMANTIC_PROMOTION_POLICY,
+            "semantic_value_retrieval_promotion_blockers": promotion_blockers,
+            "semantic_value_retrieval_promotion_ready": not promotion_blockers,
         }
     )
     compared["metrics"] = compared_metrics
@@ -202,6 +216,40 @@ def compare_semantic_value_retrieval_manifests(
         str(direct_manifest.get("run_id")),
     ]
     return compared
+
+
+def semantic_value_retrieval_promotion_blockers(metrics: dict[str, Any]) -> list[str]:
+    """Return blockers before semantic value retrieval can support a method claim."""
+
+    policy = SEMANTIC_PROMOTION_POLICY
+    blockers = []
+    comparable_row_count = int(
+        metrics.get("semantic_value_retrieval_comparable_row_count") or 0
+    )
+    if comparable_row_count < policy["minimum_comparable_row_count"]:
+        blockers.append(
+            f"comparable row count below minimum {policy['minimum_comparable_row_count']}"
+        )
+    split_roles = {
+        str(role): int(count)
+        for role, count in (metrics.get("split_roles") or {}).items()
+    }
+    required_split_role = str(policy["required_split_role"])
+    if required_split_role not in split_roles:
+        blockers.append(f"missing required split role {required_split_role}")
+    value_delta = float(
+        metrics.get("semantic_value_retrieval_value_delta_vs_direct_sql") or 0.0
+    )
+    if value_delta <= float(policy["minimum_value_delta_vs_direct_sql"]):
+        blockers.append("value delta vs direct SQL must be positive")
+    strict_delta = float(
+        metrics.get("semantic_value_retrieval_strict_delta_vs_direct_sql") or 0.0
+    )
+    if strict_delta < float(policy["minimum_strict_delta_vs_direct_sql"]):
+        blockers.append("strict delta vs direct SQL must not regress")
+    if metrics.get("value_index_index_source") != policy["required_value_index_source"]:
+        blockers.append("value index must be database-derived")
+    return blockers
 
 
 def _load_manifest(path: Path) -> dict[str, Any]:

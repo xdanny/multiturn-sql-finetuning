@@ -362,6 +362,13 @@ The value index should come from database contents and governed metadata that
 would be available at inference time. Gold SQL-derived labels are allowed for
 supervision, diagnostics, and scoring, but not as production prompt context.
 
+`eval.compare_semantic_value_retrieval` is the current promotion audit for this
+checkpoint. It keeps semantic value-retrieval claims behind same-row
+non-oracle direct-SQL comparison, database-derived value-index provenance, a
+clean-holdout split role, enough comparable rows, a positive value-accuracy
+delta, and no strict-accuracy regression. A proxy comparison can guide
+iteration, but it is not a clean-holdout semantic win.
+
 ## Checkpoint 7: Metric DSL
 
 Status: `[~]` in progress. Parser/evaluator code and two-row fixtures exist,
