@@ -41,6 +41,20 @@ def _resolve_source_path(manifest: dict[str, Any], *, source_roots: Iterable[Pat
     raise FileNotFoundError(f"{manifest['split_id']}: source_path not found; searched {searched}")
 
 
+def _resolve_tables_path(tables_path: Path | None, *, source_roots: Iterable[Path]) -> Path | None:
+    if tables_path is None:
+        return None
+    candidates = (
+        [tables_path]
+        if tables_path.is_absolute()
+        else [Path.cwd() / tables_path, *(root / tables_path for root in source_roots)]
+    )
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return tables_path
+
+
 def _selected_rows(raw_rows: list[dict[str, Any]], manifest: dict[str, Any]) -> list[dict[str, Any]]:
     selection = manifest.get("selection") or {}
     if selection.get("type") != "dialog_index_range":
@@ -74,6 +88,7 @@ def prepare_records_from_split(
     if manifest.get("dataset") != "CoSQL":
         raise ValueError(f"{manifest['split_id']}: only CoSQL split preparation is supported")
 
+    source_roots = tuple(source_roots)
     source_path = _resolve_source_path(manifest, source_roots=source_roots)
     source_sha256 = _sha256_file(source_path)
     if manifest.get("source_sha256") and source_sha256 != manifest["source_sha256"]:
@@ -86,11 +101,12 @@ def prepare_records_from_split(
     if limit is not None:
         selected = selected[:limit]
 
+    resolved_tables_path = _resolve_tables_path(tables_path, source_roots=source_roots)
     spec = DatasetSpec(
         name=manifest["split_id"],
         split=str(manifest.get("source_split") or manifest["role"]),
         formatter="cosql",
-        tables_path=str(tables_path) if tables_path else None,
+        tables_path=str(resolved_tables_path) if resolved_tables_path else None,
         include_sql_labels=False,
         prune_semantic_model=False,
     )
