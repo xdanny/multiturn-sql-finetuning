@@ -62,6 +62,9 @@ Evidence artifact:
 - a result manifest from `eval.run_eval` or `eval.local_benchmark` that records
   input path, output path, model, endpoint, evaluation mode, command, and row
   count.
+- for prepared split inputs, the result manifest should preserve split id,
+  split role, source hash, dialog-row count, and ordered turn-identity hash so
+  the base and LoRA runs can be compared on exactly the same rows.
 
 ## Semantic Context
 
