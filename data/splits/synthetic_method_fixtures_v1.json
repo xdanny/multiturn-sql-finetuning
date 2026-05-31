@@ -1,0 +1,38 @@
+{
+  "dataset": "synthetic_method_fixtures",
+  "failure_modes": [
+    "context_carryover",
+    "duplicate_row_policy",
+    "entity_resolution",
+    "grain_change",
+    "grain_fanout",
+    "measure_preservation",
+    "recovery",
+    "semantic_model",
+    "value_normalization"
+  ],
+  "leakage_boundary": "Reference SQL, expected rows, gold metric DSL, and repair labels are scorer-side unless a run is explicitly diagnostic.",
+  "notes": "Small synthetic validation surface for isolated method failures; not a benchmark.",
+  "role": "validation",
+  "row_count": 5,
+  "row_id_policy": "fixture_id",
+  "row_ids": [
+    "value_normalization_france",
+    "entity_resolution_followup",
+    "grain_fanout_bridge",
+    "measure_preservation_metric",
+    "recovery_empty_result"
+  ],
+  "row_ids_sha256": "1efa1f46ce7f8e8d6f83ab82a2aa79613814c1035686cb93090f858a6e2498f0",
+  "schema_version": 1,
+  "source_path": "docs/data_artifacts/synthetic_method_fixtures.jsonl",
+  "source_sha256": "bb25bac6e3c8161ed31f8461884b6bd2d1181d668aceb841f09d29bf381bbfea",
+  "split_id": "synthetic_method_fixtures_v1",
+  "status": "ready",
+  "training_targets": [
+    "behavior_recovery",
+    "metric_dsl",
+    "planner_first_sql",
+    "semantic_layer"
+  ]
+}
