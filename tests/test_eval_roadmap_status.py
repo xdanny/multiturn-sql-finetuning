@@ -292,6 +292,13 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
     assert by_checkpoint[6]["open_items"] == [
         "semantic clean-holdout promotion policy must pass"
     ]
+    assert (
+        "eval.compare_metric_dsl_direct_sql promotion policy"
+        in by_checkpoint[7]["evidence"]
+    )
+    assert by_checkpoint[7]["open_items"] == [
+        "Metric DSL clean-holdout promotion policy must pass"
+    ]
     assert by_checkpoint[9]["status"] == "pending"
     assert by_checkpoint[9]["open_items"] == [
         "hosted transfer waits for a local clean-holdout winner"

@@ -140,9 +140,10 @@ def summarize_roadmap_status(
             status="in_progress",
             evidence=[
                 f"experiment_status={_experiment_status(experiments, 'metric_dsl_vs_direct_sql')}",
+                "eval.compare_metric_dsl_direct_sql promotion policy",
                 "parser/evaluator and two-row fixtures exist",
             ],
-            open_items=["metric-heavy held-out comparison against direct SQL is still missing"],
+            open_items=["Metric DSL clean-holdout promotion policy must pass"],
         ),
         _entry(
             8,

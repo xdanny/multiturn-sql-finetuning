@@ -389,6 +389,14 @@ A metric-DSL method can support a benefit claim only when:
 If the DSL compiles but loses to direct SQL, the result is still useful: it says
 metric intent was represented but the method did not improve SQL outcomes.
 
+`eval.compare_metric_dsl_direct_sql` is the current promotion audit for this
+checkpoint. It keeps Metric DSL claims behind same-row direct-SQL comparison,
+database-backed compiled-SQL scoring, a clean-holdout split role, enough
+comparable rows, full parse and compile rates, full `MEASURE(...)`
+preservation, a positive value-accuracy delta, no strict-accuracy regression,
+and non-oracle semantic-model provenance. Synthetic or tiny fixture evidence
+can diagnose the contract, but it cannot promote the method.
+
 ## Checkpoint 8: Generated-History Recovery
 
 Status: `[~]` in progress. Rollout evaluators and one-row recovery diagnostics

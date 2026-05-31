@@ -10,7 +10,31 @@ from eval.compare_metric_dsl_direct_sql import (
 )
 
 
-def _metric_manifest() -> dict:
+def _metric_manifest(
+    *,
+    row_count: int = 2,
+    value_accuracy: float = 0.75,
+    strict_accuracy: float = 0.5,
+    parse_rate: float = 1.0,
+    compile_rate: float = 1.0,
+    evaluated_rows: int | None = None,
+    measure_preservation: float = 1.0,
+    split_role: str | None = None,
+    oracle_rows: int = 0,
+) -> dict:
+    if evaluated_rows is None:
+        evaluated_rows = row_count
+    metrics = {
+        "metric_dsl_parse_rate": parse_rate,
+        "metric_dsl_compile_rate": compile_rate,
+        "compiled_sql_execution_evaluated_rows": evaluated_rows,
+        "measure_preservation": measure_preservation,
+        "value_execution_accuracy": value_accuracy,
+        "strict_execution_accuracy": strict_accuracy,
+        "semantic_model_oracle_derived_rows": oracle_rows,
+    }
+    if split_role is not None:
+        metrics["split_roles"] = {split_role: row_count}
     return {
         "schema_version": 1,
         "run_id": "metric_dsl",
@@ -23,20 +47,18 @@ def _metric_manifest() -> dict:
         "input_sha256": "metric-input",
         "output_path": "results/metric_dsl.jsonl",
         "output_sha256": "metric-output",
-        "row_count": 2,
-        "metrics": {
-            "metric_dsl_parse_rate": 1.0,
-            "metric_dsl_compile_rate": 1.0,
-            "compiled_sql_execution_evaluated_rows": 2,
-            "measure_preservation": 1.0,
-            "value_execution_accuracy": 0.75,
-            "strict_execution_accuracy": 0.5,
-        },
+        "row_count": row_count,
+        "metrics": metrics,
         "command": ["run-metric-dsl"],
     }
 
 
-def _direct_manifest() -> dict:
+def _direct_manifest(
+    *,
+    row_count: int = 2,
+    value_accuracy: float = 0.5,
+    strict_accuracy: float = 0.25,
+) -> dict:
     return {
         "schema_version": 1,
         "run_id": "direct_sql",
@@ -49,58 +71,42 @@ def _direct_manifest() -> dict:
         "input_sha256": "direct-input",
         "output_path": "results/direct_sql.jsonl",
         "output_sha256": "direct-output",
-        "row_count": 2,
+        "row_count": row_count,
         "metrics": {
-            "value_execution_accuracy": 0.5,
-            "strict_execution_accuracy": 0.25,
+            "value_execution_accuracy": value_accuracy,
+            "strict_execution_accuracy": strict_accuracy,
         },
         "command": ["run-direct-sql"],
     }
 
 
-def _metric_rows() -> list[dict]:
+def _metric_rows(count: int = 2) -> list[dict]:
     return [
         {
-            "id": "metric-1",
+            "id": f"metric-{index}",
             "evaluation_mode": "metric_dsl",
-            "reference_sql": "SELECT SUM(amount) FROM orders;",
+            "reference_sql": f"SELECT {index};",
             "database_path": "store.sqlite",
             "metric_dsl_parse_success": True,
             "compile_success": True,
             "sql_execution_attempted": True,
-            "value_execution_score": 1.0,
-        },
-        {
-            "id": "metric-2",
-            "evaluation_mode": "metric_dsl",
-            "reference_sql": "SELECT COUNT(*) FROM orders;",
-            "database_path": "store.sqlite",
-            "metric_dsl_parse_success": True,
-            "compile_success": True,
-            "sql_execution_attempted": True,
-            "value_execution_score": 0.5,
-        },
+            "value_execution_score": 1.0 if index % 2 == 0 else 0.5,
+        }
+        for index in range(count)
     ]
 
 
-def _direct_rows() -> list[dict]:
+def _direct_rows(count: int = 2) -> list[dict]:
     return [
         {
-            "id": "metric-1",
+            "id": f"metric-{index}",
             "evaluation_mode": "non_oracle_generation",
-            "reference_sql": "SELECT SUM(amount) FROM orders;",
+            "reference_sql": f"SELECT {index};",
             "database_path": "store.sqlite",
-            "value_execution_score": 1.0,
-            "strict_execution_score": 1.0,
-        },
-        {
-            "id": "metric-2",
-            "evaluation_mode": "non_oracle_generation",
-            "reference_sql": "SELECT COUNT(*) FROM orders;",
-            "database_path": "store.sqlite",
-            "value_execution_score": 0.0,
-            "strict_execution_score": 0.0,
-        },
+            "value_execution_score": 1.0 if index % 2 == 0 else 0.0,
+            "strict_execution_score": 1.0 if index % 2 == 0 else 0.0,
+        }
+        for index in range(count)
     ]
 
 
@@ -121,6 +127,35 @@ def test_compare_metric_dsl_direct_sql_allows_different_models_and_adds_delta() 
     assert metrics["metric_dsl_strict_delta_vs_direct_sql"] == pytest.approx(0.25)
     assert metrics["metric_dsl_measure_preservation"] == 1.0
     assert metrics["metric_dsl_comparable_row_count"] == 2
+    assert metrics["metric_dsl_promotion_ready"] is False
+    assert "comparable row count below minimum 24" in metrics[
+        "metric_dsl_promotion_blockers"
+    ]
+
+
+def test_compare_metric_dsl_direct_sql_marks_clean_holdout_win_promotable() -> None:
+    compared = compare_metric_dsl_direct_sql_manifests(
+        metric_dsl_manifest=_metric_manifest(
+            row_count=24,
+            value_accuracy=0.70,
+            strict_accuracy=0.60,
+            split_role="clean_local_holdout",
+        ),
+        direct_sql_manifest=_direct_manifest(
+            row_count=24,
+            value_accuracy=0.60,
+            strict_accuracy=0.60,
+        ),
+        metric_dsl_rows=_metric_rows(24),
+        direct_sql_rows=_direct_rows(24),
+    )
+
+    metrics = compared["metrics"]
+    assert metrics["metric_dsl_promotion_ready"] is True
+    assert metrics["metric_dsl_promotion_blockers"] == []
+    assert metrics["metric_dsl_promotion_policy"]["required_split_role"] == (
+        "clean_local_holdout"
+    )
 
 
 def test_compare_metric_dsl_direct_sql_rejects_oracle_metric_manifest() -> None:
