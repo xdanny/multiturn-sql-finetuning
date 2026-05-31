@@ -285,6 +285,13 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
     assert by_checkpoint[5]["open_items"] == [
         "planner readiness must pass before another predicted-planner SQL run"
     ]
+    assert (
+        "eval.compare_semantic_value_retrieval promotion policy"
+        in by_checkpoint[6]["evidence"]
+    )
+    assert by_checkpoint[6]["open_items"] == [
+        "semantic clean-holdout promotion policy must pass"
+    ]
     assert by_checkpoint[9]["status"] == "pending"
     assert by_checkpoint[9]["open_items"] == [
         "hosted transfer waits for a local clean-holdout winner"

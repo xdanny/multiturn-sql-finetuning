@@ -130,9 +130,10 @@ def summarize_roadmap_status(
             status="in_progress",
             evidence=[
                 f"experiment_status={_experiment_status(experiments, 'semantic_value_retrieval_vs_direct')}",
+                "eval.compare_semantic_value_retrieval promotion policy",
                 "database-derived value index and semantic retrieval inputs exist",
             ],
-            open_items=["same-row clean-holdout SQL win is still missing"],
+            open_items=["semantic clean-holdout promotion policy must pass"],
         ),
         _entry(
             7,

@@ -11,7 +11,19 @@ from eval.compare_semantic_value_retrieval import (
 from eval.result_manifest import sha256_file
 
 
-def _direct_manifest() -> dict:
+def _direct_manifest(
+    *,
+    row_count: int = 2,
+    value_accuracy: float = 0.5,
+    strict_accuracy: float = 0.25,
+    split_role: str | None = None,
+) -> dict:
+    metrics = {
+        "value_execution_accuracy": value_accuracy,
+        "strict_execution_accuracy": strict_accuracy,
+    }
+    if split_role is not None:
+        metrics["split_roles"] = {split_role: row_count}
     return {
         "schema_version": 1,
         "run_id": "direct",
@@ -24,16 +36,28 @@ def _direct_manifest() -> dict:
         "input_sha256": "direct-input",
         "output_path": "results/direct.jsonl",
         "output_sha256": "direct-output",
-        "row_count": 2,
-        "metrics": {
-            "value_execution_accuracy": 0.5,
-            "strict_execution_accuracy": 0.25,
-        },
+        "row_count": row_count,
+        "metrics": metrics,
         "command": ["run-direct"],
     }
 
 
-def _semantic_manifest(value_index_sha: str = "value-index-sha") -> dict:
+def _semantic_manifest(
+    value_index_sha: str = "value-index-sha",
+    *,
+    row_count: int = 2,
+    value_accuracy: float = 0.75,
+    strict_accuracy: float = 0.5,
+    split_role: str | None = None,
+) -> dict:
+    metrics = {
+        "value_execution_accuracy": value_accuracy,
+        "strict_execution_accuracy": strict_accuracy,
+        "value_index_manifest_sha256": value_index_sha,
+        "value_index_index_source": "database_contents",
+    }
+    if split_role is not None:
+        metrics["split_roles"] = {split_role: row_count}
     return {
         "schema_version": 1,
         "run_id": "semantic",
@@ -46,39 +70,25 @@ def _semantic_manifest(value_index_sha: str = "value-index-sha") -> dict:
         "input_sha256": "semantic-input",
         "output_path": "results/semantic.jsonl",
         "output_sha256": "semantic-output",
-        "row_count": 2,
-        "metrics": {
-            "value_execution_accuracy": 0.75,
-            "strict_execution_accuracy": 0.5,
-            "value_index_manifest_sha256": value_index_sha,
-            "value_index_index_source": "database_contents",
-        },
+        "row_count": row_count,
+        "metrics": metrics,
         "command": ["run-semantic"],
     }
 
 
-def _rows() -> list[dict]:
+def _rows(count: int = 2) -> list[dict]:
     return [
         {
-            "id": "dialog-a:0",
+            "id": f"dialog-a:{index}",
             "dialog_id": "dialog-a",
-            "turn_index": 0,
+            "turn_index": index,
             "database_id": "store",
-            "reference_sql": "SELECT COUNT(*) FROM orders;",
+            "reference_sql": f"SELECT {index};",
             "evaluation_mode": "non_oracle_generation",
-            "value_execution_score": 1.0,
-            "strict_execution_score": 1.0,
-        },
-        {
-            "id": "dialog-a:1",
-            "dialog_id": "dialog-a",
-            "turn_index": 1,
-            "database_id": "store",
-            "reference_sql": "SELECT SUM(amount) FROM orders;",
-            "evaluation_mode": "non_oracle_generation",
-            "value_execution_score": 0.0,
-            "strict_execution_score": 0.0,
-        },
+            "value_execution_score": 1.0 if index % 2 == 0 else 0.0,
+            "strict_execution_score": 1.0 if index % 2 == 0 else 0.0,
+        }
+        for index in range(count)
     ]
 
 
@@ -106,7 +116,38 @@ def test_compare_semantic_value_retrieval_manifests_adds_direct_sql_delta() -> N
     assert metrics["semantic_value_retrieval_comparer"] == (
         "eval.compare_semantic_value_retrieval"
     )
+    assert metrics["semantic_value_retrieval_promotion_ready"] is False
+    assert "comparable row count below minimum 24" in metrics[
+        "semantic_value_retrieval_promotion_blockers"
+    ]
     assert "# compared-with-direct-sql" in compared["command"]
+
+
+def test_compare_semantic_value_retrieval_marks_clean_holdout_win_promotable() -> None:
+    compared = compare_semantic_value_retrieval_manifests(
+        semantic_manifest=_semantic_manifest(
+            row_count=24,
+            value_accuracy=0.70,
+            strict_accuracy=0.60,
+            split_role="clean_local_holdout",
+        ),
+        direct_manifest=_direct_manifest(
+            row_count=24,
+            value_accuracy=0.60,
+            strict_accuracy=0.60,
+            split_role="clean_local_holdout",
+        ),
+        semantic_rows=_rows(24),
+        direct_rows=_rows(24),
+        value_index_manifest_sha256="value-index-sha",
+    )
+
+    metrics = compared["metrics"]
+    assert metrics["semantic_value_retrieval_promotion_ready"] is True
+    assert metrics["semantic_value_retrieval_promotion_blockers"] == []
+    assert metrics["semantic_value_retrieval_promotion_policy"]["required_split_role"] == (
+        "clean_local_holdout"
+    )
 
 
 def test_compare_semantic_value_retrieval_rejects_value_index_mismatch() -> None:
