@@ -131,10 +131,16 @@ uses `planner_label_source=train_split_schema_link_labels_preferred`. Prompts
 did not change, but 618 target plans changed versus the prior
 projection-sequence dataset, mostly selected-expression order or identity
 updates.
+`docs/training_runs/planner_schema_label_source_sft_1000_20260601.json`
+records the follow-up 1000-step adapter trained on that corrected
+schema-label-source dataset. The adapter trained successfully and saved
+`outputs/experiments/predicted_planner_sql/planner_schema_label_sft_20260601_1000/final`
+with reported train loss `0.09429` and final adapter SHA-256
+`1a1dc047c1ecd940cd9455ba2e1afdc66f1e4274364d49a95bd92458ff759367`.
 
-Next useful movement: train a planner adapter on the corrected label-source
-dataset, improve ordered selected-expression identity, then rerun order-aware
-readiness before any broader endpoint pair.
+Next useful movement: run order-aware readiness on the corrected label-source
+adapter, improve ordered selected-expression identity, then rerun readiness
+before any broader endpoint pair.
 
 ## Semantic-Layer Tuning
 
@@ -203,8 +209,8 @@ target and `behavior_recovery_direct_sql_training_rows.jsonl` as the same-fixtur
 control.
 
 Control: direct SQL trained on the same generated-history repair fixture.
-Teacher-forced history is diagnostic; it shows how much clean previous SQL was
-hiding failures, but it is not the recovery method's win condition.
+Teacher-forced history is diagnostic; it shows how much clean history hides
+rollout failures, but it is not the recovery method's win condition.
 
 Evidence artifact: `eval.run_behavior_recovery_comparison` writes rollout,
 teacher-forced, and comparison manifests from one run id. That clears only the
