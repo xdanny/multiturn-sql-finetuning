@@ -236,9 +236,10 @@ def summarize_roadmap_status(
                 "docs/training_runs/planner_sft_schema_label_source_dataset_20260601.json",
                 "docs/training_runs/planner_schema_label_source_sft_1000_20260601.json",
                 "docs/training_runs/planner_schema_label_source_readiness_20260601.json",
+                "docs/training_runs/planner_alias_normalized_readiness_20260601.json",
             ],
             open_items=[
-                "improve ordered selected-expression identity before another same-row SQL pair",
+                "fix remaining count-aggregate and group/aggregation projection-order mismatches",
             ],
         ),
         _entry(
