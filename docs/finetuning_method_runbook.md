@@ -118,9 +118,17 @@ prompt distribution. On the same 24-turn clean-holdout slice, parse errors fell
 to `0`, endpoint-pair preflight became ready, and macro planner score moved to
 `0.860`; readiness still did not pass because ordered selected-expression match
 fell to `0.583`.
+`docs/training_runs/planner_schema_label_gold_source_20260601.json` records the
+next label-source audit: prepared inputs can retain stale normalized
+`gold_plans`, so planner scoring, predicted-planner prepared artifacts, and
+planner-SFT target generation now prefer current SQL-derived
+`schema_link_labels` when both are present. The 24-turn aggregate stayed
+unchanged because one false negative and one false positive canceled out, but
+future planner data should be regenerated from the corrected source precedence.
 
-Next useful movement: improve ordered selected-expression identity, then rerun
-order-aware readiness before any broader endpoint pair.
+Next useful movement: regenerate planner-SFT data from the corrected label
+source, improve ordered selected-expression identity, then rerun order-aware
+readiness before any broader endpoint pair.
 
 ## Semantic-Layer Tuning
 
