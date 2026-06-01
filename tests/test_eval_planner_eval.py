@@ -78,6 +78,26 @@ def test_score_plans_tracks_projection_order_separately_from_count() -> None:
     assert scores["macro_planner_score"] < 1.0
 
 
+def test_score_plans_compares_projection_order_without_sql_aliases() -> None:
+    gold = {
+        "projection_shape": {
+            "selected_count": 2,
+            "selected_expressions": ["t2.name", "t2.location"],
+        },
+    }
+    predicted = {
+        "projection_shape": {
+            "selected_count": 2,
+            "selected_expressions": ["stadium.name", "stadium.location"],
+        },
+    }
+
+    scores = score_plans(gold, predicted)
+
+    assert scores["selected_count_match"] == 1.0
+    assert scores["selected_expression_order_match"] == 1.0
+
+
 def test_extract_schema_inventory_reads_compact_and_create_table_schema() -> None:
     messages = [
         {
