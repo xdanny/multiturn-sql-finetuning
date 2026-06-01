@@ -142,9 +142,18 @@ records the order-aware clean-holdout readiness rerun for that corrected
 adapter. Parse errors stayed at `0`, endpoint-pair preflight was ready, and
 macro planner score moved to `0.884`; readiness still blocked promotion because
 ordered selected-expression match was `0.708`, below the `0.900` threshold.
+`docs/training_runs/planner_alias_normalized_readiness_20260601.json` records
+the follow-up scorer repair: selected-expression order now ignores SQL/table
+qualifiers while table and column identity stay scored separately. That removed
+alias false negatives and moved ordered selected-expression match to `0.833`
+and macro planner score to `0.897`. Readiness still blocks promotion because
+four true projection issues remain: two count-column/count-distinct misses, one
+destination-airport distinct-count miss, and one group-key/aggregate order
+reversal.
 
-Next useful movement: improve ordered selected-expression identity, then rerun
-readiness before any broader endpoint pair.
+Next useful movement: fix the remaining count-aggregate and group/aggregation
+projection-order mismatches, then rerun readiness before any broader endpoint
+pair.
 
 ## Semantic-Layer Tuning
 
