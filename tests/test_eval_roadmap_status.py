@@ -25,7 +25,7 @@ def _write_registry(path: Path) -> None:
         (
             "predicted_planner_sql_vs_direct",
             5,
-            "planner_sequence_useronly_preflight_order_negative",
+            "planner_schema_label_source_sft_trained_pending_readiness",
             "predicted_planner_sql",
             "direct_sql_full_non_oracle_control",
         ),
@@ -381,9 +381,13 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         "docs/training_runs/planner_sft_schema_label_source_dataset_20260601.json"
         in by_checkpoint[5]["evidence"]
     )
+    assert (
+        "docs/training_runs/planner_schema_label_source_sft_1000_20260601.json"
+        in by_checkpoint[5]["evidence"]
+    )
     assert by_checkpoint[5]["open_items"] == [
-        "train planner adapter on corrected schema-label source dataset",
-        "improve ordered selected-expression identity before another same-row SQL pair"
+        "run order-aware readiness on corrected schema-label source planner adapter",
+        "improve ordered selected-expression identity before another same-row SQL pair",
     ]
     assert (
         "eval.compare_semantic_value_retrieval promotion policy"
