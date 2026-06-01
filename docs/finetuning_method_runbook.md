@@ -125,9 +125,15 @@ planner-SFT target generation now prefer current SQL-derived
 `schema_link_labels` when both are present. The 24-turn aggregate stayed
 unchanged because one false negative and one false positive canceled out, but
 future planner data should be regenerated from the corrected source precedence.
+`docs/training_runs/planner_sft_schema_label_source_dataset_20260601.json`
+records that regeneration: the 7,343-row train-split planner-SFT dataset now
+uses `planner_label_source=train_split_schema_link_labels_preferred`. Prompts
+did not change, but 618 target plans changed versus the prior
+projection-sequence dataset, mostly selected-expression order or identity
+updates.
 
-Next useful movement: regenerate planner-SFT data from the corrected label
-source, improve ordered selected-expression identity, then rerun order-aware
+Next useful movement: train a planner adapter on the corrected label-source
+dataset, improve ordered selected-expression identity, then rerun order-aware
 readiness before any broader endpoint pair.
 
 ## Semantic-Layer Tuning
@@ -197,8 +203,8 @@ target and `behavior_recovery_direct_sql_training_rows.jsonl` as the same-fixtur
 control.
 
 Control: direct SQL trained on the same generated-history repair fixture.
-Teacher-forced history is diagnostic; it shows how much clean history hides
-rollout failures, but it is not the recovery method's win condition.
+Teacher-forced history is diagnostic; it shows how much clean previous SQL was
+hiding failures, but it is not the recovery method's win condition.
 
 Evidence artifact: `eval.run_behavior_recovery_comparison` writes rollout,
 teacher-forced, and comparison manifests from one run id. That clears only the
