@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "artifact_type": "planner_schema_label_source_readiness_evidence",
+  "checkpoint": 5,
+  "run_id": "planner_schema_label_sft_1000_clean_holdout_useronly_limit24",
+  "claim_boundary": "Planner readiness on a 24-turn clean-holdout slice only; no SQL endpoint comparison or SQL win is claimed.",
+  "inputs": {
+    "adapter_path": "outputs/experiments/predicted_planner_sql/planner_schema_label_sft_20260601_1000/final",
+    "backend": "local",
+    "database_count": 7,
+    "dialog_count": 7,
+    "model_name": "unsloth/Qwen3.5-9B",
+    "oracle_prompt_rows": 0,
+    "row_count": 24,
+    "split_id": "cosql_dev_clean_holdout_v1",
+    "split_role": "clean_local_holdout"
+  },
+  "commands": {
+    "planner_predict": "CC=/home/dan/.local/bin/cc ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache ZIG_LOCAL_CACHE_DIR=/tmp/zig-cache VIRTUAL_ENV=/home/dan/docs/multiturn-sql-finetuning/.venv PATH=/home/dan/docs/multiturn-sql-finetuning/.venv/bin:$PATH UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m eval.planner_predict --backend local --model-name unsloth/Qwen3.5-9B --adapter-path /home/dan/docs/multiturn-sql-finetuning/outputs/experiments/predicted_planner_sql/planner_schema_label_sft_20260601_1000/final --input /home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl --output /home/dan/docs/multiturn-sql-finetuning/results/runs/predicted_planner_sql_vs_direct/planner_schema_label_sft_1000_clean_holdout_useronly_limit24.predictions.jsonl --max-tokens 512 --max-memory-gb 30 --limit 24",
+    "planner_eval": "PYTHONPATH=/tmp/multiturn-sql-finetuning-checkpoint5-planner-sft-data VIRTUAL_ENV=/home/dan/docs/multiturn-sql-finetuning/.venv PATH=/home/dan/docs/multiturn-sql-finetuning/.venv/bin:$PATH UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m eval.planner_eval --input /home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl --planner-source json_planner_predictions --planner-predictions /home/dan/docs/multiturn-sql-finetuning/results/runs/predicted_planner_sql_vs_direct/planner_schema_label_sft_1000_clean_holdout_useronly_limit24.predictions.jsonl --output /home/dan/docs/multiturn-sql-finetuning/results/runs/predicted_planner_sql_vs_direct/planner_schema_label_sft_1000_clean_holdout_useronly_limit24.eval.jsonl --summary-output /home/dan/docs/multiturn-sql-finetuning/results/runs/predicted_planner_sql_vs_direct/planner_schema_label_sft_1000_clean_holdout_useronly_limit24.summary.json --predicted-prepared-output /home/dan/docs/multiturn-sql-finetuning/results/runs/predicted_planner_sql_vs_direct/planner_schema_label_sft_1000_clean_holdout_useronly_limit24.predicted_prepared.jsonl --limit 24",
+    "preflight": "PYTHONPATH=/tmp/multiturn-sql-finetuning-checkpoint5-planner-sft-data VIRTUAL_ENV=/home/dan/docs/multiturn-sql-finetuning/.venv PATH=/home/dan/docs/multiturn-sql-finetuning/.venv/bin:$PATH UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m eval.run_predicted_planner_comparison --direct-input /home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl --predicted-input /home/dan/docs/multiturn-sql-finetuning/results/runs/predicted_planner_sql_vs_direct/planner_schema_label_sft_1000_clean_holdout_useronly_limit24.predicted_prepared.jsonl --output-dir /home/dan/docs/multiturn-sql-finetuning/results/runs/predicted_planner_sql_vs_direct --run-id planner_schema_label_sft_1000_clean_holdout_useronly_limit24 --model-name unsloth/Qwen3.5-9B --preflight-output /home/dan/docs/multiturn-sql-finetuning/results/runs/predicted_planner_sql_vs_direct/planner_schema_label_sft_1000_clean_holdout_useronly_limit24.preflight.json --preflight-only --limit 24",
+    "readiness": "PYTHONPATH=/tmp/multiturn-sql-finetuning-checkpoint5-planner-sft-data VIRTUAL_ENV=/home/dan/docs/multiturn-sql-finetuning/.venv PATH=/home/dan/docs/multiturn-sql-finetuning/.venv/bin:$PATH UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m eval.planner_readiness --planner-input /home/dan/docs/multiturn-sql-finetuning/results/runs/predicted_planner_sql_vs_direct/planner_schema_label_sft_1000_clean_holdout_useronly_limit24.eval.jsonl --preflight-input /home/dan/docs/multiturn-sql-finetuning/results/runs/predicted_planner_sql_vs_direct/planner_schema_label_sft_1000_clean_holdout_useronly_limit24.preflight.json --output /home/dan/docs/multiturn-sql-finetuning/results/runs/predicted_planner_sql_vs_direct/planner_schema_label_sft_1000_clean_holdout_useronly_limit24.readiness.json"
+  },
+  "artifacts": {
+    "predictions": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_schema_label_sft_1000_clean_holdout_useronly_limit24.predictions.jsonl",
+      "row_count": 24,
+      "sha256": "35883e02c342cf1b61acf9652844c6a1bc48e617b67c34e533bc285db9dae1ec"
+    },
+    "prediction_metadata": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_schema_label_sft_1000_clean_holdout_useronly_limit24.predictions.jsonl.meta.json",
+      "sha256": "597c706285c8236208f7fb7f49687552046e4d1f61b275f2aaa770712e4991a6"
+    },
+    "planner_eval": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_schema_label_sft_1000_clean_holdout_useronly_limit24.eval.jsonl",
+      "row_count": 24,
+      "sha256": "f4dae0d37a1a726e08c6eb6c9e1e7a94f9898b851af377ec4b039d6217889e59"
+    },
+    "summary": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_schema_label_sft_1000_clean_holdout_useronly_limit24.summary.json",
+      "sha256": "86feabc0f3ee3febb88dc99d608fe837bb0d21a77e1425ad7352298d1b35254b"
+    },
+    "predicted_prepared": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_schema_label_sft_1000_clean_holdout_useronly_limit24.predicted_prepared.jsonl",
+      "dialog_count": 7,
+      "sha256": "f785ffb45991a5257c790a98e915854a4925067379d69432d4ac3940404571ac"
+    },
+    "preflight": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_schema_label_sft_1000_clean_holdout_useronly_limit24.preflight.json",
+      "sha256": "5bec289ee536f4286833bed9df983367b10df7f6e9b092f8863f9c301e090df0",
+      "status": "ready_for_endpoint_pair"
+    },
+    "readiness": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_schema_label_sft_1000_clean_holdout_useronly_limit24.readiness.json",
+      "sha256": "a143fae73e7efa774efb89f1dd43ce5aa4215a8adffdaf5eb6020376bb877f5c"
+    }
+  },
+  "planner_quality": {
+    "column_f1": 0.7384615384615385,
+    "duplicate_policy_match": 1.0,
+    "join_f1": 0.75,
+    "macro_planner_score": 0.8835944919278252,
+    "parse_error_count": 0,
+    "parse_error_rate": 0.0,
+    "selected_count_match": 1.0,
+    "selected_expression_order_match": 0.7083333333333334,
+    "selected_expression_order_mismatch_count": 7,
+    "selected_expression_order_mismatch_rate": 0.2916666666666667,
+    "skeleton_f1": 0.9361111111111112,
+    "table_f1": 0.9444444444444445
+  },
+  "readiness": {
+    "endpoint_pair_ready": true,
+    "policy_minimum_selected_expression_order_match": 0.9,
+    "preflight_row_count": 24,
+    "preflight_status": "ready_for_endpoint_pair",
+    "promotion_blockers": [
+      "selected_expression_order_match below minimum 0.90"
+    ],
+    "promotion_ready": false,
+    "recommendation": "improve_planner_before_comparison",
+    "top_risks": [
+      "projection_order",
+      "column_linking",
+      "join_path",
+      "low_macro_score"
+    ]
+  },
+  "interpretation": [
+    "The corrected schema-label-source planner adapter eliminated parse errors and produced a ready endpoint-pair preflight on the same 24-turn clean-holdout slice.",
+    "Planner quality improved versus the projection-sequence user-only readiness run on macro score, table F1, column F1, skeleton F1, and selected-expression order match.",
+    "Readiness still blocks promotion because selected-expression order match is 0.708, below the 0.900 policy threshold, so another same-row SQL pair remains unjustified."
+  ]
+}
