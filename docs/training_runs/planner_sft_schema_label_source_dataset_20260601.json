@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "artifact_type": "planner_sft_schema_label_source_dataset_evidence",
+  "checkpoint": 5,
+  "claim_boundary": "Planner-SFT dataset regeneration only; no retraining, readiness rerun, or SQL execution comparison is claimed.",
+  "command": "PYTHONPATH=/tmp/multiturn-sql-finetuning-checkpoint5-planner-sft-data UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m data.planner_sft --input /home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_train_v1.jsonl --output /home/dan/docs/multiturn-sql-finetuning/data/processed/planner_sft_schema_label_source/cosql_train_v1.jsonl --manifest-output /home/dan/docs/multiturn-sql-finetuning/data/processed/planner_sft_schema_label_source/cosql_train_v1.manifest.json",
+  "dataset": {
+    "database_count": 140,
+    "dialog_count": 2159,
+    "gold_plan_visible_to_model_prompt": false,
+    "oracle_policy": "train_split_supervision_current_answer_key_not_in_prompt",
+    "planner_label_source": "train_split_schema_link_labels_preferred",
+    "planner_prompt_policy": "projection_sequence_instruction_v1",
+    "reference_sql_visible_to_model": false,
+    "row_count": 7343,
+    "split_roles": {
+      "train": 7343
+    },
+    "target_plan_visible_as_assistant_label": true
+  },
+  "hashes": {
+    "new_manifest_sha256": "8e0c36187b5869b4d5f8fdd0e87e59810b42819946a2b5cb917b3dba56e19167",
+    "new_output_sha256": "ae128214bb8d2c0527d7270f1eaef8d04f55854439c9dffd6de9727b8cbb72cd",
+    "old_manifest_sha256": "8331c2b4e7d8aebc20fd2ba9949ae439ab3754a95b44507945a04be40f62cdfb",
+    "old_output_sha256": "e7dead7733756527183689a55f1359be5f9f0d47f9ee77403176123d310e9243"
+  },
+  "inputs": {
+    "new_planner_sft": "data/processed/planner_sft_schema_label_source/cosql_train_v1.jsonl",
+    "old_planner_sft": "data/processed/planner_sft_sequence_instruction/cosql_train_v1.jsonl",
+    "source_prepared_train": "data/processed/direct_sql_full/cosql_train_v1.jsonl"
+  },
+  "comparison_to_previous_sequence_instruction_dataset": {
+    "changed_label_source_count": 7343,
+    "changed_message_count": 618,
+    "changed_prompt_count": 0,
+    "changed_target_plan_count": 618,
+    "old_row_count": 7343,
+    "new_row_count": 7343,
+    "same_ids": true,
+    "target_change_examples": [
+      {
+        "id": "prepared-10:0",
+        "old_selected_expressions": [
+          "count(*)",
+          "gender_code"
+        ],
+        "new_selected_expressions": [
+          "gender_code",
+          "count(*)"
+        ]
+      },
+      {
+        "id": "prepared-17:0",
+        "old_selected_expressions": [
+          "destination",
+          "flno",
+          "origin"
+        ],
+        "new_selected_expressions": [
+          "origin",
+          "destination",
+          "flno"
+        ]
+      },
+      {
+        "id": "prepared-17:2",
+        "old_selected_expressions": [
+          "count(*)",
+          "destination"
+        ],
+        "new_selected_expressions": [
+          "destination",
+          "count(*)"
+        ]
+      },
+      {
+        "id": "prepared-22:3",
+        "old_selected_expressions": [
+          "headquarter",
+          "name"
+        ],
+        "new_selected_expressions": [
+          "name",
+          "headquarter"
+        ]
+      }
+    ]
+  },
+  "interpretation": [
+    "Regenerating from the corrected schema-label-preferred answer-key source changed planner supervision targets for 618 of 7343 train turns.",
+    "Prompt text did not change; the changed rows are target-plan updates, mostly selected-expression order or identity changes.",
+    "Checkpoint 5 has cleared the requested regeneration step, but planner promotion still requires improved ordered selected-expression identity on clean-holdout readiness before another same-row SQL pair."
+  ]
+}
