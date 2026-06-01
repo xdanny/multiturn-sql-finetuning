@@ -64,10 +64,7 @@ def _usage_value(usage: Any, *names: str) -> int | None:
     for name in names:
         if usage is None:
             return None
-        if isinstance(usage, dict):
-            value = usage.get(name)
-        else:
-            value = getattr(usage, name, None)
+        value = usage.get(name) if isinstance(usage, dict) else getattr(usage, name, None)
         if value is not None:
             return int(value)
     return None
@@ -174,7 +171,7 @@ def expand_prepared_record(record: dict[str, Any], *, index: int) -> list[dict[s
     database_id = record.get("database_id")
     history_policy = record.get("history_policy")
     schema_link_labels = record.get("schema_link_labels") or []
-    gold_plans = record.get("gold_plans") or schema_link_labels
+    gold_plans = schema_link_labels or record.get("gold_plans") or []
     predicted_plans = record.get("predicted_plans") or []
     evaluation_mode = record.get("evaluation_mode") or "unknown"
     uses_oracle_planning_hints = bool(record.get("uses_oracle_planning_hints"))
