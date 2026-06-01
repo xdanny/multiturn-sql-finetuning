@@ -32,7 +32,7 @@ experiments:
 
   - experiment_id: predicted_planner_sql_vs_direct
     checkpoint: 5
-    status: planner_sft_sql_limit24_negative
+    status: planner_sequence_sft_readiness_negative
     hypothesis_id: planner_state
     hypothesis: >-
       Non-oracle predicted planner state improves SQL execution only after
@@ -58,7 +58,11 @@ experiments:
       adapter passed bounded proxy and clean-holdout planner readiness, but a
       24-turn clean-holdout same-row SQL comparison regressed by 20.83
       percentage points in value accuracy versus the direct-SQL control after
-      correcting SQL extraction for chat-role continuations.
+      correcting SQL extraction for chat-role continuations. A follow-up
+      1000-step projection-sequence planner adapter trained successfully, but
+      clean-holdout readiness blocked promotion because two planner generations
+      emitted SQL instead of planner JSON and ordered selected-expression match
+      fell to 0.625.
 
   - experiment_id: semantic_value_retrieval_vs_direct
     checkpoint: 6
