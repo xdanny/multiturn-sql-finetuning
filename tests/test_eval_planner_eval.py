@@ -403,6 +403,59 @@ def test_annotate_prepared_records_with_lexical_plans_writes_predicted_mode(tmp_
     assert row["predicted_plans"][0]["relevant_tables"] == ["airlines"]
 
 
+def test_annotate_prepared_records_with_plans_falls_back_for_unlabeled_turns(tmp_path) -> None:
+    input_path = tmp_path / "prepared.jsonl"
+    output_path = tmp_path / "predicted.jsonl"
+    input_path.write_text(
+        json.dumps(
+            {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": "Schema/context:\nitems(id int, name text)\n\nQuestion:\nShow items.",
+                    },
+                    {"role": "assistant", "content": "SELECT first;"},
+                    {"role": "user", "content": "Question:\nShow item names."},
+                    {"role": "assistant", "content": "SELECT second;"},
+                ],
+                "schema_link_labels": [
+                    {
+                        "projection_shape": {
+                            "selected_expressions": ["first_schema_label"],
+                            "selected_count": 1,
+                        }
+                    }
+                ],
+                "gold_plans": [
+                    {
+                        "projection_shape": {
+                            "selected_expressions": ["first_gold_plan"],
+                            "selected_count": 1,
+                        }
+                    },
+                    {
+                        "projection_shape": {
+                            "selected_expressions": ["second_gold_plan"],
+                            "selected_count": 1,
+                        }
+                    },
+                ],
+            }
+        )
+        + "\n"
+    )
+
+    assert annotate_prepared_records_with_lexical_plans(input_path, output_path, limit=None) == 1
+
+    row = json.loads(output_path.read_text())
+    assert row["gold_plans"][0]["projection_shape"]["selected_expressions"] == [
+        "first_schema_label",
+    ]
+    assert row["gold_plans"][1]["projection_shape"]["selected_expressions"] == [
+        "second_gold_plan",
+    ]
+
+
 def test_parse_json_plan_prediction_extracts_normalized_plan() -> None:
     plan = parse_json_plan_prediction(
         """```json
