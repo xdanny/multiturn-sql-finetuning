@@ -111,10 +111,16 @@ the follow-up 1000-step adapter trained on that projection-sequence dataset. The
 adapter trained successfully, but clean-holdout readiness did not pass:
 `parse_error_count=2`, `macro_planner_score=0.837`, and ordered
 selected-expression match `0.625`, so SQL endpoint comparison stayed blocked.
+`docs/training_runs/planner_sequence_useronly_readiness_20260531.json` records
+the next prompt-history fix: `eval.planner_predict` now strips teacher-forced
+assistant SQL history so inference matches the planner-SFT system/user-only
+prompt distribution. On the same 24-turn clean-holdout slice, parse errors fell
+to `0`, endpoint-pair preflight became ready, and macro planner score moved to
+`0.860`; readiness still did not pass because ordered selected-expression match
+fell to `0.583`.
 
-Next useful movement: improve planner JSON-format adherence and ordered
-selected-expression identity, then rerun order-aware readiness before any
-broader endpoint pair.
+Next useful movement: improve ordered selected-expression identity, then rerun
+order-aware readiness before any broader endpoint pair.
 
 ## Semantic-Layer Tuning
 
