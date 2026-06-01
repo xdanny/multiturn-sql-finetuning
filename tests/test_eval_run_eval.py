@@ -172,6 +172,52 @@ def test_load_prepared_records_expands_multi_turn_dialogs(tmp_path) -> None:
     assert records[1]["predicted_plan_source"] == "json_planner_predictions"
 
 
+def test_load_prepared_records_prefers_schema_labels_over_stale_gold_plans(tmp_path) -> None:
+    path = tmp_path / "prepared.jsonl"
+    path.write_text(
+        json.dumps(
+            {
+                "id": "dialog-a",
+                "evaluation_mode": "non_oracle_generation",
+                "uses_oracle_planning_hints": False,
+                "semantic_context_pruned_by_oracle_labels": False,
+                "schema_link_labels": [
+                    {
+                        "projection_shape": {
+                            "selected_expressions": ["name", "location"],
+                            "selected_count": 2,
+                        }
+                    }
+                ],
+                "gold_plans": [
+                    {
+                        "projection_shape": {
+                            "selected_expressions": ["location", "name"],
+                            "selected_count": 2,
+                        }
+                    }
+                ],
+                "messages": [
+                    {"role": "user", "content": "Show name and location."},
+                    {"role": "assistant", "content": "SELECT name, location FROM stadium;"},
+                ],
+            }
+        )
+        + "\n"
+    )
+
+    records = load_prepared_records(path)
+
+    assert records[0]["gold_plan"]["projection_shape"]["selected_expressions"] == [
+        "name",
+        "location",
+    ]
+    assert records[0]["schema_link_labels"]["projection_shape"]["selected_expressions"] == [
+        "name",
+        "location",
+    ]
+
+
 def test_load_prepared_records_rejects_legacy_oracle_hint_marker(tmp_path) -> None:
     path = tmp_path / "prepared.jsonl"
     path.write_text(
