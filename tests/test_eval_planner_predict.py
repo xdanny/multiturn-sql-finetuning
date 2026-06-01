@@ -6,6 +6,7 @@ import pytest
 
 from eval.planner_eval import annotate_prepared_records_with_plans
 from eval.planner_predict import (
+    PLANNER_PROMPT_HISTORY_POLICY,
     generate_planner_json,
     planner_messages_for_record,
     predict_planner_records,
@@ -51,6 +52,29 @@ def test_planner_messages_exclude_reference_sql_gold_plan_and_oracle_markers() -
     assert "gold_plan" not in prompt_text
     assert "gold_reference_sql" not in prompt_text
     assert "oracle sql planning hints" not in prompt_text
+
+
+def test_planner_messages_drop_teacher_forced_assistant_sql_history() -> None:
+    record = {
+        **_expanded_record(),
+        "messages": [
+            {"role": "system", "content": "You are a SQL expert."},
+            {"role": "user", "content": "Question:\nShow customer names."},
+            {"role": "assistant", "content": "SELECT customers.name FROM customers;"},
+            {"role": "user", "content": "Question:\nNow show customer ids."},
+        ],
+        "reference_sql": "SELECT customers.id FROM customers;",
+        "history_policy": "gold_sql_teacher_forced",
+    }
+
+    messages = planner_messages_for_record(record)
+    prompt_text = json.dumps(messages).lower()
+
+    assert [message["role"] for message in messages] == ["system", "user", "user"]
+    assert "show customer names" in prompt_text
+    assert "now show customer ids" in prompt_text
+    assert "select customers.name" not in prompt_text
+    assert "select customers.id" not in prompt_text
 
 
 def test_predict_planner_records_preserves_fenced_and_malformed_json() -> None:
@@ -254,6 +278,7 @@ def test_run_planner_predict_can_use_local_adapter_backend(tmp_path, monkeypatch
     assert prediction["predicted_plan"]["relevant_tables"] == ["customers"]
     assert metadata["backend"] == "local"
     assert metadata["adapter_path"] == str(adapter_path)
+    assert metadata["planner_prompt_history_policy"] == PLANNER_PROMPT_HISTORY_POLICY
 
 
 def test_run_planner_predict_rejects_oracle_prompt_rows(tmp_path) -> None:
