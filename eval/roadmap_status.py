@@ -233,9 +233,10 @@ def summarize_roadmap_status(
                 "docs/training_runs/planner_sequence_sft_1000_readiness_20260531.json",
                 "docs/training_runs/planner_sequence_useronly_readiness_20260531.json",
                 "docs/training_runs/planner_schema_label_gold_source_20260601.json",
+                "docs/training_runs/planner_sft_schema_label_source_dataset_20260601.json",
             ],
             open_items=[
-                "regenerate planner-SFT data from corrected schema-label gold source",
+                "train planner adapter on corrected schema-label source dataset",
                 "improve ordered selected-expression identity before another same-row SQL pair",
             ],
         ),
