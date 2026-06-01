@@ -62,6 +62,15 @@ def _normalize_identifier(value: Any) -> str:
     return re.sub(r"\s+", " ", str(value).strip().strip("`\"[]").lower())
 
 
+def _projection_order_key(value: Any) -> str:
+    normalized = _normalize_identifier(value)
+    return re.sub(r"\b[a-z_][a-z0-9_]*\.", "", normalized)
+
+
+def _projection_order_keys(values: Iterable[Any] | None) -> list[str]:
+    return [_projection_order_key(value) for value in values or [] if value not in (None, "")]
+
+
 def _identifier_tokens(value: str, *, split_compound_parts: bool = False) -> set[str]:
     expanded = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", str(value))
     tokens = {
@@ -137,7 +146,8 @@ def score_plans(gold_plan: dict[str, Any] | None, predicted_plan: dict[str, Any]
             gold_projection["selected_count"] == predicted_projection["selected_count"]
         ),
         "selected_expression_order_match": float(
-            gold_projection["selected_expressions"] == predicted_projection["selected_expressions"]
+            _projection_order_keys(gold_projection["selected_expressions"])
+            == _projection_order_keys(predicted_projection["selected_expressions"])
         ),
         "duplicate_policy_match": float(
             gold_projection["preserve_duplicates"] == predicted_projection["preserve_duplicates"]
