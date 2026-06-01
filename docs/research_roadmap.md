@@ -504,11 +504,22 @@ Latest Checkpoint 5 evidence from 2026-05-31:
   `0.900` threshold, and no endpoint-pair preflight is ready. The evidence file
   is
   `docs/training_runs/planner_sequence_sft_1000_readiness_20260531.json`.
+- `eval.planner_predict` now strips teacher-forced assistant SQL history from
+  planner prediction prompts so inference matches the planner-SFT system/user
+  prompt distribution instead of exposing earlier gold SQL-shaped assistant
+  turns.
+- Rerunning the same projection-sequence adapter on the same 24-turn
+  clean-holdout slice with that user-only planner prompt eliminated the parse
+  errors (`parse_error_count=0`) and produced a ready endpoint-pair preflight.
+  Macro planner score moved to `0.860`, table F1 to `0.931`, column F1 to
+  `0.693`, skeleton F1 to `0.933`, and selected-count match to `1.000`.
+- Readiness still blocks promotion because ordered selected-expression match is
+  `0.583`, below the `0.900` threshold. The evidence file is
+  `docs/training_runs/planner_sequence_useronly_readiness_20260531.json`.
 
-The next Checkpoint 5 work should improve planner JSON-format adherence and
-ordered selected-expression identity before another bounded same-row SQL pair. A
-positive value-accuracy delta remains required before promoting the planner
-path.
+The next Checkpoint 5 work should improve ordered selected-expression identity
+before another bounded same-row SQL pair. A positive value-accuracy delta
+remains required before promoting the planner path.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 
