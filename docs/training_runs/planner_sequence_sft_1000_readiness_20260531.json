@@ -1,0 +1,113 @@
+{
+  "artifact_type": "planner_sequence_sft_1000_readiness_evidence",
+  "artifacts": {
+    "planner_eval": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sequence_sft_1000_clean_holdout_limit24.eval.jsonl",
+      "row_count": 24,
+      "sha256": "413ed80644c50be9d1fa3d73a183d95376e8f1b1f0af67680924cdbd5443300d"
+    },
+    "prediction_metadata": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sequence_sft_1000_clean_holdout_limit24.predictions.jsonl.meta.json",
+      "sha256": "4b755043b55a20f8230ee3a7b5699e656c9555e02383626f8b3541091708964a"
+    },
+    "predictions": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sequence_sft_1000_clean_holdout_limit24.predictions.jsonl",
+      "row_count": 24,
+      "sha256": "18b4c22f41a58ce7177e6aac897508136a01d65479a1d3f015875fa63672ab58"
+    },
+    "readiness": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sequence_sft_1000_clean_holdout_limit24.readiness.json",
+      "sha256": "72eddc58529de45fbb1739f1b69af62940eaeec0524e2b137fd49ddd1e146ef4"
+    },
+    "summary": {
+      "path": "results/runs/predicted_planner_sql_vs_direct/planner_sequence_sft_1000_clean_holdout_limit24.summary.json",
+      "sha256": "16e771c286a230df49fcf0d7dff3cb6e1758d6601c721272f00d45cf743973b5"
+    }
+  },
+  "checkpoint": 5,
+  "claim_boundary": "Planner adapter training and 24-turn clean-holdout readiness only; SQL endpoint comparison was blocked by parse errors and is not claimed.",
+  "dataset": {
+    "manifest_path": "data/processed/planner_sft_sequence_instruction/cosql_train_v1.manifest.json",
+    "manifest_sha256": "8331c2b4e7d8aebc20fd2ba9949ae439ab3754a95b44507945a04be40f62cdfb",
+    "output_path": "data/processed/planner_sft_sequence_instruction/cosql_train_v1.jsonl",
+    "output_sha256": "e7dead7733756527183689a55f1359be5f9f0d47f9ee77403176123d310e9243",
+    "planner_prompt_policy": "projection_sequence_instruction_v1",
+    "row_count": 7343,
+    "split_role": "train"
+  },
+  "failed_prepared_output_attempt": {
+    "path": "results/runs/predicted_planner_sql_vs_direct/planner_sequence_sft_1000_clean_holdout_limit24.predicted_prepared.jsonl",
+    "reason": "Only 3 prepared records were written before validate_predicted_plan_for_prompt rejected unparseable planner output; this partial file is not an evidence input."
+  },
+  "inputs": {
+    "adapter_path": "outputs/experiments/predicted_planner_sql/planner_sequence_sft_20260531_1000/final",
+    "backend": "local",
+    "database_count": 7,
+    "dialog_count": 7,
+    "model_name": "unsloth/Qwen3.5-9B",
+    "oracle_prompt_rows": 0,
+    "row_count": 24,
+    "split_id": "cosql_dev_clean_holdout_v1",
+    "split_role": "clean_local_holdout"
+  },
+  "interpretation": [
+    "The projection-sequence planner-SFT adapter trained successfully, but readiness regressed versus the earlier planner-SFT adapter on this 24-turn clean-holdout slice.",
+    "Two planner generations emitted SQL text instead of planner JSON, so predicted-plan prompt injection and endpoint-pair preflight were intentionally blocked.",
+    "The next Checkpoint 5 work should improve JSON-format adherence and ordered selected-expression identity before another same-row SQL endpoint pair."
+  ],
+  "parse_error_examples": [
+    {
+      "id": "prepared-3:2",
+      "raw_planner_output": "SELECT year FROM concert WHERE concert_name = 'Auditions';"
+    },
+    {
+      "id": "prepared-3:3",
+      "raw_planner_output": "SELECT T2.name FROM concert AS T1 JOIN stadium AS T2 ON T1.stadium_id   =   T2.stadium_id WHERE T1.concert_name like \"%Auditions%\""
+    }
+  ],
+  "planner_quality": {
+    "column_f1": 0.6903846153846155,
+    "duplicate_policy_match": 1.0,
+    "join_f1": 0.7291666666666666,
+    "macro_planner_score": 0.83735754985755,
+    "parse_error_count": 2,
+    "parse_error_rate": 0.08333333333333333,
+    "selected_count_match": 0.9166666666666666,
+    "selected_expression_order_match": 0.625,
+    "selected_expression_order_mismatch_count": 9,
+    "selected_expression_order_mismatch_rate": 0.375,
+    "skeleton_f1": 0.8666666666666667,
+    "table_f1": 0.875
+  },
+  "readiness": {
+    "endpoint_pair_ready": false,
+    "policy_maximum_parse_error_rate": 0.0,
+    "policy_minimum_selected_expression_order_match": 0.9,
+    "preflight_status": null,
+    "promotion_blockers": [
+      "planner parse errors present",
+      "selected_expression_order_match below minimum 0.90",
+      "endpoint pair preflight is not ready"
+    ],
+    "promotion_ready": false,
+    "recommendation": "improve_planner_before_comparison",
+    "top_risks": [
+      "projection_order",
+      "column_linking",
+      "join_path",
+      "low_macro_score"
+    ]
+  },
+  "run_id": "planner_sequence_sft_1000_clean_holdout_limit24",
+  "schema_version": 1,
+  "training": {
+    "adapter_config_sha256": "8c235181e7b5256882a5f9be57d3459d3550794d8f06209c399d16370aa6e191",
+    "adapter_model_sha256": "a319dc2541b8490117861f3eb085fec8af10c0c8e8000e70036e39757b5629c4",
+    "final_adapter_path": "outputs/experiments/predicted_planner_sql/planner_sequence_sft_20260531_1000/final",
+    "global_step": 1000,
+    "max_steps": 1000,
+    "reported_train_loss": 0.09426,
+    "step_1000_loss": 0.0402117520570755,
+    "train_runtime_seconds": 6492
+  }
+}
