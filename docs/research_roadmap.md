@@ -526,9 +526,14 @@ Latest Checkpoint 5 evidence from 2026-05-31:
   unchanged at `0.583`: one stale-label false negative and one stale-label false
   positive canceled out. The evidence file is
   `docs/training_runs/planner_schema_label_gold_source_20260601.json`.
+- Regenerating the full train-split planner-SFT dataset from the corrected
+  schema-label-preferred answer-key source produced 7,343 rows with unchanged
+  prompts and changed target plans for 618 turns versus the prior
+  projection-sequence dataset. The evidence file is
+  `docs/training_runs/planner_sft_schema_label_source_dataset_20260601.json`.
 
-The next Checkpoint 5 work should regenerate planner-SFT data from the corrected
-schema-label gold source and improve ordered selected-expression identity before
+The next Checkpoint 5 work should train a planner adapter on the corrected
+label-source dataset and improve ordered selected-expression identity before
 another bounded same-row SQL pair. A positive value-accuracy delta remains
 required before promoting the planner path.
 
