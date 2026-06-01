@@ -4,10 +4,11 @@ This is the canonical long-term roadmap for the multi-turn SQL fine-tuning
 program. It replaces the old gate-heavy day-to-day direction with smaller,
 row-matched method comparisons.
 
-Last audited: 2026-05-31 after the Checkpoint 3 endpoint evaluation,
+Last audited: 2026-06-01 after the Checkpoint 3 endpoint evaluation,
 generated-history rollout, clean-holdout failure analysis, and Checkpoint 5
-planner schema/projection/table-selection repairs, planner-SFT readiness, and
-projection-sequence planner-SFT training.
+planner schema/projection/table-selection repairs, planner-SFT readiness,
+projection-sequence planner-SFT training, schema-label-source correction, and
+corrected planner-SFT training.
 
 Checkpoint status legend:
 
@@ -340,9 +341,9 @@ uv run --active --no-sync python -m scripts.direct_sql_full_control \
 Status: `[~]` in progress. Non-oracle planner scoring, a 24-turn negative
 predicted-planner comparison, schema-context repair, lexical projection and
 table-selection repairs, train-split planner-SFT data paths, bounded planner-SFT
-readiness evidence, and a projection-sequence planner adapter exist. The latest
-projection-sequence adapter does not pass readiness, so no new SQL execution
-pair or SQL win is claimed.
+readiness evidence, a projection-sequence planner adapter, and a corrected
+schema-label-source planner adapter exist. The corrected adapter has not yet run
+order-aware readiness, so no new SQL execution pair or SQL win is claimed.
 
 Train or prompt a planner only on training-split gold labels. Evaluate planner
 F1 on held-out rows before feeding predicted plans into SQL generation.
@@ -531,11 +532,21 @@ Latest Checkpoint 5 evidence from 2026-05-31:
   prompts and changed target plans for 618 turns versus the prior
   projection-sequence dataset. The evidence file is
   `docs/training_runs/planner_sft_schema_label_source_dataset_20260601.json`.
+- A 1000-step planner LoRA adapter trained on that corrected
+  schema-label-source dataset and saved a final adapter at
+  `outputs/experiments/predicted_planner_sql/planner_schema_label_sft_20260601_1000/final`.
+  Training completed with reported train loss `0.09429`, runtime `6707`
+  seconds, and final adapter weights SHA-256
+  `1a1dc047c1ecd940cd9455ba2e1afdc66f1e4274364d49a95bd92458ff759367`.
+- This is training evidence only: order-aware planner readiness has not yet
+  been rerun for the corrected adapter, so no endpoint comparison or SQL win is
+  claimed. The evidence file is
+  `docs/training_runs/planner_schema_label_source_sft_1000_20260601.json`.
 
-The next Checkpoint 5 work should train a planner adapter on the corrected
-label-source dataset and improve ordered selected-expression identity before
-another bounded same-row SQL pair. A positive value-accuracy delta remains
-required before promoting the planner path.
+The next Checkpoint 5 work should run order-aware planner readiness for the
+corrected label-source adapter and improve ordered selected-expression identity
+before another bounded same-row SQL pair. A positive value-accuracy delta
+remains required before promoting the planner path.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 
