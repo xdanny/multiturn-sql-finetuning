@@ -15,7 +15,7 @@ from data.plan_contract import normalize_plan
 from eval.planner_predict import planner_messages_for_record
 from eval.run_eval import load_prepared_records
 
-PLANNER_SFT_LABEL_SOURCE = "train_split_gold_reference_sql"
+PLANNER_SFT_LABEL_SOURCE = "train_split_schema_link_labels_preferred"
 PLANNER_SFT_ORACLE_POLICY = "train_split_supervision_current_answer_key_not_in_prompt"
 PLANNER_SFT_PROMPT_POLICY = "projection_sequence_instruction_v1"
 
