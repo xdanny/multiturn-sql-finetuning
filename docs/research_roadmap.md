@@ -516,10 +516,21 @@ Latest Checkpoint 5 evidence from 2026-05-31:
 - Readiness still blocks promotion because ordered selected-expression match is
   `0.583`, below the `0.900` threshold. The evidence file is
   `docs/training_runs/planner_sequence_useronly_readiness_20260531.json`.
+- A label-source audit found that prepared inputs can retain stale normalized
+  `gold_plans` while `schema_link_labels` preserve the current SQL-derived
+  selected-expression order. Planner scoring, predicted-planner prepared
+  artifacts, and planner-SFT target generation now prefer `schema_link_labels`
+  when both sources are present.
+- Rescoring the 24-turn user-only planner slice with schema labels as the
+  answer-key source left the aggregate selected-expression order metric
+  unchanged at `0.583`: one stale-label false negative and one stale-label false
+  positive canceled out. The evidence file is
+  `docs/training_runs/planner_schema_label_gold_source_20260601.json`.
 
-The next Checkpoint 5 work should improve ordered selected-expression identity
-before another bounded same-row SQL pair. A positive value-accuracy delta
-remains required before promoting the planner path.
+The next Checkpoint 5 work should regenerate planner-SFT data from the corrected
+schema-label gold source and improve ordered selected-expression identity before
+another bounded same-row SQL pair. A positive value-accuracy delta remains
+required before promoting the planner path.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 
