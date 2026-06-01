@@ -8,7 +8,7 @@ Last audited: 2026-06-01 after the Checkpoint 3 endpoint evaluation,
 generated-history rollout, clean-holdout failure analysis, and Checkpoint 5
 planner schema/projection/table-selection repairs, planner-SFT readiness,
 projection-sequence planner-SFT training, schema-label-source correction, and
-corrected planner-SFT training.
+corrected planner-SFT training/readiness.
 
 Checkpoint status legend:
 
@@ -342,8 +342,9 @@ Status: `[~]` in progress. Non-oracle planner scoring, a 24-turn negative
 predicted-planner comparison, schema-context repair, lexical projection and
 table-selection repairs, train-split planner-SFT data paths, bounded planner-SFT
 readiness evidence, a projection-sequence planner adapter, and a corrected
-schema-label-source planner adapter exist. The corrected adapter has not yet run
-order-aware readiness, so no new SQL execution pair or SQL win is claimed.
+schema-label-source planner adapter/readiness run exist. The corrected adapter
+still misses the ordered selected-expression threshold, so no new SQL execution
+pair or SQL win is claimed.
 
 Train or prompt a planner only on training-split gold labels. Evaluate planner
 F1 on held-out rows before feeding predicted plans into SQL generation.
@@ -542,9 +543,16 @@ Latest Checkpoint 5 evidence from 2026-05-31:
   been rerun for the corrected adapter, so no endpoint comparison or SQL win is
   claimed. The evidence file is
   `docs/training_runs/planner_schema_label_source_sft_1000_20260601.json`.
+- Rerunning order-aware clean-holdout readiness for the corrected adapter on
+  the same 24-turn / 7-dialog slice eliminated parse errors and produced
+  `preflight_status=ready_for_endpoint_pair`. Macro planner score moved to
+  `0.884`, table F1 to `0.944`, column F1 to `0.738`, skeleton F1 to `0.936`,
+  and selected-count match stayed `1.000`.
+- Readiness still blocks promotion because ordered selected-expression match is
+  `0.708`, below the `0.900` threshold. The evidence file is
+  `docs/training_runs/planner_schema_label_source_readiness_20260601.json`.
 
-The next Checkpoint 5 work should run order-aware planner readiness for the
-corrected label-source adapter and improve ordered selected-expression identity
+The next Checkpoint 5 work should improve ordered selected-expression identity
 before another bounded same-row SQL pair. A positive value-accuracy delta
 remains required before promoting the planner path.
 
