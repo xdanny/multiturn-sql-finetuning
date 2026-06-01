@@ -171,7 +171,7 @@ def expand_prepared_record(record: dict[str, Any], *, index: int) -> list[dict[s
     database_id = record.get("database_id")
     history_policy = record.get("history_policy")
     schema_link_labels = record.get("schema_link_labels") or []
-    gold_plans = schema_link_labels or record.get("gold_plans") or []
+    gold_plans = record.get("gold_plans") or []
     predicted_plans = record.get("predicted_plans") or []
     evaluation_mode = record.get("evaluation_mode") or "unknown"
     uses_oracle_planning_hints = bool(record.get("uses_oracle_planning_hints"))
@@ -184,6 +184,16 @@ def expand_prepared_record(record: dict[str, Any], *, index: int) -> list[dict[s
     turn_count = len(assistant_indices)
     expanded = []
     for turn_index, assistant_index in enumerate(assistant_indices):
+        schema_label = (
+            schema_link_labels[turn_index] if turn_index < len(schema_link_labels) else None
+        )
+        gold_plan = (
+            schema_label
+            if schema_label is not None
+            else gold_plans[turn_index]
+            if turn_index < len(gold_plans)
+            else None
+        )
         predicted_plan = (
             predicted_plans[turn_index] if turn_index < len(predicted_plans) else None
         )
@@ -204,16 +214,14 @@ def expand_prepared_record(record: dict[str, Any], *, index: int) -> list[dict[s
                 "uses_oracle_planning_hints": uses_oracle_planning_hints,
                 "semantic_context_pruned_by_oracle_labels": semantic_context_pruned_by_oracle_labels,
                 "oracle_diagnostic_warning": record.get("oracle_diagnostic_warning"),
-                "gold_plan": gold_plans[turn_index] if turn_index < len(gold_plans) else None,
+                "gold_plan": gold_plan,
                 "predicted_plan": predicted_plan,
                 "predicted_plan_source": (
                     predicted_plan.get("prediction_source")
                     if isinstance(predicted_plan, dict) and predicted_plan.get("prediction_source")
                     else record.get("predicted_plan_source")
                 ),
-                "schema_link_labels": schema_link_labels[turn_index]
-                if turn_index < len(schema_link_labels)
-                else None,
+                "schema_link_labels": schema_label,
             }
         )
     return expanded
