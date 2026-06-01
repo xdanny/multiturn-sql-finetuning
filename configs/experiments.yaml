@@ -32,7 +32,7 @@ experiments:
 
   - experiment_id: predicted_planner_sql_vs_direct
     checkpoint: 5
-    status: planner_sequence_useronly_preflight_order_negative
+    status: planner_schema_label_source_sft_trained_pending_readiness
     hypothesis_id: planner_state
     hypothesis: >-
       Non-oracle predicted planner state improves SQL execution only after
@@ -43,7 +43,7 @@ experiments:
     dataset_role: clean_local_holdout
     benchmark_protocol_id: cosql_dev_100_teacher_forced_proxy
     model: unsloth/Qwen3.5-9B
-    adapter: outputs/experiments/predicted_planner_sql/final
+    adapter: outputs/experiments/predicted_planner_sql/planner_schema_label_sft_20260601_1000/final
     method: predicted_planner_sql
     oracle_policy: non_oracle_generation
     scorer: eval.run_predicted_planner_comparison:value_delta_vs_direct_sql
@@ -69,8 +69,11 @@ experiments:
       and planner-SFT target construction now prefer current schema_link_labels
       over stale generated gold_plans when both are present. Regenerating the
       7,343-row planner-SFT dataset from that corrected label source changed
-      618 target plans without changing prompts; the next step is a corrected
-      label-source planner adapter and order-aware readiness rerun.
+      618 target plans without changing prompts. A corrected label-source
+      planner adapter then trained for 1000 steps and saved a final adapter,
+      but order-aware clean-holdout readiness has not yet been rerun for that
+      adapter. The next step is the corrected adapter readiness rerun before
+      any same-row SQL comparison.
 
   - experiment_id: semantic_value_retrieval_vs_direct
     checkpoint: 6
