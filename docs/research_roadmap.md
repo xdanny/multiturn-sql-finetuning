@@ -8,7 +8,8 @@ Last audited: 2026-06-01 after the Checkpoint 3 endpoint evaluation,
 generated-history rollout, clean-holdout failure analysis, and Checkpoint 5
 planner schema/projection/table-selection repairs, planner-SFT readiness,
 projection-sequence planner-SFT training, schema-label-source correction, and
-corrected planner-SFT training/readiness.
+corrected planner-SFT training/readiness plus alias-insensitive projection-order
+scoring.
 
 Checkpoint status legend:
 
@@ -341,10 +342,11 @@ uv run --active --no-sync python -m scripts.direct_sql_full_control \
 Status: `[~]` in progress. Non-oracle planner scoring, a 24-turn negative
 predicted-planner comparison, schema-context repair, lexical projection and
 table-selection repairs, train-split planner-SFT data paths, bounded planner-SFT
-readiness evidence, a projection-sequence planner adapter, and a corrected
-schema-label-source planner adapter/readiness run exist. The corrected adapter
-still misses the ordered selected-expression threshold, so no new SQL execution
-pair or SQL win is claimed.
+readiness evidence, a projection-sequence planner adapter, a corrected
+schema-label-source planner adapter/readiness run, and an alias-insensitive
+projection-order scorer repair exist. The corrected adapter still misses the
+ordered selected-expression threshold, so no new SQL execution pair or SQL win
+is claimed.
 
 Train or prompt a planner only on training-split gold labels. Evaluate planner
 F1 on held-out rows before feeding predicted plans into SQL generation.
@@ -551,10 +553,32 @@ Latest Checkpoint 5 evidence from 2026-05-31:
 - Readiness still blocks promotion because ordered selected-expression match is
   `0.708`, below the `0.900` threshold. The evidence file is
   `docs/training_runs/planner_schema_label_source_readiness_20260601.json`.
+- The selected-expression order scorer now ignores SQL/table qualifiers inside
+  projection expressions while table and column identity remain scored by
+  `table_f1` and `column_f1`. Rescoring the same 24-turn corrected-adapter
+  predictions removed alias false negatives, moved macro planner score to
+  `0.897`, and moved ordered selected-expression match to `0.833`.
+- Readiness still blocks promotion because four projection-shape issues remain:
+  two count-column/count-distinct misses, one destination-airport distinct-count
+  miss, and one group-key/aggregate order reversal. The evidence file is
+  `docs/training_runs/planner_alias_normalized_readiness_20260601.json`.
 
-The next Checkpoint 5 work should improve ordered selected-expression identity
-before another bounded same-row SQL pair. A positive value-accuracy delta
-remains required before promoting the planner path.
+The next Checkpoint 5 work should fix the remaining count-aggregate and
+group/aggregation projection-order mismatches before another bounded same-row
+SQL pair. A positive value-accuracy delta remains required before promoting the
+planner path.
+
+Architecture note after the alias-normalized readiness run: do not spend the
+next planner iteration on another broad prompt or SFT sweep with the same flat
+planner target. The remaining failures are not table-alias noise; they are
+projection-slot semantics. The current contract stores answer order in
+`selected_expressions` while aggregation and grouping live in neighboring lists,
+which makes `count(distinct column)` versus `count(*)` and
+`group_key, aggregate` versus `aggregate, group_key` too easy to blur. The next
+planner architecture should model ordered output slots directly, for example
+`[{kind, source_column, aggregate, distinct, display_order}]`, and keep relevant
+filter/join columns separate from answer columns. Only after that contract and
+scorer change should another planner-SFT dataset or endpoint SQL pair run.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 
