@@ -32,7 +32,7 @@ experiments:
 
   - experiment_id: predicted_planner_sql_vs_direct
     checkpoint: 5
-    status: planner_schema_label_source_readiness_order_negative
+    status: planner_alias_normalized_readiness_order_negative
     hypothesis_id: planner_state
     hypothesis: >-
       Non-oracle predicted planner state improves SQL execution only after
@@ -74,8 +74,9 @@ experiments:
       The corrected adapter rerun on the same 24-turn clean-holdout readiness
       slice eliminated parse errors and made endpoint-pair preflight ready, but
       ordered selected-expression match was 0.708, below the 0.900 threshold.
-      The next step is improving ordered selected-expression identity before
-      any same-row SQL comparison.
+      Alias-insensitive projection-order scoring removed table-alias false
+      negatives and moved ordered selected-expression match to 0.833, but four
+      true projection-shape issues still block any same-row SQL comparison.
 
   - experiment_id: semantic_value_retrieval_vs_direct
     checkpoint: 6
