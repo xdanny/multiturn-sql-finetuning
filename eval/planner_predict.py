@@ -63,14 +63,19 @@ Projection rules:
 - For "name and id", output name before id; for "average X for each Y", output Y before avg(X)
   unless the user asks for the aggregate first.
 """.strip()
+PLANNER_PROMPT_HISTORY_POLICY = "system_user_messages_only_no_assistant_sql_history"
 
 GeneratePlannerFn = Callable[[list[dict[str, str]]], tuple[str, float]]
 
 
 def planner_messages_for_record(record: dict[str, Any]) -> list[dict[str, str]]:
-    """Return prompt messages for planner prediction without answer-key fields."""
+    """Return prompt messages for planner prediction without assistant SQL history."""
 
-    messages = [dict(message) for message in record["messages"]]
+    messages = [
+        dict(message)
+        for message in record["messages"]
+        if message.get("role") in {"system", "user"}
+    ]
     for message in messages:
         if message.get("role") == "system":
             message["content"] = f"{message['content']}\n\n{PLANNER_JSON_INSTRUCTION}"
@@ -193,6 +198,7 @@ def run_planner_predict(
         "model_name": model_name,
         "adapter_path": str(adapter_path) if adapter_path else None,
         "prediction_source": JSON_PLANNER_PREDICTIONS_SOURCE,
+        "planner_prompt_history_policy": PLANNER_PROMPT_HISTORY_POLICY,
         "row_count": written,
     }
     metadata_path = output.with_suffix(output.suffix + ".meta.json")
