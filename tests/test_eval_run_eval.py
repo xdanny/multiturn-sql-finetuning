@@ -218,6 +218,59 @@ def test_load_prepared_records_prefers_schema_labels_over_stale_gold_plans(tmp_p
     ]
 
 
+def test_load_prepared_records_falls_back_to_gold_plans_for_unlabeled_turns(tmp_path) -> None:
+    path = tmp_path / "prepared.jsonl"
+    path.write_text(
+        json.dumps(
+            {
+                "id": "dialog-a",
+                "evaluation_mode": "non_oracle_generation",
+                "uses_oracle_planning_hints": False,
+                "semantic_context_pruned_by_oracle_labels": False,
+                "schema_link_labels": [
+                    {
+                        "projection_shape": {
+                            "selected_expressions": ["first_schema_label"],
+                            "selected_count": 1,
+                        }
+                    }
+                ],
+                "gold_plans": [
+                    {
+                        "projection_shape": {
+                            "selected_expressions": ["first_gold_plan"],
+                            "selected_count": 1,
+                        }
+                    },
+                    {
+                        "projection_shape": {
+                            "selected_expressions": ["second_gold_plan"],
+                            "selected_count": 1,
+                        }
+                    },
+                ],
+                "messages": [
+                    {"role": "user", "content": "first"},
+                    {"role": "assistant", "content": "SELECT first;"},
+                    {"role": "user", "content": "second"},
+                    {"role": "assistant", "content": "SELECT second;"},
+                ],
+            }
+        )
+        + "\n"
+    )
+
+    records = load_prepared_records(path)
+
+    assert records[0]["gold_plan"]["projection_shape"]["selected_expressions"] == [
+        "first_schema_label",
+    ]
+    assert records[1]["gold_plan"]["projection_shape"]["selected_expressions"] == [
+        "second_gold_plan",
+    ]
+    assert records[1]["schema_link_labels"] is None
+
+
 def test_load_prepared_records_rejects_legacy_oracle_hint_marker(tmp_path) -> None:
     path = tmp_path / "prepared.jsonl"
     path.write_text(
