@@ -231,12 +231,10 @@ def summarize_roadmap_status(
                 "docs/training_runs/planner_projection_sequence_prompt_20260531.json",
                 "docs/training_runs/planner_sft_sequence_instruction_dataset_20260531.json",
                 "docs/training_runs/planner_sequence_sft_1000_readiness_20260531.json",
+                "docs/training_runs/planner_sequence_useronly_readiness_20260531.json",
             ],
             open_items=[
-                (
-                    "improve planner JSON-format adherence and ordered selected-expression "
-                    "identity before another same-row SQL pair"
-                )
+                "improve ordered selected-expression identity before another same-row SQL pair"
             ],
         ),
         _entry(
