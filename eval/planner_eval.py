@@ -440,7 +440,7 @@ def evaluate_planner_records(
 ) -> list[dict[str, Any]]:
     evaluated = []
     for record in records:
-        gold_plan = record.get("gold_plan") or record.get("schema_link_labels") or {}
+        gold_plan = record.get("schema_link_labels") or record.get("gold_plan") or {}
         predicted_plan = record.get("predicted_plan") or _predicted_plan_for_turn(
             planner_source=planner_source,
             messages=record["messages"],
@@ -521,15 +521,15 @@ def run_planner_eval(
 
 
 def _gold_plans_for_record(record: dict[str, Any], assistant_count: int) -> list[dict[str, Any]]:
-    gold_plans = record.get("gold_plans")
-    if isinstance(gold_plans, list) and len(gold_plans) == assistant_count:
-        return [normalize_plan(plan) for plan in gold_plans]
     schema_link_labels = record.get("schema_link_labels")
     if isinstance(schema_link_labels, list):
         return [
             normalize_plan(schema_link_labels[index] if index < len(schema_link_labels) else {})
             for index in range(assistant_count)
         ]
+    gold_plans = record.get("gold_plans")
+    if isinstance(gold_plans, list) and len(gold_plans) == assistant_count:
+        return [normalize_plan(plan) for plan in gold_plans]
     return [normalize_plan({}) for _ in range(assistant_count)]
 
 
