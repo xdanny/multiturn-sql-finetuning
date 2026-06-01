@@ -522,15 +522,19 @@ def run_planner_eval(
 
 def _gold_plans_for_record(record: dict[str, Any], assistant_count: int) -> list[dict[str, Any]]:
     schema_link_labels = record.get("schema_link_labels")
-    if isinstance(schema_link_labels, list):
-        return [
-            normalize_plan(schema_link_labels[index] if index < len(schema_link_labels) else {})
-            for index in range(assistant_count)
-        ]
     gold_plans = record.get("gold_plans")
-    if isinstance(gold_plans, list) and len(gold_plans) == assistant_count:
-        return [normalize_plan(plan) for plan in gold_plans]
-    return [normalize_plan({}) for _ in range(assistant_count)]
+    schema_link_labels = schema_link_labels if isinstance(schema_link_labels, list) else []
+    gold_plans = gold_plans if isinstance(gold_plans, list) else []
+    return [
+        normalize_plan(
+            schema_link_labels[index]
+            if index < len(schema_link_labels)
+            else gold_plans[index]
+            if index < len(gold_plans)
+            else {}
+        )
+        for index in range(assistant_count)
+    ]
 
 
 def annotate_prepared_records_with_plans(
