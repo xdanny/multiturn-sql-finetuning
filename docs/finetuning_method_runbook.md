@@ -106,9 +106,15 @@ and the same `0.792` ordered selected-expression match.
 records the next data step: the full 7,343-row train-split planner-SFT dataset
 now carries `planner_prompt_policy=projection_sequence_instruction_v1`; all
 prompt rows changed, while target plans stayed unchanged.
+`docs/training_runs/planner_sequence_sft_1000_readiness_20260531.json` records
+the follow-up 1000-step adapter trained on that projection-sequence dataset. The
+adapter trained successfully, but clean-holdout readiness did not pass:
+`parse_error_count=2`, `macro_planner_score=0.837`, and ordered
+selected-expression match `0.625`, so SQL endpoint comparison stayed blocked.
 
-Next useful movement: train a planner adapter on the projection-sequence SFT
-dataset, then rerun order-aware readiness before any broader endpoint pair.
+Next useful movement: improve planner JSON-format adherence and ordered
+selected-expression identity, then rerun order-aware readiness before any
+broader endpoint pair.
 
 ## Semantic-Layer Tuning
 
