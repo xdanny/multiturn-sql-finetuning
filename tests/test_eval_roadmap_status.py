@@ -373,7 +373,12 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         "docs/training_runs/planner_sequence_useronly_readiness_20260531.json"
         in by_checkpoint[5]["evidence"]
     )
+    assert (
+        "docs/training_runs/planner_schema_label_gold_source_20260601.json"
+        in by_checkpoint[5]["evidence"]
+    )
     assert by_checkpoint[5]["open_items"] == [
+        "regenerate planner-SFT data from corrected schema-label gold source",
         "improve ordered selected-expression identity before another same-row SQL pair"
     ]
     assert (
