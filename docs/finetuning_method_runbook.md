@@ -32,10 +32,15 @@ The durable checklist is:
   repair labels out of production-style prompts;
 - compare method and control on the same row identities;
 - retain run manifests for scored generations and comparisons.
+- record inconclusive runs when they are well-formed but leave promotion,
+  regression, or writeup claims unresolved.
 
 Use this checklist to keep smoke runs, benchmark proxies, synthetic fixtures,
 and hosted/BIRD-style transfer claims separate. If the comparison artifact is
-missing, the method may be wired, but it is not a supported win.
+missing, the method may be wired, but it is not a supported win. If the
+comparison artifact exists but leaves the conclusion inconclusive, preserve the
+blocker and uncertainty so later writeups can explain why the method was paused
+or redesigned.
 
 ## Direct SQL SFT
 

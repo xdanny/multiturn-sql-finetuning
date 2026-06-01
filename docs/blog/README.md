@@ -33,3 +33,9 @@ The intended pattern is:
 3. Run manifests or canonical data artifacts support larger endpoint and planner
    results.
 4. The post states what the artifact proves and what it does not prove.
+
+Inconclusive results should be cited with the same discipline as wins and
+failures. Before the post uses an inconclusive result, confirm that the matching
+artifact records the row scope, control or readiness policy, scorer, blocker,
+and remaining uncertainty. The post should explain the consideration it creates
+for future work instead of recasting it as either success or failure.

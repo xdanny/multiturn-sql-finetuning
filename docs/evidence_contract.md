@@ -45,6 +45,26 @@ enter the prompt only in `oracle_planner_diagnostic`.
 | Local 9B beats the hosted baseline on the same rows. | Pending | none | not run | No, until the local manifest references a hosted baseline and shows a positive value delta. |
 | Local 9B competes on real BIRD-Interact/Multi-BIRD. | Pending | none | not run | No. |
 
+## Inconclusive Evidence And Writeups
+
+Inconclusive conclusions are evidence, not throwaway notes. If a run is
+well-formed but does not cleanly support a win, regression, or promotion, keep a
+small durable record that names the rows, control, scorer, artifacts, and the
+reason the result is inconclusive. Future writeups should cite that record when
+explaining why a method was paused, rerouted, or redesigned.
+
+Before a writeup uses an inconclusive result, verify three things:
+
+- the run used the intended split roles and row identities;
+- the inconclusive status follows from a manifest, comparison artifact,
+  readiness report, or documented scorer audit rather than a chat-only
+  impression;
+- the writeup states both what was learned and what remains unproven.
+
+Do not flatten inconclusive evidence into either a failure narrative or a
+promising-result narrative. For example, a readiness run can prove that endpoint
+inputs are compatible while also proving that method promotion is not justified.
+
 ## Data Artifact Evidence
 
 The value-grounding artifact is the first versioned intermediate-state artifact

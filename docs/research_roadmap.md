@@ -18,6 +18,12 @@ Checkpoint status legend:
   evidence requirement is not fully satisfied.
 - `[ ]` pending; no sufficient current evidence exists yet.
 
+Inconclusive checkpoint evidence should stay visible. When a result is
+well-formed but does not cleanly support promotion, regression, or a benchmark
+claim, record the artifact, row scope, blocker, and remaining uncertainty. These
+records are inputs to future writeups: they explain why the roadmap paused,
+rerouted, or redesigned a method without overstating either success or failure.
+
 Current checkpoint progress:
 
 - `[x]` Checkpoint 0: Freeze The Current State.
