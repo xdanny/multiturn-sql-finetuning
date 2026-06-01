@@ -235,6 +235,41 @@ def test_evaluate_planner_records_adds_gold_predicted_and_scores() -> None:
     assert summarize_planner_scores(evaluated)["rows"] == 1
 
 
+def test_evaluate_planner_records_prefers_current_schema_labels_over_stale_gold_plan() -> None:
+    records = [
+        {
+            "id": "turn-1",
+            "messages": [{"role": "user", "content": "Question:\nShow name and location."}],
+            "gold_plan": {
+                "projection_shape": {
+                    "selected_expressions": ["location", "name"],
+                    "selected_count": 2,
+                }
+            },
+            "schema_link_labels": {
+                "projection_shape": {
+                    "selected_expressions": ["name", "location"],
+                    "selected_count": 2,
+                }
+            },
+            "predicted_plan": {
+                "projection_shape": {
+                    "selected_expressions": ["name", "location"],
+                    "selected_count": 2,
+                }
+            },
+        }
+    ]
+
+    evaluated = evaluate_planner_records(records)
+
+    assert evaluated[0]["gold_plan"]["projection_shape"]["selected_expressions"] == [
+        "name",
+        "location",
+    ]
+    assert evaluated[0]["planner_scores"]["selected_expression_order_match"] == 1.0
+
+
 def test_run_planner_eval_rejects_oracle_prompt_by_default(tmp_path) -> None:
     input_path = tmp_path / "prepared.jsonl"
     input_path.write_text(
