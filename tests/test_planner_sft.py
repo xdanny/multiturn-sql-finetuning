@@ -169,6 +169,31 @@ def test_write_planner_sft_dataset_writes_manifest(tmp_path: Path) -> None:
     assert json.loads(rows[0]["messages"][-1]["content"])["relevant_tables"] == ["customers"]
 
 
+def test_build_planner_sft_records_prefers_current_schema_labels_over_stale_gold_plans(
+    tmp_path: Path,
+) -> None:
+    input_path = tmp_path / "prepared.jsonl"
+    row = _prepared_dialog()
+    row["gold_plans"][0]["projection_shape"]["selected_expressions"] = [
+        "location",
+        "name",
+    ]
+    row["gold_plans"][0]["projection_shape"]["selected_count"] = 2
+    row["schema_link_labels"][0]["projection_shape"]["selected_expressions"] = [
+        "name",
+        "location",
+    ]
+    row["schema_link_labels"][0]["projection_shape"]["selected_count"] = 2
+    input_path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+
+    rows = build_planner_sft_records(input_path)
+
+    assert rows[0]["target_plan"]["projection_shape"]["selected_expressions"] == [
+        "name",
+        "location",
+    ]
+
+
 def test_build_planner_sft_records_rejects_non_train_prepared_split(tmp_path: Path) -> None:
     input_path = tmp_path / "prepared.jsonl"
     row = _prepared_dialog()
