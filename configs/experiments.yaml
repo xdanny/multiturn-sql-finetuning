@@ -65,7 +65,10 @@ experiments:
       fell to 0.625. Removing teacher-forced assistant SQL history from planner
       prediction prompts cleared those parse errors and made endpoint-pair
       preflight ready on the same 24-turn slice, but ordered
-      selected-expression match remained blocking at 0.583.
+      selected-expression match remained blocking at 0.583. Planner scoring
+      and planner-SFT target construction now prefer current schema_link_labels
+      over stale generated gold_plans when both are present; the next data step
+      is regenerating planner-SFT rows from that corrected label source.
 
   - experiment_id: semantic_value_retrieval_vs_direct
     checkpoint: 6
