@@ -6,7 +6,8 @@ row-matched method comparisons.
 
 Last audited: 2026-05-31 after the Checkpoint 3 endpoint evaluation,
 generated-history rollout, clean-holdout failure analysis, and Checkpoint 5
-planner schema/projection/table-selection repairs plus planner-SFT readiness.
+planner schema/projection/table-selection repairs, planner-SFT readiness, and
+projection-sequence planner-SFT training.
 
 Checkpoint status legend:
 
@@ -338,9 +339,10 @@ uv run --active --no-sync python -m scripts.direct_sql_full_control \
 
 Status: `[~]` in progress. Non-oracle planner scoring, a 24-turn negative
 predicted-planner comparison, schema-context repair, lexical projection and
-table-selection repairs, a train-split planner-SFT data path, and bounded
-planner-SFT readiness evidence exist. A bounded same-row SQL pair has now run
-and regressed versus direct SQL, so no SQL execution win is claimed yet.
+table-selection repairs, train-split planner-SFT data paths, bounded planner-SFT
+readiness evidence, and a projection-sequence planner adapter exist. The latest
+projection-sequence adapter does not pass readiness, so no new SQL execution
+pair or SQL win is claimed.
 
 Train or prompt a planner only on training-split gold labels. Evaluate planner
 F1 on held-out rows before feeding predicted plans into SQL generation.
@@ -487,9 +489,24 @@ Latest Checkpoint 5 evidence from 2026-05-31:
   projection-sequence instruction to every prompt.
 - The evidence file is
   `docs/training_runs/planner_sft_sequence_instruction_dataset_20260531.json`.
+- A 1000-step planner LoRA adapter trained on that projection-sequence dataset
+  and saved a final adapter at
+  `outputs/experiments/predicted_planner_sql/planner_sequence_sft_20260531_1000/final`.
+  Training completed with reported train loss `0.09426`; final adapter weights
+  SHA-256 is
+  `a319dc2541b8490117861f3eb085fec8af10c0c8e8000e70036e39757b5629c4`.
+- On the 24-turn clean-holdout readiness slice, the projection-sequence adapter
+  scored macro planner score `0.837`, table F1 `0.875`, column F1 `0.690`,
+  skeleton F1 `0.867`, selected-count match `0.917`, and ordered
+  selected-expression match `0.625`.
+- Readiness blocks promotion because 2 of 24 planner generations emitted SQL
+  instead of planner JSON, ordered selected-expression match is below the
+  `0.900` threshold, and no endpoint-pair preflight is ready. The evidence file
+  is
+  `docs/training_runs/planner_sequence_sft_1000_readiness_20260531.json`.
 
-The next Checkpoint 5 work should train a planner adapter on the
-projection-sequence SFT dataset before another bounded same-row SQL pair. A
+The next Checkpoint 5 work should improve planner JSON-format adherence and
+ordered selected-expression identity before another bounded same-row SQL pair. A
 positive value-accuracy delta remains required before promoting the planner
 path.
 
