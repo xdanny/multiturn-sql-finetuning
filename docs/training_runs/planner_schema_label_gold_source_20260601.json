@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "artifact_type": "planner_schema_label_gold_source_evidence",
+  "run_id": "planner_sequence_sft_1000_clean_holdout_useronly_limit24",
+  "source_paths": {
+    "planner_eval": "results/runs/predicted_planner_sql_vs_direct/planner_sequence_sft_1000_clean_holdout_useronly_limit24.eval.jsonl",
+    "predicted_prepared": "results/runs/predicted_planner_sql_vs_direct/planner_sequence_sft_1000_clean_holdout_useronly_limit24.predicted_prepared.jsonl",
+    "readiness": "results/runs/predicted_planner_sql_vs_direct/planner_sequence_sft_1000_clean_holdout_useronly_limit24.readiness.json"
+  },
+  "root_cause": "Prepared inputs can retain older normalized gold_plans while schema_link_labels still hold the current SQL-derived selected-expression order. Planner scoring and planner-SFT data construction previously preferred gold_plan/gold_plans when both were present, so stale generated prepared artifacts could silently score or train against old projection order.",
+  "code_changes": [
+    "eval.run_eval.expand_prepared_record now prefers schema_link_labels over gold_plans when both answer-key sources are present.",
+    "eval.planner_eval.evaluate_planner_records now prefers schema_link_labels over gold_plan for expanded planner scoring rows.",
+    "eval.planner_eval.annotate_prepared_records_with_plans now writes gold_plans from schema_link_labels when available, avoiding stale normalized gold_plans in predicted-planner prepared artifacts.",
+    "data.planner_sft now receives current schema_link_labels through load_prepared_records, so planner-SFT targets use the current SQL-derived label source."
+  ],
+  "rescore_check": {
+    "row_count": 24,
+    "old_macro_planner_score": 0.8604938271604938,
+    "new_macro_planner_score": 0.8604938271604938,
+    "old_selected_expression_order_match": 0.5833333333333334,
+    "new_selected_expression_order_match": 0.5833333333333334,
+    "changed_row_count": 2,
+    "changed_rows": [
+      {
+        "id": "prepared-2:2",
+        "old_selected_expression_order_match": 0.0,
+        "new_selected_expression_order_match": 1.0,
+        "old_gold_selected_expressions": [
+          "orchestra",
+          "orchestra_id"
+        ],
+        "schema_label_selected_expressions": [
+          "orchestra_id",
+          "orchestra"
+        ],
+        "predicted_selected_expressions": [
+          "orchestra_id",
+          "orchestra"
+        ]
+      },
+      {
+        "id": "prepared-6:0",
+        "old_selected_expression_order_match": 1.0,
+        "new_selected_expression_order_match": 0.0,
+        "old_gold_selected_expressions": [
+          "avg(lifeexpectancy)",
+          "governmentform"
+        ],
+        "schema_label_selected_expressions": [
+          "governmentform",
+          "avg(lifeexpectancy)"
+        ],
+        "predicted_selected_expressions": [
+          "avg(lifeexpectancy)",
+          "governmentform"
+        ]
+      }
+    ]
+  },
+  "readiness_impact": {
+    "promotion_ready": false,
+    "primary_blocker": "selected-expression identity remains below policy after correcting answer-key source precedence",
+    "next_step": "Regenerate planner-SFT data from the corrected answer-key source and improve selected-expression identity before another same-row SQL pair."
+  },
+  "interpretation": [
+    "The aggregate selected-expression order metric did not change on the 24-turn user-only slice because one stale-label false negative and one stale-label false positive canceled out.",
+    "The fix still matters because future planner scoring, predicted-prepared artifacts, and planner-SFT targets now use the current SQL-derived schema labels instead of stale normalized gold_plans.",
+    "Checkpoint 5 remains in progress; this is a label-source integrity fix, not a planner promotion."
+  ]
+}
