@@ -155,10 +155,15 @@ and macro planner score to `0.897`. Readiness still blocks promotion because
 four true projection issues remain: two count-column/count-distinct misses, one
 destination-airport distinct-count miss, and one group-key/aggregate order
 reversal.
+`docs/training_runs/planner_output_slot_contract_20260602.json` records the
+contract and scorer follow-up: `projection_shape.output_slots` now models
+ordered answer slots separately from relevant filter/join columns, and
+`output_slot_order_match` is part of planner scoring and readiness policy. This
+does not claim a new planner readiness pass or SQL win.
 
-Next useful movement: fix the remaining count-aggregate and group/aggregation
-projection-order mismatches, then rerun readiness before any broader endpoint
-pair.
+Next useful movement: regenerate planner-SFT targets or planner predictions
+under the output-slot contract, rerun slot-aware clean-holdout readiness, and
+only then run another bounded same-row endpoint pair if readiness passes.
 
 ## Semantic-Layer Tuning
 

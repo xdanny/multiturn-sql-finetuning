@@ -192,6 +192,7 @@ def test_malformed_planner_output_gets_zero_score_and_cannot_win_ranking() -> No
         "group_by_f1": 0.0,
         "selected_count_match": 0.0,
         "selected_expression_order_match": 0.0,
+        "output_slot_order_match": 0.0,
         "duplicate_policy_match": 0.0,
         "macro_planner_score": 0.0,
     }

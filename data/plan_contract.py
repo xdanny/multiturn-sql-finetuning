@@ -7,6 +7,7 @@ as scorer targets and supervised labels, but not as production prompt input.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 from typing import Any
 
@@ -57,12 +58,112 @@ def _normalized_ordered_list(values: Iterable[Any] | None) -> list[str]:
     return ordered
 
 
+def _projection_source_key(value: Any) -> str:
+    normalized = _normalize_identifier(value)
+    return re.sub(r"\b[a-z_][a-z0-9_]*\.", "", normalized)
+
+
+def _optional_projection_source_key(value: Any) -> str | None:
+    if value in (None, "", "*"):
+        return None
+    return _projection_source_key(value)
+
+
+def _strip_output_alias(value: str) -> str:
+    return re.sub(r"\s+as\s+[a-z_][a-z0-9_]*$", "", value, flags=re.IGNORECASE).strip()
+
+
+def _output_slot_from_expression(expression: Any, display_order: int) -> dict[str, Any] | None:
+    if expression in (None, ""):
+        return None
+    normalized = _strip_output_alias(_normalize_identifier(expression))
+    aggregate_match = re.fullmatch(
+        r"(count|sum|avg|min|max)\s*\(\s*(distinct\s+)?(.+?)\s*\)",
+        normalized,
+    )
+    if aggregate_match:
+        aggregate = aggregate_match.group(1)
+        distinct = bool(aggregate_match.group(2))
+        source = aggregate_match.group(3).strip()
+        return {
+            "kind": "aggregate",
+            "source_column": _optional_projection_source_key(source),
+            "aggregate": aggregate,
+            "distinct": distinct,
+            "display_order": display_order,
+        }
+    return {
+        "kind": "column" if re.fullmatch(r"[a-z_][a-z0-9_.]*", normalized) else "expression",
+        "source_column": _projection_source_key(normalized),
+        "aggregate": None,
+        "distinct": False,
+        "display_order": display_order,
+    }
+
+
+def _normalize_output_slot(slot: Any, display_order: int) -> dict[str, Any] | None:
+    if isinstance(slot, str):
+        return _output_slot_from_expression(slot, display_order)
+    if not isinstance(slot, dict):
+        return None
+
+    aggregate = _normalize_identifier(slot.get("aggregate")) if slot.get("aggregate") else None
+    aggregate = aggregate if aggregate and aggregate != "none" else None
+    source = _optional_projection_source_key(slot.get("source_column"))
+    kind = _normalize_identifier(slot.get("kind")) if slot.get("kind") else ""
+    if kind not in {"aggregate", "column", "expression", "unknown"}:
+        kind = ""
+    if not kind:
+        kind = "aggregate" if aggregate else "column" if source else "unknown"
+    try:
+        order = int(slot.get("display_order", display_order))
+    except (TypeError, ValueError):
+        order = display_order
+    return {
+        "kind": kind,
+        "source_column": source,
+        "aggregate": aggregate,
+        "distinct": bool(slot.get("distinct", False)),
+        "display_order": order,
+    }
+
+
+def _normalized_output_slots(
+    *,
+    output_slots: Iterable[Any] | None,
+    selected_expressions: Iterable[Any] | None,
+) -> list[dict[str, Any]]:
+    if output_slots:
+        slots = [
+            slot
+            for index, raw_slot in enumerate(output_slots)
+            if (slot := _normalize_output_slot(raw_slot, index)) is not None
+        ]
+        return sorted(slots, key=lambda slot: slot["display_order"])
+    return [
+        slot
+        for index, expression in enumerate(selected_expressions or [])
+        if (slot := _output_slot_from_expression(expression, index)) is not None
+    ]
+
+
+def _selected_count(projection: dict[str, Any], output_slots: list[dict[str, Any]]) -> int:
+    if projection.get("selected_count") is not None:
+        return int(projection.get("selected_count") or 0)
+    return len(output_slots)
+
+
 def normalize_plan(plan: dict[str, Any] | None) -> dict[str, Any]:
     """Return the stable planner schema used in JSONL outputs and summaries."""
 
     plan = plan or {}
     projection = plan.get("projection_shape") or {}
     skeleton = plan.get("query_skeleton") or {}
+    selected_expressions = _normalized_ordered_list(projection.get("selected_expressions"))
+    output_slots = _normalized_output_slots(
+        output_slots=projection.get("output_slots"),
+        selected_expressions=selected_expressions,
+    )
     return {
         "parseable": bool(plan.get("parseable", True)),
         "relevant_tables": _normalized_list(plan.get("relevant_tables")),
@@ -70,10 +171,9 @@ def normalize_plan(plan: dict[str, Any] | None) -> dict[str, Any]:
         "join_path": _normalized_list(plan.get("join_path")),
         "query_skeleton": {field: bool(skeleton.get(field, False)) for field in SKELETON_FIELDS},
         "projection_shape": {
-            "selected_expressions": _normalized_ordered_list(
-                projection.get("selected_expressions")
-            ),
-            "selected_count": int(projection.get("selected_count") or 0),
+            "selected_expressions": selected_expressions,
+            "selected_count": _selected_count(projection, output_slots),
+            "output_slots": output_slots,
             "aggregations": _normalized_list(projection.get("aggregations")),
             "group_by": _normalized_list(projection.get("group_by")),
             "order_by": _normalize_identifier(projection.get("order_by"))
@@ -200,6 +300,18 @@ def predicted_planning_hint_from_plan(plan: dict[str, Any]) -> str:
             f"{'; '.join(projection['selected_expressions']) or 'unknown'}"
         ),
     ]
+    if projection["output_slots"]:
+        slot_descriptions = []
+        for slot in projection["output_slots"]:
+            if slot["kind"] == "aggregate":
+                distinct = " distinct" if slot["distinct"] else ""
+                source = slot["source_column"] or "*"
+                slot_descriptions.append(f"{slot['aggregate']}{distinct}({source})")
+            elif slot["source_column"]:
+                slot_descriptions.append(slot["source_column"])
+            else:
+                slot_descriptions.append(slot["kind"])
+        lines.append(f"Output slots: {'; '.join(slot_descriptions)}")
     if projection["aggregations"]:
         lines.append(f"Aggregation outputs: {', '.join(projection['aggregations'])}")
     if projection["group_by"]:

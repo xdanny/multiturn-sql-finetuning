@@ -18,6 +18,7 @@ def _row(
     join: float,
     group_by: float,
     selected_order: float = 1.0,
+    output_slot_order: float = 1.0,
     duplicate_policy: float = 1.0,
     gold_join: bool = True,
     gold_group_by: bool = True,
@@ -46,6 +47,7 @@ def _row(
             "skeleton_f1": skeleton,
             "selected_count_match": selected_count,
             "selected_expression_order_match": selected_order,
+            "output_slot_order_match": output_slot_order,
             "join_f1": join,
             "group_by_f1": group_by,
             "duplicate_policy_match": duplicate_policy,
@@ -62,6 +64,7 @@ def test_summarize_planner_readiness_counts_endpoint_risks() -> None:
                 column=0.0,
                 selected_count=0.0,
                 selected_order=0.0,
+                output_slot_order=0.0,
                 join=0.0,
                 group_by=0.0,
             ),
@@ -83,6 +86,7 @@ def test_summarize_planner_readiness_counts_endpoint_risks() -> None:
     assert summary["column_zero_count"] == 1
     assert summary["selected_count_mismatch_count"] == 1
     assert summary["selected_expression_order_mismatch_count"] == 1
+    assert summary["output_slot_order_mismatch_count"] == 1
     assert summary["empty_projection_expression_count"] == 1
     assert summary["join_zero_when_gold_join_count"] == 1
     assert summary["group_by_zero_when_gold_group_by_count"] == 1
@@ -166,6 +170,55 @@ def test_summarize_planner_readiness_blocks_projection_order_mismatch() -> None:
     assert summary["promotion_ready"] is False
     assert "projection_order" in summary["top_risks"]
     assert "selected_expression_order_match below minimum 0.90" in summary["promotion_blockers"]
+
+
+def test_summarize_planner_readiness_blocks_output_slot_order_mismatch() -> None:
+    rows = [
+        _row(
+            macro=0.90,
+            table=0.95,
+            column=0.85,
+            skeleton=0.90,
+            selected_count=1.0,
+            selected_order=1.0,
+            output_slot_order=1.0,
+            join=0.80,
+            group_by=0.80,
+            duplicate_policy=1.0,
+        )
+        for _ in range(21)
+    ]
+    rows.extend(
+        _row(
+            macro=0.90,
+            table=0.95,
+            column=0.85,
+            skeleton=0.90,
+            selected_count=1.0,
+            selected_order=1.0,
+            output_slot_order=0.0,
+            join=0.80,
+            group_by=0.80,
+            duplicate_policy=1.0,
+        )
+        for _ in range(3)
+    )
+
+    summary = summarize_planner_readiness(
+        rows,
+        preflight={
+            "status": "ready_for_endpoint_pair",
+            "row_count": 24,
+            "dialog_count": 8,
+            "database_count": 4,
+        },
+    )
+
+    assert summary["output_slot_order_mismatch_count"] == 3
+    assert summary["mean_scores"]["output_slot_order_match"] == 0.875
+    assert summary["promotion_ready"] is False
+    assert "output_slot_order" in summary["top_risks"]
+    assert "output_slot_order_match below minimum 0.90" in summary["promotion_blockers"]
 
 
 def test_summarize_planner_readiness_blocks_parse_errors() -> None:

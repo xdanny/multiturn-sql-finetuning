@@ -25,7 +25,7 @@ def _write_registry(path: Path) -> None:
         (
             "predicted_planner_sql_vs_direct",
             5,
-            "planner_alias_normalized_readiness_order_negative",
+            "planner_output_slot_contract_ready_for_rerun",
             "predicted_planner_sql",
             "direct_sql_full_non_oracle_control",
         ),
@@ -393,8 +393,12 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         "docs/training_runs/planner_alias_normalized_readiness_20260601.json"
         in by_checkpoint[5]["evidence"]
     )
+    assert (
+        "docs/training_runs/planner_output_slot_contract_20260602.json"
+        in by_checkpoint[5]["evidence"]
+    )
     assert by_checkpoint[5]["open_items"] == [
-        "fix remaining count-aggregate and group/aggregation projection-order mismatches",
+        "regenerate planner targets or predictions under output-slot contract and rerun slot-aware clean-holdout readiness",
     ]
     assert (
         "eval.compare_semantic_value_retrieval promotion policy"
