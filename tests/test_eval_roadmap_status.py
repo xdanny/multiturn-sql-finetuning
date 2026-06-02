@@ -32,7 +32,7 @@ def _write_registry(path: Path) -> None:
         (
             "semantic_value_retrieval_vs_direct",
             6,
-            "semantic_clean_holdout_endpoint_regressed",
+            "semantic_pruned_preflight_ready",
             "semantic_value_retrieval",
             "direct_sql_full_non_oracle_control",
         ),
@@ -412,8 +412,12 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         "docs/training_runs/semantic_value_regression_diagnosis_20260602.json"
         in by_checkpoint[6]["evidence"]
     )
+    assert (
+        "docs/training_runs/semantic_value_pruned_preflight_20260602.json"
+        in by_checkpoint[6]["evidence"]
+    )
     assert by_checkpoint[6]["open_items"] == [
-        "prune semantic value retrieval before another endpoint pair"
+        "run pruned semantic value-retrieval endpoint pair and require positive value delta with no strict regression"
     ]
     assert (
         "eval.compare_metric_dsl_direct_sql promotion policy"

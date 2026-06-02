@@ -167,9 +167,10 @@ dimensions, measures, joins, grain, and values that raw DDL does not explain.
 
 Implementation path: train or prompt with semantic context that is available at
 inference time. `data.semantic_value_retrieval_inputs` turns the database-derived
-value index into prepared prompt context by matching aliases against user text
-seen up to each turn. It does not retrieve from reference SQL, assistant SQL,
-expected rows, or future turns.
+value index into prepared prompt context by matching aliases against the current
+user turn by default. The default policy caps retrieval at 4 matches per turn,
+prunes short ambiguous aliases, and keeps numeric aliases eligible. It does not
+retrieve from reference SQL, assistant SQL, expected rows, or future turns.
 
 Control: same rows without the semantic-layer context, or the same model under a
 matching direct-SQL prompt.
@@ -201,10 +202,15 @@ promotable.
 the first paired failure analysis: 43 direct-only value-correct rows, 33
 semantic-only value-correct rows, and all value-score flips occurred on rows
 with value-retrieval context.
+`docs/training_runs/semantic_value_pruned_preflight_20260602.json` records the
+follow-up pruning preflight. Current-turn retrieval with a 4-match cap and short
+ambiguous alias pruning reduced clean-holdout matches from 3,611 values across
+510 turns to 840 values across 340 turns, while staying row-identity matched and
+endpoint-pair ready across the same 680 turns, 193 dialogs, and 20 databases.
 
-Next useful movement: prune or redesign retrieval context. Cap retrieval volume,
-prefer high-confidence entity/value matches, and remove matches that pull the
-model toward unrelated tables or storage values before another endpoint pair.
+Next useful movement: run the pruned endpoint pair and require a positive value
+delta with no strict-accuracy regression before promoting semantic value
+retrieval.
 
 ## `MEASURE()`-Preserving Metric DSL
 

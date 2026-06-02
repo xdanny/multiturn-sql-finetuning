@@ -80,7 +80,7 @@ experiments:
 
   - experiment_id: semantic_value_retrieval_vs_direct
     checkpoint: 6
-    status: semantic_clean_holdout_endpoint_regressed
+    status: semantic_pruned_preflight_ready
     hypothesis_id: semantic_value_grounding
     hypothesis: >-
       Database-derived value retrieval and semantic context improve
@@ -101,8 +101,11 @@ experiments:
     claim_boundary: >-
       Full clean-holdout endpoint comparison regressed versus direct SQL:
       semantic value accuracy delta was negative and strict accuracy also
-      regressed, so this method is not promotable without retrieval pruning or
-      another grounded redesign.
+      regressed. A follow-up pruning policy now uses current-turn retrieval,
+      caps matches at 4 per turn, prunes short ambiguous aliases, and has passed
+      clean-holdout endpoint-pair preflight. It is not promotable until the
+      pruned endpoint pair shows a positive value delta without strict
+      regression.
 
   - experiment_id: metric_dsl_vs_direct_sql
     checkpoint: 7

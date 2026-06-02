@@ -194,22 +194,27 @@ Run a semantic value-retrieval SQL pair against direct SQL before claiming the
 value index improved execution:
 
 ```bash
-python -m data.semantic_value_retrieval_inputs \
+uv run --active --no-sync python -m data.semantic_value_retrieval_inputs \
   --input data/processed/eval_cosql_dev_100.jsonl \
   --value-index docs/data_artifacts/value_index_cosql_dev_100.jsonl \
   --value-index-manifest docs/data_artifacts/value_index_cosql_dev_100.manifest.json \
   --output data/processed/eval_cosql_dev_100_semantic_value_retrieval.jsonl \
   --summary-output docs/data_artifacts/semantic_value_retrieval_inputs_summary.json \
-  --manifest-output docs/data_artifacts/semantic_value_retrieval_inputs.manifest.json
+  --manifest-output docs/data_artifacts/semantic_value_retrieval_inputs.manifest.json \
+  --max-matches-per-turn 4 \
+  --retrieval-scope current_turn \
+  --min-alias-chars 3
 ```
 
 This input builder matches database-derived value-index aliases against
-user-authored text up to each turn. It does not use reference SQL, gold planner
-labels, expected rows, assistant SQL, or future user turns for retrieval
-matching.
+current-turn user-authored text by default, caps retrieval volume, and prunes
+short ambiguous aliases while retaining numeric aliases. It does not use
+reference SQL, gold planner labels, expected rows, assistant SQL, or future user
+turns for retrieval matching. Use `--retrieval-scope history` only as a
+diagnostic policy and label the run accordingly.
 
 ```bash
-python -m eval.run_semantic_value_retrieval_comparison \
+uv run --active --no-sync python -m eval.run_semantic_value_retrieval_comparison \
   --direct-input data/processed/eval_cosql_dev_100.jsonl \
   --semantic-input data/processed/eval_cosql_dev_100_semantic_value_retrieval.jsonl \
   --value-index-manifest docs/data_artifacts/value_index_cosql_dev_100.manifest.json \

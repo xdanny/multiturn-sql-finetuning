@@ -25,6 +25,34 @@ DEFAULT_SUMMARY_OUTPUT = Path(
 DEFAULT_MANIFEST_OUTPUT = Path(
     "docs/data_artifacts/semantic_value_retrieval_inputs.manifest.json"
 )
+DEFAULT_MAX_MATCHES_PER_TURN = 4
+DEFAULT_MIN_ALIAS_CHARS = 3
+RETRIEVAL_SCOPES = ("current_turn", "history")
+AMBIGUOUS_SHORT_ALIASES = {
+    "a",
+    "an",
+    "and",
+    "as",
+    "at",
+    "by",
+    "can",
+    "for",
+    "from",
+    "in",
+    "is",
+    "it",
+    "me",
+    "of",
+    "on",
+    "or",
+    "the",
+    "to",
+    "what",
+    "where",
+    "which",
+    "who",
+    "with",
+}
 
 
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -87,6 +115,16 @@ def _user_visible_text(messages: list[dict[str, Any]], *, through_index: int) ->
     )
 
 
+def _user_turn_text(message: dict[str, Any]) -> str:
+    return str(message.get("content") or "")
+
+
+def _alias_is_prunable(normalized_alias: str, *, min_alias_chars: int) -> bool:
+    if re.fullmatch(r"\d+(?:\.\d+)?", normalized_alias):
+        return False
+    return len(normalized_alias) < min_alias_chars or normalized_alias in AMBIGUOUS_SHORT_ALIASES
+
+
 def _alias_matches(normalized_text: str, normalized_alias: str) -> bool:
     if not normalized_alias:
         return False
@@ -97,7 +135,8 @@ def retrieve_value_matches(
     *,
     text: str,
     value_index_rows: list[dict[str, Any]],
-    max_matches: int = 12,
+    max_matches: int = DEFAULT_MAX_MATCHES_PER_TURN,
+    min_alias_chars: int = DEFAULT_MIN_ALIAS_CHARS,
 ) -> list[dict[str, Any]]:
     """Return database-derived value matches for user-authored text."""
 
@@ -108,6 +147,8 @@ def retrieve_value_matches(
         matched_alias = None
         for alias in row.get("aliases") or []:
             normalized_alias = normalize_value_token(alias)
+            if _alias_is_prunable(normalized_alias, min_alias_chars=min_alias_chars):
+                continue
             if _alias_matches(normalized_text, normalized_alias):
                 matched_alias = str(alias)
                 break
@@ -148,10 +189,14 @@ def add_semantic_value_retrieval_context(
     record: dict[str, Any],
     *,
     value_index_by_database: dict[str, list[dict[str, Any]]],
-    max_matches_per_turn: int = 12,
+    max_matches_per_turn: int = DEFAULT_MAX_MATCHES_PER_TURN,
+    retrieval_scope: str = "current_turn",
+    min_alias_chars: int = DEFAULT_MIN_ALIAS_CHARS,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Return one prepared record with retrieval context added to user turns."""
 
+    if retrieval_scope not in RETRIEVAL_SCOPES:
+        raise ValueError(f"retrieval_scope must be one of {', '.join(RETRIEVAL_SCOPES)}")
     if record.get("uses_oracle_planning_hints") or record.get(
         "semantic_context_pruned_by_oracle_labels"
     ):
@@ -164,11 +209,16 @@ def add_semantic_value_retrieval_context(
     for index, message in enumerate(messages):
         if message.get("role") != "user":
             continue
-        visible_text = _user_visible_text(messages, through_index=index)
+        visible_text = (
+            _user_visible_text(messages, through_index=index)
+            if retrieval_scope == "history"
+            else _user_turn_text(message)
+        )
         matches = retrieve_value_matches(
             text=visible_text,
             value_index_rows=database_index,
             max_matches=max_matches_per_turn,
+            min_alias_chars=min_alias_chars,
         )
         turn_match_counts.append(len(matches))
         if not matches:
@@ -185,6 +235,8 @@ def add_semantic_value_retrieval_context(
             "matched_turn_count": sum(1 for count in turn_match_counts if count > 0),
             "matched_value_count": matched_values,
             "max_matches_per_turn": max_matches_per_turn,
+            "retrieval_scope": retrieval_scope,
+            "min_alias_chars": min_alias_chars,
             "leakage_boundary": "matches use user-authored text up to each turn only",
         },
     }
@@ -202,7 +254,9 @@ def build_semantic_value_retrieval_inputs(
     *,
     prepared_rows: list[dict[str, Any]],
     value_index_rows: list[dict[str, Any]],
-    max_matches_per_turn: int = 12,
+    max_matches_per_turn: int = DEFAULT_MAX_MATCHES_PER_TURN,
+    retrieval_scope: str = "current_turn",
+    min_alias_chars: int = DEFAULT_MIN_ALIAS_CHARS,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Build semantic value-retrieval prepared rows and a summary."""
 
@@ -214,6 +268,8 @@ def build_semantic_value_retrieval_inputs(
             record,
             value_index_by_database=value_index_by_database,
             max_matches_per_turn=max_matches_per_turn,
+            retrieval_scope=retrieval_scope,
+            min_alias_chars=min_alias_chars,
         )
         output_rows.append(updated)
         row_summaries.append(summary)
@@ -231,6 +287,8 @@ def build_semantic_value_retrieval_inputs(
         "database_count": len(database_counts),
         "database_row_counts": dict(sorted(database_counts.items())),
         "max_matches_per_turn": max_matches_per_turn,
+        "retrieval_scope": retrieval_scope,
+        "min_alias_chars": min_alias_chars,
         "oracle_policy": "non_oracle_database_value_index_matched_to_user_text_only",
         "leakage_boundary": (
             "no reference SQL, gold plans, expected rows, assistant SQL, or future user turns "
@@ -248,7 +306,9 @@ def write_semantic_value_retrieval_input_artifacts(
     output_path: Path = DEFAULT_OUTPUT,
     summary_path: Path = DEFAULT_SUMMARY_OUTPUT,
     manifest_path: Path = DEFAULT_MANIFEST_OUTPUT,
-    max_matches_per_turn: int = 12,
+    max_matches_per_turn: int = DEFAULT_MAX_MATCHES_PER_TURN,
+    retrieval_scope: str = "current_turn",
+    min_alias_chars: int = DEFAULT_MIN_ALIAS_CHARS,
     command: list[str] | None = None,
 ) -> dict[str, Any]:
     """Write semantic prepared inputs, summary, and manifest."""
@@ -261,6 +321,8 @@ def write_semantic_value_retrieval_input_artifacts(
         prepared_rows=_load_jsonl(input_path),
         value_index_rows=_load_jsonl(value_index_path),
         max_matches_per_turn=max_matches_per_turn,
+        retrieval_scope=retrieval_scope,
+        min_alias_chars=min_alias_chars,
     )
     _write_jsonl(output_path, output_rows)
     _write_json(summary_path, summary)
@@ -283,6 +345,9 @@ def write_semantic_value_retrieval_input_artifacts(
         "matched_row_count": summary["matched_row_count"],
         "matched_turn_count": summary["matched_turn_count"],
         "matched_value_count": summary["matched_value_count"],
+        "max_matches_per_turn": summary["max_matches_per_turn"],
+        "retrieval_scope": summary["retrieval_scope"],
+        "min_alias_chars": summary["min_alias_chars"],
         "oracle_policy": summary["oracle_policy"],
         "leakage_boundary": summary["leakage_boundary"],
         "evaluation_gate": summary["evaluation_gate"],
@@ -304,7 +369,9 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--summary-output", type=Path, default=DEFAULT_SUMMARY_OUTPUT)
     parser.add_argument("--manifest-output", type=Path, default=DEFAULT_MANIFEST_OUTPUT)
-    parser.add_argument("--max-matches-per-turn", type=int, default=12)
+    parser.add_argument("--max-matches-per-turn", type=int, default=DEFAULT_MAX_MATCHES_PER_TURN)
+    parser.add_argument("--retrieval-scope", choices=RETRIEVAL_SCOPES, default="current_turn")
+    parser.add_argument("--min-alias-chars", type=int, default=DEFAULT_MIN_ALIAS_CHARS)
     args = parser.parse_args()
 
     command = [
@@ -325,6 +392,10 @@ def main() -> int:
         str(args.manifest_output),
         "--max-matches-per-turn",
         str(args.max_matches_per_turn),
+        "--retrieval-scope",
+        args.retrieval_scope,
+        "--min-alias-chars",
+        str(args.min_alias_chars),
     ]
     manifest = write_semantic_value_retrieval_input_artifacts(
         input_path=args.input,
@@ -334,6 +405,8 @@ def main() -> int:
         summary_path=args.summary_output,
         manifest_path=args.manifest_output,
         max_matches_per_turn=args.max_matches_per_turn,
+        retrieval_scope=args.retrieval_scope,
+        min_alias_chars=args.min_alias_chars,
         command=command,
     )
     print(

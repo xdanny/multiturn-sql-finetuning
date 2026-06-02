@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "artifact_type": "semantic_value_pruned_preflight_evidence",
+  "checkpoint": 6,
+  "run_id": "semantic_value_clean_holdout_pruned_preflight_20260602",
+  "claim_boundary": "Clean-holdout semantic value-retrieval pruning and endpoint-pair preflight only; no SQL execution result, value delta, or method win is claimed.",
+  "source_regression_evidence": "docs/training_runs/semantic_value_regression_diagnosis_20260602.json",
+  "run_environment": {
+    "runner_git_commit": "a8fcc263f951bba8b58726c532b97e571e0ab997",
+    "working_branch": "codex/semantic-retrieval-pruning"
+  },
+  "inputs": {
+    "direct_input_path": "data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl",
+    "direct_input_sha256": "aaa5a0aa7e216b409cfcc8d58442f555d364d3c1a0425d191aec40a965ae3cf2",
+    "semantic_input_path": "/tmp/semantic-cp6-pruned/cosql_dev_clean_holdout_semantic_value_retrieval_pruned.jsonl",
+    "semantic_input_sha256": "8d4a34d3396ed462ed48cbec5e232475aa4dece390029d11ed069ed26f4742a7",
+    "split_id": "cosql_dev_clean_holdout_v1",
+    "split_role": "clean_local_holdout",
+    "model_name": "multiturn-sql-semantic-50",
+    "oracle_prompt_rows": 0
+  },
+  "pruning_policy": {
+    "retrieval_scope": "current_turn",
+    "max_matches_per_turn": 4,
+    "min_alias_chars": 3,
+    "ambiguous_short_aliases_pruned": true,
+    "numeric_aliases_retained": true,
+    "leakage_boundary": "database-derived value aliases are matched only against the current user-authored turn; reference SQL, gold plans, expected rows, assistant SQL, and future user turns are not used for retrieval matching"
+  },
+  "commands": {
+    "semantic_inputs": "PYTHONPATH=/tmp/multiturn-roadmap-continue VIRTUAL_ENV=/home/dan/docs/multiturn-sql-finetuning/.venv PATH=/home/dan/docs/multiturn-sql-finetuning/.venv/bin:$PATH UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m data.semantic_value_retrieval_inputs --input /home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl --value-index /tmp/semantic-cp6-run/value_index_clean_holdout.jsonl --value-index-manifest /tmp/semantic-cp6-run/value_index_clean_holdout.manifest.json --output /tmp/semantic-cp6-pruned/cosql_dev_clean_holdout_semantic_value_retrieval_pruned.jsonl --summary-output /tmp/semantic-cp6-pruned/cosql_dev_clean_holdout_semantic_value_retrieval_pruned_summary.json --manifest-output /tmp/semantic-cp6-pruned/cosql_dev_clean_holdout_semantic_value_retrieval_pruned.manifest.json --max-matches-per-turn 4 --retrieval-scope current_turn --min-alias-chars 3",
+    "preflight": "PYTHONPATH=/tmp/multiturn-roadmap-continue VIRTUAL_ENV=/home/dan/docs/multiturn-sql-finetuning/.venv PATH=/home/dan/docs/multiturn-sql-finetuning/.venv/bin:$PATH UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m eval.run_semantic_value_retrieval_comparison --direct-input /home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl --semantic-input /tmp/semantic-cp6-pruned/cosql_dev_clean_holdout_semantic_value_retrieval_pruned.jsonl --value-index-manifest /tmp/semantic-cp6-run/value_index_clean_holdout.manifest.json --output-dir /tmp/semantic-cp6-pruned/results --run-id semantic_value_clean_holdout_pruned_preflight_20260602 --model-name multiturn-sql-semantic-50 --preflight-output /tmp/semantic-cp6-pruned/semantic_value_clean_holdout_pruned_preflight_20260602.preflight.json --preflight-only"
+  },
+  "artifacts": {
+    "value_index": {
+      "path": "/tmp/semantic-cp6-run/value_index_clean_holdout.jsonl",
+      "row_count": 12661,
+      "database_count": 20,
+      "sha256": "7fbeee645021906ebb53239cdcbcb55f78d422c1c81269adb74ae8389d14e73a"
+    },
+    "value_index_manifest": {
+      "path": "/tmp/semantic-cp6-run/value_index_clean_holdout.manifest.json",
+      "sha256": "8694dee013ceae4495d7021f56df670071209efae82482140d9968409c049856"
+    },
+    "semantic_prepared": {
+      "path": "/tmp/semantic-cp6-pruned/cosql_dev_clean_holdout_semantic_value_retrieval_pruned.jsonl",
+      "dialog_count": 193,
+      "assistant_turn_count": 680,
+      "matched_row_count": 153,
+      "matched_turn_count": 340,
+      "matched_value_count": 840,
+      "sha256": "8d4a34d3396ed462ed48cbec5e232475aa4dece390029d11ed069ed26f4742a7"
+    },
+    "semantic_prepared_summary": {
+      "path": "/tmp/semantic-cp6-pruned/cosql_dev_clean_holdout_semantic_value_retrieval_pruned_summary.json",
+      "sha256": "3b060e84b10f33f1e813119e779811c854d2e2a2e6cf739cae5bee81d587fbf5"
+    },
+    "semantic_prepared_manifest": {
+      "path": "/tmp/semantic-cp6-pruned/cosql_dev_clean_holdout_semantic_value_retrieval_pruned.manifest.json",
+      "sha256": "803a25004ce35c945defbc5eb7e093387a597db0d794eb73b4f7a1ed08e0124f"
+    },
+    "preflight": {
+      "path": "/tmp/semantic-cp6-pruned/semantic_value_clean_holdout_pruned_preflight_20260602.preflight.json",
+      "row_count": 680,
+      "dialog_count": 193,
+      "database_count": 20,
+      "status": "ready_for_endpoint_pair",
+      "sha256": "478dceefc476e39605b328c09fe2cccddc3b86efe11f817ddb74126a0aaa9e61"
+    }
+  },
+  "preflight": {
+    "status": "ready_for_endpoint_pair",
+    "row_count": 680,
+    "dialog_count": 193,
+    "database_count": 20,
+    "direct_evaluation_mode": "non_oracle_generation",
+    "semantic_evaluation_mode": "non_oracle_generation",
+    "value_index_index_source": "database_contents"
+  },
+  "previous_unpruned_baseline": {
+    "source_evidence": "docs/training_runs/semantic_value_clean_holdout_preflight_20260602.json",
+    "matched_row_count": 155,
+    "matched_turn_count": 510,
+    "matched_value_count": 3611,
+    "full_endpoint_value_delta_vs_direct_sql": -0.014705882352941235,
+    "full_endpoint_strict_delta_vs_direct_sql": -0.013235294117647123
+  },
+  "pruned_vs_unpruned": {
+    "matched_row_count_delta": -2,
+    "matched_turn_count_delta": -170,
+    "matched_value_count_delta": -2771,
+    "matched_value_count_reduction_ratio": 0.7673774577679313
+  },
+  "interpretation": [
+    "The previous full clean-holdout endpoint pair regressed and every value-score flip occurred on rows with retrieval context, so pruning retrieval noise is the next bounded Checkpoint 6 intervention.",
+    "The pruned input keeps database-derived provenance while reducing matched values from 3,611 to 840 and matched turns from 510 to 340.",
+    "This preflight only proves row-matched input readiness; Checkpoint 6 still needs a pruned endpoint pair with positive value delta and no strict-accuracy regression before any promotion claim."
+  ]
+}

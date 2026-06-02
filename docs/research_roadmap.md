@@ -4,12 +4,12 @@ This is the canonical long-term roadmap for the multi-turn SQL fine-tuning
 program. It replaces the old gate-heavy day-to-day direction with smaller,
 row-matched method comparisons.
 
-Last audited: 2026-06-01 after the Checkpoint 3 endpoint evaluation,
+Last audited: 2026-06-02 after the Checkpoint 3 endpoint evaluation,
 generated-history rollout, clean-holdout failure analysis, and Checkpoint 5
 planner schema/projection/table-selection repairs, planner-SFT readiness,
 projection-sequence planner-SFT training, schema-label-source correction, and
 corrected planner-SFT training/readiness plus alias-insensitive projection-order
-scoring.
+scoring, and Checkpoint 6 semantic value-retrieval pruning preflight.
 
 Checkpoint status legend:
 
@@ -643,11 +643,19 @@ Latest Checkpoint 6 evidence from 2026-06-02:
   value-retrieval context; the 170 rows without retrieved values had no
   direct-only or semantic-only value flips. The evidence file is
   `docs/training_runs/semantic_value_regression_diagnosis_20260602.json`.
+- Semantic value-retrieval input building now defaults to a pruned policy:
+  current-turn-only retrieval, at most 4 matches per turn, and short ambiguous
+  aliases pruned while numeric aliases remain eligible. This reduced the
+  clean-holdout semantic input from 3,611 matched values across 510 turns to 840
+  matched values across 340 turns.
+- `eval.run_semantic_value_retrieval_comparison --preflight-only` verified that
+  the pruned semantic input is row-identity matched and endpoint-pair ready on
+  the same 680 turns, 193 dialogs, and 20 databases. The evidence file is
+  `docs/training_runs/semantic_value_pruned_preflight_20260602.json`.
 
-The next Checkpoint 6 work should prune or redesign semantic value retrieval
-before another endpoint pair: cap retrieval volume, prefer high-confidence
-entity/value matches, and remove matches that pull the model toward unrelated
-tables or storage values.
+The next Checkpoint 6 work should run the pruned endpoint pair and require a
+positive value-accuracy delta with no strict-accuracy regression before any
+semantic value-retrieval promotion claim.
 
 ## Checkpoint 7: Metric DSL
 
