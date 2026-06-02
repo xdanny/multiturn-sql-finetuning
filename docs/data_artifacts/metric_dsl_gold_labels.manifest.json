@@ -1,0 +1,27 @@
+{
+  "artifact_type": "metric_dsl_gold_label_manifest",
+  "candidate_count": 313,
+  "command": [
+    "/tmp/multiturn-roadmap-next/data/metric_dsl_gold_labels.py",
+    "--input",
+    "data/processed/metric_dsl/clean_holdout_candidates.jsonl",
+    "--output",
+    "data/processed/metric_dsl/clean_holdout_gold_labels.jsonl",
+    "--summary-output",
+    "docs/training_runs/metric_dsl_gold_labels_20260602.json",
+    "--manifest-output",
+    "docs/data_artifacts/metric_dsl_gold_labels.manifest.json"
+  ],
+  "input_path": "data/processed/metric_dsl/clean_holdout_candidates.jsonl",
+  "input_sha256": "9a13d67355ea7a87afe06243c0cd6b432be3fa232760d90980484f5034656092",
+  "labelled_count": 38,
+  "oracle_policy": "non_oracle_generation",
+  "output_path": "data/processed/metric_dsl/clean_holdout_gold_labels.jsonl",
+  "output_row_count": 38,
+  "output_sha256": "5f54e5ac861f2338e9941bbddd1c97be9cbd1230da2748c8361bd70c24816f01",
+  "promotion_status": "not_ready",
+  "schema_version": 1,
+  "summary_path": "docs/training_runs/metric_dsl_gold_labels_20260602.json",
+  "summary_sha256": "45bf378e087ed9fff348a36e3756a442d1f48654a244279dd85b8329ae5253ed",
+  "unlabelled_count": 275
+}

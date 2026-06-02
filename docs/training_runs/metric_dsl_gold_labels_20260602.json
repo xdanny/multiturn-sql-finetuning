@@ -1,0 +1,37 @@
+{
+  "artifact_type": "metric_dsl_gold_label_summary",
+  "candidate_count": 313,
+  "checkpoint": 7,
+  "claim_boundary": "Scorer-side clean-holdout Metric DSL gold-label derivation only; no generated DSL, compiled SQL execution score, value delta, or method win is claimed.",
+  "comparison_contract": "metric_dsl_clean_holdout_gold_labels",
+  "database_count": 19,
+  "dialog_count": 141,
+  "input_path": "data/processed/metric_dsl/clean_holdout_candidates.jsonl",
+  "label_error_counts": {
+    "semantic join not found for dimension": 4,
+    "semantic measure not found for aggregate": 25,
+    "unsupported SQL shape: having": 34,
+    "unsupported SQL shape: nested query": 30,
+    "unsupported SQL shape: order by": 100,
+    "unsupported SQL shape: set operation": 3,
+    "unsupported SQL shape: where filter": 79
+  },
+  "labelled_count": 38,
+  "next_step": "generate same-row Metric DSL predictions and direct-SQL predictions for the labelled clean-holdout rows, then run eval.run_metric_dsl_comparison",
+  "oracle_policy": "non_oracle_generation",
+  "promotion_status": "not_ready",
+  "readiness_blockers": {
+    "metric DSL gold label derivation incomplete": 275
+  },
+  "reference_sql_visible_to_model_prompt": false,
+  "run_id": "metric_dsl_gold_labels_20260602",
+  "schema_version": 1,
+  "scorer_fields_visible_to_model_prompt": false,
+  "split_ids": {
+    "cosql_dev_clean_holdout_v1": 313
+  },
+  "split_roles": {
+    "clean_local_holdout": 313
+  },
+  "unlabelled_count": 275
+}

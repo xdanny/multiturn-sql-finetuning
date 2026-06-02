@@ -548,10 +548,19 @@ Current Checkpoint 7 evidence from 2026-06-02:
   generated candidate JSONL remains under ignored `data/processed/metric_dsl/`,
   with provenance recorded in
   `docs/data_artifacts/metric_dsl_clean_holdout_candidates.manifest.json`.
-- This is readiness evidence only. Every candidate is still blocked on
-  structured scorer-side gold Metric DSL labels. After those labels exist, the
-  next step is same-row Metric DSL and direct-SQL prediction generation followed
-  by `eval.run_metric_dsl_comparison` and the promotion audit.
+- `data.metric_dsl_gold_labels` derives a conservative scorer-side gold-label
+  subset from those candidates. The compact evidence file is
+  `docs/training_runs/metric_dsl_gold_labels_20260602.json`, with provenance in
+  `docs/data_artifacts/metric_dsl_gold_labels.manifest.json`.
+- The gold-label pass found 38 labelable clean-holdout rows from the 313
+  candidates. The other 275 remain unlabelled because their SQL shape is not yet
+  supported by this scorer-side derivation path, most commonly order-by, where,
+  nested-query, having, or missing semantic-model measure/join coverage.
+- This is still readiness evidence only. It clears the minimum row-count
+  blocker for a labelled Metric DSL comparison subset, but no generated DSL,
+  compiled SQL score, value delta, or method win is claimed. The next step is
+  same-row Metric DSL and direct-SQL prediction generation on the labelled rows,
+  followed by `eval.run_metric_dsl_comparison` and the promotion audit.
 
 ## Checkpoint 8: Generated-History Recovery
 

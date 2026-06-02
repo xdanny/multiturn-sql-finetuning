@@ -196,6 +196,22 @@ def _metric_dsl_readiness_evidence() -> dict:
     }
 
 
+def _metric_dsl_gold_label_evidence() -> dict:
+    return {
+        "artifact_type": "metric_dsl_gold_label_summary",
+        "candidate_count": 313,
+        "labelled_count": 38,
+        "unlabelled_count": 275,
+        "split_roles": {"clean_local_holdout": 313},
+        "readiness_blockers": {
+            "metric DSL gold label derivation incomplete": 275,
+        },
+        "promotion_status": "not_ready",
+        "reference_sql_visible_to_model_prompt": False,
+        "scorer_fields_visible_to_model_prompt": False,
+    }
+
+
 def _generated_history_recovery_readiness_evidence() -> dict:
     return {
         "artifact_type": "generated_history_recovery_readiness_summary",
@@ -366,6 +382,13 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         tmp_path
         / "docs"
         / "training_runs"
+        / "metric_dsl_gold_labels_20260602.json",
+        _metric_dsl_gold_label_evidence(),
+    )
+    _write_json(
+        tmp_path
+        / "docs"
+        / "training_runs"
         / "generated_history_recovery_readiness_20260602.json",
         _generated_history_recovery_readiness_evidence(),
     )
@@ -444,9 +467,14 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         "docs/training_runs/metric_dsl_clean_holdout_readiness_20260602.json"
         in by_checkpoint[7]["evidence"]
     )
+    assert "data.metric_dsl_gold_labels" in by_checkpoint[7]["evidence"]
+    assert (
+        "docs/training_runs/metric_dsl_gold_labels_20260602.json"
+        in by_checkpoint[7]["evidence"]
+    )
     assert by_checkpoint[7]["open_items"] == [
-        "structured gold Metric DSL labels missing",
-        "Metric DSL clean-holdout promotion policy must pass"
+        "Metric DSL generated predictions are missing",
+        "Metric DSL clean-holdout promotion policy must pass",
     ]
     assert (
         "data.generated_history_recovery_readiness"
