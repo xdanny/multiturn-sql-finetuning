@@ -102,7 +102,7 @@ experiments:
     adapter: outputs/experiments/structured_brief_sql/final
     method: structured_brief_sql
     oracle_policy: non_oracle_generation
-    scorer: eval.run_eval:value_and_strict_execution_v1
+    scorer: eval.run_structured_brief_comparison:value_delta_vs_direct_sql
     output_path: results/runs/structured_brief_sql_vs_direct
     control_experiment_id: direct_sql_full_non_oracle_control
     primary_metric: structured_brief_value_delta_vs_direct_sql
