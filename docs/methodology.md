@@ -112,9 +112,9 @@ A valid `metric_dsl` manifest supports a metric-intent quality claim, not a
 superiority claim. The repo requires `eval.compare_metric_dsl_direct_sql`, a
 `benchmark=metric_dsl_direct_sql` direct-SQL baseline, matching row identities,
 and a positive value-accuracy delta before clearing the metric-DSL-vs-direct-SQL
-claim. Unlike the predicted-planner comparison, the metric-DSL and direct-SQL
-models may differ; that is a method comparison, so the writeup must state which
-models and training targets were compared.
+claim. For metric-DSL method comparisons, the metric-DSL and direct-SQL models
+may differ; the writeup must state which models and training targets were
+compared.
 
 The `weight` field in dataset configs is metadata for experiment design today;
 current preparation caps each configured source with `--limit` and does not yet
@@ -168,9 +168,8 @@ comparison against the direct-SQL control with
 show a positive `structured_brief_value_delta_vs_direct_sql` and no strict
 accuracy regression before any method-win claim.
 
-The older predicted-planner modules and artifacts are historical diagnostics.
-They showed that planner scoring and endpoint comparison can be made measurable,
-but the active roadmap no longer treats planner F1 or planner readiness as a
+The older predicted-planner branch is deprecated. The active roadmap no longer
+keeps planner F1, planner readiness, or planner-to-SQL comparison wrappers as a
 gate before SQL benchmarking.
 
 ## Current Claim Boundary

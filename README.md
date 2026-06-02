@@ -310,15 +310,6 @@ source counts, evaluation modes, turn formats, history policies, assistant-turn
 totals, and configured dataset weights. Use it when reporting a training or eval
 artifact so dataset mixing is not hidden in prose.
 
-Historical fixed-slice lexical planner baseline:
-
-| Slice | Planner source | Rows | Dialogs | Oracle prompt rows | Macro planner score | Table F1 | Column F1 | Skeleton F1 |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| CoSQL dev first 100 turns | `lexical_schema_baseline` | 100 | 32 | 0 | 0.571 | 0.599 | 0.117 | 0.648 |
-
-The tracked summary is `docs/planner_baseline_cosql_dev_100_summary.json`.
-This is intentionally not a SQL execution result. It measures whether the
-non-oracle planner can recover the answer-key plan fields before SQL generation.
 Historical proxy numbers should be reported through run manifests and the
 current claim boundaries in `docs/evidence_contract.md`.
 

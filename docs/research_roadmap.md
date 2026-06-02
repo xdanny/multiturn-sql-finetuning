@@ -5,11 +5,9 @@ program. It replaces the old gate-heavy day-to-day direction with smaller,
 row-matched method comparisons.
 
 Last audited: 2026-06-02 after the Checkpoint 3 endpoint evaluation,
-generated-history rollout, clean-holdout failure analysis, and Checkpoint 5
-planner schema/projection/table-selection repairs, planner-SFT readiness,
-projection-sequence planner-SFT training, schema-label-source correction, and
-corrected planner-SFT training/readiness plus alias-insensitive projection-order
-scoring, and Checkpoint 6 pruned semantic value-retrieval endpoint comparison.
+generated-history rollout, clean-holdout failure analysis, Checkpoint 5
+structured query-brief reset, and Checkpoint 6 pruned semantic value-retrieval
+endpoint comparison.
 
 Checkpoint status legend:
 
@@ -348,9 +346,8 @@ uv run --active --no-sync python -m scripts.direct_sql_full_control \
 
 Status: `[~]` in progress. This checkpoint is now reset around training data and
 benchmark comparison, not oracle-planner gates. The old predicted-planner branch
-is paused as negative evidence: it taught useful leakage boundaries and exposed
-projection/order failure modes, but it overfit the workflow to SQL-derived
-planner labels and did not beat the direct-SQL control.
+is deprecated and removed from active evidence because it overfit the workflow
+to SQL-derived planner labels and did not beat the direct-SQL control.
 
 The active hypothesis is simpler:
 
@@ -388,21 +385,11 @@ row-matched comparison shows:
 - strict accuracy, syntax rate, interaction match, latency, and cost are
   reported alongside the primary value metric.
 
-Historical planner evidence should stay visible because it explains why this
-checkpoint changed:
-
-- The first 24-turn clean-holdout predicted-planner SQL pair regressed by
-  `-0.2083` value accuracy versus direct SQL after SQL extraction was fixed.
-  Evidence:
-  `docs/training_runs/planner_sft_1000_sql_limit24_negative_20260531.json`.
-- Failure analysis found most direct-only regressions were projection-order
-  flips after predicted-plan injection. Evidence:
-  `docs/training_runs/planner_sft_1000_sql_failure_analysis_20260531.json`.
-- Follow-up planner prompt, label-source, alias-normalization, and output-slot
-  work clarified the failure mode but still did not create a promotable SQL
-  result. The latest slot-aware readiness rerun remained below policy with
-  selected-expression order and output-slot order both at `0.833`. Evidence:
-  `docs/training_runs/planner_slotaware_readiness_20260602.json`.
+The old predicted-planner detour is deprecated and removed from active
+evidence. It did not produce a promotable SQL result, and keeping its command
+wrappers and JSON snapshots made the old gate-first workflow look canonical.
+Checkpoint 5 now treats query decomposition as trainable structured-brief data,
+not as a separate planner-readiness gate.
 
 The next Checkpoint 5 work is to build train-split structured-brief supervision
 and run a same-row structured-brief-vs-direct benchmark comparison. Do not spend
