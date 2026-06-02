@@ -375,8 +375,8 @@ may contain only production-visible context: question, history, schema,
 semantic artifacts, retrieved database values, and the model's own generated
 brief if the run emits one.
 
-Checkpoint 5 promotion no longer depends on planner F1 or
-`eval.planner_readiness`. A structured-brief method promotes only when a
+Checkpoint 5 promotion no longer depends on planner F1 or the old
+planner-readiness gate. A structured-brief method promotes only when a
 row-matched comparison shows:
 
 - direct-SQL control and structured-brief arm use identical clean-holdout row
