@@ -590,8 +590,8 @@ scorer change should another planner-SFT dataset or endpoint SQL pair run.
 
 Status: `[~]` in progress. Value labels, a non-oracle value index, semantic
 retrieval inputs, alias/column context inputs, and a clean-holdout semantic
-value-retrieval endpoint-pair preflight exist; a same-row semantic SQL win on a
-clean holdout does not.
+value-retrieval endpoint pair exist; the full same-row semantic SQL comparison
+regressed versus direct SQL on the clean holdout.
 
 Replace mechanically generated semantic hints with versioned semantic artifacts:
 
@@ -629,14 +629,20 @@ Latest Checkpoint 6 evidence from 2026-06-02:
 - `eval.run_semantic_value_retrieval_comparison --preflight-only` verified the
   direct-SQL and semantic inputs are row-identity matched and endpoint-pair
   ready on 680 turns, 193 dialogs, and 20 databases.
-- This is preflight evidence only: no endpoint SQL generations ran, no
-  value-accuracy delta exists, and no semantic method win is claimed. The
-  evidence file is
-  `docs/training_runs/semantic_value_clean_holdout_preflight_20260602.json`.
+- The full clean-holdout endpoint pair then ran on 680 comparable turns with
+  `multiturn-sql-semantic-50`. Direct SQL reached `0.650` value accuracy and
+  `0.553` strict accuracy; semantic value retrieval reached `0.635` value
+  accuracy and `0.540` strict accuracy. The semantic deltas were negative:
+  `-0.0147` value and `-0.0132` strict.
+- The comparer marked semantic promotion not ready with blockers:
+  value delta must be positive, and strict delta must not regress. Evidence
+  files are `docs/training_runs/semantic_value_clean_holdout_preflight_20260602.json`
+  and `docs/training_runs/semantic_value_clean_holdout_full_20260602.json`.
 
-The next Checkpoint 6 work should run the clean-holdout endpoint pair and require
-a positive value-accuracy delta without strict-accuracy regression before
-promoting semantic value retrieval.
+The next Checkpoint 6 work should diagnose the full-run regression before another
+endpoint pair: compare direct-correct/semantic-wrong rows, measure whether
+retrieved value context adds prompt noise, and prune retrieval or redesign
+semantic context before promoting semantic value retrieval.
 
 ## Checkpoint 7: Metric DSL
 
