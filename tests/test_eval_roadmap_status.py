@@ -227,6 +227,29 @@ def _metric_dsl_prediction_input_evidence() -> dict:
     }
 
 
+def _metric_dsl_comparison_evidence() -> dict:
+    return {
+        "artifact_type": "metric_dsl_clean_holdout_comparison_summary",
+        "comparable_row_count": 37,
+        "split_roles": {"clean_local_holdout": 37},
+        "metric_dsl_parse_rate": 0.16216216216216217,
+        "metric_dsl_compile_rate": 0.10810810810810811,
+        "metric_dsl_measure_preservation": 0.10810810810810811,
+        "metric_dsl_value_execution_accuracy": 0.10810810810810811,
+        "direct_sql_value_execution_accuracy": 0.9459459459459459,
+        "metric_dsl_value_delta_vs_direct_sql": -0.8378378378378378,
+        "metric_dsl_promotion_ready": False,
+        "metric_dsl_promotion_blockers": [
+            "metric DSL parse rate below promotion policy",
+            "metric DSL compile rate below promotion policy",
+            "measure preservation below promotion policy",
+            "value delta vs direct SQL must be positive",
+        ],
+        "promotion_status": "failed",
+        "oracle_policy": "non_oracle_generation",
+    }
+
+
 def _generated_history_recovery_readiness_evidence() -> dict:
     return {
         "artifact_type": "generated_history_recovery_readiness_summary",
@@ -411,6 +434,13 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         tmp_path
         / "docs"
         / "training_runs"
+        / "metric_dsl_clean_holdout_comparison_20260602.json",
+        _metric_dsl_comparison_evidence(),
+    )
+    _write_json(
+        tmp_path
+        / "docs"
+        / "training_runs"
         / "generated_history_recovery_readiness_20260602.json",
         _generated_history_recovery_readiness_evidence(),
     )
@@ -421,7 +451,7 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         checkpoint3_config_path=checkpoint3,
     )
 
-    assert summary["status_counts"] == {"complete": 6, "in_progress": 3, "pending": 1}
+    assert summary["status_counts"] == {"complete": 7, "in_progress": 2, "pending": 1}
     by_checkpoint = {row["checkpoint"]: row for row in summary["checkpoints"]}
     assert by_checkpoint[3]["status"] == "complete"
     assert "docs/training_runs/direct_sql_full_lora_20260531.json" in by_checkpoint[3]["evidence"]
@@ -502,10 +532,16 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         "docs/training_runs/metric_dsl_clean_holdout_prediction_inputs_20260602.json"
         in by_checkpoint[7]["evidence"]
     )
-    assert by_checkpoint[7]["open_items"] == [
-        "Metric DSL generated outputs are missing",
-        "Metric DSL clean-holdout promotion policy must pass",
-    ]
+    assert (
+        "eval.run_metric_dsl_comparison clean-holdout generated-output comparison"
+        in by_checkpoint[7]["evidence"]
+    )
+    assert (
+        "docs/training_runs/metric_dsl_clean_holdout_comparison_20260602.json"
+        in by_checkpoint[7]["evidence"]
+    )
+    assert by_checkpoint[7]["status"] == "complete"
+    assert by_checkpoint[7]["open_items"] == []
     assert (
         "data.generated_history_recovery_readiness"
         in by_checkpoint[8]["evidence"]

@@ -31,7 +31,7 @@ Current checkpoint progress:
 - `[x]` Checkpoint 4: Let Failure Analysis Choose Methods.
 - `[x]` Checkpoint 5: Structured Query Brief SFT.
 - `[x]` Checkpoint 6: Semantic Layer And Value Grounding.
-- `[~]` Checkpoint 7: Metric DSL.
+- `[x]` Checkpoint 7: Metric DSL.
 - `[~]` Checkpoint 8: Generated-History Recovery.
 - `[ ]` Checkpoint 9: Hosted And Target Benchmark Transfer.
 
@@ -508,9 +508,10 @@ only using as an inference-time prompt augmentation.
 
 ## Checkpoint 7: Metric DSL
 
-Status: `[~]` in progress. Parser/evaluator code, two-row fixtures, and a
-clean-holdout metric-shaped candidate slice exist, but prompt-only and 5-step
-evidence are negative diagnostics rather than a DSL method win.
+Status: `[x]` complete for this roadmap pass, with a negative result. Parser
+and evaluator code, clean-holdout labels, paired generated outputs, and a
+same-row direct-SQL comparison exist; the 5-step Metric DSL adapter failed the
+promotion policy and does not support a DSL method win.
 
 Expand beyond the current 2-row DSL fixture before training a serious adapter.
 Parse rate and compile rate are prerequisites, not wins.
@@ -572,6 +573,18 @@ Current Checkpoint 7 evidence from 2026-06-02:
   value delta, or method win is claimed. The next step is same-row Metric DSL
   and direct-SQL output generation on the 37 paired rows, followed by scoring,
   `eval.compare_metric_dsl_direct_sql`, and the promotion audit.
+- The 5-step Metric DSL adapter then failed that clean-holdout comparison. On
+  37 comparable clean-holdout rows, Metric DSL parse rate was `0.162`, compile
+  rate was `0.108`, measure preservation was `0.108`, and only 4 compiled rows
+  received database-backed execution scores. Metric DSL value accuracy was
+  `0.108` versus direct SQL value accuracy `0.946`, for a value delta of
+  `-0.838`; strict delta was `-0.189`.
+- The compact comparison evidence is
+  `docs/training_runs/metric_dsl_clean_holdout_comparison_20260602.json`. This
+  is negative evidence, not a promotion. The current Metric DSL output format
+  and 5-step adapter are not good enough for a method claim; future work should
+  either redesign the DSL target/prompt/training data or move on with this
+  failure recorded.
 
 ## Checkpoint 8: Generated-History Recovery
 
