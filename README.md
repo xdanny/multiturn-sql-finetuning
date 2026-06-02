@@ -92,9 +92,10 @@ Known constraints:
 - Qwen thinking mode must be disabled during endpoint evaluation with `chat_template_kwargs.enable_thinking=false`; otherwise generations can include reasoning prose.
 - Semantic model context increases prompt length. The current semantic endpoint run shows this cost directly, so future semantic prompts need retrieval and pruning.
 - DSPy-backed prompt search is available through `eval.prompt_optimize`; it can propose and score prompt variants against execution accuracy.
-- A non-oracle `predicted_planner` path is now wired: lexical planner output can be written back into prepared JSONL and injected into the SQL-generation prompt without reference SQL.
-- Predicted-planner comparison runners check paired inputs before endpoint time
-  and keep planner-quality diagnostics separate from SQL execution claims.
+- The old non-oracle `predicted_planner` path is now historical negative
+  evidence, not the active roadmap direction. The next structured-method path
+  is train-split query-brief data followed by row-matched SQL benchmark
+  comparison against direct SQL.
 - A `MEASURE()`-preserving metric-DSL evaluator is now wired for offline
   JSONL predictions; it scores semantic intent, compiles through a semantic
   model, optionally executes compiled SQL, and writes result manifests.
@@ -134,7 +135,7 @@ A portable Jupyter export remains available for readers who prefer notebooks:
 jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb
 ```
 
-The lab compares five fine-tuning targets: direct SQL, planner-first SQL,
+The lab compares five fine-tuning targets: direct SQL, structured query briefs,
 semantic-layer state, `MEASURE()`-preserving DSL, and behavior/recovery tuning.
 It also separates dataset roles for BIRD-Interact, BIRD mini-dev, CoSQL, SParC,
 synthetic schema-rich SQL, and the tiny SQLite lab so the repo does not treat
@@ -176,6 +177,10 @@ The next academically valid comparison is:
 Only the third row supports a production claim.
 
 ## Planner Evaluation
+
+This path is retained for historical diagnostics and leakage checks. It is no
+longer the active Checkpoint 5 promotion path; structured query-brief
+finetuning plus same-row SQL benchmark comparison is the active replacement.
 
 The repo now has a planner-evaluation path before SQL generation. It treats
 gold SQL-derived labels as the answer key and scores a predicted plan against

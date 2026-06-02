@@ -32,11 +32,11 @@ experiments:
 
   - experiment_id: predicted_planner_sql_vs_direct
     checkpoint: 5
-    status: planner_slotaware_readiness_negative
+    status: deprecated_negative_planner_gate
     hypothesis_id: planner_state
     hypothesis: >-
-      Non-oracle predicted planner state improves SQL execution only after
-      planner labels reach useful held-out quality.
+      Historical predicted-planner state did not improve SQL execution versus
+      the direct-SQL control and should no longer drive the active roadmap.
     train_split_id: cosql_train_v1
     validation_split_id: cosql_dev_100_proxy_seen_v1
     test_split_id: cosql_dev_clean_holdout_v1
@@ -83,8 +83,38 @@ experiments:
       corrected-adapter 24-turn clean-holdout readiness slice under the
       slot-aware policy kept endpoint-pair preflight ready, but
       output_slot_order_match was 0.833, below the 0.900 threshold. The planner
-      path still needs explicit output-slot targets and a passing slot-aware
-      readiness run before another endpoint SQL comparison.
+      path is deprecated as an active gate. Keep these artifacts as negative
+      evidence and leakage/scoring history, not as the next promotion path.
+
+  - experiment_id: structured_brief_sql_vs_direct
+    checkpoint: 5
+    status: needs_train_split_brief_data
+    hypothesis_id: structured_query_brief
+    hypothesis: >-
+      A model trained to emit a compact visible query brief before SQL can beat
+      the direct-SQL finetuned control on row-matched multi-turn benchmarks.
+    train_split_id: cosql_train_v1
+    validation_split_id: cosql_dev_100_proxy_seen_v1
+    test_split_id: cosql_dev_clean_holdout_v1
+    dataset_role: clean_local_holdout
+    benchmark_protocol_id: cosql_dev_100_teacher_forced_proxy
+    model: unsloth/Qwen3.5-9B
+    adapter: outputs/experiments/structured_brief_sql/final
+    method: structured_brief_sql
+    oracle_policy: non_oracle_generation
+    scorer: eval.run_eval:value_and_strict_execution_v1
+    output_path: results/runs/structured_brief_sql_vs_direct
+    control_experiment_id: direct_sql_full_non_oracle_control
+    primary_metric: structured_brief_value_delta_vs_direct_sql
+    claim_boundary: >-
+      This is the active Checkpoint 5 replacement for the over-engineered
+      planner gate. Training-split reference SQL may supervise compact query
+      briefs, but clean-holdout prompts must not include scorer-only labels,
+      reference SQL, expected rows, future turns, gold plans, gold DSL, or
+      repair labels. Promotion requires a same-row clean-holdout benchmark
+      comparison with positive value-accuracy delta versus direct SQL, with
+      strict accuracy, syntax rate, interaction match, latency, and cost
+      reported.
 
   - experiment_id: semantic_value_retrieval_vs_direct
     checkpoint: 6

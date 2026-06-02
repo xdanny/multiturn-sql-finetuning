@@ -60,116 +60,40 @@ value/strict/syntax metrics.
 Next useful movement: keep this arm boring and stable. Do not add method-specific
 context here unless it is also present in the method control.
 
-## Planner Or DSL First, SQL Second
+## Structured Query Brief SFT
 
-Hypothesis: SQL generation improves if the model first predicts a compact plan:
-relevant tables, columns, joins, projection shape, grouping, duplicate policy,
-and value/entity hints.
+Hypothesis: SQL generation improves if the model is trained to emit a compact,
+visible query brief before SQL. The brief should describe user intent,
+entities/values, metrics or measures, filters, grouping/grain, joins or table
+families, and final answer shape.
 
-Implementation path: improve planner predictions before spending endpoint time on
-SQL generation. Score planner outputs with `eval.planner_eval` and
-`eval.planner_readiness`.
+Implementation path: build train-split structured-brief supervision, finetune a
+brief-first SQL adapter, and compare it against the direct-SQL control on the
+same clean-holdout rows. Do not require planner F1 or planner readiness before
+the SQL benchmark comparison.
 
-Control: direct SQL on the same row identities, same model, same scorer, and
-same database root.
+Control: direct SQL on the same row identities, same scorer, same database root,
+same oracle policy, and comparable model/adapter setup.
 
-Evidence artifact: `eval.run_predicted_planner_comparison` produces direct-SQL,
-predicted-planner, and comparison manifests. The comparison must show a positive
-value-accuracy delta before `predicted_planner_sql_execution` can clear.
+Evidence artifact: a structured-brief-vs-direct comparison manifest. Promotion
+requires positive value-accuracy delta versus direct SQL, with strict accuracy,
+syntax rate, interaction match, latency, and cost reported.
 
-Latest movement: train-split planner-SFT rows from `data.planner_sft` produced a
-1000-step planner adapter that passed bounded proxy and clean-holdout planner
-readiness. The first local SQL manifest exposed chat-role continuation
-extraction failures, and after correcting SQL extraction the 24-turn
-clean-holdout same-row SQL pair still regressed by `-0.2083` value accuracy
-versus the direct-SQL control.
+Leakage boundary: training-split reference SQL may supervise brief targets.
+Clean-holdout prompts must not contain reference SQL, expected rows, future
+turns, gold plans, gold DSL, repair labels, or any answer-key decomposition.
 
-Failure analysis: `docs/training_runs/planner_sft_1000_sql_failure_analysis_20260531.json`
-shows 15 rows both arms answered correctly, 6 direct-only regressions, 1
-planner-only fix, and 2 rows both arms missed. Four of the six direct-only
-regressions are projection-order flips after predicted-plan injection.
+Historical planner evidence: the previous predicted-planner branch is paused as
+negative evidence. The 24-turn clean-holdout SQL pair regressed by `-0.2083`
+value accuracy versus direct SQL, and later planner-readiness repairs clarified
+projection/order failures without producing a promotable SQL result. Preserve
+`docs/training_runs/planner_sft_1000_sql_limit24_negative_20260531.json`,
+`docs/training_runs/planner_sft_1000_sql_failure_analysis_20260531.json`, and
+`docs/training_runs/planner_slotaware_readiness_20260602.json` as the rationale
+for this reset.
 
-Contract update: `docs/training_runs/planner_projection_order_contract_20260531.json`
-records that `projection_shape.selected_expressions` now keeps sequence order
-in `normalize_plan`, predicted-plan prompt hints, and newly generated
-planner-SFT targets.
-
-Order-aware readiness update:
-`docs/training_runs/planner_projection_order_metric_20260531.json` records that
-regenerating the train-split planner-SFT rows produced identical targets, while
-rescoring the existing 24-turn clean-holdout planner predictions found ordered
-selected-expression match `0.792`, below the `0.900` readiness threshold.
-`docs/training_runs/planner_orderaware_readiness_rerun_20260531.json` then
-records the local 24-turn planner prediction rerun under the same policy:
-selected-count match stays `1.000`, but ordered selected-expression match stays
-`0.792`, so readiness still recommends `improve_planner_before_comparison`.
-`docs/training_runs/planner_projection_sequence_prompt_20260531.json` records a
-follow-up prompt-only attempt that explicitly defines `selected_expressions` as
-the final answer-column sequence; it produced the same predicted-prepared hash
-and the same `0.792` ordered selected-expression match.
-`docs/training_runs/planner_sft_sequence_instruction_dataset_20260531.json`
-records the next data step: the full 7,343-row train-split planner-SFT dataset
-now carries `planner_prompt_policy=projection_sequence_instruction_v1`; all
-prompt rows changed, while target plans stayed unchanged.
-`docs/training_runs/planner_sequence_sft_1000_readiness_20260531.json` records
-the follow-up 1000-step adapter trained on that projection-sequence dataset. The
-adapter trained successfully, but clean-holdout readiness did not pass:
-`parse_error_count=2`, `macro_planner_score=0.837`, and ordered
-selected-expression match `0.625`, so SQL endpoint comparison stayed blocked.
-`docs/training_runs/planner_sequence_useronly_readiness_20260531.json` records
-the next prompt-history fix: `eval.planner_predict` now strips teacher-forced
-assistant SQL history so inference matches the planner-SFT system/user-only
-prompt distribution. On the same 24-turn clean-holdout slice, parse errors fell
-to `0`, endpoint-pair preflight became ready, and macro planner score moved to
-`0.860`; readiness still did not pass because ordered selected-expression match
-fell to `0.583`.
-`docs/training_runs/planner_schema_label_gold_source_20260601.json` records the
-next label-source audit: prepared inputs can retain stale normalized
-`gold_plans`, so planner scoring, predicted-planner prepared artifacts, and
-planner-SFT target generation now prefer current SQL-derived
-`schema_link_labels` when both are present. The 24-turn aggregate stayed
-unchanged because one false negative and one false positive canceled out, but
-future planner data should be regenerated from the corrected source precedence.
-`docs/training_runs/planner_sft_schema_label_source_dataset_20260601.json`
-records that regeneration: the 7,343-row train-split planner-SFT dataset now
-uses `planner_label_source=train_split_schema_link_labels_preferred`. Prompts
-did not change, but 618 target plans changed versus the prior
-projection-sequence dataset, mostly selected-expression order or identity
-updates.
-`docs/training_runs/planner_schema_label_source_sft_1000_20260601.json`
-records the follow-up 1000-step adapter trained on that corrected
-schema-label-source dataset. The adapter trained successfully and saved
-`outputs/experiments/predicted_planner_sql/planner_schema_label_sft_20260601_1000/final`
-with reported train loss `0.09429` and final adapter SHA-256
-`1a1dc047c1ecd940cd9455ba2e1afdc66f1e4274364d49a95bd92458ff759367`.
-`docs/training_runs/planner_schema_label_source_readiness_20260601.json`
-records the order-aware clean-holdout readiness rerun for that corrected
-adapter. Parse errors stayed at `0`, endpoint-pair preflight was ready, and
-macro planner score moved to `0.884`; readiness still blocked promotion because
-ordered selected-expression match was `0.708`, below the `0.900` threshold.
-`docs/training_runs/planner_alias_normalized_readiness_20260601.json` records
-the follow-up scorer repair: selected-expression order now ignores SQL/table
-qualifiers while table and column identity stay scored separately. That removed
-alias false negatives and moved ordered selected-expression match to `0.833`
-and macro planner score to `0.897`. Readiness still blocks promotion because
-four true projection issues remain: two count-column/count-distinct misses, one
-destination-airport distinct-count miss, and one group-key/aggregate order
-reversal.
-`docs/training_runs/planner_output_slot_contract_20260602.json` records the
-contract and scorer follow-up: `projection_shape.output_slots` now models
-ordered answer slots separately from relevant filter/join columns, and
-`output_slot_order_match` is part of planner scoring and readiness policy. This
-does not claim a new planner readiness pass or SQL win.
-`docs/training_runs/planner_slotaware_readiness_20260602.json` records the
-slot-aware rerun on the same 24-turn corrected-adapter clean-holdout slice.
-Endpoint-pair preflight stayed ready and parse errors stayed at `0`, but
-promotion still blocked because both selected-expression order and output-slot
-order scored `0.833`, below the `0.900` policy threshold.
-
-Next useful movement: update planner-SFT targets and prompt/schema so the model
-predicts ordered `output_slots` directly, rerun slot-aware clean-holdout
-readiness, and only then run another bounded same-row endpoint pair if readiness
-passes.
+Next useful movement: build the structured-brief training rows and manifest,
+then run the same-row structured-brief-vs-direct benchmark comparison.
 
 ## Semantic-Layer Tuning
 
