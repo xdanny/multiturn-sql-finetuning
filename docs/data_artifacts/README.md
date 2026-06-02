@@ -67,6 +67,7 @@ in this directory.
 
 - `metric_dsl_clean_holdout_candidates.manifest.json`
 - `metric_dsl_gold_labels.manifest.json`
+- `metric_dsl_clean_holdout_prediction_inputs.manifest.json`
 
 `data.metric_dsl_clean_holdout_readiness` writes the generated candidate JSONL
 under `data/processed/metric_dsl/` and records compact provenance here. The
@@ -78,8 +79,11 @@ These artifacts are readiness evidence only. The prompt rows stop before the
 current assistant label and keep reference SQL, gold plans, and gold Metric DSL
 scorer-side. `data.metric_dsl_gold_labels` derives a conservative labelled
 subset for scoring `MEASURE(...)` preservation and compiled-SQL comparisons, but
-the generated prediction outputs still belong under `results/`. A Metric DSL
-claim still requires row-matched direct-SQL comparison and the promotion audit.
+the generated prediction outputs still belong under `results/`.
+`data.metric_dsl_clean_holdout_prediction_inputs` writes paired Metric DSL and
+direct-SQL generation inputs under `data/processed/metric_dsl/`; the manifest
+records row counts, hashes, and any prompt-leakage exclusions. A Metric DSL claim
+still requires row-matched direct-SQL comparison and the promotion audit.
 
 ### Behavior Recovery Finetuning Rows
 

@@ -27,6 +27,9 @@ DEFAULT_METRIC_DSL_READINESS_EVIDENCE = Path(
 DEFAULT_METRIC_DSL_GOLD_LABEL_EVIDENCE = Path(
     "docs/training_runs/metric_dsl_gold_labels_20260602.json"
 )
+DEFAULT_METRIC_DSL_PREDICTION_INPUT_EVIDENCE = Path(
+    "docs/training_runs/metric_dsl_clean_holdout_prediction_inputs_20260602.json"
+)
 DEFAULT_GENERATED_HISTORY_RECOVERY_READINESS_EVIDENCE = Path(
     "docs/training_runs/generated_history_recovery_readiness_20260602.json"
 )
@@ -186,19 +189,38 @@ def _metric_dsl_gold_labels_meet_comparison_floor(
     return int(evidence.get("labelled_count") or 0) >= METRIC_DSL_MIN_COMPARABLE_ROWS
 
 
+def _metric_dsl_prediction_inputs_recorded(evidence: Mapping[str, Any] | None) -> bool:
+    if not evidence:
+        return False
+    if evidence.get("artifact_type") != "metric_dsl_clean_holdout_prediction_input_summary":
+        return False
+    paired_row_count = int(evidence.get("paired_row_count") or 0)
+    if paired_row_count < METRIC_DSL_MIN_COMPARABLE_ROWS:
+        return False
+    split_roles = evidence.get("split_roles") or {}
+    return int(split_roles.get("clean_local_holdout") or 0) >= paired_row_count
+
+
 def _metric_dsl_open_items(
     readiness_evidence: Mapping[str, Any] | None,
     gold_label_evidence: Mapping[str, Any] | None,
+    prediction_input_evidence: Mapping[str, Any] | None,
 ) -> list[str]:
     items = []
     gold_labels_ready = _metric_dsl_gold_labels_meet_comparison_floor(gold_label_evidence)
+    prediction_inputs_ready = _metric_dsl_prediction_inputs_recorded(
+        prediction_input_evidence
+    )
     if _metric_dsl_readiness_recorded(readiness_evidence):
         for blocker in readiness_evidence.get("readiness_blockers") or {}:
             if gold_labels_ready and blocker == "structured gold Metric DSL labels missing":
                 continue
             items.append(str(blocker))
     if gold_labels_ready:
-        items.append("Metric DSL generated predictions are missing")
+        if prediction_inputs_ready:
+            items.append("Metric DSL generated outputs are missing")
+        else:
+            items.append("Metric DSL prediction inputs are missing")
     else:
         items.append(
             f"at least {METRIC_DSL_MIN_COMPARABLE_ROWS} structured gold Metric DSL labels needed"
@@ -240,6 +262,9 @@ def summarize_roadmap_status(
     ),
     metric_dsl_readiness_evidence_path: Path = DEFAULT_METRIC_DSL_READINESS_EVIDENCE,
     metric_dsl_gold_label_evidence_path: Path = DEFAULT_METRIC_DSL_GOLD_LABEL_EVIDENCE,
+    metric_dsl_prediction_input_evidence_path: Path = (
+        DEFAULT_METRIC_DSL_PREDICTION_INPUT_EVIDENCE
+    ),
     generated_history_recovery_readiness_evidence_path: Path = (
         DEFAULT_GENERATED_HISTORY_RECOVERY_READINESS_EVIDENCE
     ),
@@ -312,6 +337,15 @@ def summarize_roadmap_status(
     metric_dsl_gold_labels_recorded = _metric_dsl_gold_labels_recorded(
         metric_dsl_gold_labels
     )
+    resolved_metric_dsl_prediction_input_path = _resolve_from_config_root(
+        experiment_registry_path, metric_dsl_prediction_input_evidence_path
+    )
+    metric_dsl_prediction_inputs = _load_optional_json(
+        resolved_metric_dsl_prediction_input_path
+    )
+    metric_dsl_prediction_inputs_recorded = _metric_dsl_prediction_inputs_recorded(
+        metric_dsl_prediction_inputs
+    )
     metric_dsl_evidence = [
         f"experiment_status={_experiment_status(experiments, 'metric_dsl_vs_direct_sql')}",
         "eval.compare_metric_dsl_direct_sql promotion policy",
@@ -329,6 +363,13 @@ def summarize_roadmap_status(
             [
                 "data.metric_dsl_gold_labels",
                 str(metric_dsl_gold_label_evidence_path),
+            ]
+        )
+    if metric_dsl_prediction_inputs_recorded:
+        metric_dsl_evidence.extend(
+            [
+                "data.metric_dsl_clean_holdout_prediction_inputs",
+                str(metric_dsl_prediction_input_evidence_path),
             ]
         )
     resolved_generated_history_recovery_readiness_path = _resolve_from_config_root(
@@ -426,7 +467,11 @@ def summarize_roadmap_status(
             7,
             status="in_progress",
             evidence=metric_dsl_evidence,
-            open_items=_metric_dsl_open_items(metric_dsl_readiness, metric_dsl_gold_labels),
+            open_items=_metric_dsl_open_items(
+                metric_dsl_readiness,
+                metric_dsl_gold_labels,
+                metric_dsl_prediction_inputs,
+            ),
         ),
         _entry(
             8,

@@ -1,0 +1,36 @@
+{
+  "artifact_type": "metric_dsl_clean_holdout_prediction_input_summary",
+  "checkpoint": 7,
+  "claim_boundary": "Clean-holdout Metric DSL/direct-SQL prediction-input contract only; no generated outputs, execution scores, value delta, or method win is claimed.",
+  "comparison_contract": "metric_dsl_clean_holdout_prediction_inputs",
+  "database_count": 12,
+  "database_path_rows": 37,
+  "database_root": "data/raw/cosql_dataset/database",
+  "dialog_count": 29,
+  "direct_sql_prediction_input_count": 37,
+  "excluded_prompt_leakage_count": 1,
+  "excluded_prompt_leakage_rows": [
+    {
+      "database_id": "network_1",
+      "id": "prepared-130:1",
+      "reason": "prepared-130:1 leaks reference_sql into the model prompt"
+    }
+  ],
+  "input_labelled_count": 38,
+  "input_path": "data/processed/metric_dsl/clean_holdout_gold_labels.jsonl",
+  "metric_dsl_prediction_input_count": 37,
+  "next_step": "generate same-row Metric DSL and direct-SQL outputs from these inputs, score them, then run eval.compare_metric_dsl_direct_sql",
+  "oracle_policy": "non_oracle_generation",
+  "paired_row_count": 37,
+  "promotion_status": "not_ready",
+  "reference_sql_visible_to_model_prompt": false,
+  "run_id": "metric_dsl_clean_holdout_prediction_inputs_20260602",
+  "schema_version": 1,
+  "scorer_fields_visible_to_model_prompt": false,
+  "split_ids": {
+    "cosql_dev_clean_holdout_v1": 37
+  },
+  "split_roles": {
+    "clean_local_holdout": 37
+  }
+}
