@@ -40,7 +40,7 @@ def test_experiment_registry_names_roadmap_runs() -> None:
 
     semantic = next(row for row in experiments if row["method"] == "semantic_value_retrieval")
     assert semantic["dataset_role"] == "clean_local_holdout"
-    assert semantic["status"] == "semantic_pruned_preflight_ready"
+    assert semantic["status"] == "semantic_pruned_clean_holdout_promoted"
 
 
 def test_experiment_registry_loader_rejects_missing_required_field(tmp_path) -> None:

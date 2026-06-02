@@ -207,10 +207,16 @@ follow-up pruning preflight. Current-turn retrieval with a 4-match cap and short
 ambiguous alias pruning reduced clean-holdout matches from 3,611 values across
 510 turns to 840 values across 340 turns, while staying row-identity matched and
 endpoint-pair ready across the same 680 turns, 193 dialogs, and 20 databases.
+`docs/training_runs/semantic_value_pruned_full_20260602.json` records the pruned
+full endpoint pair. Direct SQL reached `0.651` value and `0.554` strict
+accuracy; pruned semantic value retrieval reached `0.653` value and `0.557`
+strict accuracy. The comparer marked promotion ready, but the row-level margin
+is only 32 semantic-only value-correct rows versus 31 direct-only value-correct
+rows.
 
-Next useful movement: run the pruned endpoint pair and require a positive value
-delta with no strict-accuracy regression before promoting semantic value
-retrieval.
+Next useful movement: replicate or stress-test the narrow semantic win, then
+decide whether to train against the pruned retrieval context or keep it as an
+inference-time prompt augmentation.
 
 ## `MEASURE()`-Preserving Metric DSL
 

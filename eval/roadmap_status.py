@@ -244,7 +244,7 @@ def summarize_roadmap_status(
         ),
         _entry(
             6,
-            status="in_progress",
+            status="complete",
             evidence=[
                 f"experiment_status={_experiment_status(experiments, 'semantic_value_retrieval_vs_direct')}",
                 "eval.compare_semantic_value_retrieval promotion policy",
@@ -253,9 +253,7 @@ def summarize_roadmap_status(
                 "docs/training_runs/semantic_value_clean_holdout_full_20260602.json",
                 "docs/training_runs/semantic_value_regression_diagnosis_20260602.json",
                 "docs/training_runs/semantic_value_pruned_preflight_20260602.json",
-            ],
-            open_items=[
-                "run pruned semantic value-retrieval endpoint pair and require positive value delta with no strict regression",
+                "docs/training_runs/semantic_value_pruned_full_20260602.json",
             ],
         ),
         _entry(

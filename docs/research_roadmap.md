@@ -9,7 +9,7 @@ generated-history rollout, clean-holdout failure analysis, and Checkpoint 5
 planner schema/projection/table-selection repairs, planner-SFT readiness,
 projection-sequence planner-SFT training, schema-label-source correction, and
 corrected planner-SFT training/readiness plus alias-insensitive projection-order
-scoring, and Checkpoint 6 semantic value-retrieval pruning preflight.
+scoring, and Checkpoint 6 pruned semantic value-retrieval endpoint comparison.
 
 Checkpoint status legend:
 
@@ -32,7 +32,7 @@ Current checkpoint progress:
 - `[x]` Checkpoint 3: Rebuild Baselines At Real Scale.
 - `[x]` Checkpoint 4: Let Failure Analysis Choose Methods.
 - `[~]` Checkpoint 5: Planner First, But Non-Oracle.
-- `[~]` Checkpoint 6: Semantic Layer And Value Grounding.
+- `[x]` Checkpoint 6: Semantic Layer And Value Grounding.
 - `[~]` Checkpoint 7: Metric DSL.
 - `[~]` Checkpoint 8: Generated-History Recovery.
 - `[ ]` Checkpoint 9: Hosted And Target Benchmark Transfer.
@@ -51,9 +51,10 @@ The publishable benchmark claim is simple:
 
 The current repo is not at a hosted benchmark claim yet. It now has a full
 direct-SQL local control baseline for the configured CoSQL proxy and clean
-holdout, but the structured method arms still need same-row clean-holdout wins.
-Many method artifacts remain intentionally small: 2 metric-DSL rows, 1
-behavior-recovery row, and 5 synthetic fixtures.
+holdout, plus one narrow clean-holdout semantic value-retrieval win under the
+current comparer. Other structured method arms still need same-row
+clean-holdout wins. Many method artifacts remain intentionally small: 2
+metric-DSL rows, 1 behavior-recovery row, and 5 synthetic fixtures.
 
 Supported non-oracle claims are still scoped. The full direct-SQL LoRA improves
 over its base-model control on the configured local rows: proxy value/strict
@@ -588,10 +589,12 @@ scorer change should another planner-SFT dataset or endpoint SQL pair run.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 
-Status: `[~]` in progress. Value labels, a non-oracle value index, semantic
-retrieval inputs, alias/column context inputs, and a clean-holdout semantic
-value-retrieval endpoint pair exist; the full same-row semantic SQL comparison
-regressed versus direct SQL on the clean holdout.
+Status: `[x]` complete for the current local semantic value-retrieval promotion
+policy. Value labels, a non-oracle value index, semantic retrieval inputs,
+alias/column context inputs, negative unpruned endpoint evidence, pruning
+evidence, and a pruned clean-holdout endpoint pair exist. The pruned same-row
+semantic SQL comparison beat direct SQL by a very narrow margin on the clean
+holdout.
 
 Replace mechanically generated semantic hints with versioned semantic artifacts:
 
@@ -652,10 +655,21 @@ Latest Checkpoint 6 evidence from 2026-06-02:
   the pruned semantic input is row-identity matched and endpoint-pair ready on
   the same 680 turns, 193 dialogs, and 20 databases. The evidence file is
   `docs/training_runs/semantic_value_pruned_preflight_20260602.json`.
+- The pruned full clean-holdout endpoint pair ran on the same 680 comparable
+  turns with `multiturn-sql-semantic-50`. Direct SQL reached `0.651` value
+  accuracy and `0.554` strict accuracy; pruned semantic value retrieval reached
+  `0.653` value accuracy and `0.557` strict accuracy. The semantic deltas were
+  `+0.00147` value and `+0.00294` strict, and
+  `semantic_value_retrieval_promotion_ready=true`.
+- The paired flip analysis shows why this should stay a narrow local claim:
+  32 semantic-only value-correct rows, 31 direct-only value-correct rows, 412
+  rows both value-correct, and 205 rows both value-wrong. The evidence file is
+  `docs/training_runs/semantic_value_pruned_full_20260602.json`.
 
-The next Checkpoint 6 work should run the pruned endpoint pair and require a
-positive value-accuracy delta with no strict-accuracy regression before any
-semantic value-retrieval promotion claim.
+Checkpoint 6 is complete for the current local semantic value-retrieval
+promotion policy. Future work should replicate or stress-test this narrow win,
+then decide whether the value-retrieval context is worth training against or
+only using as an inference-time prompt augmentation.
 
 ## Checkpoint 7: Metric DSL
 
