@@ -508,9 +508,9 @@ only using as an inference-time prompt augmentation.
 
 ## Checkpoint 7: Metric DSL
 
-Status: `[~]` in progress. Parser/evaluator code and two-row fixtures exist,
-but prompt-only and 5-step evidence are negative diagnostics rather than a DSL
-method win.
+Status: `[~]` in progress. Parser/evaluator code, two-row fixtures, and a
+clean-holdout metric-shaped candidate slice exist, but prompt-only and 5-step
+evidence are negative diagnostics rather than a DSL method win.
 
 Expand beyond the current 2-row DSL fixture before training a serious adapter.
 Parse rate and compile rate are prerequisites, not wins.
@@ -533,6 +533,25 @@ comparable rows, full parse and compile rates, full `MEASURE(...)`
 preservation, a positive value-accuracy delta, no strict-accuracy regression,
 and non-oracle semantic-model provenance. Synthetic or tiny fixture evidence
 can diagnose the contract, but it cannot promote the method.
+
+Current Checkpoint 7 evidence from 2026-06-02:
+
+- `data.metric_dsl_clean_holdout_readiness` selects metric-shaped turns from
+  the prepared CoSQL clean holdout without exposing the current reference SQL,
+  gold plan, or future turns in the Metric DSL prompt.
+- The readiness pass found 313 candidate turns across 141 dialogs and 19
+  databases with `split_role=clean_local_holdout`. Signal counts are:
+  aggregation `233`, group-by `87`, having `38`, order-by `114`, and limit
+  `101`.
+- The compact readiness summary is
+  `docs/training_runs/metric_dsl_clean_holdout_readiness_20260602.json`; the
+  generated candidate JSONL remains under ignored `data/processed/metric_dsl/`,
+  with provenance recorded in
+  `docs/data_artifacts/metric_dsl_clean_holdout_candidates.manifest.json`.
+- This is readiness evidence only. Every candidate is still blocked on
+  structured scorer-side gold Metric DSL labels. After those labels exist, the
+  next step is same-row Metric DSL and direct-SQL prediction generation followed
+  by `eval.run_metric_dsl_comparison` and the promotion audit.
 
 ## Checkpoint 8: Generated-History Recovery
 

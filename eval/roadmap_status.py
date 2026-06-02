@@ -21,6 +21,9 @@ DEFAULT_CHECKPOINT3_EVIDENCE = Path("docs/training_runs/direct_sql_full_eval_202
 DEFAULT_STRUCTURED_BRIEF_COMPARISON_EVIDENCE = Path(
     "docs/training_runs/structured_brief_clean_holdout_comparison_20260602.json"
 )
+DEFAULT_METRIC_DSL_READINESS_EVIDENCE = Path(
+    "docs/training_runs/metric_dsl_clean_holdout_readiness_20260602.json"
+)
 
 
 CHECKPOINTS: dict[int, str] = {
@@ -146,6 +149,25 @@ def _structured_brief_claim_complete(evidence: Mapping[str, Any] | None) -> bool
     )
 
 
+def _metric_dsl_readiness_recorded(evidence: Mapping[str, Any] | None) -> bool:
+    if not evidence:
+        return False
+    if evidence.get("artifact_type") != "metric_dsl_clean_holdout_candidate_summary":
+        return False
+    if not _positive_int(evidence.get("candidate_count")):
+        return False
+    split_roles = evidence.get("split_roles") or {}
+    return _positive_int(split_roles.get("clean_local_holdout"))
+
+
+def _metric_dsl_open_items(evidence: Mapping[str, Any] | None) -> list[str]:
+    items = []
+    if _metric_dsl_readiness_recorded(evidence):
+        items.extend(str(blocker) for blocker in (evidence.get("readiness_blockers") or {}))
+    items.append("Metric DSL clean-holdout promotion policy must pass")
+    return items
+
+
 def summarize_roadmap_status(
     *,
     experiment_registry_path: Path = DEFAULT_EXPERIMENT_REGISTRY,
@@ -154,6 +176,7 @@ def summarize_roadmap_status(
     structured_brief_comparison_evidence_path: Path = (
         DEFAULT_STRUCTURED_BRIEF_COMPARISON_EVIDENCE
     ),
+    metric_dsl_readiness_evidence_path: Path = DEFAULT_METRIC_DSL_READINESS_EVIDENCE,
 ) -> dict[str, Any]:
     """Return checkpoint statuses derived from current repo evidence."""
 
@@ -211,6 +234,23 @@ def summarize_roadmap_status(
             "structured-brief clean-holdout comparison claim manifest is missing or not promotion-ready"
         ]
     )
+    resolved_metric_dsl_readiness_path = _resolve_from_config_root(
+        experiment_registry_path, metric_dsl_readiness_evidence_path
+    )
+    metric_dsl_readiness = _load_optional_json(resolved_metric_dsl_readiness_path)
+    metric_dsl_readiness_recorded = _metric_dsl_readiness_recorded(metric_dsl_readiness)
+    metric_dsl_evidence = [
+        f"experiment_status={_experiment_status(experiments, 'metric_dsl_vs_direct_sql')}",
+        "eval.compare_metric_dsl_direct_sql promotion policy",
+        "parser/evaluator and two-row fixtures exist",
+    ]
+    if metric_dsl_readiness_recorded:
+        metric_dsl_evidence.extend(
+            [
+                "data.metric_dsl_clean_holdout_readiness",
+                str(metric_dsl_readiness_evidence_path),
+            ]
+        )
 
     entries = [
         _entry(
@@ -283,12 +323,8 @@ def summarize_roadmap_status(
         _entry(
             7,
             status="in_progress",
-            evidence=[
-                f"experiment_status={_experiment_status(experiments, 'metric_dsl_vs_direct_sql')}",
-                "eval.compare_metric_dsl_direct_sql promotion policy",
-                "parser/evaluator and two-row fixtures exist",
-            ],
-            open_items=["Metric DSL clean-holdout promotion policy must pass"],
+            evidence=metric_dsl_evidence,
+            open_items=_metric_dsl_open_items(metric_dsl_readiness),
         ),
         _entry(
             8,
