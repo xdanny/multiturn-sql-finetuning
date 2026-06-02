@@ -216,11 +216,13 @@ def summarize_roadmap_status(
             status="in_progress",
             evidence=[
                 f"experiment_status={_experiment_status(experiments, 'structured_brief_sql_vs_direct')}",
+                "data.structured_brief_training_rows",
+                "docs/training_runs/structured_brief_train_data_path_20260602.json",
                 "docs/research_roadmap.md structured brief reset",
                 "old predicted-planner comparison artifacts removed from active evidence",
             ],
             open_items=[
-                "build train-split structured-brief supervision and run same-row structured-brief vs direct benchmark comparison",
+                "train structured-brief adapter and run same-row structured-brief vs direct benchmark comparison",
             ],
         ),
         _entry(

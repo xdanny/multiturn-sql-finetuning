@@ -72,6 +72,11 @@ brief-first SQL adapter, and compare it against the direct-SQL control on the
 same clean-holdout rows. Do not require planner F1 or planner readiness before
 the SQL benchmark comparison.
 
+Current data path: `data.structured_brief_training_rows` builds
+structured-brief SFT rows from prepared train-split turns. It rejects non-train
+split roles, keeps current reference SQL and scorer-only labels out of the
+prompt, and writes a manifest with split, row-count, and SHA-256 provenance.
+
 Control: direct SQL on the same row identities, same scorer, same database root,
 same oracle policy, and comparable model/adapter setup.
 
@@ -89,8 +94,8 @@ tree. Do not rebuild planner-readiness gates or planner-to-SQL comparison
 entrypoints for Checkpoint 5. Use structured query briefs as the current
 query-decomposition training target.
 
-Next useful movement: build the structured-brief training rows and manifest,
-then run the same-row structured-brief-vs-direct benchmark comparison.
+Next useful movement: train the structured-brief adapter, then run the same-row
+structured-brief-vs-direct benchmark comparison.
 
 ## Semantic-Layer Tuning
 
