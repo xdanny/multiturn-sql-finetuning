@@ -18,7 +18,6 @@ DEFAULT_EVIDENCE_PATHS = (
     Path("docs/training_runs/alias_column_validity_prompt.json"),
     Path("docs/training_runs/alias_column_context_prompt_limit8.json"),
     Path("docs/training_runs/alias_column_context_prompt_limit24.json"),
-    Path("docs/training_runs/lexical_predicted_planner_limit24.json"),
 )
 
 RUN_SUMMARIES = {
@@ -97,19 +96,7 @@ RUN_SUMMARIES = {
         "primary_failure_mode": (
             "Alias/column context changed generations but did not fix or regress any turns; remaining misses are query-shape and semantic failures."
         ),
-        "next_action": "Pivot from alias/column context to planner/query-shape supervision before training.",
-    },
-    "lexical_predicted_planner_limit24": {
-        "hypothesis_id": "planner_state",
-        "arm_type": "prompt_only_validation_slice",
-        "control": "direct_sql_prompt",
-        "decision": "regressed_on_limit24_validation_slice",
-        "primary_failure_mode": (
-            "The weak lexical planner supplied noisy column and projection state; predicted-planner prompting regressed one turn and fixed none."
-        ),
-        "next_action": (
-            "Improve non-oracle planner quality on column linking, projection shape, and history state before another planner-to-SQL run."
-        ),
+        "next_action": "Pivot from alias/column context to structured query-brief supervision before training.",
     },
 }
 
@@ -130,11 +117,6 @@ METRIC_KEYS = (
     "schema_valid_sql_rate",
     "alias_resolution_success_rate",
     "alias_column_context_value_delta_vs_direct_sql",
-    "predicted_planner_value_delta_vs_direct_sql",
-    "macro_planner_score",
-    "table_f1",
-    "column_f1",
-    "selected_count_match",
     "direct_sql_value_execution_accuracy",
     "fixed_turns",
     "regressed_turns",
@@ -205,14 +187,13 @@ def build_hypothesis_rollup(
             "status": "no_method_promoted",
             "reason": (
                 "The alias/column context passed one synthetic diagnostic but "
-                "showed no value delta on 24 CoSQL validation turns. The weak "
-                "lexical predicted-planner arm regressed slightly against the "
-                "same direct-SQL control. "
-                "No method has passed broader validation or a locked proxy gate."
+                "showed no value delta on 24 CoSQL validation turns. No small "
+                "method arm in this rollup has passed broader validation or a "
+                "locked proxy gate."
             ),
             "next_repo_step": (
-                "Build a stronger non-oracle planner target and score planner "
-                "quality before another GPU fine-tuning run or blog claim."
+                "Build structured query-brief supervision on train rows, then "
+                "compare the brief-first adapter against the direct-SQL control."
             ),
         },
     }

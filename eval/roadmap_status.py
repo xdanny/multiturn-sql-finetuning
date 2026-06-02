@@ -216,11 +216,8 @@ def summarize_roadmap_status(
             status="in_progress",
             evidence=[
                 f"experiment_status={_experiment_status(experiments, 'structured_brief_sql_vs_direct')}",
-                f"deprecated_planner_status={_experiment_status(experiments, 'predicted_planner_sql_vs_direct')}",
                 "docs/research_roadmap.md structured brief reset",
-                "docs/training_runs/planner_sft_1000_sql_limit24_negative_20260531.json",
-                "docs/training_runs/planner_sft_1000_sql_failure_analysis_20260531.json",
-                "docs/training_runs/planner_slotaware_readiness_20260602.json",
+                "old predicted-planner comparison artifacts removed from active evidence",
             ],
             open_items=[
                 "build train-split structured-brief supervision and run same-row structured-brief vs direct benchmark comparison",

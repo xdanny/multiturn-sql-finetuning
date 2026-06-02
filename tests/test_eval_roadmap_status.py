@@ -23,13 +23,6 @@ def _write_registry(path: Path) -> None:
             "",
         ),
         (
-            "predicted_planner_sql_vs_direct",
-            5,
-            "deprecated_negative_planner_gate",
-            "predicted_planner_sql",
-            "direct_sql_full_non_oracle_control",
-        ),
-        (
             "structured_brief_sql_vs_direct",
             5,
             "needs_train_split_brief_data",
@@ -325,21 +318,9 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
     assert "docs/training_runs/direct_sql_full_lora_20260531.json" in by_checkpoint[3]["evidence"]
     assert by_checkpoint[5]["name"] == "Structured Query Brief SFT"
     assert "experiment_status=needs_train_split_brief_data" in by_checkpoint[5]["evidence"]
-    assert (
-        "deprecated_planner_status=deprecated_negative_planner_gate"
-        in by_checkpoint[5]["evidence"]
-    )
     assert "docs/research_roadmap.md structured brief reset" in by_checkpoint[5]["evidence"]
     assert (
-        "docs/training_runs/planner_sft_1000_sql_limit24_negative_20260531.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
-        "docs/training_runs/planner_sft_1000_sql_failure_analysis_20260531.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
-        "docs/training_runs/planner_slotaware_readiness_20260602.json"
+        "old predicted-planner comparison artifacts removed from active evidence"
         in by_checkpoint[5]["evidence"]
     )
     assert by_checkpoint[5]["open_items"] == [

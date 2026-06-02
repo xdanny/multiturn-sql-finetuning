@@ -13,7 +13,6 @@ def test_experiment_registry_names_roadmap_runs() -> None:
     experiment_ids = [row["experiment_id"] for row in experiments]
     assert experiment_ids == [
         "direct_sql_full_non_oracle_control",
-        "predicted_planner_sql_vs_direct",
         "structured_brief_sql_vs_direct",
         "semantic_value_retrieval_vs_direct",
         "metric_dsl_vs_direct_sql",
@@ -35,9 +34,8 @@ def test_experiment_registry_names_roadmap_runs() -> None:
     assert direct["method"] == "direct_sql"
     assert direct["control_experiment_id"] == ""
 
-    planner = next(row for row in experiments if row["method"] == "predicted_planner_sql")
-    assert planner["control_experiment_id"] == "direct_sql_full_non_oracle_control"
-    assert planner["status"] == "deprecated_negative_planner_gate"
+    assert all(row["method"] != "predicted_planner_sql" for row in experiments)
+    assert all("run_predicted_planner_comparison" not in row["scorer"] for row in experiments)
 
     structured_brief = next(row for row in experiments if row["method"] == "structured_brief_sql")
     assert structured_brief["control_experiment_id"] == "direct_sql_full_non_oracle_control"

@@ -64,9 +64,6 @@ The current checked-in evidence snapshots are compact summaries under
   runs remain the 100-step direct-SQL LoRA at `0.630` value accuracy and the
   semantic-50/minimal-executable condition at `0.640` value accuracy on CoSQL
   dev 100. The `0.890` schema-pruned run is explicitly an oracle diagnostic.
-- `lexical_predicted_planner_limit24.json`: negative non-oracle planner evidence
-  on 24 matched turns. The lexical planner regressed value accuracy by `-0.0417`
-  versus direct SQL and is not promoted.
 - `metric_dsl_prompt_baseline.json` and `metric_dsl_arm_5steps.json`: tiny
   two-row metric-DSL diagnostics. Both show that DSL output obedience and metric
   semantics are not learned yet.
@@ -110,5 +107,5 @@ Not supported yet:
 
 - Full-scale non-oracle direct-SQL control evidence.
 - A clean local holdout claim.
-- A promoted predicted-planner, semantic-layer, metric-DSL, or recovery win.
+- A promoted structured-brief, semantic-layer, metric-DSL, or recovery win.
 - Hosted baseline or BIRD-Interact/SOTA comparison claims.

@@ -83,14 +83,11 @@ Leakage boundary: training-split reference SQL may supervise brief targets.
 Clean-holdout prompts must not contain reference SQL, expected rows, future
 turns, gold plans, gold DSL, repair labels, or any answer-key decomposition.
 
-Historical planner evidence: the previous predicted-planner branch is paused as
-negative evidence. The 24-turn clean-holdout SQL pair regressed by `-0.2083`
-value accuracy versus direct SQL, and later planner-readiness repairs clarified
-projection/order failures without producing a promotable SQL result. Preserve
-`docs/training_runs/planner_sft_1000_sql_limit24_negative_20260531.json`,
-`docs/training_runs/planner_sft_1000_sql_failure_analysis_20260531.json`, and
-`docs/training_runs/planner_slotaware_readiness_20260602.json` as the rationale
-for this reset.
+Deprecated planner detour: the previous predicted-planner branch did not
+produce a promotable SQL result and is no longer part of the active evidence
+tree. Do not rebuild planner-readiness gates or planner-to-SQL comparison
+entrypoints for Checkpoint 5. Use structured query briefs as the current
+query-decomposition training target.
 
 Next useful movement: build the structured-brief training rows and manifest,
 then run the same-row structured-brief-vs-direct benchmark comparison.

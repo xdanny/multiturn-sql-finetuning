@@ -10,8 +10,7 @@
     "docs/training_runs/value_choice_consistency_prompt.json",
     "docs/training_runs/alias_column_validity_prompt.json",
     "docs/training_runs/alias_column_context_prompt_limit8.json",
-    "docs/training_runs/alias_column_context_prompt_limit24.json",
-    "docs/training_runs/lexical_predicted_planner_limit24.json"
+    "docs/training_runs/alias_column_context_prompt_limit24.json"
   ],
   "arms": [
     {
@@ -286,66 +285,12 @@
           "alias_value_execution_score": 0.0
         }
       ],
-      "next_action": "Pivot from alias/column context to planner/query-shape supervision before training."
-    },
-    {
-      "run_id": "lexical_predicted_planner_limit24",
-      "hypothesis_id": "planner_state",
-      "arm_type": "prompt_only_validation_slice",
-      "evidence_path": "docs/training_runs/lexical_predicted_planner_limit24.json",
-      "evidence_sha256": "36b5dd1560ed7e2633d83e1193a69417de522f1692a6ff5be40e42cd8da45e3a",
-      "claim_boundary": "Twenty-four-turn prompt-only CoSQL proxy validation slice using a weak non-oracle lexical planner. This is bounded validation evidence, not a benchmark or method-promotion claim.",
-      "model": "unsloth/Qwen3.5-9B",
-      "control": "direct_sql_prompt",
-      "decision": "regressed_on_limit24_validation_slice",
-      "primary_failure_mode": "The weak lexical planner supplied noisy column and projection state; predicted-planner prompting regressed one turn and fixed none.",
-      "selected_metrics": {
-        "dialog_count": 8,
-        "syntax_accuracy": 1.0,
-        "value_execution_accuracy": 0.4583333333333333,
-        "strict_execution_accuracy": 0.2916666666666667,
-        "direct_sql_value_execution_accuracy": 0.5,
-        "predicted_planner_value_delta_vs_direct_sql": -0.041666666666666685,
-        "macro_planner_score": 0.5567599356661856,
-        "table_f1": 0.5483585858585859,
-        "column_f1": 0.16402116402116404,
-        "selected_count_match": 0.125,
-        "fixed_turns": 0,
-        "regressed_turns": 1
-      },
-      "observed_outputs": [
-        {
-          "database_id": "dog_kennels",
-          "direct_sql": "SELECT age FROM Dogs WHERE dog_id IN (SELECT dog_id FROM Treatments)",
-          "direct_value_execution_score": 1.0,
-          "id": "prepared-5:1",
-          "predicted_plan_summary": {
-            "projection_selected_count": 6,
-            "relevant_columns": [
-              "dogs.age",
-              "treatment_types.treatment_type_code",
-              "treatment_types.treatment_type_description",
-              "treatments.cost_of_treatment",
-              "treatments.date_of_treatment",
-              "treatments.treatment_type_code"
-            ],
-            "relevant_tables": [
-              "dogs",
-              "treatment_types",
-              "treatments"
-            ]
-          },
-          "predicted_planner_sql": "SELECT d.age\nFROM Dogs d\nWHERE d.dog_id IN (SELECT dog_id FROM Treatments)\n  AND d.gender = 'female';",
-          "predicted_planner_value_execution_score": 0.0,
-          "question": "what are their ages"
-        }
-      ],
-      "next_action": "Improve non-oracle planner quality on column linking, projection shape, and history state before another planner-to-SQL run."
+      "next_action": "Pivot from alias/column context to structured query-brief supervision before training."
     }
   ],
   "overall_decision": {
     "status": "no_method_promoted",
-    "reason": "The alias/column context passed one synthetic diagnostic but showed no value delta on 24 CoSQL validation turns. The weak lexical predicted-planner arm regressed slightly against the same direct-SQL control. No method has passed broader validation or a locked proxy gate.",
-    "next_repo_step": "Build a stronger non-oracle planner target and score planner quality before another GPU fine-tuning run or blog claim."
+    "reason": "The alias/column context passed one synthetic diagnostic but showed no value delta on 24 CoSQL validation turns. No small method arm in this rollup has passed broader validation or a locked proxy gate.",
+    "next_repo_step": "Build structured query-brief supervision on train rows, then compare the brief-first adapter against the direct-SQL control."
   }
 }
