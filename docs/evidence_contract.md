@@ -16,7 +16,8 @@ transfer claims.
 | Mode | Inference inputs | Allowed public claim |
 | --- | --- | --- |
 | `non_oracle_generation` | Question, conversation history, schema, semantic context, and non-oracle prompt variants | A deployable path improved on the fixed proxy slice. |
-| `predicted_planner` | The same inputs plus a plan predicted without reference SQL | A production-style planner-to-SQL path can be evaluated. |
+| Structured query brief | Non-oracle SQL generation with a compact visible brief before the SQL. | A structured-brief method claim only after same-row comparison beats direct SQL. |
+| Historical `predicted_planner` | The same inputs plus a plan predicted without reference SQL | Negative planner-to-SQL evidence and leakage diagnostics only. |
 | `metric_dsl` | A generated semantic metric intent, semantic model, and optional database-backed reference SQL | Metric-DSL quality, not direct-SQL superiority by itself. |
 | `oracle_planner_diagnostic` | Gold SQL-derived planning hints or schema pruning from those hints | A ceiling test for how much planning/schema linking matters. |
 
@@ -36,7 +37,8 @@ enter the prompt only in `oracle_planner_diagnostic`.
 | The non-oracle value index covers `0.783` of resolved SQL values and `0.755` of user-visible mention aliases on the fixed proxy labels. | `supported_value_retrieval_coverage` | `docs/data_artifacts/value_index_cosql_dev_100.manifest.json` | value retrieval coverage | Yes, as retrieval coverage only. |
 | Semantic value retrieval inputs are ready for clean-holdout endpoint comparison. | `supported_preflight` | `docs/training_runs/semantic_value_clean_holdout_preflight_20260602.json` | `non_oracle_generation` | Yes, as endpoint-pair readiness only. |
 | Semantic value retrieval improves SQL outcomes. | `unsupported_regression` | `docs/training_runs/semantic_value_clean_holdout_full_20260602.json` | `non_oracle_generation` | No. The full clean-holdout endpoint pair regressed versus direct SQL. |
-| A non-oracle predicted planner improves SQL execution. | Pending | `data/processed/eval_cosql_dev_predicted_planner_100.jsonl` can now be generated | `predicted_planner` | No, until same-model direct-SQL comparison metrics show a positive value-accuracy delta. |
+| A structured query-brief adapter improves SQL execution. | Pending | `eval.run_structured_brief_comparison` is implemented | `non_oracle_generation` plus structured brief output | No, until same-row direct-SQL comparison metrics show a positive value-accuracy delta. |
+| A non-oracle predicted planner improves SQL execution. | `unsupported_regression` | `docs/training_runs/planner_sft_1000_sql_limit24_negative_20260531.json` | historical `predicted_planner` | No. Keep as negative evidence, not an active claim. |
 | A metric-DSL result exists with parse, compile, execution, and measure-preservation metrics. | `supported_metric_dsl_quality` | metric-DSL result manifest | `metric_dsl` | Yes, as metric-DSL quality only. |
 | Metric-DSL generation beats direct SQL on metric-heavy rows. | Pending | `eval.compare_metric_dsl_direct_sql` is implemented | `metric_dsl` | No, until the compared manifest has a positive value delta and references the direct-SQL manifest. |
 | A generated-history rollout result exists for the fixed CoSQL proxy. | Pending | `eval.rollout_eval` is implemented | `non_oracle_generation` | No, until a rollout result manifest exists. |
@@ -81,9 +83,9 @@ behind the semantic/value/entity work:
 It is generated from prepared CoSQL turns and gold/reference SQL, so it is
 allowed as a training label, scoring target, and coverage diagnostic. It is not
 allowed as production prompt context. A production-style value/entity claim
-still needs a non-oracle retriever or planner to recover the same bindings from
-question text, conversation history, schema, and versioned value/entity
-artifacts.
+still needs a non-oracle retriever or model-produced artifact to recover the same
+bindings from question text, conversation history, schema, and versioned
+value/entity artifacts.
 
 Current label coverage on the fixed proxy slice: 106 SQL value references across
 17 databases, 21 references that require conversation carryover, and 3
@@ -98,97 +100,33 @@ claiming semantic value grounding improved SQL.
 
 ## Reproducible Proxy Commands
 
-Create a CoSQL-only prepared artifact:
+Create the direct-SQL control prepared artifacts:
 
 ```bash
-python -m data.prepare \
-  --config configs/cosql_dev_planner.yaml \
-  --section eval \
-  --limit 100 \
-  --output data/processed/eval_cosql_dev_100.jsonl \
-  --manifest-output data/processed/eval_cosql_dev_100.manifest.json
-```
-
-Generate non-oracle planner predictions with an OpenAI-compatible endpoint:
-
-```bash
-python -m eval.planner_predict \
-  --input data/processed/eval_cosql_dev_100.jsonl \
-  --limit 100 \
-  --model-name <planner-model> \
-  --endpoint http://localhost:8000/v1 \
-  --output results/planner_predictions/<run-id>.jsonl
-```
-
-Screen planner prompt or DSPy-program variants before full SQL generation:
-
-```bash
-python -m eval.planner_optimize \
-  --input data/processed/eval_cosql_dev_100.jsonl \
-  --limit 100 \
-  --model-name <planner-model> \
-  --endpoint http://localhost:8000/v1 \
-  --output-dir results/planner_prompt_search/<run-id> \
-  --dspy-proposals 2
-```
-
-The planner optimizer writes `summary.csv` and per-variant JSONL files. It ranks
-parseable planner output before field-level F1, and malformed JSON receives zero
-planner credit. These are planner-quality artifacts only; they do not support a
-predicted-planner SQL claim until a predicted-planner SQL manifest beats a
-row-matched direct-SQL manifest.
-
-Create the first 100-turn predicted-planner artifact from those predictions:
-
-```bash
-python -m eval.planner_eval \
-  --input data/processed/eval_cosql_dev_100.jsonl \
-  --limit 100 \
-  --planner-source json_planner_predictions \
-  --planner-predictions results/planner_predictions/<run-id>.jsonl \
-  --predicted-prepared-output data/processed/eval_cosql_dev_predicted_planner_100.jsonl \
-  --output results/planner_eval_cosql_dev_100.jsonl \
-  --summary-output results/planner_eval_cosql_dev_100_summary.json
+uv run --active --no-sync python -m scripts.direct_sql_full_control \
+  --config configs/direct_sql_full_non_oracle.yaml \
+  --stage prepare \
+  --run
 ```
 
 Future endpoint runs through `eval.run_eval` write a manifest next to the JSONL
 output by default. Keep run-specific manifest snapshots under `results/`.
 
-Compare a predicted-planner SQL run against direct SQL before claiming the
-planner improved execution:
+Compare a structured-brief SQL run against direct SQL before claiming the
+brief-first adapter improved execution:
 
 ```bash
-python -m eval.compare_predicted_planner \
-  --predicted-manifest results/predicted_planner/<run-id>.manifest.json \
+uv run --active --no-sync python -m eval.run_structured_brief_comparison \
+  --structured-manifest results/structured_brief/<run-id>.manifest.json \
   --direct-manifest results/direct_sql/<run-id>.manifest.json \
-  --output results/predicted_planner/<run-id>.compared.manifest.json
+  --output results/structured_brief/<run-id>.compared.manifest.json
 ```
 
 The comparison command requires non-oracle `prepared` manifests, the same model,
-`predicted_planner` output rows, direct `non_oracle_generation` output rows, and
-matching row identities. A predicted-planner SQL claim requires the compared
-manifest to show that predicted-planner value accuracy beats the same-row direct
-SQL control.
-
-Use the paired runner for the actual endpoint experiment:
-
-```bash
-python -m eval.run_predicted_planner_comparison \
-  --direct-input data/processed/eval_cosql_dev_100.jsonl \
-  --predicted-input data/processed/eval_cosql_dev_predicted_planner_100.jsonl \
-  --output-dir results/predicted_planner \
-  --run-id lexical_planner_cosql_dev_100 \
-  --model-name <served-model> \
-  --endpoint http://localhost:8000/v1 \
-  --database-root data/raw/cosql_dataset/database \
-  --limit 100 \
-  --preflight-output results/predicted_planner/<run-id>.preflight.json
-```
-
-This preflight records whether the current direct and predicted prepared inputs
-have matching row identities for the fixed proxy. It is run-specific and belongs
-under `results/`; it cannot support a method claim without endpoint result
-manifests and comparison metrics.
+`non_oracle_generation` output rows on both sides, execution scores, and matching
+row identities. A structured-brief SQL claim requires the compared manifest to
+show that `structured_brief_value_delta_vs_direct_sql` is positive versus the
+same-row direct-SQL control.
 
 Run a semantic value-retrieval SQL pair against direct SQL before claiming the
 value index improved execution:
@@ -237,29 +175,16 @@ scores on both sides, and the value-index manifest SHA. A semantic
 value-retrieval SQL claim requires a positive value-accuracy delta versus direct
 SQL. Coverage alone remains a retrieval artifact, not a SQL win.
 
-Write semantic value-retrieval preflight outputs under `results/`. Like the
-predicted-planner preflight, this is only input-compatibility evidence. It does
-not support a SQL-improvement claim without endpoint result manifests.
+Write semantic value-retrieval preflight outputs under `results/`. A preflight is
+only input-compatibility evidence. It does not support a SQL-improvement claim
+without endpoint result manifests.
 
-Summarize whether that endpoint pair is worth running before spending model
-time:
-
-```bash
-python -m eval.planner_readiness \
-  --planner-input results/planner_eval_cosql_dev_100.jsonl \
-  --preflight-input results/predicted_planner/<run-id>.preflight.json \
-  --output results/predicted_planner/<run-id>.planner_risk.json
-```
-
-This planner-risk summary is bounded to `risk summary only; no SQL execution
-claim`. It can explain why a planner needs improvement before endpoint spend,
-but it is not checked-in evidence.
-
-For non-lexical planners, write JSONL predictions keyed by expanded turn id and
-run `eval.planner_eval --planner-source json_planner_predictions
---planner-predictions <path>`. The planner loader preserves raw unknown fields
-long enough to reject oracle provenance markers before writing a predicted
-prepared artifact.
+Historical planner-risk summaries are bounded to `risk summary only; no SQL
+execution claim`. They can explain why the old planner route was paused, but
+they are not active Checkpoint 5 evidence. For historical non-lexical planners,
+JSONL predictions were keyed by expanded turn id and evaluated through
+`eval.planner_eval`. The planner loader preserved raw unknown fields long enough
+to reject oracle provenance markers before writing a predicted prepared artifact.
 
 Evaluate a `MEASURE()`-preserving metric DSL:
 
@@ -326,7 +251,8 @@ compared with the direct-SQL control adapter under generated-history rollout.
 A blog sentence can make a benchmark claim only if it names one of:
 
 - `non_oracle_generation` for deployable proxy results;
-- `predicted_planner` for non-oracle planner-to-SQL results;
+- structured query brief for same-row brief-first SQL comparison claims;
+- historical `predicted_planner` for negative planner-to-SQL evidence;
 - `metric_dsl` for metric-intent quality and direct-SQL comparison claims;
 - `oracle_planner_diagnostic` for ceiling tests;
 - `pending` for work that has not been run.

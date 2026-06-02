@@ -6,8 +6,8 @@ small checked-in documentation artifacts for the SQL finetuning program.
 Primary responsibilities:
 
 - Keep blog-derived ideas grounded in runnable repo steps: direct SQL controls,
-  planner work, semantic context, metric DSL, behavior recovery, and hosted or
-  BIRD-style comparisons.
+  structured query briefs, semantic context, metric DSL, behavior recovery, and
+  hosted or BIRD-style comparisons.
 - Separate smoke-run viability from scored evaluation and benchmark claims.
 - Keep claim language human-readable, specific, and tied to visible artifacts.
 - Make docs point to the exact code, data artifact, command, manifest, or

@@ -46,11 +46,9 @@ interpret.
 
 1. **Direct SQL control**: same rows, same local endpoint path, no oracle hints. This
    says whether ordinary SFT helps the fixed multi-turn proxy.
-2. **Planner quality before SQL**: predict tables, columns, joins, projection shape,
-   grouping, and duplicate policy without seeing reference SQL. Score the plan before
-   asking whether SQL improved.
-3. **Predicted-planner SQL**: feed only non-oracle predicted plans into SQL generation
-   and compare against the direct SQL control on row-matched manifests.
+2. **Structured query brief before SQL**: train a compact visible brief from
+   training-split supervision only, then compare brief-first SQL against the
+   direct SQL control on row-matched manifests.
 4. **Semantic-layer target**: retrieve or predict governed entities, dimensions,
    measures, grain, and value aliases. Score those artifacts before mixing them into
    generation prompts.
@@ -63,10 +61,10 @@ interpret.
    run hosted baselines and BIRD-Interact-style tasks with the same scorer, manifest,
    latency, and cost accounting.
 
-Each rung should produce an artifact the blog can cite directly: a prepared input
-manifest, a planner score, a semantic-artifact report, a metric-DSL comparison, a
-rollout manifest, or a hosted comparison. A prose claim without one of those artifacts
-is not ready for publication.
+Each rung should produce an artifact the blog can cite directly: a prepared
+input manifest, a structured-brief comparison manifest, a semantic-artifact
+report, a metric-DSL comparison, a rollout manifest, or a hosted comparison. A
+prose claim without one of those artifacts is not ready for publication.
 
 The hosted comparison rung must spell out the same input rows, scorer, oracle
 boundary, hosted model manifest, local model manifest, generated-history
@@ -84,7 +82,7 @@ The repo should compare training methods as first-class hypotheses:
 | Method | Hypothesis | Required evidence |
 | --- | --- | --- |
 | Direct SQL SFT | A small model can learn the target SQL distribution directly from chat-format SQL rows. | Non-oracle execution accuracy improves on fixed proxy and BIRD-Interact-style evals. |
-| Planner/DSL first, SQL second | The model should first predict a typed plan or DSL, then compile or generate SQL. | Planner F1 improves and predicted-plan SQL execution beats direct SQL. |
+| Structured brief or DSL first, SQL second | The model should first produce a compact visible query brief or typed DSL, then generate or compile SQL. | Same-row SQL execution beats direct SQL, with the intermediate artifact scored separately. |
 | Semantic-layer tuning | The model should learn governed entities, dimensions, measures, grain, and allowed joins. | Semantic artifact retrieval and use improves metric and join correctness. |
 | MEASURE()-preserving metric DSL | The model should preserve governed metrics such as `MEASURE(revenue)` instead of expanding metric SQL too early. | Metric DSL accuracy and compiled SQL execution beat raw SQL generation on metric-heavy tasks. |
 | Behavior/recovery tuning | The model should learn to clarify, inspect values, repair failures, and recover after its own earlier errors. | Recovery-adapter rollout beats the direct-SQL control under generated-history evaluation; rollout-vs-teacher-forced remains a diagnostic comparison. |
@@ -103,12 +101,12 @@ The current repo has a useful local loop, but it is still mostly a proxy:
   anonymous fine-tuning pile.
 - Teacher-forced history tests whether the model can use clean prior SQL, not whether it
   can recover from its own mistakes.
-- Oracle planner diagnostics show that planning is valuable, but they do not prove the
-  model can produce the plan.
+- Oracle planner diagnostics show that decomposition can help, but they do not prove
+  a deployable model can produce or use that decomposition.
 - Semantic context exists, but it is derived from schema metadata rather than a governed
   semantic model with explicit measures, dimensions, grain, and joins.
-- DSPy has been used for prompt variants; it still needs to optimize planner and semantic
-  programs, not just final SQL wording.
+- DSPy has been used for prompt variants; it still needs to optimize structured
+  brief, semantic, and recovery programs, not just final SQL wording.
 
 ## Method Decision Rules
 
@@ -118,11 +116,11 @@ rows, with the same scorer, the same prompt boundary, and the same oracle policy
 
 - **Direct SQL SFT** is the control arm. It defines the baseline every structured
   target must beat; it does not answer the hosted-SOTA question alone.
-- **Planner/DSL first, SQL second** wins only if a non-oracle planner improves
-  planner labels and the resulting SQL beats direct SQL execution on matching rows.
-  The paired runner `eval.run_predicted_planner_comparison` is now the required
-  path for that endpoint comparison so the direct and predicted runs cannot drift
-  in row identity, model, scorer, or oracle policy.
+- **Structured brief or DSL first, SQL second** wins only if the structured
+  intermediate artifact can be produced without clean-holdout labels and the
+  resulting SQL beats direct SQL on matching rows. Checkpoint 5 uses
+  `eval.run_structured_brief_comparison` for that comparison so row identity,
+  scorer, and oracle policy stay aligned.
 - **Semantic-layer tuning** wins only if versioned semantic artifacts improve value
   grounding, entity resolution, joins, and grain without simply flooding the prompt.
 - **MEASURE()-preserving metric DSL** wins only if generated DSL parses, compiles,
@@ -195,8 +193,8 @@ should behave like a lab walkthrough inside the attached codebase:
 1. Start with the benchmark gap: zero-shot BIRD-style SQL strength does not imply
    robust multi-turn analysis.
 2. Define the evaluation protocol and dataset roles before making model claims.
-3. Compare fine-tuning targets directly: direct SQL, planner-first, semantic-layer,
-   `MEASURE()` DSL, and behavior/recovery.
+3. Compare fine-tuning targets directly: direct SQL, structured query briefs,
+   semantic-layer, `MEASURE()` DSL, and behavior/recovery.
 4. Separate production-style proxy results from oracle diagnostics.
 5. Turn the remaining failures into next repo artifacts.
 
@@ -209,9 +207,9 @@ Run manifests and comparison artifacts are the bridge between toy lab behaviors
 and model evidence, so readers can see which targets are supported, pending, or
 only diagnostic.
 
-Before the blog treats predicted-planner SQL as the next result, the repo must
-show that the planner can recover columns and projection shape well enough to
-justify endpoint time.
+Before the blog treats structured query briefs as the next result, the repo must
+show that brief-first SQL beats the direct-SQL control on the same clean-holdout
+rows.
 
 Expensive model serving and GPU training stay in scripts. The public reader path
 stays focused on the published lab, the attached codebase, and cited run

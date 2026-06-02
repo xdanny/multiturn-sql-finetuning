@@ -42,40 +42,25 @@ slice without oracle prompt inputs.
 Current status: measured on the CoSQL proxy, but still not a hosted or
 BIRD-Interact claim.
 
-## Stage 1: Planner Supervision
+## Stage 1: Structured Query Brief SQL
 
-Question: can the system predict the intermediate plan before SQL generation?
+Question: does a compact visible query brief before SQL improve execution?
 
-The plan should include relevant tables, columns, joins, projection shape,
-aggregation/grouping, duplicate policy, and value/entity hints.
-
-Control arm: not SQL execution yet. Planner predictions are scored against gold
-planner labels before they are allowed to drive SQL generation.
-
-Win condition: planner quality improves enough to justify a predicted-planner
-SQL run.
-
-Current status: the lexical planner baseline is measurable and intentionally
-weak. Better planner policies should enter through the existing planner scoring
-path rather than ad hoc prompt edits.
-
-## Stage 2: Predicted-Planner SQL
-
-Question: does non-oracle planner context improve SQL execution?
-
-Input shape: the SQL generator receives a predicted plan created from the user
-question, visible history, schema, and allowed non-oracle artifacts. It does not
-receive gold SQL-derived plan hints.
+Input shape: the model emits a short brief covering intent, entities and values,
+metrics or measures, filters, grouping and grain, table families or joins, and
+final answer shape before the final SQL. Training-split reference SQL may
+supervise the brief target; clean-holdout reference SQL and expected rows stay
+scorer-side only.
 
 Control arm: same model, same rows, direct SQL prompt.
 
-Win condition: predicted-planner SQL beats direct SQL on value-only execution
-accuracy in a same-row comparison.
+Win condition: structured-brief SQL beats direct SQL on value-only execution
+accuracy in a same-row comparison from `eval.run_structured_brief_comparison`.
 
-Current status: wired as a method path, but not yet a supported improvement
-claim.
+Current status: the comparison scorer exists. The repo still needs train-split
+brief supervision and a clean-holdout endpoint comparison.
 
-## Stage 3: Semantic-Layer Tuning
+## Stage 2: Semantic-Layer Tuning
 
 Question: does governed semantic context help with entities, dimensions,
 measures, grain, joins, and value meaning that raw schema text misses?
@@ -92,7 +77,7 @@ value-index coverage artifact is tracked. The SQL win is still not proven until
 `eval.compare_semantic_value_retrieval` shows a positive same-row delta versus
 direct SQL.
 
-## Stage 4: `MEASURE()` Metric DSL
+## Stage 3: `MEASURE()` Metric DSL
 
 Question: should the model preserve metric intent first and let a compiler
 expand the governed SQL later?
@@ -109,7 +94,7 @@ accuracy, while preserving the governed metric intent.
 Current status: the parser/evaluator exists. The repo still needs real
 checkpoint-generated metric-DSL evidence before making a win claim.
 
-## Stage 5: Behavior And Recovery
+## Stage 4: Behavior And Recovery
 
 Question: can the model continue after its own earlier outputs instead of
 depending on clean teacher-forced history?
@@ -129,7 +114,7 @@ Current status: the rollout evaluator exists, and tiny recovery/control SFT rows
 exist for smoke testing. Recovery is not proven until generated predictions from
 the recovery-tuned adapter clear side-by-side rollout comparison manifests.
 
-## Stage 6: Hosted And BIRD-Interact Gate
+## Stage 5: Hosted And BIRD-Interact Gate
 
 Question: can the best local candidate compete with hosted baselines on the
 target interaction protocol?
