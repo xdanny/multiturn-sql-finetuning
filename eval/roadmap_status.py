@@ -24,9 +24,13 @@ DEFAULT_STRUCTURED_BRIEF_COMPARISON_EVIDENCE = Path(
 DEFAULT_METRIC_DSL_READINESS_EVIDENCE = Path(
     "docs/training_runs/metric_dsl_clean_holdout_readiness_20260602.json"
 )
+DEFAULT_METRIC_DSL_GOLD_LABEL_EVIDENCE = Path(
+    "docs/training_runs/metric_dsl_gold_labels_20260602.json"
+)
 DEFAULT_GENERATED_HISTORY_RECOVERY_READINESS_EVIDENCE = Path(
     "docs/training_runs/generated_history_recovery_readiness_20260602.json"
 )
+METRIC_DSL_MIN_COMPARABLE_ROWS = 24
 
 
 CHECKPOINTS: dict[int, str] = {
@@ -163,10 +167,42 @@ def _metric_dsl_readiness_recorded(evidence: Mapping[str, Any] | None) -> bool:
     return _positive_int(split_roles.get("clean_local_holdout"))
 
 
-def _metric_dsl_open_items(evidence: Mapping[str, Any] | None) -> list[str]:
+def _metric_dsl_gold_labels_recorded(evidence: Mapping[str, Any] | None) -> bool:
+    if not evidence:
+        return False
+    if evidence.get("artifact_type") != "metric_dsl_gold_label_summary":
+        return False
+    if not _positive_int(evidence.get("labelled_count")):
+        return False
+    split_roles = evidence.get("split_roles") or {}
+    return _positive_int(split_roles.get("clean_local_holdout"))
+
+
+def _metric_dsl_gold_labels_meet_comparison_floor(
+    evidence: Mapping[str, Any] | None,
+) -> bool:
+    if not _metric_dsl_gold_labels_recorded(evidence):
+        return False
+    return int(evidence.get("labelled_count") or 0) >= METRIC_DSL_MIN_COMPARABLE_ROWS
+
+
+def _metric_dsl_open_items(
+    readiness_evidence: Mapping[str, Any] | None,
+    gold_label_evidence: Mapping[str, Any] | None,
+) -> list[str]:
     items = []
-    if _metric_dsl_readiness_recorded(evidence):
-        items.extend(str(blocker) for blocker in (evidence.get("readiness_blockers") or {}))
+    gold_labels_ready = _metric_dsl_gold_labels_meet_comparison_floor(gold_label_evidence)
+    if _metric_dsl_readiness_recorded(readiness_evidence):
+        for blocker in readiness_evidence.get("readiness_blockers") or {}:
+            if gold_labels_ready and blocker == "structured gold Metric DSL labels missing":
+                continue
+            items.append(str(blocker))
+    if gold_labels_ready:
+        items.append("Metric DSL generated predictions are missing")
+    else:
+        items.append(
+            f"at least {METRIC_DSL_MIN_COMPARABLE_ROWS} structured gold Metric DSL labels needed"
+        )
     items.append("Metric DSL clean-holdout promotion policy must pass")
     return items
 
@@ -203,6 +239,7 @@ def summarize_roadmap_status(
         DEFAULT_STRUCTURED_BRIEF_COMPARISON_EVIDENCE
     ),
     metric_dsl_readiness_evidence_path: Path = DEFAULT_METRIC_DSL_READINESS_EVIDENCE,
+    metric_dsl_gold_label_evidence_path: Path = DEFAULT_METRIC_DSL_GOLD_LABEL_EVIDENCE,
     generated_history_recovery_readiness_evidence_path: Path = (
         DEFAULT_GENERATED_HISTORY_RECOVERY_READINESS_EVIDENCE
     ),
@@ -268,6 +305,13 @@ def summarize_roadmap_status(
     )
     metric_dsl_readiness = _load_optional_json(resolved_metric_dsl_readiness_path)
     metric_dsl_readiness_recorded = _metric_dsl_readiness_recorded(metric_dsl_readiness)
+    resolved_metric_dsl_gold_label_path = _resolve_from_config_root(
+        experiment_registry_path, metric_dsl_gold_label_evidence_path
+    )
+    metric_dsl_gold_labels = _load_optional_json(resolved_metric_dsl_gold_label_path)
+    metric_dsl_gold_labels_recorded = _metric_dsl_gold_labels_recorded(
+        metric_dsl_gold_labels
+    )
     metric_dsl_evidence = [
         f"experiment_status={_experiment_status(experiments, 'metric_dsl_vs_direct_sql')}",
         "eval.compare_metric_dsl_direct_sql promotion policy",
@@ -278,6 +322,13 @@ def summarize_roadmap_status(
             [
                 "data.metric_dsl_clean_holdout_readiness",
                 str(metric_dsl_readiness_evidence_path),
+            ]
+        )
+    if metric_dsl_gold_labels_recorded:
+        metric_dsl_evidence.extend(
+            [
+                "data.metric_dsl_gold_labels",
+                str(metric_dsl_gold_label_evidence_path),
             ]
         )
     resolved_generated_history_recovery_readiness_path = _resolve_from_config_root(
@@ -375,7 +426,7 @@ def summarize_roadmap_status(
             7,
             status="in_progress",
             evidence=metric_dsl_evidence,
-            open_items=_metric_dsl_open_items(metric_dsl_readiness),
+            open_items=_metric_dsl_open_items(metric_dsl_readiness, metric_dsl_gold_labels),
         ),
         _entry(
             8,

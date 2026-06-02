@@ -66,6 +66,7 @@ in this directory.
 ### Metric DSL Clean-Holdout Candidates
 
 - `metric_dsl_clean_holdout_candidates.manifest.json`
+- `metric_dsl_gold_labels.manifest.json`
 
 `data.metric_dsl_clean_holdout_readiness` writes the generated candidate JSONL
 under `data/processed/metric_dsl/` and records compact provenance here. The
@@ -73,11 +74,12 @@ candidate slice is selected from `cosql_dev_clean_holdout_v1` turns with
 metric-shaped SQL labels such as aggregation, grouping, having, ordering, or
 limit structure.
 
-This artifact is readiness evidence only. The prompt rows stop before the
+These artifacts are readiness evidence only. The prompt rows stop before the
 current assistant label and keep reference SQL, gold plans, and gold Metric DSL
-scorer-side. The current blocker is explicit: the clean-holdout candidates do
-not yet have structured gold Metric DSL labels for scoring `MEASURE(...)`
-preservation and compiled-SQL comparisons.
+scorer-side. `data.metric_dsl_gold_labels` derives a conservative labelled
+subset for scoring `MEASURE(...)` preservation and compiled-SQL comparisons, but
+the generated prediction outputs still belong under `results/`. A Metric DSL
+claim still requires row-matched direct-SQL comparison and the promotion audit.
 
 ### Behavior Recovery Finetuning Rows
 
