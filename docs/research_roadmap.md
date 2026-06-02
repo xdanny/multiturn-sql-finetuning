@@ -638,11 +638,16 @@ Latest Checkpoint 6 evidence from 2026-06-02:
   value delta must be positive, and strict delta must not regress. Evidence
   files are `docs/training_runs/semantic_value_clean_holdout_preflight_20260602.json`
   and `docs/training_runs/semantic_value_clean_holdout_full_20260602.json`.
+- A paired failure analysis found 43 direct-only value-correct rows and 33
+  semantic-only value-correct rows. All value-score flips occurred on rows with
+  value-retrieval context; the 170 rows without retrieved values had no
+  direct-only or semantic-only value flips. The evidence file is
+  `docs/training_runs/semantic_value_regression_diagnosis_20260602.json`.
 
-The next Checkpoint 6 work should diagnose the full-run regression before another
-endpoint pair: compare direct-correct/semantic-wrong rows, measure whether
-retrieved value context adds prompt noise, and prune retrieval or redesign
-semantic context before promoting semantic value retrieval.
+The next Checkpoint 6 work should prune or redesign semantic value retrieval
+before another endpoint pair: cap retrieval volume, prefer high-confidence
+entity/value matches, and remove matches that pull the model toward unrelated
+tables or storage values.
 
 ## Checkpoint 7: Metric DSL
 

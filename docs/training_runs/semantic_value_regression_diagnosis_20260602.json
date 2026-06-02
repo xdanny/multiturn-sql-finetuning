@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "artifact_type": "semantic_value_regression_diagnosis",
+  "checkpoint": 6,
+  "run_id": "semantic_value_regression_diagnosis_20260602",
+  "claim_boundary": "Failure analysis of the full clean-holdout semantic value-retrieval regression; no method win is claimed.",
+  "source_run": "docs/training_runs/semantic_value_clean_holdout_full_20260602.json",
+  "inputs": {
+    "direct_results_path": "/tmp/semantic-cp6-endpoint-full/results/semantic_value_clean_holdout_full_20260602.direct.jsonl",
+    "direct_results_sha256": "83b5d7a9ed5c52ec4d88408ff56402ed6b2b4a08f2df5c5e880f1081a97b739a",
+    "semantic_results_path": "/tmp/semantic-cp6-endpoint-full/results/semantic_value_clean_holdout_full_20260602.semantic_value_retrieval.jsonl",
+    "semantic_results_sha256": "dfd6b146528ee5a780d92e397ad73d1e4607b0ca0e2c573dd97a91f4ed2f0c38",
+    "compared_manifest_path": "/tmp/semantic-cp6-endpoint-full/results/semantic_value_clean_holdout_full_20260602.compared.manifest.json",
+    "compared_manifest_sha256": "504386039f5a84839d6192fe1beec3b7322bb351841c544434cb61ec86df871a"
+  },
+  "analysis_command": "/home/dan/docs/multiturn-sql-finetuning/.venv/bin/python - <<'PY' # paired direct/semantic JSONL flip analysis over 680 row identities",
+  "summary": {
+    "row_count": 680,
+    "direct_only_value_correct": 43,
+    "semantic_only_value_correct": 33,
+    "both_value_correct": 399,
+    "both_value_wrong": 205,
+    "net_semantic_value_wins": -10,
+    "value_delta_vs_direct_sql": -0.014705882352941235,
+    "strict_delta_vs_direct_sql": -0.013235294117647123,
+    "direct_mean_prompt_tokens": 769.425,
+    "semantic_mean_prompt_tokens": 1004.5823529411765,
+    "semantic_prompt_token_increase": 235.15735294117642
+  },
+  "retrieval_context_breakdown": {
+    "rows_with_value_retrieval_context": {
+      "row_count": 510,
+      "direct_only_value_correct": 43,
+      "semantic_only_value_correct": 33,
+      "both_value_correct": 277,
+      "both_value_wrong": 157
+    },
+    "rows_without_value_retrieval_context": {
+      "row_count": 170,
+      "direct_only_value_correct": 0,
+      "semantic_only_value_correct": 0,
+      "both_value_correct": 122,
+      "both_value_wrong": 48
+    },
+    "rows_with_four_or_more_retrieved_values": {
+      "row_count": 396,
+      "direct_only_value_correct": 32,
+      "semantic_only_value_correct": 24,
+      "both_value_correct": 210,
+      "both_value_wrong": 130
+    }
+  },
+  "example_flips": {
+    "direct_only_value_correct": [
+      {
+        "row_index": 0,
+        "database_id": "car_1",
+        "turn_index": 0,
+        "retrieval_line_count": 12,
+        "question": "tell me the FullName of the maker amc",
+        "reference_sql": "SELECT Fullname FROM car_makers WHERE maker = \"amc\"",
+        "direct_sql": "SELECT FullName FROM car_makers WHERE Maker = \"amc\"",
+        "semantic_sql": "SELECT T1.FullName FROM car_makers AS T1 JOIN car_names AS T2 ON T1.Id = T2.MakeId WHERE T2.Model = \"amc\"",
+        "diagnosis": "retrieved/model context appears to pull the model/table path toward car_names.Model instead of car_makers.Maker"
+      },
+      {
+        "row_index": 44,
+        "database_id": "world_1",
+        "turn_index": 1,
+        "retrieval_line_count": 23,
+        "question": "FROM WHICH CONTINENT IS ARUBA",
+        "reference_sql": "SELECT continent FROM country WHERE name = \"Aruba\"",
+        "direct_sql": "SELECT Continent FROM country WHERE name = \"Aruba\"",
+        "semantic_sql": "SELECT Continent FROM country WHERE Code2 = \"IS\"",
+        "diagnosis": "retrieved value noise appears to distract value selection away from the country name"
+      }
+    ],
+    "semantic_only_value_correct": [
+      {
+        "row_index": 66,
+        "database_id": "world_1",
+        "turn_index": 1,
+        "retrieval_line_count": 24,
+        "question": "What is the official language in Belgium?",
+        "reference_sql": "SELECT T2.language FROM country as T1 join countrylanguage as T2 on T1.code = T2.countrycode where T1.name = \"Belgium\" and T2.isofficial = \"T\"",
+        "direct_sql": "SELECT * FROM countrylanguage WHERE CountryCode = \"BEL\" AND IsOfficial = \"T\"",
+        "semantic_sql": "SELECT DISTINCT Language FROM countrylanguage WHERE CountryCode = \"BEL\" AND IsOfficial = \"T\"",
+        "diagnosis": "retrieved country code helps value grounding and projection shape"
+      },
+      {
+        "row_index": 67,
+        "database_id": "world_1",
+        "turn_index": 2,
+        "retrieval_line_count": 36,
+        "question": "What are the countries where arabic language is spoken",
+        "reference_sql": "SELECT T1.name FROM country as T1 join countrylanguage as T2 on T1.code = T2.countrycode where T2.language = \"Arabic\"",
+        "direct_sql": "SELECT * FROM country AS T1 JOIN countrylanguage AS T2 ON T1.Code = T2.CountryCode WHERE T2.Language = \"Arabic\"",
+        "semantic_sql": "SELECT T1.name FROM country AS T1 JOIN countrylanguage AS T2 ON T1.code = T2.countrycode WHERE T2.language = \"Arabic\"",
+        "diagnosis": "semantic arm preserves the requested projection where direct SQL over-selects"
+      }
+    ]
+  },
+  "interpretation": [
+    "All value-score flips occurred on rows where the semantic prompt included value-retrieval context; rows without retrieved values had no direct-only or semantic-only value flips.",
+    "The net regression is small but real: 43 direct-only value-correct rows versus 33 semantic-only value-correct rows.",
+    "The next iteration should prune retrieval volume and prefer high-confidence entity/value matches before another endpoint run."
+  ]
+}

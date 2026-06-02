@@ -408,8 +408,12 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         "docs/training_runs/semantic_value_clean_holdout_full_20260602.json"
         in by_checkpoint[6]["evidence"]
     )
+    assert (
+        "docs/training_runs/semantic_value_regression_diagnosis_20260602.json"
+        in by_checkpoint[6]["evidence"]
+    )
     assert by_checkpoint[6]["open_items"] == [
-        "diagnose semantic full-run regression before another endpoint pair"
+        "prune semantic value retrieval before another endpoint pair"
     ]
     assert (
         "eval.compare_metric_dsl_direct_sql promotion policy"

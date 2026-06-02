@@ -197,11 +197,14 @@ full endpoint pair. Direct SQL reached `0.650` value and `0.553` strict accuracy
 semantic value retrieval reached `0.635` value and `0.540` strict accuracy. The
 semantic deltas were `-0.0147` value and `-0.0132` strict, so this method is not
 promotable.
+`docs/training_runs/semantic_value_regression_diagnosis_20260602.json` records
+the first paired failure analysis: 43 direct-only value-correct rows, 33
+semantic-only value-correct rows, and all value-score flips occurred on rows
+with value-retrieval context.
 
-Next useful movement: inspect direct-correct/semantic-wrong rows and determine
-whether retrieved values are adding prompt noise, duplicating schema context, or
-misleading entity/value selection. Do not run another endpoint pair until the
-retrieval context is pruned or redesigned.
+Next useful movement: prune or redesign retrieval context. Cap retrieval volume,
+prefer high-confidence entity/value matches, and remove matches that pull the
+model toward unrelated tables or storage values before another endpoint pair.
 
 ## `MEASURE()`-Preserving Metric DSL
 
