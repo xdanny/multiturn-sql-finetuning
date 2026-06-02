@@ -1,0 +1,43 @@
+{
+  "artifact_type": "structured_brief_train_data_path_evidence",
+  "claim_boundary": "Data-path validation only. This does not prove a structured-brief adapter improves SQL execution.",
+  "command": "PYTHONPATH=/tmp/multiturn-structured-brief-data VIRTUAL_ENV=/home/dan/docs/multiturn-sql-finetuning/.venv PATH=/home/dan/docs/multiturn-sql-finetuning/.venv/bin:$PATH UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m data.structured_brief_training_rows --input /home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_train_v1.jsonl --output /tmp/structured_brief_training_rows.jsonl --manifest-output /tmp/structured_brief_training_rows.manifest.json",
+  "date": "2026-06-02",
+  "generated_manifest": {
+    "artifact_type": "structured_brief_training_dataset",
+    "database_count": 140,
+    "dialog_count": 2159,
+    "input_path": "/home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_train_v1.jsonl",
+    "input_sha256": "9439382f6114f7220bcf0b86d1733917a33a3da4446ad7543099f2fa961a3fc3",
+    "oracle_policy": "non_oracle_generation",
+    "output_path": "/tmp/structured_brief_training_rows.jsonl",
+    "output_sha256": "3bfb1d144dd198f4883b3902d81b5a3d51e1a1318d6f2a1c821d76e156f6c5ca",
+    "reference_sql_visible_to_model_prompt": false,
+    "row_count": 7343,
+    "scorer_labels_visible_to_model_prompt": false,
+    "split_ids": {
+      "cosql_train_v1": 7343
+    },
+    "split_roles": {
+      "train": 7343
+    },
+    "structured_brief_label_source": "train_split_reference_sql_and_schema_labels",
+    "structured_brief_prompt_policy": "visible_structured_brief_before_sql_v1",
+    "structured_brief_visible_as_assistant_label": true,
+    "supervision_policy": "train_split_reference_sql_and_schema_labels_as_assistant_target",
+    "target_sql_visible_as_assistant_label": true,
+    "training_target": "structured_brief_sql"
+  },
+  "interpretation": [
+    "The full prepared CoSQL train split can be projected into visible structured-brief plus SQL assistant targets.",
+    "Training-split reference SQL and schema labels are used only as supervision labels, not model prompt input.",
+    "The generated JSONL loaded successfully through train.finetune --validate-data-only.",
+    "The next Checkpoint 5 step is adapter training followed by same-row clean-holdout comparison against the direct-SQL control."
+  ],
+  "run_id": "structured_brief_train_data_path_20260602",
+  "schema_version": 1,
+  "validation": [
+    "PYTHONPATH=/tmp/multiturn-structured-brief-data VIRTUAL_ENV=/home/dan/docs/multiturn-sql-finetuning/.venv PATH=/home/dan/docs/multiturn-sql-finetuning/.venv/bin:$PATH UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync pytest tests/test_structured_brief_training_rows.py -q",
+    "PYTHONPATH=/tmp/multiturn-structured-brief-data VIRTUAL_ENV=/home/dan/docs/multiturn-sql-finetuning/.venv PATH=/home/dan/docs/multiturn-sql-finetuning/.venv/bin:$PATH UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m train.finetune --config configs/direct_sql_full_non_oracle.yaml --data /tmp/structured_brief_training_rows.jsonl --validate-data-only"
+  ]
+}

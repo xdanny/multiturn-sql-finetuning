@@ -6,8 +6,8 @@ row-matched method comparisons.
 
 Last audited: 2026-06-02 after the Checkpoint 3 endpoint evaluation,
 generated-history rollout, clean-holdout failure analysis, Checkpoint 5
-structured query-brief reset, and Checkpoint 6 pruned semantic value-retrieval
-endpoint comparison.
+structured query-brief reset and train-data path validation, and Checkpoint 6
+pruned semantic value-retrieval endpoint comparison.
 
 Checkpoint status legend:
 
@@ -391,9 +391,16 @@ wrappers and JSON snapshots made the old gate-first workflow look canonical.
 Checkpoint 5 now treats query decomposition as trainable structured-brief data,
 not as a separate planner-readiness gate.
 
-The next Checkpoint 5 work is to build train-split structured-brief supervision
-and run a same-row structured-brief-vs-direct benchmark comparison. Do not spend
-another iteration repairing planner readiness before that data path exists.
+The train-data path now exists as `data.structured_brief_training_rows`. It
+projects the full CoSQL train split into 7,343 structured-brief SFT rows across
+2,159 dialogs and 140 databases, with `split_role=train`, no current reference
+SQL or scorer labels in the model prompt, and the brief plus SQL visible only as
+the assistant target. Evidence:
+`docs/training_runs/structured_brief_train_data_path_20260602.json`.
+
+The next Checkpoint 5 work is to train the structured-brief adapter and run a
+same-row structured-brief-vs-direct benchmark comparison. Do not spend another
+iteration repairing planner readiness before that benchmark path runs.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 

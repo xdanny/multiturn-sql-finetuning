@@ -39,7 +39,7 @@ def test_experiment_registry_names_roadmap_runs() -> None:
 
     structured_brief = next(row for row in experiments if row["method"] == "structured_brief_sql")
     assert structured_brief["control_experiment_id"] == "direct_sql_full_non_oracle_control"
-    assert structured_brief["status"] == "needs_train_split_brief_data"
+    assert structured_brief["status"] == "structured_brief_train_data_path_ready"
     assert structured_brief["scorer"] == (
         "eval.run_structured_brief_comparison:value_delta_vs_direct_sql"
     )

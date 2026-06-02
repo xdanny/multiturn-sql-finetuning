@@ -25,7 +25,7 @@ def _write_registry(path: Path) -> None:
         (
             "structured_brief_sql_vs_direct",
             5,
-            "needs_train_split_brief_data",
+            "structured_brief_train_data_path_ready",
             "structured_brief_sql",
             "direct_sql_full_non_oracle_control",
         ),
@@ -317,14 +317,22 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
     assert by_checkpoint[3]["status"] == "complete"
     assert "docs/training_runs/direct_sql_full_lora_20260531.json" in by_checkpoint[3]["evidence"]
     assert by_checkpoint[5]["name"] == "Structured Query Brief SFT"
-    assert "experiment_status=needs_train_split_brief_data" in by_checkpoint[5]["evidence"]
+    assert (
+        "experiment_status=structured_brief_train_data_path_ready"
+        in by_checkpoint[5]["evidence"]
+    )
+    assert "data.structured_brief_training_rows" in by_checkpoint[5]["evidence"]
+    assert (
+        "docs/training_runs/structured_brief_train_data_path_20260602.json"
+        in by_checkpoint[5]["evidence"]
+    )
     assert "docs/research_roadmap.md structured brief reset" in by_checkpoint[5]["evidence"]
     assert (
         "old predicted-planner comparison artifacts removed from active evidence"
         in by_checkpoint[5]["evidence"]
     )
     assert by_checkpoint[5]["open_items"] == [
-        "build train-split structured-brief supervision and run same-row structured-brief vs direct benchmark comparison",
+        "train structured-brief adapter and run same-row structured-brief vs direct benchmark comparison",
     ]
     assert (
         "eval.compare_semantic_value_retrieval promotion policy"
