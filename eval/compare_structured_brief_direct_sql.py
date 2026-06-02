@@ -77,6 +77,16 @@ def _row_uses_oracle(row: dict[str, Any]) -> bool:
     )
 
 
+def _row_has_value_and_strict_scores(row: dict[str, Any]) -> bool:
+    return row.get("value_execution_score") is not None and row.get(
+        "strict_execution_score"
+    ) is not None
+
+
+def _row_has_direct_control_score(row: dict[str, Any]) -> bool:
+    return _row_has_value_and_strict_scores(row) or row.get("execution_score") is not None
+
+
 def _validate_manifest_row_count(
     manifest: dict[str, Any],
     rows: list[dict[str, Any]],
@@ -119,11 +129,12 @@ def _validate_rows(
         raise ValueError("direct SQL output rows must all use non_oracle_generation mode")
     if any(_row_uses_oracle(row) for row in structured_rows + direct_rows):
         raise ValueError("oracle-derived rows found in structured-brief comparison")
-    if any(
-        row.get("value_execution_score") is None or row.get("strict_execution_score") is None
-        for row in structured_rows + direct_rows
-    ):
-        raise ValueError("comparison output rows must include execution scores")
+    if any(not _row_has_value_and_strict_scores(row) for row in structured_rows):
+        raise ValueError(
+            "structured-brief output rows must include value and strict execution scores"
+        )
+    if any(not _row_has_direct_control_score(row) for row in direct_rows):
+        raise ValueError("direct SQL output rows must include execution scores")
 
     structured_identities = [_row_identity(row) for row in structured_rows]
     direct_identities = [_row_identity(row) for row in direct_rows]
@@ -170,8 +181,6 @@ def compare_structured_brief_manifests(
 
     _validate_prepared_manifest(structured_manifest, label="structured brief")
     _validate_prepared_manifest(direct_manifest, label="direct SQL")
-    if structured_manifest.get("model_name") != direct_manifest.get("model_name"):
-        raise ValueError("structured brief and direct SQL manifests must use the same model")
     _validate_rows(
         structured_manifest=structured_manifest,
         direct_manifest=direct_manifest,

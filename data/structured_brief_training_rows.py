@@ -23,8 +23,9 @@ STRUCTURED_BRIEF_SUPERVISION_POLICY = (
 )
 STRUCTURED_BRIEF_PROMPT_POLICY = "visible_structured_brief_before_sql_v1"
 STRUCTURED_BRIEF_SYSTEM_PROMPT = (
-    "You are a SQL expert. First write a compact visible query brief using the "
-    "required fields, then write the SQL. Do not include private chain-of-thought."
+    "You are a SQL expert. First write a compact visible query brief starting "
+    "with QUERY_BRIEF:, then write the SQL after SQL:. Do not include private "
+    "chain-of-thought."
 )
 
 
@@ -67,6 +68,49 @@ def _structured_prompt_messages(messages: list[dict[str, str]]) -> list[dict[str
         {"role": "system", "content": STRUCTURED_BRIEF_SYSTEM_PROMPT},
         *[dict(message) for message in messages if message.get("role") != "system"],
     ]
+
+
+def structured_brief_eval_record_from_prepared_dialog(
+    record: dict[str, Any],
+) -> dict[str, Any]:
+    """Return a prepared eval dialog with the structured-brief prompt."""
+
+    if _row_uses_scorer_derived_planning_hints(record):
+        raise ValueError(f"{record.get('id') or record.get('dialog_id')}: scorer-derived hints leaked")
+    return {
+        **record,
+        "messages": _structured_prompt_messages(record.get("messages", [])),
+        "prompt_variant": "structured_brief_sql",
+        "oracle_policy": NON_ORACLE_GENERATION_POLICY,
+        "reference_sql_visible_to_model_prompt": False,
+        "scorer_labels_visible_to_model_prompt": False,
+    }
+
+
+def build_structured_brief_eval_records(
+    input_path: Path, *, limit: int | None = None
+) -> list[dict[str, Any]]:
+    rows = []
+    with input_path.open(encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            rows.append(
+                structured_brief_eval_record_from_prepared_dialog(json.loads(line))
+            )
+            if limit is not None and len(rows) >= limit:
+                break
+    return rows
+
+
+def _dialog_identity(row: dict[str, Any]) -> str:
+    return str(
+        row.get("dialog_id")
+        or row.get("id")
+        or row.get("split_row_id")
+        or row.get("split_source_path")
+        or "unknown"
+    )
 
 
 def _current_question(turn: dict[str, Any]) -> str:
@@ -281,6 +325,37 @@ def build_structured_brief_training_manifest(
     }
 
 
+def build_structured_brief_eval_manifest(
+    *,
+    rows: list[dict[str, Any]],
+    input_path: Path,
+    output_path: Path,
+    command: Sequence[str] | None = None,
+) -> dict[str, Any]:
+    split_ids = Counter(str(row.get("split_id") or "unknown") for row in rows)
+    split_roles = Counter(str(row.get("split_role") or "unknown") for row in rows)
+    database_ids = {str(row.get("database_id")) for row in rows if row.get("database_id")}
+    return {
+        "schema_version": 1,
+        "artifact_type": "structured_brief_eval_prepared_dataset",
+        "row_count": len(rows),
+        "dialog_count": len({_dialog_identity(row) for row in rows}),
+        "database_count": len(database_ids),
+        "split_ids": dict(split_ids),
+        "split_roles": dict(split_roles),
+        "prompt_variant": "structured_brief_sql",
+        "oracle_policy": NON_ORACLE_GENERATION_POLICY,
+        "structured_brief_prompt_policy": STRUCTURED_BRIEF_PROMPT_POLICY,
+        "reference_sql_visible_to_model_prompt": False,
+        "scorer_labels_visible_to_model_prompt": False,
+        "input_path": str(input_path),
+        "input_sha256": sha256_file(input_path) if input_path.exists() else None,
+        "output_path": str(output_path),
+        "output_sha256": sha256_file(output_path) if output_path.exists() else None,
+        "command": list(command or []),
+    }
+
+
 def write_structured_brief_training_dataset(
     *,
     input_path: Path,
@@ -305,21 +380,60 @@ def write_structured_brief_training_dataset(
     return manifest
 
 
+def write_structured_brief_eval_dataset(
+    *,
+    input_path: Path,
+    output_path: Path,
+    manifest_output_path: Path,
+    limit: int | None = None,
+    command: Sequence[str] | None = None,
+) -> dict[str, Any]:
+    rows = build_structured_brief_eval_records(input_path, limit=limit)
+    write_jsonl(rows, output_path)
+    manifest = build_structured_brief_eval_manifest(
+        rows=rows,
+        input_path=input_path,
+        output_path=output_path,
+        command=command,
+    )
+    manifest_output_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_output_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return manifest
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--manifest-output", type=Path, required=True)
     parser.add_argument("--limit", type=int, default=None)
+    parser.add_argument(
+        "--mode",
+        choices=("training", "eval"),
+        default="training",
+        help="Write training SFT rows or prepared eval dialogs with structured-brief prompt.",
+    )
     args = parser.parse_args()
 
-    manifest = write_structured_brief_training_dataset(
-        input_path=args.input,
-        output_path=args.output,
-        manifest_output_path=args.manifest_output,
-        limit=args.limit,
-        command=sys.argv,
-    )
+    if args.mode == "eval":
+        manifest = write_structured_brief_eval_dataset(
+            input_path=args.input,
+            output_path=args.output,
+            manifest_output_path=args.manifest_output,
+            limit=args.limit,
+            command=sys.argv,
+        )
+    else:
+        manifest = write_structured_brief_training_dataset(
+            input_path=args.input,
+            output_path=args.output,
+            manifest_output_path=args.manifest_output,
+            limit=args.limit,
+            command=sys.argv,
+        )
     print(
         f"Wrote {args.output} and {args.manifest_output} "
         f"({manifest['row_count']} structured-brief rows)"

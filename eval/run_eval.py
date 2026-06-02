@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 import time
 from collections import Counter
@@ -31,6 +32,7 @@ BENCHMARKS = ["prepared", "sparc", "bird_mini_dev"]
 SQL_ONLY_INSTRUCTION = (
     "Return only one SQL query. Do not explain, reason step by step, use markdown, or include prose."
 )
+STRUCTURED_BRIEF_SQL_MARKER_RE = re.compile(r"(?im)^SQL:\s*")
 ORACLE_PLAN_MARKERS = (
     "Oracle SQL planning hints",
     "SQL planning hints:",
@@ -132,7 +134,9 @@ def add_predicted_plan_to_last_user_message(
     return [*updated, {"role": "user", "content": hint}]
 
 
-def messages_for_generation(record: dict[str, Any]) -> list[dict[str, str]]:
+def messages_for_generation(
+    record: dict[str, Any], *, prompt_variant: str | None = None
+) -> list[dict[str, str]]:
     """Return the prompt sent to the model for one expanded eval turn."""
 
     messages = record["messages"]
@@ -141,7 +145,28 @@ def messages_for_generation(record: dict[str, Any]) -> list[dict[str, str]]:
         if not predicted_plan:
             raise ValueError("predicted_planner eval records must include predicted_plan")
         messages = add_predicted_plan_to_last_user_message(messages, predicted_plan)
+    if prompt_variant == "structured_brief_sql":
+        return [dict(message) for message in messages]
     return enforce_sql_only_instruction(messages)
+
+
+def extract_generated_sql(raw_generation: str, *, prompt_variant: str | None = None) -> str:
+    """Extract SQL from one model generation under the active prompt contract."""
+
+    generation = raw_generation
+    if prompt_variant == "structured_brief_sql":
+        marker = STRUCTURED_BRIEF_SQL_MARKER_RE.search(generation)
+        if marker:
+            generation = generation[marker.end() :]
+    return extract_sql(generation)
+
+
+def prompt_variant_for_record(
+    record: dict[str, Any], *, prompt_variant: str | None = None
+) -> str | None:
+    """Return CLI prompt variant, falling back to self-describing prepared rows."""
+
+    return prompt_variant or record.get("prompt_variant")
 
 
 def assistant_turn_indices(messages: list[dict[str, str]]) -> list[int]:
@@ -210,6 +235,7 @@ def expand_prepared_record(record: dict[str, Any], *, index: int) -> list[dict[s
                 **split_provenance,
                 "history_policy": history_policy,
                 "evaluation_mode": evaluation_mode,
+                "prompt_variant": record.get("prompt_variant"),
                 "planning_label_source": record.get("planning_label_source"),
                 "uses_oracle_planning_hints": uses_oracle_planning_hints,
                 "semantic_context_pruned_by_oracle_labels": semantic_context_pruned_by_oracle_labels,
@@ -506,10 +532,11 @@ def run_eval(
         print(f"WARNING: {ORACLE_DIAGNOSTIC_WARNING}")
     results = []
     for record in records:
+        active_prompt_variant = prompt_variant_for_record(record, prompt_variant=prompt_variant)
         raw_generation, generation_latency_ms, token_usage = generate_sql_with_usage(
             client,
             model_name=model_name,
-            messages=messages_for_generation(record),
+            messages=messages_for_generation(record, prompt_variant=active_prompt_variant),
             temperature=temperature,
             max_tokens=max_tokens,
         )
@@ -518,13 +545,16 @@ def run_eval(
             prompt_token_cost_usd_per_1k=prompt_token_cost_usd_per_1k,
             completion_token_cost_usd_per_1k=completion_token_cost_usd_per_1k,
         )
-        generated_sql = extract_sql(raw_generation)
+        generated_sql = extract_generated_sql(
+            raw_generation, prompt_variant=active_prompt_variant
+        )
         database_path = database_path_for_record(record, database_root)
         score = score_single_turn(record["reference_sql"], generated_sql, database_path=database_path)
         results.append(
             {
                 **record,
                 "model_name": model_name,
+                "prompt_variant": active_prompt_variant,
                 "raw_generation": raw_generation,
                 "generated_sql": generated_sql,
                 "generation_latency_ms": generation_latency_ms,
@@ -557,6 +587,18 @@ def run_eval(
         if len(evaluation_modes) == 1
         else ",".join(sorted(evaluation_modes)) or "unknown"
     )
+    prompt_variants = {
+        str(result.get("prompt_variant"))
+        for result in results
+        if result.get("prompt_variant") is not None
+    }
+    manifest_prompt_variant = (
+        prompt_variant
+        if prompt_variant is not None
+        else next(iter(prompt_variants))
+        if len(prompt_variants) == 1
+        else None
+    )
     manifest = build_result_manifest(
         run_id=output.stem,
         benchmark=benchmark,
@@ -566,7 +608,7 @@ def run_eval(
         endpoint=endpoint,
         evaluation_mode=evaluation_mode,
         oracle_allowed=allow_oracle_plan,
-        prompt_variant=prompt_variant,
+        prompt_variant=manifest_prompt_variant,
         database_root=database_root,
         command=list(command or sys.argv),
         row_count=written,

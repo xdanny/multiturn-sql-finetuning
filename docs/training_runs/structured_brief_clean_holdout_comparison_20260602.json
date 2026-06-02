@@ -1,0 +1,63 @@
+{
+  "artifact_type": "structured_brief_clean_holdout_comparison_claim_manifest",
+  "claim_boundary": "Local clean-holdout method comparison only. This supports Checkpoint 5 promotion versus the direct-SQL LoRA control on the configured CoSQL clean holdout; it is not a hosted benchmark or external-target claim.",
+  "comparison": {
+    "comparable_turns": 680,
+    "direct_sql_control": {
+      "manifest_path": "results/runs/direct_sql_full_non_oracle_control/lora_clean_holdout.manifest.json",
+      "strict_execution_accuracy": 0.34852941176470587,
+      "value_execution_accuracy": 0.34852941176470587
+    },
+    "row_identity_fields": [
+      "split_id",
+      "split_role",
+      "split_row_id",
+      "dialog_id",
+      "turn_index",
+      "database_id",
+      "reference_sql"
+    ],
+    "structured_brief": {
+      "manifest_path": "results/runs/structured_brief_sql_vs_direct/structured_brief_clean_holdout_20260602.manifest.json",
+      "manifest_sha256": "2f888a495da152a7129078e8ef0761d385e9b38c1a409a74d91b6564c5bedc98",
+      "strict_execution_accuracy": 0.5411764705882353,
+      "syntax_accuracy": 0.8014705882352942,
+      "value_execution_accuracy": 0.5764705882352941
+    },
+    "structured_brief_strict_delta_vs_direct_sql": 0.1926470588235294,
+    "structured_brief_value_delta_vs_direct_sql": 0.2279411764705882
+  },
+  "date": "2026-06-02",
+  "input_artifacts": {
+    "eval_prepared_manifest": {
+      "path": "outputs/experiments/structured_brief_sql/cosql_dev_clean_holdout_v1.structured_brief.manifest.json",
+      "sha256": "bff9d0061c418d0dede442bb5e491b15ea914fe1410ee8634f8edfcf2c4cae3f"
+    },
+    "train_manifest": {
+      "path": "outputs/experiments/structured_brief_sql/cosql_train_v1.structured_brief.manifest.json",
+      "sha256": "f8bfda02ce9846e7a93fbcfc791f9349063729c091e34f2be085ef32fbb1217e"
+    }
+  },
+  "leakage_boundary": {
+    "clean_holdout_expected_rows_visible_to_model": false,
+    "clean_holdout_gold_plans_visible_to_model": false,
+    "clean_holdout_reference_sql_visible_to_model": false,
+    "future_turns_visible_to_model": false,
+    "oracle_policy": "non_oracle_generation",
+    "scorer_labels_visible_to_model": false
+  },
+  "promotion": {
+    "blockers": [],
+    "minimum_comparable_row_count": 24,
+    "minimum_strict_delta_vs_direct_sql": 0.0,
+    "minimum_value_delta_vs_direct_sql": 0.0,
+    "promotion_ready": true,
+    "required_split_role": "clean_local_holdout"
+  },
+  "run_id": "structured_brief_clean_holdout_comparison_20260602",
+  "schema_version": 1,
+  "source_comparison_manifest": {
+    "path": "results/runs/structured_brief_sql_vs_direct/structured_brief_clean_holdout_comparison_20260602.manifest.json",
+    "sha256": "8acdc423e910f208adaa910d62f1688ccd52f3a6db37b97b7ab0cb3f2172994d"
+  }
+}
