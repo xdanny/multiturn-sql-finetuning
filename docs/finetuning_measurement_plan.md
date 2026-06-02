@@ -184,38 +184,36 @@ What it means:
 - Recovery only matters when a later turn sees prior generated SQL and observed
   results, then repairs the next query.
 
-## Planner And Semantic-State Work
+## Structured Brief And Semantic-State Work
 
 Training input:
 
-- planner or semantic-state rows must expose only user-visible history, schema,
-  and non-oracle artifacts.
+- structured-brief or semantic-state rows must expose only user-visible history,
+  schema, train-split supervision targets, and non-oracle artifacts.
 
 Control:
 
-- direct SQL generation without planner context, or a lexical/predicted-planner
-  baseline on the same row identities.
+- direct SQL generation without structured-brief or semantic context on the same
+  row identities.
 
 Primary measurement:
 
-- planner field quality before SQL generation, then value-only execution
-  accuracy after SQL generation.
+- structured-brief field quality before SQL generation, then value-only
+  execution accuracy after SQL generation.
 
 Supporting measurements:
 
-- table F1,
-- column F1,
-- join-path match,
-- projection-shape match,
-- duplicate-row policy match,
+- brief parse/format success,
+- entity and value mention coverage,
+- filter, grouping, and grain coverage,
+- table-family or join hint coverage,
 - value/entity grounding accuracy.
 
 Evidence artifact:
 
-- planner evaluation manifest before using the planner as SQL-generation
-  context,
-- predicted-planner SQL result manifest,
-- same-row comparison against direct SQL.
+- structured-brief SQL result manifest,
+- same-row comparison against direct SQL from
+  `eval.run_structured_brief_comparison`.
 
 ## Minimum Run Record
 

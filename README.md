@@ -18,8 +18,8 @@ See `docs/current_research_inventory.md` for the current audited inventory that
 backs Roadmap Checkpoint 0: checked-in rows, manifests, evidence snapshots,
 runtime output references, and active claim boundaries.
 See `docs/research_goal.md` for the explicit research program, including the
-fine-tuning methods this repo should compare: direct SQL SFT, planner/DSL first
-then SQL, semantic-layer tuning, `MEASURE()`-preserving metric DSLs, and
+fine-tuning methods this repo should compare: direct SQL SFT, structured query
+briefs, semantic-layer tuning, `MEASURE()`-preserving metric DSLs, and
 behavior/recovery tuning.
 See `docs/finetuning_ladder.md` for the compact step-by-step map of those
 methods, their controls, and the evidence needed before a method can be called a
@@ -30,8 +30,8 @@ runnable.
 See `docs/finetuning_measurement_plan.md` for the metrics, controls, and
 comparison artifacts required before any smoke run becomes a benchmark claim.
 See `docs/finetuning_method_runbook.md` for the practical runbook that turns
-planner, semantic-layer, metric-DSL, behavior/recovery, and hosted benchmark
-ideas into row-matched comparisons with explicit controls.
+structured-brief, semantic-layer, metric-DSL, behavior/recovery, and hosted
+benchmark ideas into row-matched comparisons with explicit controls.
 See `configs/experiments.yaml` for the compact registry of roadmap experiments,
 including each hypothesis, split ids, method, scorer, output path, and control
 arm.
@@ -156,7 +156,7 @@ This repo separates three different claims that are easy to blur:
 | --- | --- | --- |
 | `non_oracle_generation` | Question, conversation history, schema, semantic context, and any non-oracle retrieval artifacts | A deployable text-to-SQL path can work under those inputs. |
 | `oracle_planner_diagnostic` | The same inputs plus planning hints extracted from reference SQL, or semantic context pruned by those hints | An upper bound: SQL generation becomes easier when schema linking, join choice, projection shape, and duplicate policy are already solved. |
-| `predicted_planner` | Planner output predicted from question, history, schema, and optional value indexes | A production-style planner-to-SQL proxy: the system creates its own plan before generating SQL. |
+| Historical `predicted_planner` | Planner output predicted from question, history, schema, and optional value indexes | Negative planner-to-SQL evidence and leakage diagnostics only; it is not the active Checkpoint 5 path. |
 
 Any row prepared with `--include-sql-labels` or `--prune-semantic-model` is
 teacher-forced by gold SQL. The code writes `uses_oracle_planning_hints`,
@@ -168,181 +168,23 @@ solving multi-turn SQL end to end. `train.finetune` now fails on oracle
 diagnostic rows by default; pass `--allow-oracle-diagnostic-data` only when the
 run name, result manifest, and writeup all label the run as a diagnostic.
 
-The next academically valid comparison is:
+Checkpoint 5 now uses a simpler, measured comparison:
 
-1. no planner hints,
-2. oracle planner hints,
-3. predicted planner hints generated without reference SQL.
+1. build structured query-brief supervision from training-split data only;
+2. finetune a model to emit a compact visible brief before SQL;
+3. evaluate that adapter and the direct-SQL control on the same clean-holdout
+   rows;
+4. compare result manifests with
+   `uv run --active --no-sync python -m eval.run_structured_brief_comparison`.
 
-Only the third row supports a production claim.
+Clean-holdout prompts must not include reference SQL, expected rows, future
+turns, gold plans, gold metric DSL, or repair labels. The structured-brief path
+supports a method claim only if its comparison manifest reports a positive
+`structured_brief_value_delta_vs_direct_sql` against the direct-SQL control, with
+strict accuracy, syntax rate, interaction behavior, latency, and cost reported.
 
-## Planner Evaluation
-
-This path is retained for historical diagnostics and leakage checks. It is no
-longer the active Checkpoint 5 promotion path; structured query-brief
-finetuning plus same-row SQL benchmark comparison is the active replacement.
-
-The repo now has a planner-evaluation path before SQL generation. It treats
-gold SQL-derived labels as the answer key and scores a predicted plan against
-that answer key. The predicted plan must come from visible prompt inputs, not
-from the reference SQL.
-
-Prepared JSONL now carries that split explicitly. Dialog-level records include
-`gold_plans`, and expanded evaluation turns expose `gold_plan` plus optional
-`predicted_plan`. `gold_plan` is allowed as a scorer target; it is not allowed
-as prompt context unless the run is marked `oracle_planner_diagnostic`.
-
-The first baseline is intentionally weak and inspectable: a lexical schema
-planner that reads the user-visible schema and question text, predicts relevant
-tables/columns and coarse query shape, and writes per-turn planner scores:
-
-```bash
-python -m data.prepare \
-  --config configs/cosql_dev_planner.yaml \
-  --section eval \
-  --limit 100 \
-  --output data/processed/eval_cosql_dev_100.jsonl \
-  --manifest-output data/processed/eval_cosql_dev_100.manifest.json
-
-python -m eval.planner_eval \
-  --input data/processed/eval_cosql_dev_100.jsonl \
-  --limit 100 \
-  --predicted-prepared-output data/processed/eval_cosql_dev_predicted_planner_100.jsonl \
-  --output results/planner_eval_cosql_dev_100.jsonl \
-  --summary-output results/planner_eval_cosql_dev_100_summary.json
-```
-
-The repo can now generate non-oracle planner JSON with the same OpenAI-compatible
-endpoint path used by SQL evaluation:
-
-```bash
-python -m eval.planner_predict \
-  --input data/processed/eval_cosql_dev_100.jsonl \
-  --limit 100 \
-  --model-name <planner-model> \
-  --endpoint http://localhost:8000/v1 \
-  --output results/planner_predictions/<run-id>.jsonl
-```
-
-Before promoting a planner prompt or DSPy program to full SQL generation, score
-planner variants directly:
-
-```bash
-python -m eval.planner_optimize \
-  --input data/processed/eval_cosql_dev_100.jsonl \
-  --limit 100 \
-  --model-name <planner-model> \
-  --endpoint http://localhost:8000/v1 \
-  --output-dir results/planner_prompt_search/<run-id> \
-  --dspy-proposals 2
-```
-
-This writes one JSONL file per planner variant plus `summary.csv`, ranked by
-parse rate first and planner F1 after that. Malformed JSON receives no planner
-credit. The scores use SQL-derived planner labels, so this is a
-planner-quality screen, not a SQL execution claim.
-
-Then score those predictions and write the matching `predicted_planner` prepared
-artifact:
-
-```bash
-python -m eval.planner_eval \
-  --input data/processed/eval_cosql_dev_100.jsonl \
-  --limit 100 \
-  --planner-source json_planner_predictions \
-  --planner-predictions results/planner_predictions/<run-id>.jsonl \
-  --predicted-prepared-output data/processed/eval_cosql_dev_predicted_planner_100.jsonl \
-  --output results/planner_eval_cosql_dev_100.jsonl \
-  --summary-output results/planner_eval_cosql_dev_100_summary.json
-```
-
-JSON planner predictions are normalized into the same plan contract, but raw
-unknown fields are still scanned before prompt injection so oracle provenance
-such as `gold_reference_sql` or `derived from reference sql` cannot be hidden by
-normalization.
-
-This produces:
-
-- `gold_plan`: normalized labels extracted from reference SQL, used only for
-  scoring;
-- `predicted_plan`: the non-oracle planner output;
-- `planner_scores`: table F1, column F1, join F1, skeleton F1, aggregation F1,
-  group-by F1, selected-count match, duplicate-policy match, and a macro planner
-  score.
-
-Like SQL evaluation, planner evaluation rejects prompt records that already
-contain oracle planning hints unless `--allow-oracle-plan` is passed. That keeps
-the next project concrete: improve planner F1 first, then measure whether SQL
-generation improves from predicted plans.
-
-The generated `data/processed/eval_cosql_dev_predicted_planner_100.jsonl`
-contains the first 100 CoSQL turns across 32 dialogs with `evaluation_mode` set
-to `predicted_planner`. It is ready for endpoint SQL evaluation, but it is not
-itself an execution result.
-
-After running endpoint SQL evaluation on both the direct prepared input and the
-predicted-planner prepared input, compare the manifests before claiming the
-planner path helped:
-
-```bash
-python -m eval.compare_predicted_planner \
-  --predicted-manifest results/predicted_planner/multiturn_sql_100_cosql_dev_predicted.manifest.json \
-  --direct-manifest results/direct_sql/multiturn_sql_100_cosql_dev_direct.manifest.json \
-  --output results/predicted_planner/multiturn_sql_100_cosql_dev_predicted.compared.manifest.json
-```
-
-The comparison command refuses oracle diagnostics, non-prepared manifests,
-model mismatches, wrong output modes, and row-identity mismatches. A
-predicted-planner SQL claim needs the compared predicted-planner run to beat the
-same-row direct SQL control on value accuracy, with both run manifests retained.
-
-The safer way to produce that pair is the paired runner, which preflights row
-identity before spending endpoint time, runs the direct-SQL control and
-predicted-planner path with the same model/scorer/database root, then writes the
-comparison manifest:
-
-```bash
-python -m eval.run_predicted_planner_comparison \
-  --direct-input data/processed/eval_cosql_dev_100.jsonl \
-  --predicted-input data/processed/eval_cosql_dev_predicted_planner_100.jsonl \
-  --output-dir results/predicted_planner \
-  --run-id lexical_planner_cosql_dev_100 \
-  --model-name <served-model> \
-  --endpoint http://localhost:8000/v1 \
-  --database-root data/raw/cosql_dataset/database \
-  --limit 100 \
-  --preflight-output results/predicted_planner/<run-id>.preflight.json
-```
-
-For endpoint-free validation, run only the preflight:
-
-```bash
-python -m eval.run_predicted_planner_comparison \
-  --direct-input data/processed/eval_cosql_dev_100.jsonl \
-  --predicted-input data/processed/eval_cosql_dev_predicted_planner_100.jsonl \
-  --output-dir results/predicted_planner \
-  --run-id lexical_planner_cosql_dev_100 \
-  --model-name <served-model> \
-  --preflight-output results/predicted_planner/<run-id>.preflight.json \
-  --preflight-only
-```
-
-That preflight is run-specific and belongs under `results/`. It is an input
-compatibility artifact only; it does not support a SQL execution claim.
-
-Before running that endpoint pair, summarize whether the planner is ready enough
-to make the endpoint spend useful:
-
-```bash
-python -m eval.planner_readiness \
-  --planner-input results/planner_eval_cosql_dev_100.jsonl \
-  --preflight-input results/predicted_planner/<run-id>.preflight.json \
-  --output results/predicted_planner/<run-id>.planner_risk.json
-```
-
-Treat this as a run-specific planner-risk summary, not checked-in evidence.
-Planner quality is not a SQL execution score; improve column linking and
-projection shape before making an endpoint comparison the next public claim.
+Historical planner artifacts remain useful as negative evidence and leakage
+tests, but they are no longer a promoted workflow or reader-facing runbook.
 
 ## Value Grounding Artifacts
 
@@ -365,9 +207,9 @@ the practical seed for entity-resolution labels and alias expansion.
 
 The labels are derived from gold/reference SQL, so they are valid as
 supervision, scoring targets, and coverage diagnostics. They are not valid as
-production inference context unless a non-oracle retriever or planner predicts
-the same bindings from the question, history, schema, and allowed value/entity
-artifacts.
+production inference context unless a non-oracle retriever or model-produced
+artifact recovers the same bindings from the question, history, schema, and
+allowed value/entity artifacts.
 
 Build the corresponding non-oracle value index from database contents:
 
@@ -468,7 +310,7 @@ source counts, evaluation modes, turn formats, history policies, assistant-turn
 totals, and configured dataset weights. Use it when reporting a training or eval
 artifact so dataset mixing is not hidden in prose.
 
-Current fixed-slice lexical planner baseline:
+Historical fixed-slice lexical planner baseline:
 
 | Slice | Planner source | Rows | Dialogs | Oracle prompt rows | Macro planner score | Table F1 | Column F1 | Skeleton F1 |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -488,7 +330,7 @@ current claim boundaries in `docs/evidence_contract.md`.
 | Training | Unsloth + TRL `SFTTrainer` | wired for JSONL SFT |
 | Serving | vLLM OpenAI-compatible server | verified in `.venv-vllm` |
 | Evaluation | deterministic SQL parser/result metrics | implemented |
-| Planner eval | non-oracle planner prediction vs gold SQL-derived labels | implemented |
+| Historical planner eval | non-oracle planner prediction vs gold SQL-derived labels | retained for diagnostics |
 | Plotting | accuracy-vs-latency summary | implemented |
 | Compute | WSL2 + RTX 5090 | PyTorch CUDA verified |
 

@@ -6,8 +6,8 @@ manifests.
 Primary responsibilities:
 
 - Compare methods on the same rows, same databases, and same oracle policy.
-- Keep direct-SQL controls explicit for planner, semantic-layer, metric-DSL, and
-  recovery experiments.
+- Keep direct-SQL controls explicit for structured-brief, semantic-layer,
+  metric-DSL, and recovery experiments.
 - Separate input compatibility checks from measured claims.
 - Write run outputs to `results/` unless a file is a small canonical benchmark
   input or claim artifact.

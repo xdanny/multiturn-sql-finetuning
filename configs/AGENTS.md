@@ -5,9 +5,9 @@ finetuning and evaluation ladder.
 
 Primary responsibilities:
 
-- Keep training configs aligned with the method ladder: direct SQL, semantic
-  context, metric DSL, behavior recovery, planner runs, and hosted/BIRD-style
-  comparisons.
+- Keep training configs aligned with the method ladder: direct SQL, structured
+  query briefs, semantic context, metric DSL, behavior recovery, and
+  hosted/BIRD-style comparisons.
 - Keep `configs/benchmark_protocols.yaml` as the source of truth for what each
   dataset or benchmark protocol can prove, what it blocks, and which leakage
   boundary applies.
@@ -26,9 +26,9 @@ Rules:
 - Do not add prompt variants that use reference SQL, gold plans, gold metric
   DSL, repair labels, expected rows, or future turns unless the config is
   explicitly named and labeled as oracle diagnostic.
-- If a prompt variant requires planning hints, include `requires_planning_hints`
-  and make the instruction say whether those hints are oracle-derived or
-  predicted.
+- If a prompt variant requires decomposition hints, include the relevant hint
+  flag and make the instruction say whether those hints are oracle-derived,
+  train-split supervised, or predicted.
 - Keep output paths under `outputs/` for training products and under `results/`
   for scored generations or comparison outputs.
 - When adding a dataset or split, document whether it is CoSQL proxy, SParC,

@@ -14,10 +14,11 @@ and not yet a hosted-model comparison.
 | Term | Meaning in this repo | What it can prove |
 | --- | --- | --- |
 | `non_oracle_generation` | SQL generation from the user question, prior conversation, schema/semantic context, and non-oracle prompt instructions. | A deployable path improved on the fixed proxy slice. |
-| `predicted_planner` | A planner predicts tables, columns, joins, shape, and value hints without reading reference SQL; the SQL generator consumes that plan. | A production-style planner-to-SQL system can be evaluated end to end. |
+| Structured query brief | A compact visible brief naming intent, entities, filters, grouping, joins, and answer shape before SQL. | A structured intermediate training target helps only if same-row SQL execution beats direct SQL. |
+| Historical `predicted_planner` | A planner predicts tables, columns, joins, shape, and value hints without reading reference SQL; the SQL generator consumes that plan. | Negative planner-to-SQL evidence and leakage diagnostics only. |
 | `oracle_planner_diagnostic` | Planning hints or schema pruning are derived from the reference SQL. | A ceiling test for how much schema linking and planning matter. |
 | `gold_plan` | Answer-key labels extracted from reference SQL. | Planner scoring target only. |
-| `predicted_plan` | Non-oracle planner output. | Prompt input only when `evaluation_mode=predicted_planner`. |
+| `predicted_plan` | Non-oracle planner output. | Historical prompt input only when `evaluation_mode=predicted_planner`. |
 
 Gold SQL-derived labels may be used for scoring in every mode. They may enter
 the model prompt only in `oracle_planner_diagnostic`. Training now rejects
@@ -37,8 +38,9 @@ explicit teacher-forced diagnostic experiments.
 The claim boundary for each dataset lives in
 `configs/benchmark_protocols.yaml`. CoSQL can rank local method changes on a
 fixed proxy slice. SParC can show context-dependent transfer when row manifests
-are frozen. Synthetic schema-rich fixtures can isolate planner, value, metric,
-fanout, and recovery behavior, but they do not prove benchmark improvement.
+are frozen. Synthetic schema-rich fixtures can isolate schema/decomposition,
+value, metric, fanout, and recovery behavior, but they do not prove benchmark
+improvement.
 BIRD-Interact or Multi-BIRD plus a same-protocol hosted baseline is the first
 protocol that can support a local-vs-hosted data-analysis claim.
 
@@ -69,8 +71,8 @@ The fixed proxy result is intentionally decomposed before making broader claims:
    SQL-derived prompt hints.
 3. Oracle diagnostics: the same slice with gold SQL-derived planning hints to
    estimate how much a correct intermediate plan helps.
-4. Planner scoring: predicted plans are compared with `gold_plan` before SQL is
-   generated.
+4. Structured-brief training: training-split labels can teach a visible query
+   brief before SQL, while clean-holdout labels stay scorer-side only.
 5. Future BIRD-Interact run: same manifest shape, row identity checks, and mode
    separation applied to the real target benchmark.
 
@@ -86,14 +88,14 @@ The repo currently distinguishes these training strategies:
 | Plain non-oracle LoRA | CoSQL/SParC/synthetic-style chat rows without gold planning hints in the prompt. | Production-style proxy. |
 | Semantic-context LoRA | Non-oracle rows with schema/semantic model context. | Production-style proxy if no gold pruning is used. |
 | Oracle-labelled LoRA | Rows with gold SQL-derived planning hints or semantic pruning by gold tables. | Diagnostic only; useful for testing whether the SQL generator can consume a correct plan. |
-| Predicted-planner-to-SQL LoRA | Rows or prompts where the plan is produced without reference SQL. | Target production path; it supports an improvement claim only after same-model direct-SQL comparison metrics show a positive value-accuracy delta. |
+| Structured-brief SQL LoRA | Rows where training-split supervision teaches a compact visible brief before SQL. | Active Checkpoint 5 path; it supports an improvement claim only after same-row direct-SQL comparison metrics show a positive value-accuracy delta. |
 
 The next strategy table should be more ambitious than these early runs:
 
 | Strategy | Question it answers |
 | --- | --- |
 | Direct SQL SFT | Can small-model SQL behavior be improved with ordinary supervised fine-tuning? |
-| Planner/DSL first, SQL second | Is it easier to learn a typed intermediate representation than raw SQL directly? |
+| Structured brief or DSL first, SQL second | Is it easier to learn a visible decomposition or typed representation than raw SQL directly? |
 | Semantic-layer tuning | Does a governed model of entities, dimensions, measures, grain, and joins reduce errors that raw schema text cannot? |
 | `MEASURE()`-preserving metric DSL | Should the model preserve governed metrics until a compiler expands them to SQL? |
 | Behavior/recovery tuning | Can the model learn when to clarify, inspect values, repair SQL, and recover after its own previous mistakes under generated-history rollout? |
@@ -150,41 +152,26 @@ duplicates, and order-sensitive outputs. Older single `accuracy` fields should
 be treated as strict-era results unless a manifest or rescoring artifact says
 otherwise.
 
-## Planner Methodology
+## Structured Brief Methodology
 
-The planner is not another name for a prompt. It is the intermediate state that
-must be correct before SQL generation becomes reliable:
+Checkpoint 5 now tests a smaller hypothesis than the old planner gate: a model
+may do better if it is trained to write a compact, visible query brief before
+SQL. That brief should name user intent, entities and values, metrics or
+measures, filters, grouping and grain, table families or joins, and final answer
+shape. It is not private chain-of-thought and it is not an oracle plan.
 
-- relevant tables;
-- relevant columns;
-- join path;
-- query skeleton;
-- projection shape;
-- aggregation and grouping;
-- duplicate-row policy;
-- value/entity matches.
+Training-split reference SQL may supervise those brief targets. Clean-holdout
+reference SQL, expected rows, future turns, gold plans, gold metric DSL, and
+repair labels stay out of prompts. The only promotion path is a same-row
+comparison against the direct-SQL control with
+`eval.run_structured_brief_comparison`, where the structured-brief manifest must
+show a positive `structured_brief_value_delta_vs_direct_sql` and no strict
+accuracy regression before any method-win claim.
 
-The first implemented planner is a lexical baseline. It is intentionally weak
-and inspectable. Its purpose is to create a scoring surface before building a
-stronger planner, not to claim the planner problem is solved.
-
-Stronger planners should enter through the same contract rather than through
-ad hoc prompt edits. `eval.planner_optimize` screens static and DSPy-proposed
-planner policies before endpoint SQL generation. Its ranking treats parse rate
-as a gate before planner F1, because malformed JSON is not a deployable planner
-even when empty fields can look superficially close. The promoted policy then
-flows through `eval.planner_predict`, which writes non-oracle JSON planner
-predictions keyed by expanded turn id. `eval.planner_eval` reads those
-predictions, scores them against gold SQL-derived labels, and writes a
-`predicted_planner` prepared artifact for endpoint SQL evaluation. The loader
-checks raw planner output for oracle provenance before any normalized plan can
-enter the SQL prompt.
-
-Predicted-planner SQL execution is compared against direct SQL, not judged in
-isolation. A raw `predicted_planner` manifest proves only that the planner path
-ran. The repo requires a comparison artifact from `eval.compare_predicted_planner`
-and the referenced direct-SQL manifest before reporting a planner-to-SQL
-improvement claim.
+The older predicted-planner modules and artifacts are historical diagnostics.
+They showed that planner scoring and endpoint comparison can be made measurable,
+but the active roadmap no longer treats planner F1 or planner readiness as a
+gate before SQL benchmarking.
 
 ## Current Claim Boundary
 
@@ -195,12 +182,13 @@ Supported:
   scoring;
 - oracle planning hints produce a much higher ceiling, so schema linking and
   projection planning are high-leverage;
-- the first non-oracle planner baseline is measurable.
+- the first non-oracle planner baseline was measurable as historical negative
+  evidence.
 
 Not supported yet:
 
 - local 9B competes with hosted state-of-the-art systems;
 - local 9B is competitive on BIRD-Interact;
-- the predicted planner improves SQL execution;
+- structured query briefs improve SQL execution;
 - metric-DSL generation beats direct SQL;
 - current dataset mixing is optimal.
