@@ -32,7 +32,7 @@ def _write_registry(path: Path) -> None:
         (
             "semantic_value_retrieval_vs_direct",
             6,
-            "semantic_pruned_preflight_ready",
+            "semantic_pruned_clean_holdout_promoted",
             "semantic_value_retrieval",
             "direct_sql_full_non_oracle_control",
         ),
@@ -312,7 +312,7 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         checkpoint3_config_path=checkpoint3,
     )
 
-    assert summary["status_counts"] == {"complete": 4, "in_progress": 5, "pending": 1}
+    assert summary["status_counts"] == {"complete": 5, "in_progress": 4, "pending": 1}
     by_checkpoint = {row["checkpoint"]: row for row in summary["checkpoints"]}
     assert by_checkpoint[3]["status"] == "complete"
     assert "docs/training_runs/direct_sql_full_lora_20260531.json" in by_checkpoint[3]["evidence"]
@@ -416,9 +416,12 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         "docs/training_runs/semantic_value_pruned_preflight_20260602.json"
         in by_checkpoint[6]["evidence"]
     )
-    assert by_checkpoint[6]["open_items"] == [
-        "run pruned semantic value-retrieval endpoint pair and require positive value delta with no strict regression"
-    ]
+    assert (
+        "docs/training_runs/semantic_value_pruned_full_20260602.json"
+        in by_checkpoint[6]["evidence"]
+    )
+    assert by_checkpoint[6]["status"] == "complete"
+    assert by_checkpoint[6]["open_items"] == []
     assert (
         "eval.compare_metric_dsl_direct_sql promotion policy"
         in by_checkpoint[7]["evidence"]
@@ -466,7 +469,7 @@ def test_summarize_roadmap_status_accepts_recorded_endpoint_evidence(
         checkpoint3_evidence_path=evidence_path,
     )
 
-    assert summary["status_counts"] == {"complete": 5, "in_progress": 4, "pending": 1}
+    assert summary["status_counts"] == {"complete": 6, "in_progress": 3, "pending": 1}
     by_checkpoint = {row["checkpoint"]: row for row in summary["checkpoints"]}
     assert by_checkpoint[3]["status"] == "complete"
     assert by_checkpoint[3]["open_items"] == []

@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "artifact_type": "semantic_value_pruned_endpoint_evidence",
+  "checkpoint": 6,
+  "run_id": "semantic_value_clean_holdout_pruned_full_20260602",
+  "claim_boundary": "Full clean-holdout pruned semantic value-retrieval endpoint pair; semantic value retrieval beat direct SQL by a very narrow margin under the current promotion policy. This is a local clean-holdout method result, not a hosted benchmark claim.",
+  "source_preflight_evidence": "docs/training_runs/semantic_value_pruned_preflight_20260602.json",
+  "run_environment": {
+    "runner_git_commit": "ebfb453b153147857d42d43dea239fff7243032c",
+    "vllm_version": "0.21.0",
+    "gpu": "NVIDIA GeForce RTX 5090"
+  },
+  "inputs": {
+    "direct_input_path": "data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl",
+    "direct_input_sha256": "aaa5a0aa7e216b409cfcc8d58442f555d364d3c1a0425d191aec40a965ae3cf2",
+    "semantic_input_path": "/tmp/semantic-cp6-pruned/cosql_dev_clean_holdout_semantic_value_retrieval_pruned.jsonl",
+    "semantic_input_sha256": "8d4a34d3396ed462ed48cbec5e232475aa4dece390029d11ed069ed26f4742a7",
+    "split_id": "cosql_dev_clean_holdout_v1",
+    "split_role": "clean_local_holdout",
+    "model_name": "multiturn-sql-semantic-50",
+    "served_base_model": "unsloth/Qwen3.5-9B",
+    "served_adapter_path": "outputs/qwen35_9b_multiturn_sql_semantic_50steps/final",
+    "oracle_prompt_rows": 0
+  },
+  "pruning_policy": {
+    "retrieval_scope": "current_turn",
+    "max_matches_per_turn": 4,
+    "min_alias_chars": 3,
+    "ambiguous_short_aliases_pruned": true,
+    "numeric_aliases_retained": true
+  },
+  "commands": {
+    "serve": "MODEL=unsloth/Qwen3.5-9B LORA_PATH=/home/dan/docs/multiturn-sql-finetuning/outputs/qwen35_9b_multiturn_sql_semantic_50steps/final LORA_NAME=multiturn-sql-semantic-50 PORT=8000 MAX_MODEL_LEN=4096 GPU_MEMORY_UTILIZATION=0.82 MAX_NUM_SEQS=64 PATH=/home/dan/docs/multiturn-sql-finetuning/.venv-vllm/bin:$PATH bash serve/serve_vllm.sh",
+    "endpoint_pair": "PYTHONPATH=/tmp/multiturn-roadmap-cp6-endpoint VIRTUAL_ENV=/home/dan/docs/multiturn-sql-finetuning/.venv PATH=/home/dan/docs/multiturn-sql-finetuning/.venv/bin:$PATH UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m eval.run_semantic_value_retrieval_comparison --direct-input /home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl --semantic-input /tmp/semantic-cp6-pruned/cosql_dev_clean_holdout_semantic_value_retrieval_pruned.jsonl --value-index-manifest /tmp/semantic-cp6-run/value_index_clean_holdout.manifest.json --output-dir /tmp/semantic-cp6-pruned-endpoint/results --run-id semantic_value_clean_holdout_pruned_full_20260602 --model-name multiturn-sql-semantic-50 --endpoint http://127.0.0.1:8000/v1 --database-root /home/dan/docs/multiturn-sql-finetuning/data/raw/cosql_dataset/database --max-tokens 192 --preflight-output /tmp/semantic-cp6-pruned-endpoint/semantic_value_clean_holdout_pruned_full_20260602.preflight.json"
+  },
+  "artifacts": {
+    "preflight": {
+      "path": "/tmp/semantic-cp6-pruned-endpoint/semantic_value_clean_holdout_pruned_full_20260602.preflight.json",
+      "row_count": 680,
+      "dialog_count": 193,
+      "database_count": 20,
+      "sha256": "478dceefc476e39605b328c09fe2cccddc3b86efe11f817ddb74126a0aaa9e61"
+    },
+    "direct_results": {
+      "path": "/tmp/semantic-cp6-pruned-endpoint/results/semantic_value_clean_holdout_pruned_full_20260602.direct.jsonl",
+      "row_count": 680,
+      "sha256": "0e12725b39d3198f254697f52993124939c03b9939808bb6217ebd32ca5c16de"
+    },
+    "direct_manifest": {
+      "path": "/tmp/semantic-cp6-pruned-endpoint/results/semantic_value_clean_holdout_pruned_full_20260602.direct.manifest.json",
+      "sha256": "eac448994eef995644e3cc79f00ba4959d929dd15d6621a399ab1a642b16e1d0"
+    },
+    "semantic_results": {
+      "path": "/tmp/semantic-cp6-pruned-endpoint/results/semantic_value_clean_holdout_pruned_full_20260602.semantic_value_retrieval.jsonl",
+      "row_count": 680,
+      "sha256": "b25e63029ee512cca1812efd8e25db401925749ce9962c69aa8ee5703c250f9d"
+    },
+    "semantic_manifest": {
+      "path": "/tmp/semantic-cp6-pruned-endpoint/results/semantic_value_clean_holdout_pruned_full_20260602.semantic_value_retrieval.manifest.json",
+      "sha256": "5b5632f17b336333a4a528de4d00447efc674e2f80b66f885594def34ad5fcc3"
+    },
+    "compared_manifest": {
+      "path": "/tmp/semantic-cp6-pruned-endpoint/results/semantic_value_clean_holdout_pruned_full_20260602.compared.manifest.json",
+      "sha256": "679f754a3ea8b1362d6dde5106a6ad34574066500653e1ef029aadb155f4d962"
+    }
+  },
+  "metrics": {
+    "comparable_row_count": 680,
+    "dialog_count": 193,
+    "database_count": 20,
+    "direct_value_execution_accuracy": 0.6514705882352941,
+    "direct_strict_execution_accuracy": 0.5544117647058824,
+    "direct_syntax_accuracy": 1.0,
+    "semantic_value_execution_accuracy": 0.6529411764705882,
+    "semantic_strict_execution_accuracy": 0.5573529411764706,
+    "semantic_syntax_accuracy": 0.9985294117647059,
+    "semantic_value_delta_vs_direct_sql": 0.0014705882352941124,
+    "semantic_strict_delta_vs_direct_sql": 0.002941176470588225,
+    "semantic_promotion_ready": true,
+    "semantic_promotion_blockers": [],
+    "semantic_mean_prompt_tokens": 849.4338235294117,
+    "direct_mean_prompt_tokens": 769.425,
+    "semantic_mean_latency_ms": 523.8491965867497,
+    "direct_mean_latency_ms": 488.21953720588385
+  },
+  "paired_flip_analysis": {
+    "row_count": 680,
+    "direct_only_value_correct": 31,
+    "semantic_only_value_correct": 32,
+    "both_value_correct": 412,
+    "both_value_wrong": 205,
+    "direct_only_strict_correct": 28,
+    "semantic_only_strict_correct": 30,
+    "both_strict_correct": 349,
+    "both_strict_wrong": 273,
+    "rows_with_value_retrieval_context": {
+      "row_count": 340,
+      "direct_only_value_correct": 28,
+      "semantic_only_value_correct": 28,
+      "both_value_correct": 186,
+      "both_value_wrong": 98
+    },
+    "rows_without_value_retrieval_context": {
+      "row_count": 340,
+      "direct_only_value_correct": 3,
+      "semantic_only_value_correct": 4,
+      "both_value_correct": 226,
+      "both_value_wrong": 107
+    }
+  },
+  "interpretation": [
+    "The pruned clean-holdout endpoint pair satisfies the current semantic value-retrieval promotion policy: positive value delta, no strict regression, clean-holdout split role, database-derived value index, and 680 comparable rows.",
+    "The win is very narrow: semantic value retrieval has 32 semantic-only value-correct rows versus 31 direct-only value-correct rows.",
+    "Checkpoint 6 is complete for the current local semantic value-retrieval promotion policy, but this is not a hosted benchmark claim and should be replicated or stress-tested before strong external claims."
+  ]
+}
