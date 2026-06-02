@@ -211,6 +211,8 @@ def metric_dsl_promotion_blockers(metrics: dict[str, Any]) -> list[str]:
     required_split_role = str(policy["required_split_role"])
     if required_split_role not in split_roles:
         blockers.append(f"missing required split role {required_split_role}")
+    elif split_roles[required_split_role] < comparable_row_count:
+        blockers.append(f"not all comparable rows use required split role {required_split_role}")
     parse_rate = float(metrics.get("metric_dsl_parse_rate") or 0.0)
     if parse_rate < float(policy["minimum_parse_rate"]):
         blockers.append("metric DSL parse rate below promotion policy")
