@@ -25,7 +25,7 @@ def _write_registry(path: Path) -> None:
         (
             "predicted_planner_sql_vs_direct",
             5,
-            "planner_output_slot_contract_ready_for_rerun",
+            "planner_slotaware_readiness_negative",
             "predicted_planner_sql",
             "direct_sql_full_non_oracle_control",
         ),
@@ -397,8 +397,12 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         "docs/training_runs/planner_output_slot_contract_20260602.json"
         in by_checkpoint[5]["evidence"]
     )
+    assert (
+        "docs/training_runs/planner_slotaware_readiness_20260602.json"
+        in by_checkpoint[5]["evidence"]
+    )
     assert by_checkpoint[5]["open_items"] == [
-        "regenerate planner targets or predictions under output-slot contract and rerun slot-aware clean-holdout readiness",
+        "update planner-SFT targets and prompt/schema to predict ordered output_slots directly",
     ]
     assert (
         "eval.compare_semantic_value_retrieval promotion policy"

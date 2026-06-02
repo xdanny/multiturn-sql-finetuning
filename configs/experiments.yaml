@@ -32,7 +32,7 @@ experiments:
 
   - experiment_id: predicted_planner_sql_vs_direct
     checkpoint: 5
-    status: planner_output_slot_contract_ready_for_rerun
+    status: planner_slotaware_readiness_negative
     hypothesis_id: planner_state
     hypothesis: >-
       Non-oracle predicted planner state improves SQL execution only after
@@ -79,9 +79,12 @@ experiments:
       true projection-shape issues still block any same-row SQL comparison.
       Planner output slots are now modeled and scored separately from flat
       selected expressions so count-distinct/count-star and group-key/aggregate
-      order mismatches can block readiness explicitly. This is a contract and
-      scorer fix only; the planner path still needs slot-aware readiness before
-      another endpoint SQL comparison.
+      order mismatches can block readiness explicitly. Rescoring the same
+      corrected-adapter 24-turn clean-holdout readiness slice under the
+      slot-aware policy kept endpoint-pair preflight ready, but
+      output_slot_order_match was 0.833, below the 0.900 threshold. The planner
+      path still needs explicit output-slot targets and a passing slot-aware
+      readiness run before another endpoint SQL comparison.
 
   - experiment_id: semantic_value_retrieval_vs_direct
     checkpoint: 6

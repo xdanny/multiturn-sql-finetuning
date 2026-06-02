@@ -36,7 +36,7 @@ def test_experiment_registry_names_roadmap_runs() -> None:
 
     planner = next(row for row in experiments if row["method"] == "predicted_planner_sql")
     assert planner["control_experiment_id"] == "direct_sql_full_non_oracle_control"
-    assert planner["status"] == "planner_output_slot_contract_ready_for_rerun"
+    assert planner["status"] == "planner_slotaware_readiness_negative"
 
     semantic = next(row for row in experiments if row["method"] == "semantic_value_retrieval")
     assert semantic["dataset_role"] == "clean_local_holdout"

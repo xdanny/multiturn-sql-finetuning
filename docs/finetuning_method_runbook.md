@@ -160,10 +160,16 @@ contract and scorer follow-up: `projection_shape.output_slots` now models
 ordered answer slots separately from relevant filter/join columns, and
 `output_slot_order_match` is part of planner scoring and readiness policy. This
 does not claim a new planner readiness pass or SQL win.
+`docs/training_runs/planner_slotaware_readiness_20260602.json` records the
+slot-aware rerun on the same 24-turn corrected-adapter clean-holdout slice.
+Endpoint-pair preflight stayed ready and parse errors stayed at `0`, but
+promotion still blocked because both selected-expression order and output-slot
+order scored `0.833`, below the `0.900` policy threshold.
 
-Next useful movement: regenerate planner-SFT targets or planner predictions
-under the output-slot contract, rerun slot-aware clean-holdout readiness, and
-only then run another bounded same-row endpoint pair if readiness passes.
+Next useful movement: update planner-SFT targets and prompt/schema so the model
+predicts ordered `output_slots` directly, rerun slot-aware clean-holdout
+readiness, and only then run another bounded same-row endpoint pair if readiness
+passes.
 
 ## Semantic-Layer Tuning
 
