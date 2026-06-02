@@ -196,6 +196,20 @@ def _metric_dsl_readiness_evidence() -> dict:
     }
 
 
+def _generated_history_recovery_readiness_evidence() -> dict:
+    return {
+        "artifact_type": "generated_history_recovery_readiness_summary",
+        "candidate_dialog_count": 17,
+        "candidate_turn_count": 44,
+        "recoverable_later_turn_count": 27,
+        "split_roles": {"clean_local_holdout": 17},
+        "readiness_blockers": {
+            "multi-dialog recovery adapter rollout missing": 17,
+        },
+        "promotion_status": "not_ready",
+    }
+
+
 def _write_checkpoint3_config(tmp_path: Path, *, complete: bool) -> Path:
     config_path = tmp_path / "configs" / "direct_sql_full_non_oracle.yaml"
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -348,6 +362,13 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         / "metric_dsl_clean_holdout_readiness_20260602.json",
         _metric_dsl_readiness_evidence(),
     )
+    _write_json(
+        tmp_path
+        / "docs"
+        / "training_runs"
+        / "generated_history_recovery_readiness_20260602.json",
+        _generated_history_recovery_readiness_evidence(),
+    )
     checkpoint3 = _write_checkpoint3_config(tmp_path, complete=True)
 
     summary = summarize_roadmap_status(
@@ -426,6 +447,18 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
     assert by_checkpoint[7]["open_items"] == [
         "structured gold Metric DSL labels missing",
         "Metric DSL clean-holdout promotion policy must pass"
+    ]
+    assert (
+        "data.generated_history_recovery_readiness"
+        in by_checkpoint[8]["evidence"]
+    )
+    assert (
+        "docs/training_runs/generated_history_recovery_readiness_20260602.json"
+        in by_checkpoint[8]["evidence"]
+    )
+    assert by_checkpoint[8]["open_items"] == [
+        "multi-dialog recovery adapter rollout missing",
+        "multi-dialog generated-history recovery win is still missing",
     ]
     assert by_checkpoint[9]["status"] == "pending"
     assert by_checkpoint[9]["open_items"] == [

@@ -1,0 +1,24 @@
+{
+  "artifact_type": "generated_history_recovery_candidate_manifest",
+  "candidate_dialog_count": 191,
+  "command": [
+    "/tmp/multiturn-roadmap-next/data/generated_history_recovery_readiness.py",
+    "--input",
+    "/home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl",
+    "--output",
+    "data/processed/generated_history_recovery/clean_holdout_candidates.jsonl",
+    "--summary-output",
+    "docs/training_runs/generated_history_recovery_readiness_20260602.json",
+    "--manifest-output",
+    "docs/data_artifacts/generated_history_recovery_candidates.manifest.json"
+  ],
+  "input_path": "/home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl",
+  "input_sha256": "aaa5a0aa7e216b409cfcc8d58442f555d364d3c1a0425d191aec40a965ae3cf2",
+  "oracle_policy": "non_oracle_generation",
+  "output_path": "data/processed/generated_history_recovery/clean_holdout_candidates.jsonl",
+  "output_sha256": "4cd1e36fb95e0391e9ba471d932f68f1a6c3a8bbbfee470c39383c7b44123d1f",
+  "promotion_status": "not_ready",
+  "schema_version": 1,
+  "summary_path": "docs/training_runs/generated_history_recovery_readiness_20260602.json",
+  "summary_sha256": "4128ad77adb27d9d19e910b122549d1a856a2b337b28f95051e9d23cb8d9f062"
+}
