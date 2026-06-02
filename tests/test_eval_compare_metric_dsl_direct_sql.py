@@ -158,6 +158,37 @@ def test_compare_metric_dsl_direct_sql_marks_clean_holdout_win_promotable() -> N
     )
 
 
+def test_compare_metric_dsl_direct_sql_blocks_partially_annotated_holdout() -> None:
+    compared = compare_metric_dsl_direct_sql_manifests(
+        metric_dsl_manifest=_metric_manifest(
+            row_count=24,
+            value_accuracy=0.70,
+            strict_accuracy=0.60,
+            split_role="clean_local_holdout",
+        ),
+        direct_sql_manifest=_direct_manifest(
+            row_count=24,
+            value_accuracy=0.60,
+            strict_accuracy=0.60,
+        ),
+        metric_dsl_rows=_metric_rows(24),
+        direct_sql_rows=_direct_rows(24),
+    )
+    compared["metrics"]["split_roles"] = {"clean_local_holdout": 1, "unknown": 23}
+    blockers = compare_metric_dsl_direct_sql_manifests(
+        metric_dsl_manifest={**compared, "metrics": compared["metrics"]},
+        direct_sql_manifest=_direct_manifest(
+            row_count=24,
+            value_accuracy=0.60,
+            strict_accuracy=0.60,
+        ),
+        metric_dsl_rows=_metric_rows(24),
+        direct_sql_rows=_direct_rows(24),
+    )["metrics"]["metric_dsl_promotion_blockers"]
+
+    assert "not all comparable rows use required split role clean_local_holdout" in blockers
+
+
 def test_compare_metric_dsl_direct_sql_rejects_oracle_metric_manifest() -> None:
     metric_manifest = _metric_manifest()
     metric_manifest["oracle_allowed"] = True

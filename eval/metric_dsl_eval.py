@@ -264,7 +264,7 @@ def summarize_metric_dsl_results(results: list[dict[str, Any]]) -> dict[str, Any
     semantic_model_sources = Counter(
         str(result.get("semantic_model_source") or "unknown") for result in results
     )
-    return {
+    metrics = {
         "rows": len(results),
         "metric_dsl_parse_rate": _mean(
             [float(bool(result.get("metric_dsl_parse_success"))) for result in results]
@@ -298,6 +298,14 @@ def summarize_metric_dsl_results(results: list[dict[str, Any]]) -> dict[str, Any
             1 for result in results if result.get("semantic_model_oracle_derived")
         ),
     }
+    if any(result.get("split_id") or result.get("split_role") for result in results):
+        metrics["split_ids"] = dict(
+            Counter(str(result.get("split_id") or "unknown") for result in results)
+        )
+        metrics["split_roles"] = dict(
+            Counter(str(result.get("split_role") or "unknown") for result in results)
+        )
+    return metrics
 
 
 def run_metric_dsl_eval(

@@ -4,6 +4,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+import pytest
+
 from eval.metric_dsl_eval import (
     evaluate_metric_dsl_rows,
     run_metric_dsl_eval,
@@ -219,6 +221,8 @@ def test_summarize_metric_dsl_results_aggregates_semantic_and_sql_metrics() -> N
             "strict_execution_score": 0.0,
             "syntax_valid": True,
             "database_path": "store.sqlite",
+            "split_id": "cosql_dev_clean_holdout_v1",
+            "split_role": "clean_local_holdout",
         },
         {
             "metric_scores": {
@@ -234,23 +238,42 @@ def test_summarize_metric_dsl_results_aggregates_semantic_and_sql_metrics() -> N
             "strict_execution_score": 0.0,
             "syntax_valid": False,
             "database_path": "store.sqlite",
+            "split_id": "cosql_dev_clean_holdout_v1",
+            "split_role": "clean_local_holdout",
+        },
+        {
+            "metric_scores": {
+                "measure_f1": 1.0,
+                "dimension_f1": 1.0,
+                "filter_f1": 1.0,
+                "measure_preservation": 1.0,
+            },
+            "metric_dsl_parse_success": True,
+            "compile_success": True,
+            "sql_execution_attempted": True,
+            "value_execution_score": 1.0,
+            "strict_execution_score": 1.0,
+            "syntax_valid": True,
+            "database_path": "store.sqlite",
         },
     ]
 
     summary = summarize_metric_dsl_results(results)
 
-    assert summary["rows"] == 2
+    assert summary["rows"] == 3
     assert summary["metric_dsl_parse_rate"] == 1.0
-    assert summary["metric_dsl_compile_rate"] == 0.5
-    assert summary["compiled_sql_execution_attempt_rate"] == 0.5
-    assert summary["compiled_sql_execution_evaluated_rows"] == 1
-    assert summary["measure_f1"] == 0.5
+    assert summary["metric_dsl_compile_rate"] == pytest.approx(2 / 3)
+    assert summary["compiled_sql_execution_attempt_rate"] == pytest.approx(2 / 3)
+    assert summary["compiled_sql_execution_evaluated_rows"] == 2
+    assert summary["measure_f1"] == pytest.approx(2 / 3)
     assert summary["dimension_f1"] == 1.0
-    assert summary["filter_f1"] == 0.5
-    assert summary["measure_preservation"] == 0.5
-    assert summary["value_execution_accuracy"] == 0.5
-    assert summary["strict_execution_accuracy"] == 0.0
-    assert summary["syntax_accuracy"] == 0.5
+    assert summary["filter_f1"] == pytest.approx(2 / 3)
+    assert summary["measure_preservation"] == pytest.approx(2 / 3)
+    assert summary["value_execution_accuracy"] == pytest.approx(2 / 3)
+    assert summary["strict_execution_accuracy"] == pytest.approx(1 / 3)
+    assert summary["syntax_accuracy"] == pytest.approx(2 / 3)
+    assert summary["split_ids"] == {"cosql_dev_clean_holdout_v1": 2, "unknown": 1}
+    assert summary["split_roles"] == {"clean_local_holdout": 2, "unknown": 1}
 
 
 def test_run_metric_dsl_eval_writes_results_and_manifest(tmp_path) -> None:
@@ -273,6 +296,8 @@ def test_run_metric_dsl_eval_writes_results_and_manifest(tmp_path) -> None:
                     "GROUP BY customers.country"
                 ),
                 "database_path": str(database_path),
+                "split_id": "cosql_dev_clean_holdout_v1",
+                "split_role": "clean_local_holdout",
             }
         ],
     )
@@ -300,6 +325,8 @@ def test_run_metric_dsl_eval_writes_results_and_manifest(tmp_path) -> None:
     assert manifest["metrics"]["semantic_model_sources"] == {"inline_unversioned": 1}
     assert manifest["metrics"]["semantic_model_oracle_derived_rows"] == 0
     assert manifest["metrics"]["compiled_sql_execution_evaluated_rows"] == 1
+    assert manifest["metrics"]["split_ids"] == {"cosql_dev_clean_holdout_v1": 1}
+    assert manifest["metrics"]["split_roles"] == {"clean_local_holdout": 1}
     assert manifest["oracle_allowed"] is False
 
 
