@@ -353,8 +353,8 @@ readiness evidence, a projection-sequence planner adapter, a corrected
 schema-label-source planner adapter/readiness run, and an alias-insensitive
 projection-order scorer repair exist. The contract now models ordered
 projection output slots separately from flat selected expressions. The
-corrected adapter still has not passed slot-aware readiness, so no new SQL
-execution pair or SQL win is claimed.
+corrected adapter still misses the slot-aware readiness threshold, so no new
+SQL execution pair or SQL win is claimed.
 
 Train or prompt a planner only on training-split gold labels. Evaluate planner
 F1 on held-out rows before feeding predicted plans into SQL generation.
@@ -580,12 +580,21 @@ Latest Checkpoint 5 evidence from 2026-05-31:
   planner-readiness pass or SQL win.
 - The evidence file is
   `docs/training_runs/planner_output_slot_contract_20260602.json`.
+- Rescoring the same 24-turn corrected-adapter clean-holdout readiness slice
+  under the output-slot policy kept endpoint-pair preflight ready and parse
+  errors at `0`, but still blocked promotion. Macro planner score is `0.891`,
+  selected-expression order is `0.833`, and output-slot order is `0.833`, below
+  the `0.900` threshold.
+- The remaining four slot mismatches are the same substantive failures exposed
+  by the alias-normalized run: three count/count-distinct source-column misses
+  and one group-key/aggregate output-order reversal. The evidence file is
+  `docs/training_runs/planner_slotaware_readiness_20260602.json`.
 
-The next Checkpoint 5 work should regenerate planner-SFT targets or planner
-predictions under the output-slot contract, rerun slot-aware clean-holdout
-readiness, and only then run another bounded same-row SQL pair if readiness
-passes. A positive value-accuracy delta remains required before promoting the
-planner path.
+The next Checkpoint 5 work should update planner-SFT targets and prompt/schema
+so the model predicts ordered `output_slots` directly, rerun slot-aware
+clean-holdout readiness, and only then run another bounded same-row SQL pair if
+readiness passes. A positive value-accuracy delta remains required before
+promoting the planner path.
 
 Architecture note after the output-slot contract change: keep relevant
 filter/join columns separate from answer columns. The next planner target should
