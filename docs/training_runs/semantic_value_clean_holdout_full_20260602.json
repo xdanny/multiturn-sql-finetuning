@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "artifact_type": "semantic_value_clean_holdout_endpoint_evidence",
+  "checkpoint": 6,
+  "run_id": "semantic_value_clean_holdout_full_20260602",
+  "claim_boundary": "Full clean-holdout semantic value-retrieval endpoint pair; semantic value retrieval regressed versus direct SQL and is not promoted.",
+  "run_environment": {
+    "runner_git_commit": "4de2033a84b08dcf71af30e9a589703b849bea7e",
+    "recorded_on_main_commit": "de19f842803a3a5dccd6f1b681aa5afb59f8fb33",
+    "vllm_version": "0.21.0",
+    "gpu": "NVIDIA GeForce RTX 5090"
+  },
+  "inputs": {
+    "direct_input_path": "data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl",
+    "direct_input_sha256": "aaa5a0aa7e216b409cfcc8d58442f555d364d3c1a0425d191aec40a965ae3cf2",
+    "semantic_input_path": "/tmp/semantic-cp6-run/cosql_dev_clean_holdout_semantic_value_retrieval.jsonl",
+    "semantic_input_sha256": "992c84b0e68193204a06306a8bc058e547e4498ea6f7fcadc03529b647687c75",
+    "split_id": "cosql_dev_clean_holdout_v1",
+    "split_role": "clean_local_holdout",
+    "model_name": "multiturn-sql-semantic-50",
+    "served_base_model": "unsloth/Qwen3.5-9B",
+    "served_adapter_path": "outputs/qwen35_9b_multiturn_sql_semantic_50steps/final",
+    "oracle_prompt_rows": 0
+  },
+  "commands": {
+    "serve": "MODEL=unsloth/Qwen3.5-9B LORA_PATH=outputs/qwen35_9b_multiturn_sql_semantic_50steps/final LORA_NAME=multiturn-sql-semantic-50 PORT=8000 PATH=\"$PWD/.venv-vllm/bin:$PATH\" bash serve/serve_vllm.sh",
+    "endpoint_pair": "PYTHONPATH=/tmp/multiturn-semantic-cp6 VIRTUAL_ENV=/home/dan/docs/multiturn-sql-finetuning/.venv PATH=/home/dan/docs/multiturn-sql-finetuning/.venv/bin:$PATH UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m eval.run_semantic_value_retrieval_comparison --direct-input /home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl --semantic-input /tmp/semantic-cp6-run/cosql_dev_clean_holdout_semantic_value_retrieval.jsonl --value-index-manifest /tmp/semantic-cp6-run/value_index_clean_holdout.manifest.json --output-dir /tmp/semantic-cp6-endpoint-full/results --run-id semantic_value_clean_holdout_full_20260602 --model-name multiturn-sql-semantic-50 --endpoint http://127.0.0.1:8000/v1 --database-root /home/dan/docs/multiturn-sql-finetuning/data/raw/cosql_dataset/database --max-tokens 192 --preflight-output /tmp/semantic-cp6-endpoint-full/semantic_value_clean_holdout_full_20260602.preflight.json"
+  },
+  "artifacts": {
+    "preflight": {
+      "path": "/tmp/semantic-cp6-endpoint-full/semantic_value_clean_holdout_full_20260602.preflight.json",
+      "row_count": 680,
+      "dialog_count": 193,
+      "database_count": 20,
+      "sha256": "0e3a3147fd63c060f781d357c1fcc7c51fbd9aec8b7102219fff8c43fdfa859e"
+    },
+    "direct_results": {
+      "path": "/tmp/semantic-cp6-endpoint-full/results/semantic_value_clean_holdout_full_20260602.direct.jsonl",
+      "row_count": 680,
+      "sha256": "83b5d7a9ed5c52ec4d88408ff56402ed6b2b4a08f2df5c5e880f1081a97b739a"
+    },
+    "direct_manifest": {
+      "path": "/tmp/semantic-cp6-endpoint-full/results/semantic_value_clean_holdout_full_20260602.direct.manifest.json",
+      "sha256": "ef01889ad29359738d96b134d8c928570fdca31235a03df96cebf81af6b4d73d"
+    },
+    "semantic_results": {
+      "path": "/tmp/semantic-cp6-endpoint-full/results/semantic_value_clean_holdout_full_20260602.semantic_value_retrieval.jsonl",
+      "row_count": 680,
+      "sha256": "dfd6b146528ee5a780d92e397ad73d1e4607b0ca0e2c573dd97a91f4ed2f0c38"
+    },
+    "semantic_manifest": {
+      "path": "/tmp/semantic-cp6-endpoint-full/results/semantic_value_clean_holdout_full_20260602.semantic_value_retrieval.manifest.json",
+      "sha256": "fe1229c4bc670494f7f0a3cbde5fd9706f5cc1eeaecb4c107e78ea05d8e4161e"
+    },
+    "compared_manifest": {
+      "path": "/tmp/semantic-cp6-endpoint-full/results/semantic_value_clean_holdout_full_20260602.compared.manifest.json",
+      "sha256": "504386039f5a84839d6192fe1beec3b7322bb351841c544434cb61ec86df871a"
+    }
+  },
+  "metrics": {
+    "comparable_row_count": 680,
+    "dialog_count": 193,
+    "database_count": 20,
+    "direct_value_execution_accuracy": 0.65,
+    "direct_strict_execution_accuracy": 0.5529411764705883,
+    "direct_syntax_accuracy": 1.0,
+    "semantic_value_execution_accuracy": 0.6352941176470588,
+    "semantic_strict_execution_accuracy": 0.5397058823529411,
+    "semantic_syntax_accuracy": 0.9985294117647059,
+    "semantic_value_delta_vs_direct_sql": -0.014705882352941235,
+    "semantic_strict_delta_vs_direct_sql": -0.013235294117647123,
+    "semantic_promotion_ready": false,
+    "semantic_promotion_blockers": [
+      "value delta vs direct SQL must be positive",
+      "strict delta vs direct SQL must not regress"
+    ],
+    "semantic_mean_prompt_tokens": 1004.5823529411765,
+    "direct_mean_prompt_tokens": 769.425
+  },
+  "interpretation": [
+    "The full clean-holdout endpoint pair supersedes the earlier 100-turn smoke for Checkpoint 6 promotion decisions.",
+    "Semantic value retrieval did not improve SQL execution on the full clean holdout; both value accuracy and strict accuracy regressed versus direct SQL.",
+    "The next Checkpoint 6 step should diagnose whether retrieved value context adds prompt noise, whether retrieval should be pruned, and which rows flip from direct-correct to semantic-wrong before another endpoint comparison."
+  ]
+}

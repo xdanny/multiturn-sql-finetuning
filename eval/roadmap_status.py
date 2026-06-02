@@ -250,9 +250,10 @@ def summarize_roadmap_status(
                 "eval.compare_semantic_value_retrieval promotion policy",
                 "database-derived value index and semantic retrieval inputs exist",
                 "docs/training_runs/semantic_value_clean_holdout_preflight_20260602.json",
+                "docs/training_runs/semantic_value_clean_holdout_full_20260602.json",
             ],
             open_items=[
-                "run semantic clean-holdout endpoint pair and require positive value delta without strict regression",
+                "diagnose semantic full-run regression before another endpoint pair",
             ],
         ),
         _entry(

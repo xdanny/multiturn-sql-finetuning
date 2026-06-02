@@ -191,12 +191,17 @@ Latest movement:
 records a clean-holdout endpoint-pair preflight. The semantic prepared input
 matched 3,611 database-derived values across 510 user turns and 155 dialogs, and
 the direct-SQL and semantic inputs are row-identity matched across 680 turns, 193
-dialogs, and 20 databases. This is preflight evidence only; no SQL execution
-delta or method win is claimed.
+dialogs, and 20 databases.
+`docs/training_runs/semantic_value_clean_holdout_full_20260602.json` records the
+full endpoint pair. Direct SQL reached `0.650` value and `0.553` strict accuracy;
+semantic value retrieval reached `0.635` value and `0.540` strict accuracy. The
+semantic deltas were `-0.0147` value and `-0.0132` strict, so this method is not
+promotable.
 
-Next useful movement: run the paired clean-holdout endpoint experiment versus
-direct SQL, then inspect whether the remaining misses are value lookup, entity
-resolution, join path, or query shape failures.
+Next useful movement: inspect direct-correct/semantic-wrong rows and determine
+whether retrieved values are adding prompt noise, duplicating schema context, or
+misleading entity/value selection. Do not run another endpoint pair until the
+retrieval context is pruned or redesigned.
 
 ## `MEASURE()`-Preserving Metric DSL
 
