@@ -14,6 +14,7 @@ def test_experiment_registry_names_roadmap_runs() -> None:
     assert experiment_ids == [
         "direct_sql_full_non_oracle_control",
         "predicted_planner_sql_vs_direct",
+        "structured_brief_sql_vs_direct",
         "semantic_value_retrieval_vs_direct",
         "metric_dsl_vs_direct_sql",
         "generated_history_recovery_vs_direct",
@@ -36,7 +37,11 @@ def test_experiment_registry_names_roadmap_runs() -> None:
 
     planner = next(row for row in experiments if row["method"] == "predicted_planner_sql")
     assert planner["control_experiment_id"] == "direct_sql_full_non_oracle_control"
-    assert planner["status"] == "planner_slotaware_readiness_negative"
+    assert planner["status"] == "deprecated_negative_planner_gate"
+
+    structured_brief = next(row for row in experiments if row["method"] == "structured_brief_sql")
+    assert structured_brief["control_experiment_id"] == "direct_sql_full_non_oracle_control"
+    assert structured_brief["status"] == "needs_train_split_brief_data"
 
     semantic = next(row for row in experiments if row["method"] == "semantic_value_retrieval")
     assert semantic["dataset_role"] == "clean_local_holdout"

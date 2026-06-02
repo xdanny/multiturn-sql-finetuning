@@ -31,7 +31,7 @@ Current checkpoint progress:
 - `[x]` Checkpoint 2: Establish Honest Dataset Roles.
 - `[x]` Checkpoint 3: Rebuild Baselines At Real Scale.
 - `[x]` Checkpoint 4: Let Failure Analysis Choose Methods.
-- `[~]` Checkpoint 5: Planner First, But Non-Oracle.
+- `[~]` Checkpoint 5: Structured Query Brief SFT.
 - `[x]` Checkpoint 6: Semantic Layer And Value Grounding.
 - `[~]` Checkpoint 7: Metric DSL.
 - `[~]` Checkpoint 8: Generated-History Recovery.
@@ -344,263 +344,69 @@ uv run --active --no-sync python -m scripts.direct_sql_full_control \
   --run
 ```
 
-## Checkpoint 5: Planner First, But Non-Oracle
+## Checkpoint 5: Structured Query Brief SFT
 
-Status: `[~]` in progress. Non-oracle planner scoring, a 24-turn negative
-predicted-planner comparison, schema-context repair, lexical projection and
-table-selection repairs, train-split planner-SFT data paths, bounded planner-SFT
-readiness evidence, a projection-sequence planner adapter, a corrected
-schema-label-source planner adapter/readiness run, and an alias-insensitive
-projection-order scorer repair exist. The contract now models ordered
-projection output slots separately from flat selected expressions. The
-corrected adapter still misses the slot-aware readiness threshold, so no new
-SQL execution pair or SQL win is claimed.
+Status: `[~]` in progress. This checkpoint is now reset around training data and
+benchmark comparison, not oracle-planner gates. The old predicted-planner branch
+is paused as negative evidence: it taught useful leakage boundaries and exposed
+projection/order failure modes, but it overfit the workflow to SQL-derived
+planner labels and did not beat the direct-SQL control.
 
-Train or prompt a planner only on training-split gold labels. Evaluate planner
-F1 on held-out rows before feeding predicted plans into SQL generation.
+The active hypothesis is simpler:
 
-Planner outputs should cover:
+> A model trained to write a compact, visible query brief before SQL can beat
+> the direct-SQL finetuned control on the same multi-turn benchmark rows.
 
-- tables;
-- columns;
-- join path;
-- query skeleton;
-- projection shape;
-- aggregation and grouping;
-- duplicate-row policy;
-- value and entity slots.
+The query brief is not private chain-of-thought and not oracle reasoning. It is
+a supervised, visible artifact with a small stable shape:
 
-Then compare predicted-planner SQL against the same-model direct SQL control on
-identical rows. Gold plans remain scorer-side labels. Reference SQL-derived
-planner hints can enter prompts only in runs explicitly named as oracle
-diagnostics.
+- user intent;
+- entities and values;
+- metrics or measures;
+- filters;
+- grouping and grain;
+- joins or table families;
+- final answer shape.
 
-`eval.planner_readiness` is the current promotion audit for this checkpoint. It
-keeps planner-to-SQL endpoint runs behind explicit held-out quality checks:
-enough rows, no planner parse errors, bounded low-macro-score rate, minimum
-mean table/column/skeleton/projection scores, and a ready endpoint-pair
-preflight. A readiness summary is not a SQL win; it only decides whether the
-next same-row predicted-planner SQL comparison is worth running.
+Training-split reference SQL may be used to build brief supervision and scoring
+labels. Clean-holdout reference SQL, expected rows, future turns, gold plans,
+gold DSL, and repair labels remain scorer-side only. The clean-holdout prompt
+may contain only production-visible context: question, history, schema,
+semantic artifacts, retrieved database values, and the model's own generated
+brief if the run emits one.
 
-Latest Checkpoint 5 evidence from 2026-05-31:
+Checkpoint 5 promotion no longer depends on planner F1 or
+`eval.planner_readiness`. A structured-brief method promotes only when a
+row-matched comparison shows:
 
-- Split preparation now resolves repo-relative `tables_path` through
-  `--source-root`, so fresh worktrees include schema and semantic model context
-  in prepared CoSQL rows instead of database IDs and questions only.
-- Lexical planner table F1 moved from `0.000` to `0.650` on the proxy rows and
-  from `0.000` to `0.633` on the clean holdout rows.
-- Macro planner score moved only from `0.575` to `0.580` on proxy and from
-  `0.574` to `0.583` on clean holdout because column linking and projection
-  shape remain weak.
-- The evidence file is
-  `docs/training_runs/planner_schema_context_repair_20260531.json`.
-- The lexical planner now separates relevant columns from projected-expression
-  count, splits simple compound column names such as `FullName`, and emits
-  non-empty `selected_expressions` for predicted-plan prompts.
-- After that projection repair, selected-count match moved from `0.187` to
-  `0.847` on proxy and from `0.171` to `0.838` on clean holdout. Macro planner
-  score moved to `0.662` on proxy and `0.666` on clean holdout.
-- The readiness summary is still not promotable: table F1 `0.625`, column F1
-  `0.155`, and skeleton F1 `0.652` on clean holdout remain below policy.
-- The evidence file is
-  `docs/training_runs/planner_projection_prior_20260531.json`.
-- The lexical planner now treats generic column names such as `name`, `title`,
-  `id`, `code`, `type`, `year`, `date`, `number`, and `amount` as table-local
-  hints instead of letting them pull unrelated tables into the plan.
-- After that table-selection repair, proxy table F1 moved from `0.643` to
-  `0.701`, clean-holdout table F1 moved from `0.625` to `0.686`, and
-  clean-holdout macro planner score moved from `0.666` to `0.675`.
-- The readiness summary still blocks another endpoint comparison: clean-holdout
-  column F1 `0.161` and skeleton F1 `0.656` remain below policy, and table F1
-  is still just below the `0.700` threshold.
-- The evidence file is
-  `docs/training_runs/planner_generic_column_prior_20260531.json`.
-- `data.planner_sft` now materializes train-split-only planner supervision rows.
-  The prompt contains system/user context only, removes teacher-forced assistant
-  SQL history, and keeps the normalized gold plan as the assistant training
-  target rather than prompt context.
-- A 16-row sample from `cosql_train_v1` wrote a `planner_sft_dataset` manifest
-  with `split_roles={"train": 16}`, `reference_sql_visible_to_model=false`,
-  `gold_plan_visible_to_model_prompt=false`, and
-  `target_plan_visible_as_assistant_label=true`.
-- The evidence file is
-  `docs/training_runs/planner_sft_data_path_20260531.json`.
-- A 1000-step train-split planner-SFT LoRA run completed on the RTX 5090 and
-  saved a final adapter at
-  `outputs/experiments/predicted_planner_sql/planner_sft_20260531_1000/final`.
-  The full planner-SFT training dataset has 7,343 rows from 2,159 train
-  dialogs, and the final adapter weights SHA-256 is
-  `c27115f3d26625f02ad2b979ead303c0bbebf2afe205e2e5e612bd4be1c9bcd5`.
-- Bounded proxy planner readiness now passes on 24 turns / 8 dialogs:
-  macro planner score `0.877`, table F1 `0.944`, column F1 `0.826`,
-  skeleton F1 `0.927`, parse error rate `0.000`, and
-  `preflight_status=ready_for_endpoint_pair`.
-- Bounded clean-holdout planner readiness now passes on 24 turns / 7 dialogs:
-  macro planner score `0.942`, table F1 `0.972`, column F1 `0.844`,
-  skeleton F1 `0.979`, parse error rate `0.000`, and
-  `preflight_status=ready_for_endpoint_pair`.
-- The evidence file is
-  `docs/training_runs/planner_sft_1000_readiness_20260531.json`.
-- The bounded clean-holdout same-row SQL pair ran on 24 turns / 7 dialogs after
-  planner-SFT readiness passed. The original manifest exposed a local extraction
-  problem: most generations continued into synthetic `user`/`assistant` turns
-  after the first SQL statement when no semicolon was emitted.
-- After correcting SQL extraction for those chat-role continuations, direct SQL
-  reached value accuracy `0.875` and strict accuracy `0.792`;
-  predicted-planner SQL reached value accuracy `0.667` and strict accuracy
-  `0.542`.
-- The corrected value-accuracy delta was `-0.2083`, so the planner path remains
-  negative downstream evidence despite strong bounded planner-label quality.
-- The evidence file is
+- direct-SQL control and structured-brief arm use identical clean-holdout row
+  IDs;
+- both arms use the same scorer, database root, oracle policy, and manifest
+  shape;
+- the structured-brief arm has a positive value-accuracy delta versus direct
+  SQL;
+- strict accuracy, syntax rate, interaction match, latency, and cost are
+  reported alongside the primary value metric.
+
+Historical planner evidence should stay visible because it explains why this
+checkpoint changed:
+
+- The first 24-turn clean-holdout predicted-planner SQL pair regressed by
+  `-0.2083` value accuracy versus direct SQL after SQL extraction was fixed.
+  Evidence:
   `docs/training_runs/planner_sft_1000_sql_limit24_negative_20260531.json`.
-- Row-level failure analysis of the corrected 24-turn pair found 15 rows both
-  arms answered correctly, 6 direct-only regressions, 1 planner-only fix, and 2
-  rows both arms missed. Of the 6 direct-only regressions, 4 were projection
-  order flips after predicted-plan injection, 1 was a planner-state error, and
-  1 was a generated SQL execution error.
-- The evidence file is
+- Failure analysis found most direct-only regressions were projection-order
+  flips after predicted-plan injection. Evidence:
   `docs/training_runs/planner_sft_1000_sql_failure_analysis_20260531.json`.
-- The planner contract now preserves `projection_shape.selected_expressions`
-  order for predicted-plan prompt hints and newly generated planner-SFT targets
-  instead of sorting those expressions as a set. This is a contract/data fix,
-  not a SQL win for the existing `planner_sft_20260531_1000` adapter.
-- The evidence file is
-  `docs/training_runs/planner_projection_order_contract_20260531.json`.
-- Regenerating train-split planner-SFT rows under the order-preserving contract
-  produced the same 7,343-row target JSONL: output SHA-256 stayed
-  `49bf4caab2478b491bddae7b52689f317f119eaba0f211df1553423673fb8502`, with
-  `changed_target_plan_count=0`.
-- `eval.planner_eval` and `eval.planner_readiness` now score
-  `selected_expression_order_match` so selected-count success cannot hide
-  ordered projection-sequence failures. Rescoring the existing 24-turn
-  planner-SFT clean-holdout predictions found ordered selected-expression match
-  `0.792` with 5 mismatches, below the `0.900` readiness threshold.
-- The evidence file is
-  `docs/training_runs/planner_projection_order_metric_20260531.json`.
-- Rerunning the same 1000-step planner adapter on the 24-turn clean-holdout
-  slice under the order-aware readiness policy reproduced strong table F1
-  `0.972`, column F1 `0.844`, skeleton F1 `0.979`, selected-count match
-  `1.000`, and parse error rate `0.000`.
-- Readiness still blocks promotion: ordered selected-expression match is
-  `0.792` with 5 mismatches, below the `0.900` threshold, so the
-  recommendation remains `improve_planner_before_comparison`.
-- The evidence file is
-  `docs/training_runs/planner_orderaware_readiness_rerun_20260531.json`.
-- The planner prompt now explicitly defines `selected_expressions` as the final
-  answer-column sequence, tells the model to preserve user-requested order, and
-  avoids generated SQL aliases. A 24-row rerun with that prompt produced the
-  same predicted-prepared hash as the previous order-aware run, so prompt
-  wording alone did not move the blocker.
-- Ordered selected-expression match remained `0.792`, below the `0.900`
-  readiness threshold. The evidence file is
-  `docs/training_runs/planner_projection_sequence_prompt_20260531.json`.
-- `data.planner_sft` now writes `planner_prompt_policy=
-  projection_sequence_instruction_v1` into rows and manifests. Regenerating the
-  full 7,343-row train-split planner-SFT dataset changed all prompt rows,
-  preserved all target plans (`changed_target_plan_count=0`), and added the
-  projection-sequence instruction to every prompt.
-- The evidence file is
-  `docs/training_runs/planner_sft_sequence_instruction_dataset_20260531.json`.
-- A 1000-step planner LoRA adapter trained on that projection-sequence dataset
-  and saved a final adapter at
-  `outputs/experiments/predicted_planner_sql/planner_sequence_sft_20260531_1000/final`.
-  Training completed with reported train loss `0.09426`; final adapter weights
-  SHA-256 is
-  `a319dc2541b8490117861f3eb085fec8af10c0c8e8000e70036e39757b5629c4`.
-- On the 24-turn clean-holdout readiness slice, the projection-sequence adapter
-  scored macro planner score `0.837`, table F1 `0.875`, column F1 `0.690`,
-  skeleton F1 `0.867`, selected-count match `0.917`, and ordered
-  selected-expression match `0.625`.
-- Readiness blocks promotion because 2 of 24 planner generations emitted SQL
-  instead of planner JSON, ordered selected-expression match is below the
-  `0.900` threshold, and no endpoint-pair preflight is ready. The evidence file
-  is
-  `docs/training_runs/planner_sequence_sft_1000_readiness_20260531.json`.
-- `eval.planner_predict` now strips teacher-forced assistant SQL history from
-  planner prediction prompts so inference matches the planner-SFT system/user
-  prompt distribution instead of exposing earlier gold SQL-shaped assistant
-  turns.
-- Rerunning the same projection-sequence adapter on the same 24-turn
-  clean-holdout slice with that user-only planner prompt eliminated the parse
-  errors (`parse_error_count=0`) and produced a ready endpoint-pair preflight.
-  Macro planner score moved to `0.860`, table F1 to `0.931`, column F1 to
-  `0.693`, skeleton F1 to `0.933`, and selected-count match to `1.000`.
-- Readiness still blocks promotion because ordered selected-expression match is
-  `0.583`, below the `0.900` threshold. The evidence file is
-  `docs/training_runs/planner_sequence_useronly_readiness_20260531.json`.
-- A label-source audit found that prepared inputs can retain stale normalized
-  `gold_plans` while `schema_link_labels` preserve the current SQL-derived
-  selected-expression order. Planner scoring, predicted-planner prepared
-  artifacts, and planner-SFT target generation now prefer `schema_link_labels`
-  when both sources are present.
-- Rescoring the 24-turn user-only planner slice with schema labels as the
-  answer-key source left the aggregate selected-expression order metric
-  unchanged at `0.583`: one stale-label false negative and one stale-label false
-  positive canceled out. The evidence file is
-  `docs/training_runs/planner_schema_label_gold_source_20260601.json`.
-- Regenerating the full train-split planner-SFT dataset from the corrected
-  schema-label-preferred answer-key source produced 7,343 rows with unchanged
-  prompts and changed target plans for 618 turns versus the prior
-  projection-sequence dataset. The evidence file is
-  `docs/training_runs/planner_sft_schema_label_source_dataset_20260601.json`.
-- A 1000-step planner LoRA adapter trained on that corrected
-  schema-label-source dataset and saved a final adapter at
-  `outputs/experiments/predicted_planner_sql/planner_schema_label_sft_20260601_1000/final`.
-  Training completed with reported train loss `0.09429`, runtime `6707`
-  seconds, and final adapter weights SHA-256
-  `1a1dc047c1ecd940cd9455ba2e1afdc66f1e4274364d49a95bd92458ff759367`.
-- This is training evidence only: order-aware planner readiness has not yet
-  been rerun for the corrected adapter, so no endpoint comparison or SQL win is
-  claimed. The evidence file is
-  `docs/training_runs/planner_schema_label_source_sft_1000_20260601.json`.
-- Rerunning order-aware clean-holdout readiness for the corrected adapter on
-  the same 24-turn / 7-dialog slice eliminated parse errors and produced
-  `preflight_status=ready_for_endpoint_pair`. Macro planner score moved to
-  `0.884`, table F1 to `0.944`, column F1 to `0.738`, skeleton F1 to `0.936`,
-  and selected-count match stayed `1.000`.
-- Readiness still blocks promotion because ordered selected-expression match is
-  `0.708`, below the `0.900` threshold. The evidence file is
-  `docs/training_runs/planner_schema_label_source_readiness_20260601.json`.
-- The selected-expression order scorer now ignores SQL/table qualifiers inside
-  projection expressions while table and column identity remain scored by
-  `table_f1` and `column_f1`. Rescoring the same 24-turn corrected-adapter
-  predictions removed alias false negatives, moved macro planner score to
-  `0.897`, and moved ordered selected-expression match to `0.833`.
-- Readiness still blocks promotion because four projection-shape issues remain:
-  two count-column/count-distinct misses, one destination-airport distinct-count
-  miss, and one group-key/aggregate order reversal. The evidence file is
-  `docs/training_runs/planner_alias_normalized_readiness_20260601.json`.
-- `projection_shape.output_slots` now models ordered answer slots directly with
-  `kind`, `source_column`, `aggregate`, `distinct`, and `display_order`, while
-  legacy `selected_expressions` still derive slots for old artifacts.
-- `eval.planner_eval` now reports `output_slot_order_match`, and
-  `eval.planner_readiness` includes it in the promotion policy, so
-  count-distinct/count-star and group-key/aggregate reversals can block
-  endpoint-pair promotion explicitly. This is a contract/scorer fix, not a new
-  planner-readiness pass or SQL win.
-- The evidence file is
-  `docs/training_runs/planner_output_slot_contract_20260602.json`.
-- Rescoring the same 24-turn corrected-adapter clean-holdout readiness slice
-  under the output-slot policy kept endpoint-pair preflight ready and parse
-  errors at `0`, but still blocked promotion. Macro planner score is `0.891`,
-  selected-expression order is `0.833`, and output-slot order is `0.833`, below
-  the `0.900` threshold.
-- The remaining four slot mismatches are the same substantive failures exposed
-  by the alias-normalized run: three count/count-distinct source-column misses
-  and one group-key/aggregate output-order reversal. The evidence file is
+- Follow-up planner prompt, label-source, alias-normalization, and output-slot
+  work clarified the failure mode but still did not create a promotable SQL
+  result. The latest slot-aware readiness rerun remained below policy with
+  selected-expression order and output-slot order both at `0.833`. Evidence:
   `docs/training_runs/planner_slotaware_readiness_20260602.json`.
 
-The next Checkpoint 5 work should update planner-SFT targets and prompt/schema
-so the model predicts ordered `output_slots` directly, rerun slot-aware
-clean-holdout readiness, and only then run another bounded same-row SQL pair if
-readiness passes. A positive value-accuracy delta remains required before
-promoting the planner path.
-
-Architecture note after the output-slot contract change: keep relevant
-filter/join columns separate from answer columns. The next planner target should
-train or predict ordered `output_slots` directly rather than relying on the flat
-`selected_expressions` field alone. Only after a slot-aware readiness summary
-passes should another planner-SFT SQL endpoint pair run.
+The next Checkpoint 5 work is to build train-split structured-brief supervision
+and run a same-row structured-brief-vs-direct benchmark comparison. Do not spend
+another iteration repairing planner readiness before that data path exists.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 

@@ -25,8 +25,15 @@ def _write_registry(path: Path) -> None:
         (
             "predicted_planner_sql_vs_direct",
             5,
-            "planner_slotaware_readiness_negative",
+            "deprecated_negative_planner_gate",
             "predicted_planner_sql",
+            "direct_sql_full_non_oracle_control",
+        ),
+        (
+            "structured_brief_sql_vs_direct",
+            5,
+            "needs_train_split_brief_data",
+            "structured_brief_sql",
             "direct_sql_full_non_oracle_control",
         ),
         (
@@ -316,27 +323,13 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
     by_checkpoint = {row["checkpoint"]: row for row in summary["checkpoints"]}
     assert by_checkpoint[3]["status"] == "complete"
     assert "docs/training_runs/direct_sql_full_lora_20260531.json" in by_checkpoint[3]["evidence"]
-    assert "eval.planner_readiness promotion policy" in by_checkpoint[5]["evidence"]
+    assert by_checkpoint[5]["name"] == "Structured Query Brief SFT"
+    assert "experiment_status=needs_train_split_brief_data" in by_checkpoint[5]["evidence"]
     assert (
-        "docs/training_runs/planner_schema_context_repair_20260531.json"
+        "deprecated_planner_status=deprecated_negative_planner_gate"
         in by_checkpoint[5]["evidence"]
     )
-    assert (
-        "docs/training_runs/planner_projection_prior_20260531.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
-        "docs/training_runs/planner_generic_column_prior_20260531.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
-        "docs/training_runs/planner_sft_data_path_20260531.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
-        "docs/training_runs/planner_sft_1000_readiness_20260531.json"
-        in by_checkpoint[5]["evidence"]
-    )
+    assert "docs/research_roadmap.md structured brief reset" in by_checkpoint[5]["evidence"]
     assert (
         "docs/training_runs/planner_sft_1000_sql_limit24_negative_20260531.json"
         in by_checkpoint[5]["evidence"]
@@ -346,63 +339,11 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         in by_checkpoint[5]["evidence"]
     )
     assert (
-        "docs/training_runs/planner_projection_order_contract_20260531.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
-        "docs/training_runs/planner_projection_order_metric_20260531.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
-        "docs/training_runs/planner_orderaware_readiness_rerun_20260531.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
-        "docs/training_runs/planner_projection_sequence_prompt_20260531.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
-        "docs/training_runs/planner_sft_sequence_instruction_dataset_20260531.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
-        "docs/training_runs/planner_sequence_sft_1000_readiness_20260531.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
-        "docs/training_runs/planner_sequence_useronly_readiness_20260531.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
-        "docs/training_runs/planner_schema_label_gold_source_20260601.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
-        "docs/training_runs/planner_sft_schema_label_source_dataset_20260601.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
-        "docs/training_runs/planner_schema_label_source_sft_1000_20260601.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
-        "docs/training_runs/planner_schema_label_source_readiness_20260601.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
-        "docs/training_runs/planner_alias_normalized_readiness_20260601.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
-        "docs/training_runs/planner_output_slot_contract_20260602.json"
-        in by_checkpoint[5]["evidence"]
-    )
-    assert (
         "docs/training_runs/planner_slotaware_readiness_20260602.json"
         in by_checkpoint[5]["evidence"]
     )
     assert by_checkpoint[5]["open_items"] == [
-        "update planner-SFT targets and prompt/schema to predict ordered output_slots directly",
+        "build train-split structured-brief supervision and run same-row structured-brief vs direct benchmark comparison",
     ]
     assert (
         "eval.compare_semantic_value_retrieval promotion policy"
