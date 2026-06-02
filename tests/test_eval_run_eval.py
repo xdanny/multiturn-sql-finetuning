@@ -11,11 +11,13 @@ from eval.run_eval import (
     enforce_sql_only_instruction,
     estimate_generation_cost_usd,
     expand_prepared_record,
+    extract_generated_sql,
     extract_reference_sql,
     generate_sql,
     generate_sql_with_usage,
     load_prepared_records,
     messages_for_generation,
+    prompt_variant_for_record,
     summarize_eval_metrics,
     usage_from_response,
     write_results,
@@ -364,6 +366,68 @@ def test_messages_for_generation_adds_predicted_plan_without_oracle_language() -
     assert "derived from reference SQL" not in messages[-1]["content"]
 
 
+def test_messages_for_generation_preserves_structured_brief_prompt_variant() -> None:
+    record = {
+        "messages": [
+            {"role": "system", "content": "First write QUERY_BRIEF, then SQL."},
+            {"role": "user", "content": "List airline names."},
+        ],
+        "evaluation_mode": "non_oracle_generation",
+    }
+
+    messages = messages_for_generation(record, prompt_variant="structured_brief_sql")
+
+    assert messages == record["messages"]
+    assert "Return only one SQL query" not in messages[0]["content"]
+
+
+def test_extract_generated_sql_uses_sql_marker_for_structured_brief_variant() -> None:
+    raw_generation = (
+        "QUERY_BRIEF:\n"
+        "intent: select orders by customer\n"
+        "filters: none\n"
+        "SQL:\n"
+        "SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id;"
+    )
+
+    assert extract_generated_sql(raw_generation, prompt_variant="structured_brief_sql") == (
+        "SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id;"
+    )
+
+
+def test_extract_generated_sql_ignores_sql_marker_inside_query_literal() -> None:
+    raw_generation = (
+        "QUERY_BRIEF:\n"
+        "intent: select notes with migration marker\n"
+        "SQL:\n"
+        "SELECT note FROM events WHERE note = 'SQL: migration';"
+    )
+
+    assert extract_generated_sql(raw_generation, prompt_variant="structured_brief_sql") == (
+        "SELECT note FROM events WHERE note = 'SQL: migration';"
+    )
+
+
+def test_extract_generated_sql_keeps_generic_extraction_for_direct_sql() -> None:
+    raw_generation = "Brief says select orders.\nSELECT * FROM orders;"
+
+    assert extract_generated_sql(raw_generation) == "select orders.\nSELECT * FROM orders;"
+
+
+def test_prompt_variant_for_record_prefers_cli_value() -> None:
+    assert (
+        prompt_variant_for_record(
+            {"prompt_variant": "structured_brief_sql"},
+            prompt_variant="direct_sql_override",
+        )
+        == "direct_sql_override"
+    )
+    assert (
+        prompt_variant_for_record({"prompt_variant": "structured_brief_sql"})
+        == "structured_brief_sql"
+    )
+
+
 def test_expand_prepared_record_uses_stable_fallback_dialog_id() -> None:
     records = expand_prepared_record(
         {
@@ -631,6 +695,72 @@ def test_run_eval_manifest_records_prepared_split_provenance(tmp_path, monkeypat
         "prompt": 0.001,
         "completion": 0.002,
     }
+
+
+def test_run_eval_uses_row_level_structured_brief_prompt_variant(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    input_path = tmp_path / "prepared.jsonl"
+    output_path = tmp_path / "results.jsonl"
+    manifest_path = tmp_path / "results.manifest.json"
+    input_path.write_text(
+        json.dumps(
+            {
+                "source": "unit",
+                "database_id": "car_1",
+                "evaluation_mode": "non_oracle_generation",
+                "prompt_variant": "structured_brief_sql",
+                "gold_plans": [
+                    {"relevant_tables": ["customers"], "projection_shape": {"selected_count": 1}},
+                ],
+                "messages": [
+                    {"role": "system", "content": "First write QUERY_BRIEF, then SQL."},
+                    {"role": "user", "content": "Question:\nList customers."},
+                    {"role": "assistant", "content": "SELECT name FROM customers;"},
+                ],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    seen_messages = []
+
+    def fake_generate_sql_with_usage(*args, **kwargs):
+        seen_messages.append(kwargs["messages"])
+        return (
+            "QUERY_BRIEF:\nintent: select customers\nSQL:\nSELECT name FROM customers;",
+            12.0,
+            {"prompt_tokens": 10, "completion_tokens": 8, "total_tokens": 18},
+        )
+
+    monkeypatch.setattr(run_eval_module, "generate_sql_with_usage", fake_generate_sql_with_usage)
+
+    assert (
+        run_eval_module.run_eval(
+            benchmark="prepared",
+            endpoint="http://localhost:8000/v1",
+            model_name="unit-model",
+            output=output_path,
+            input_path=input_path,
+            limit=None,
+            database_root=None,
+            api_key="EMPTY",
+            temperature=0.0,
+            max_tokens=64,
+            allow_oracle_plan=False,
+            manifest_output=manifest_path,
+            command=["uv", "run", "python", "-m", "eval.run_eval"],
+        )
+        == 0
+    )
+
+    result = json.loads(output_path.read_text(encoding="utf-8").splitlines()[0])
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert "Return only one SQL query" not in seen_messages[0][0]["content"]
+    assert result["prompt_variant"] == "structured_brief_sql"
+    assert result["generated_sql"] == "SELECT name FROM customers;"
+    assert manifest["prompt_variant"] == "structured_brief_sql"
 
 
 def test_enforce_sql_only_instruction_appends_to_system_message() -> None:

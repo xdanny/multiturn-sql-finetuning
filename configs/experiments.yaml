@@ -32,7 +32,7 @@ experiments:
 
   - experiment_id: structured_brief_sql_vs_direct
     checkpoint: 5
-    status: structured_brief_train_data_path_ready
+    status: structured_brief_clean_holdout_promoted
     hypothesis_id: structured_query_brief
     hypothesis: >-
       A model trained to emit a compact visible query brief before SQL can beat
@@ -43,7 +43,7 @@ experiments:
     dataset_role: clean_local_holdout
     benchmark_protocol_id: cosql_dev_100_teacher_forced_proxy
     model: unsloth/Qwen3.5-9B
-    adapter: outputs/experiments/structured_brief_sql/final
+    adapter: outputs/experiments/structured_brief_sql/full_20260602/final
     method: structured_brief_sql
     oracle_policy: non_oracle_generation
     scorer: eval.run_structured_brief_comparison:value_delta_vs_direct_sql
@@ -58,9 +58,12 @@ experiments:
       repair labels. Promotion requires a same-row clean-holdout benchmark
       comparison with positive value-accuracy delta versus direct SQL, with
       strict accuracy, syntax rate, interaction match, latency, and cost
-      reported. The structured-brief train-row builder has been validated on
-      the full CoSQL train split; adapter training and endpoint comparison are
-      still pending.
+      reported. The full structured-brief adapter trained for the matched
+      1,620-step budget and passed same-row clean-holdout comparison against
+      the direct-SQL LoRA control: value accuracy `0.576` versus `0.349`,
+      strict accuracy `0.541` versus `0.349`, value delta `+0.228`, and strict
+      delta `+0.193` on 680 comparable turns. This is a local clean-holdout
+      method win, not a hosted benchmark claim.
 
   - experiment_id: semantic_value_retrieval_vs_direct
     checkpoint: 6

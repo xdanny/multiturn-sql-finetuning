@@ -25,7 +25,7 @@ def _write_registry(path: Path) -> None:
         (
             "structured_brief_sql_vs_direct",
             5,
-            "structured_brief_train_data_path_ready",
+            "structured_brief_clean_holdout_promoted",
             "structured_brief_sql",
             "direct_sql_full_non_oracle_control",
         ),
@@ -167,6 +167,23 @@ def _recorded_endpoint_evidence() -> dict:
     }
 
 
+def _structured_brief_comparison_evidence() -> dict:
+    return {
+        "artifact_type": "structured_brief_clean_holdout_comparison_claim_manifest",
+        "comparison": {
+            "comparable_turns": 24,
+            "structured_brief_value_delta_vs_direct_sql": 0.1,
+            "structured_brief_strict_delta_vs_direct_sql": 0.0,
+        },
+        "leakage_boundary": {
+            "oracle_policy": "non_oracle_generation",
+            "clean_holdout_reference_sql_visible_to_model": False,
+            "scorer_labels_visible_to_model": False,
+        },
+        "promotion": {"promotion_ready": True},
+    }
+
+
 def _write_checkpoint3_config(tmp_path: Path, *, complete: bool) -> Path:
     config_path = tmp_path / "configs" / "direct_sql_full_non_oracle.yaml"
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -305,6 +322,13 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
     registry = tmp_path / "configs" / "experiments.yaml"
     registry.parent.mkdir(parents=True, exist_ok=True)
     _write_registry(registry)
+    _write_json(
+        tmp_path
+        / "docs"
+        / "training_runs"
+        / "structured_brief_clean_holdout_comparison_20260602.json",
+        _structured_brief_comparison_evidence(),
+    )
     checkpoint3 = _write_checkpoint3_config(tmp_path, complete=True)
 
     summary = summarize_roadmap_status(
@@ -312,13 +336,13 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         checkpoint3_config_path=checkpoint3,
     )
 
-    assert summary["status_counts"] == {"complete": 5, "in_progress": 4, "pending": 1}
+    assert summary["status_counts"] == {"complete": 6, "in_progress": 3, "pending": 1}
     by_checkpoint = {row["checkpoint"]: row for row in summary["checkpoints"]}
     assert by_checkpoint[3]["status"] == "complete"
     assert "docs/training_runs/direct_sql_full_lora_20260531.json" in by_checkpoint[3]["evidence"]
     assert by_checkpoint[5]["name"] == "Structured Query Brief SFT"
     assert (
-        "experiment_status=structured_brief_train_data_path_ready"
+        "experiment_status=structured_brief_clean_holdout_promoted"
         in by_checkpoint[5]["evidence"]
     )
     assert "data.structured_brief_training_rows" in by_checkpoint[5]["evidence"]
@@ -326,14 +350,25 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         "docs/training_runs/structured_brief_train_data_path_20260602.json"
         in by_checkpoint[5]["evidence"]
     )
+    assert (
+        "docs/training_runs/structured_brief_clean_holdout_comparison_20260602.json"
+        in by_checkpoint[5]["evidence"]
+    )
+    assert (
+        "docs/training_runs/structured_brief_full_20260602.json"
+        in by_checkpoint[5]["evidence"]
+    )
+    assert (
+        "eval.compare_structured_brief_direct_sql promotion policy"
+        in by_checkpoint[5]["evidence"]
+    )
     assert "docs/research_roadmap.md structured brief reset" in by_checkpoint[5]["evidence"]
     assert (
         "old predicted-planner comparison artifacts removed from active evidence"
         in by_checkpoint[5]["evidence"]
     )
-    assert by_checkpoint[5]["open_items"] == [
-        "train structured-brief adapter and run same-row structured-brief vs direct benchmark comparison",
-    ]
+    assert by_checkpoint[5]["status"] == "complete"
+    assert by_checkpoint[5]["open_items"] == []
     assert (
         "eval.compare_semantic_value_retrieval promotion policy"
         in by_checkpoint[6]["evidence"]
@@ -379,6 +414,13 @@ def test_summarize_roadmap_status_keeps_checkpoint3_in_progress_until_artifacts_
     registry = tmp_path / "configs" / "experiments.yaml"
     registry.parent.mkdir(parents=True, exist_ok=True)
     _write_registry(registry)
+    _write_json(
+        tmp_path
+        / "docs"
+        / "training_runs"
+        / "structured_brief_clean_holdout_comparison_20260602.json",
+        _structured_brief_comparison_evidence(),
+    )
     checkpoint3 = _write_checkpoint3_config(tmp_path, complete=False)
 
     summary = summarize_roadmap_status(
@@ -397,6 +439,13 @@ def test_summarize_roadmap_status_accepts_recorded_endpoint_evidence(
     registry = tmp_path / "configs" / "experiments.yaml"
     registry.parent.mkdir(parents=True, exist_ok=True)
     _write_registry(registry)
+    _write_json(
+        tmp_path
+        / "docs"
+        / "training_runs"
+        / "structured_brief_clean_holdout_comparison_20260602.json",
+        _structured_brief_comparison_evidence(),
+    )
     checkpoint3 = _write_checkpoint3_config(tmp_path, complete=False)
     evidence_path = tmp_path / "docs" / "training_runs" / "direct_sql_full_eval.json"
     _write_json(evidence_path, _recorded_endpoint_evidence())
@@ -407,7 +456,7 @@ def test_summarize_roadmap_status_accepts_recorded_endpoint_evidence(
         checkpoint3_evidence_path=evidence_path,
     )
 
-    assert summary["status_counts"] == {"complete": 6, "in_progress": 3, "pending": 1}
+    assert summary["status_counts"] == {"complete": 7, "in_progress": 2, "pending": 1}
     by_checkpoint = {row["checkpoint"]: row for row in summary["checkpoints"]}
     assert by_checkpoint[3]["status"] == "complete"
     assert by_checkpoint[3]["open_items"] == []

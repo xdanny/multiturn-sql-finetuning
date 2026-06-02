@@ -9,8 +9,11 @@ from data.structured_brief_training_rows import (
     NON_ORACLE_GENERATION_POLICY,
     STRUCTURED_BRIEF_PROMPT_POLICY,
     STRUCTURED_BRIEF_SUPERVISION_POLICY,
+    build_structured_brief_eval_records,
     build_structured_brief_training_records,
+    structured_brief_eval_record_from_prepared_dialog,
     structured_brief_record_from_turn,
+    write_structured_brief_eval_dataset,
     write_structured_brief_training_dataset,
 )
 
@@ -118,6 +121,28 @@ def test_structured_brief_record_rejects_reference_sql_in_user_prompt() -> None:
         structured_brief_record_from_turn(turn)
 
 
+def test_structured_brief_eval_record_replaces_system_prompt_without_touching_labels() -> None:
+    dialog = {
+        "dialog_id": "dialog-a",
+        "split_role": "clean_local_holdout",
+        "messages": [
+            {"role": "system", "content": "Return only SQL."},
+            {"role": "user", "content": "Question:\nShow revenue by country."},
+            {"role": "assistant", "content": "SELECT country, SUM(amount) FROM orders;"},
+        ],
+    }
+
+    row = structured_brief_eval_record_from_prepared_dialog(dialog)
+
+    assert row["messages"][0]["role"] == "system"
+    assert "QUERY_BRIEF" in row["messages"][0]["content"]
+    assert "Return only SQL" not in row["messages"][0]["content"]
+    assert row["messages"][1:] == dialog["messages"][1:]
+    assert row["prompt_variant"] == "structured_brief_sql"
+    assert row["reference_sql_visible_to_model_prompt"] is False
+    assert row["scorer_labels_visible_to_model_prompt"] is False
+
+
 def test_write_structured_brief_training_dataset_writes_manifest(tmp_path: Path) -> None:
     input_path = tmp_path / "prepared.jsonl"
     output_path = tmp_path / "structured_brief_training_rows.jsonl"
@@ -154,6 +179,56 @@ def test_write_structured_brief_training_dataset_writes_manifest(tmp_path: Path)
     assert rows[0]["training_target"] == "structured_brief_sql"
 
 
+def test_write_structured_brief_eval_dataset_counts_split_rows(tmp_path: Path) -> None:
+    input_path = tmp_path / "prepared_eval.jsonl"
+    output_path = tmp_path / "structured_brief_eval.jsonl"
+    manifest_path = tmp_path / "structured_brief_eval.manifest.json"
+    first = {
+        "split_row_id": "cosql_dev:0001:store",
+        "split_id": "cosql_dev_clean_holdout_v1",
+        "split_role": "clean_local_holdout",
+        "database_id": "store",
+        "messages": [
+            {"role": "system", "content": "Return only SQL."},
+            {"role": "user", "content": "Question:\nShow revenue."},
+            {"role": "assistant", "content": "SELECT SUM(amount) FROM orders;"},
+        ],
+    }
+    second = {
+        **first,
+        "split_row_id": "cosql_dev:0002:store",
+        "messages": [
+            {"role": "system", "content": "Return only SQL."},
+            {"role": "user", "content": "Question:\nShow customers."},
+            {"role": "assistant", "content": "SELECT COUNT(*) FROM customers;"},
+        ],
+    }
+    input_path.write_text(
+        json.dumps(first) + "\n" + json.dumps(second) + "\n",
+        encoding="utf-8",
+    )
+
+    manifest = write_structured_brief_eval_dataset(
+        input_path=input_path,
+        output_path=output_path,
+        manifest_output_path=manifest_path,
+        command=["write-eval"],
+    )
+
+    rows = [json.loads(line) for line in output_path.read_text(encoding="utf-8").splitlines()]
+
+    assert manifest == json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["artifact_type"] == "structured_brief_eval_prepared_dataset"
+    assert manifest["row_count"] == 2
+    assert manifest["dialog_count"] == 2
+    assert manifest["database_count"] == 1
+    assert manifest["split_roles"] == {"clean_local_holdout": 2}
+    assert manifest["reference_sql_visible_to_model_prompt"] is False
+    assert manifest["scorer_labels_visible_to_model_prompt"] is False
+    assert rows[0]["messages"][0]["content"].startswith("You are a SQL expert.")
+    assert rows[0]["prompt_variant"] == "structured_brief_sql"
+
+
 def test_build_structured_brief_training_records_rejects_expanded_scorer_hints(
     tmp_path: Path,
 ) -> None:
@@ -164,3 +239,18 @@ def test_build_structured_brief_training_records_rejects_expanded_scorer_hints(
 
     with pytest.raises(ValueError, match="scorer-derived planning hints"):
         build_structured_brief_training_records(input_path)
+
+
+def test_build_structured_brief_eval_records_rejects_scorer_hints(tmp_path: Path) -> None:
+    input_path = tmp_path / "prepared_eval.jsonl"
+    row = {
+        "messages": [
+            {"role": "system", "content": "Return only SQL."},
+            {"role": "user", "content": "Oracle SQL planning hints:\n- use orders"},
+            {"role": "assistant", "content": "SELECT * FROM orders;"},
+        ],
+    }
+    input_path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="scorer-derived hints"):
+        build_structured_brief_eval_records(input_path)

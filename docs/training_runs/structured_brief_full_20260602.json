@@ -1,0 +1,68 @@
+{
+  "artifact_type": "structured_brief_full_endpoint_evidence",
+  "claim_boundary": "Local clean-holdout method comparison only. This supports Checkpoint 5 promotion versus the direct-SQL LoRA control on the configured CoSQL clean holdout; it is not a hosted benchmark or external-target claim.",
+  "date": "2026-06-02",
+  "evaluation": {
+    "comparison_manifest": {
+      "path": "results/runs/structured_brief_sql_vs_direct/structured_brief_clean_holdout_comparison_20260602.manifest.json",
+      "sha256": "8acdc423e910f208adaa910d62f1688ccd52f3a6db37b97b7ab0cb3f2172994d"
+    },
+    "direct_sql_control_manifest": {
+      "path": "results/runs/direct_sql_full_non_oracle_control/lora_clean_holdout.manifest.json"
+    },
+    "structured_result_manifest": {
+      "path": "results/runs/structured_brief_sql_vs_direct/structured_brief_clean_holdout_20260602.manifest.json",
+      "sha256": "2f888a495da152a7129078e8ef0761d385e9b38c1a409a74d91b6564c5bedc98"
+    }
+  },
+  "input_artifacts": {
+    "eval_prepared_manifest": {
+      "path": "outputs/experiments/structured_brief_sql/cosql_dev_clean_holdout_v1.structured_brief.manifest.json",
+      "sha256": "bff9d0061c418d0dede442bb5e491b15ea914fe1410ee8634f8edfcf2c4cae3f"
+    },
+    "train_manifest": {
+      "path": "outputs/experiments/structured_brief_sql/cosql_train_v1.structured_brief.manifest.json",
+      "sha256": "f8bfda02ce9846e7a93fbcfc791f9349063729c091e34f2be085ef32fbb1217e"
+    }
+  },
+  "interpretation": [
+    "The structured-brief adapter beat the direct-SQL LoRA control on the same 680 clean-holdout turns.",
+    "The comparison is non-oracle and row-matched on split, dialog, turn, database, and reference SQL identity.",
+    "The method is slower and longer than direct SQL because the model emits a visible query brief before SQL.",
+    "Syntax accuracy regressed versus direct SQL, so follow-up work should improve SQL well-formedness while preserving the value-accuracy gain."
+  ],
+  "metrics": {
+    "comparable_turns": 680,
+    "direct_sql_strict_execution_accuracy": 0.34852941176470587,
+    "direct_sql_value_execution_accuracy": 0.34852941176470587,
+    "structured_brief_interaction_match_rate": 0.20725388601036268,
+    "structured_brief_mean_completion_tokens": 114.40588235294118,
+    "structured_brief_mean_generation_latency_ms": 1656.1108948558447,
+    "structured_brief_mean_prompt_tokens": 712.425,
+    "structured_brief_promotion_ready": true,
+    "structured_brief_strict_delta_vs_direct_sql": 0.1926470588235294,
+    "structured_brief_strict_execution_accuracy": 0.5411764705882353,
+    "structured_brief_syntax_accuracy": 0.8014705882352942,
+    "structured_brief_value_delta_vs_direct_sql": 0.2279411764705882,
+    "structured_brief_value_execution_accuracy": 0.5764705882352941
+  },
+  "model_artifact": {
+    "adapter_model_sha256": "21b972883e395bfb917ab4d642e3c2170664b78eb1e294d973170d94e6025d92",
+    "adapter_path": "outputs/experiments/structured_brief_sql/full_20260602/final",
+    "base_model": "unsloth/Qwen3.5-9B",
+    "served_model_name": "structured_brief_sql_full_20260602"
+  },
+  "run_id": "structured_brief_full_20260602",
+  "schema_version": 1,
+  "training": {
+    "max_steps": 1620,
+    "row_count": 7343,
+    "train_loss": 0.1068,
+    "train_runtime_seconds": 8991
+  },
+  "validation": [
+    "uv run --active --no-sync pytest tests/test_structured_brief_training_rows.py -q",
+    "uv run --active --no-sync pytest tests/test_eval_compare_structured_brief_direct_sql.py -q",
+    "uv run --active --no-sync python -m eval.run_structured_brief_comparison --structured-manifest results/runs/structured_brief_sql_vs_direct/structured_brief_clean_holdout_20260602.manifest.json --direct-manifest results/runs/direct_sql_full_non_oracle_control/lora_clean_holdout.manifest.json --output results/runs/structured_brief_sql_vs_direct/structured_brief_clean_holdout_comparison_20260602.manifest.json --repo-root ."
+  ]
+}

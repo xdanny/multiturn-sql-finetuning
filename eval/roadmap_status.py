@@ -18,6 +18,9 @@ from eval.experiment_registry import (
 
 DEFAULT_CHECKPOINT3_CONFIG = Path("configs/direct_sql_full_non_oracle.yaml")
 DEFAULT_CHECKPOINT3_EVIDENCE = Path("docs/training_runs/direct_sql_full_eval_20260531.json")
+DEFAULT_STRUCTURED_BRIEF_COMPARISON_EVIDENCE = Path(
+    "docs/training_runs/structured_brief_clean_holdout_comparison_20260602.json"
+)
 
 
 CHECKPOINTS: dict[int, str] = {
@@ -121,11 +124,36 @@ def _analysis_complete(analysis: Mapping[str, Any] | None) -> bool:
     return bool((hints.get("base") or {}) or (hints.get("lora") or {}))
 
 
+def _structured_brief_claim_complete(evidence: Mapping[str, Any] | None) -> bool:
+    if not evidence:
+        return False
+    if evidence.get("artifact_type") != "structured_brief_clean_holdout_comparison_claim_manifest":
+        return False
+    if not (evidence.get("promotion") or {}).get("promotion_ready"):
+        return False
+    comparison = evidence.get("comparison") or {}
+    if not _positive_int(comparison.get("comparable_turns")):
+        return False
+    value_delta = float(comparison.get("structured_brief_value_delta_vs_direct_sql") or 0.0)
+    strict_delta = float(comparison.get("structured_brief_strict_delta_vs_direct_sql") or 0.0)
+    leakage_boundary = evidence.get("leakage_boundary") or {}
+    return (
+        value_delta > 0.0
+        and strict_delta >= 0.0
+        and leakage_boundary.get("oracle_policy") == "non_oracle_generation"
+        and leakage_boundary.get("clean_holdout_reference_sql_visible_to_model") is False
+        and leakage_boundary.get("scorer_labels_visible_to_model") is False
+    )
+
+
 def summarize_roadmap_status(
     *,
     experiment_registry_path: Path = DEFAULT_EXPERIMENT_REGISTRY,
     checkpoint3_config_path: Path = DEFAULT_CHECKPOINT3_CONFIG,
     checkpoint3_evidence_path: Path = DEFAULT_CHECKPOINT3_EVIDENCE,
+    structured_brief_comparison_evidence_path: Path = (
+        DEFAULT_STRUCTURED_BRIEF_COMPARISON_EVIDENCE
+    ),
 ) -> dict[str, Any]:
     """Return checkpoint statuses derived from current repo evidence."""
 
@@ -171,6 +199,18 @@ def summarize_roadmap_status(
         if checkpoint4_complete
         else ["clean-holdout failure analysis waits for Checkpoint 3 base and LoRA manifests"]
     )
+    resolved_structured_brief_evidence_path = _resolve_from_config_root(
+        experiment_registry_path, structured_brief_comparison_evidence_path
+    )
+    structured_brief_evidence = _load_optional_json(resolved_structured_brief_evidence_path)
+    structured_brief_complete = _structured_brief_claim_complete(structured_brief_evidence)
+    checkpoint5_open_items = (
+        []
+        if structured_brief_complete
+        else [
+            "structured-brief clean-holdout comparison claim manifest is missing or not promotion-ready"
+        ]
+    )
 
     entries = [
         _entry(
@@ -213,17 +253,18 @@ def summarize_roadmap_status(
         ),
         _entry(
             5,
-            status="in_progress",
+            status="complete" if structured_brief_complete else "in_progress",
             evidence=[
                 f"experiment_status={_experiment_status(experiments, 'structured_brief_sql_vs_direct')}",
                 "data.structured_brief_training_rows",
                 "docs/training_runs/structured_brief_train_data_path_20260602.json",
+                str(structured_brief_comparison_evidence_path),
+                "docs/training_runs/structured_brief_full_20260602.json",
+                "eval.compare_structured_brief_direct_sql promotion policy",
                 "docs/research_roadmap.md structured brief reset",
                 "old predicted-planner comparison artifacts removed from active evidence",
             ],
-            open_items=[
-                "train structured-brief adapter and run same-row structured-brief vs direct benchmark comparison",
-            ],
+            open_items=checkpoint5_open_items,
         ),
         _entry(
             6,

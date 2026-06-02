@@ -112,6 +112,57 @@ def test_compare_structured_brief_manifests_adds_direct_sql_delta() -> None:
     assert "# compared-with-direct-sql" in compared["command"]
 
 
+def test_compare_structured_brief_allows_different_control_model_name() -> None:
+    structured_manifest = _structured_manifest()
+    structured_manifest["model_name"] = "structured-brief-lora"
+    direct_manifest = _direct_manifest()
+    direct_manifest["model_name"] = "direct-sql-lora"
+
+    compared = compare_structured_brief_manifests(
+        structured_manifest=structured_manifest,
+        direct_manifest=direct_manifest,
+        structured_rows=_rows(),
+        direct_rows=_rows(),
+    )
+
+    metrics = compared["metrics"]
+    assert compared["model_name"] == "structured-brief-lora"
+    assert metrics["direct_sql_model_name"] == "direct-sql-lora"
+
+
+def test_compare_structured_brief_allows_legacy_direct_rows_with_execution_score() -> None:
+    direct_rows = _rows()
+    for row in direct_rows:
+        row["execution_score"] = row["value_execution_score"]
+        row["value_execution_score"] = None
+        row["strict_execution_score"] = None
+
+    compared = compare_structured_brief_manifests(
+        structured_manifest=_structured_manifest(),
+        direct_manifest=_direct_manifest(),
+        structured_rows=_rows(),
+        direct_rows=direct_rows,
+    )
+
+    assert compared["metrics"]["structured_brief_comparable_row_count"] == 2
+
+
+def test_compare_structured_brief_requires_structured_value_and_strict_scores() -> None:
+    structured_rows = _rows()
+    for row in structured_rows:
+        row["execution_score"] = row["value_execution_score"]
+        row["value_execution_score"] = None
+        row["strict_execution_score"] = None
+
+    with pytest.raises(ValueError, match="structured-brief output rows"):
+        compare_structured_brief_manifests(
+            structured_manifest=_structured_manifest(),
+            direct_manifest=_direct_manifest(),
+            structured_rows=structured_rows,
+            direct_rows=_rows(),
+        )
+
+
 def test_compare_structured_brief_marks_clean_holdout_win_promotable() -> None:
     compared = compare_structured_brief_manifests(
         structured_manifest=_structured_manifest(

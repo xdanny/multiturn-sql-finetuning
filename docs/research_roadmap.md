@@ -5,8 +5,8 @@ program. It replaces the old gate-heavy day-to-day direction with smaller,
 row-matched method comparisons.
 
 Last audited: 2026-06-02 after the Checkpoint 3 endpoint evaluation,
-generated-history rollout, clean-holdout failure analysis, Checkpoint 5
-structured query-brief reset and train-data path validation, and Checkpoint 6
+generated-history rollout, clean-holdout failure analysis, Checkpoint 5 full
+structured query-brief training and clean-holdout comparison, and Checkpoint 6
 pruned semantic value-retrieval endpoint comparison.
 
 Checkpoint status legend:
@@ -29,7 +29,7 @@ Current checkpoint progress:
 - `[x]` Checkpoint 2: Establish Honest Dataset Roles.
 - `[x]` Checkpoint 3: Rebuild Baselines At Real Scale.
 - `[x]` Checkpoint 4: Let Failure Analysis Choose Methods.
-- `[~]` Checkpoint 5: Structured Query Brief SFT.
+- `[x]` Checkpoint 5: Structured Query Brief SFT.
 - `[x]` Checkpoint 6: Semantic Layer And Value Grounding.
 - `[~]` Checkpoint 7: Metric DSL.
 - `[~]` Checkpoint 8: Generated-History Recovery.
@@ -49,10 +49,11 @@ The publishable benchmark claim is simple:
 
 The current repo is not at a hosted benchmark claim yet. It now has a full
 direct-SQL local control baseline for the configured CoSQL proxy and clean
-holdout, plus one narrow clean-holdout semantic value-retrieval win under the
-current comparer. Other structured method arms still need same-row
-clean-holdout wins. Many method artifacts remain intentionally small: 2
-metric-DSL rows, 1 behavior-recovery row, and 5 synthetic fixtures.
+holdout, a Checkpoint 5 structured query-brief clean-holdout win, and one
+narrow clean-holdout semantic value-retrieval win under the current comparer.
+Other structured method arms still need same-row clean-holdout wins. Many
+method artifacts remain intentionally small: 2 metric-DSL rows, 1
+behavior-recovery row, and 5 synthetic fixtures.
 
 Supported non-oracle claims are still scoped. The full direct-SQL LoRA improves
 over its base-model control on the configured local rows: proxy value/strict
@@ -344,10 +345,11 @@ uv run --active --no-sync python -m scripts.direct_sql_full_control \
 
 ## Checkpoint 5: Structured Query Brief SFT
 
-Status: `[~]` in progress. This checkpoint is now reset around training data and
-benchmark comparison, not oracle-planner gates. The old predicted-planner branch
-is deprecated and removed from active evidence because it overfit the workflow
-to SQL-derived planner labels and did not beat the direct-SQL control.
+Status: `[x]` complete for the current local promotion policy. This checkpoint
+is now reset around training data and benchmark comparison, not oracle-planner
+gates. The old predicted-planner branch is deprecated and removed from active
+evidence because it overfit the workflow to SQL-derived planner labels and did
+not beat the direct-SQL control.
 
 The active hypothesis is simpler:
 
@@ -391,16 +393,34 @@ wrappers and JSON snapshots made the old gate-first workflow look canonical.
 Checkpoint 5 now treats query decomposition as trainable structured-brief data,
 not as a separate planner-readiness gate.
 
-The train-data path now exists as `data.structured_brief_training_rows`. It
-projects the full CoSQL train split into 7,343 structured-brief SFT rows across
-2,159 dialogs and 140 databases, with `split_role=train`, no current reference
-SQL or scorer labels in the model prompt, and the brief plus SQL visible only as
-the assistant target. Evidence:
-`docs/training_runs/structured_brief_train_data_path_20260602.json`.
+Current Checkpoint 5 evidence from 2026-06-02:
 
-The next Checkpoint 5 work is to train the structured-brief adapter and run a
-same-row structured-brief-vs-direct benchmark comparison. Do not spend another
-iteration repairing planner readiness before that benchmark path runs.
+- `data.structured_brief_training_rows` projects the full CoSQL train split
+  into 7,343 structured-brief SFT rows across 2,159 dialogs and 140 databases,
+  with `split_role=train`, no current reference SQL or scorer labels in the
+  model prompt, and the brief plus SQL visible only as the assistant target.
+- The structured-brief adapter trained for the matched 1,620-step budget on the
+  RTX 5090 and saved the final adapter at
+  `outputs/experiments/structured_brief_sql/full_20260602/final`.
+- The structured clean-holdout input covers 193 dialogs / 680 scored turns
+  across 20 databases and keeps clean-holdout reference SQL, expected rows,
+  gold plans, and scorer labels out of the model prompt.
+- The same-row clean-holdout comparison beat the direct-SQL LoRA control:
+  structured brief value accuracy `0.576` versus direct SQL `0.349`, strict
+  accuracy `0.541` versus `0.349`, value delta `+0.228`, and strict delta
+  `+0.193` on 680 comparable turns.
+- The comparer marked the structured-brief result promotion-ready with no
+  blockers under the current local policy. The compact checked-in comparison
+  claim is
+  `docs/training_runs/structured_brief_clean_holdout_comparison_20260602.json`;
+  the full training and endpoint summary is
+  `docs/training_runs/structured_brief_full_20260602.json`.
+
+The result is still a local clean-holdout method win, not a hosted benchmark
+claim. It also has a tradeoff: syntax accuracy is lower than direct SQL
+(`0.801` versus `0.999`), and mean generation latency and token use are higher
+because the model emits a visible brief before SQL. Future work should preserve
+the value-accuracy gain while improving SQL well-formedness and output economy.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 
