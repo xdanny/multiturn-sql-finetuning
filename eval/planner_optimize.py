@@ -175,7 +175,7 @@ def summarize_planner_variant(rows: list[dict[str, Any]]) -> dict[str, Any]:
             **summary,
         }
     summary = {
-        field: sum(float(row["planner_scores"][field]) for row in rows) / len(rows)
+        field: sum(float(row["planner_scores"].get(field, 0.0)) for row in rows) / len(rows)
         for field in PLAN_FIELDS
     }
     return {
@@ -202,7 +202,7 @@ def write_planner_summary(rows: Iterable[dict[str, Any]], output: Path) -> None:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         for row in rows:
-            writer.writerow({field: row[field] for field in fieldnames})
+            writer.writerow({field: row.get(field, 0.0) for field in fieldnames})
 
 
 def propose_dspy_planner_variants(

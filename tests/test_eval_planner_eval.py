@@ -53,6 +53,7 @@ def test_score_plans_separates_table_column_and_shape_scores() -> None:
     assert scores["join_f1"] == 0.0
     assert scores["selected_count_match"] == 1.0
     assert scores["selected_expression_order_match"] == 1.0
+    assert scores["output_slot_order_match"] == 1.0
     assert scores["duplicate_policy_match"] == 0.0
     assert 0.0 < scores["macro_planner_score"] < 1.0
 
@@ -75,6 +76,7 @@ def test_score_plans_tracks_projection_order_separately_from_count() -> None:
 
     assert scores["selected_count_match"] == 1.0
     assert scores["selected_expression_order_match"] == 0.0
+    assert scores["output_slot_order_match"] == 0.0
     assert scores["macro_planner_score"] < 1.0
 
 
@@ -96,6 +98,68 @@ def test_score_plans_compares_projection_order_without_sql_aliases() -> None:
 
     assert scores["selected_count_match"] == 1.0
     assert scores["selected_expression_order_match"] == 1.0
+    assert scores["output_slot_order_match"] == 1.0
+
+
+def test_score_plans_output_slots_distinguish_count_distinct_from_count_star() -> None:
+    gold = {
+        "projection_shape": {
+            "output_slots": [
+                {
+                    "kind": "aggregate",
+                    "source_column": "countries.countryid",
+                    "aggregate": "count",
+                    "distinct": True,
+                },
+            ],
+        },
+    }
+    predicted = {
+        "projection_shape": {
+            "output_slots": [
+                {
+                    "kind": "aggregate",
+                    "source_column": None,
+                    "aggregate": "count",
+                    "distinct": False,
+                },
+            ],
+        },
+    }
+
+    scores = score_plans(gold, predicted)
+
+    assert scores["selected_count_match"] == 1.0
+    assert scores["output_slot_order_match"] == 0.0
+
+
+def test_score_plans_output_slots_preserve_group_key_aggregate_order() -> None:
+    gold = {
+        "projection_shape": {
+            "output_slots": [
+                {"kind": "column", "source_column": "countries.countryname"},
+                {"kind": "aggregate", "source_column": None, "aggregate": "count"},
+            ],
+            "group_by": ["countries.countryname"],
+            "aggregations": ["count(*)"],
+        },
+    }
+    predicted = {
+        "projection_shape": {
+            "output_slots": [
+                {"kind": "aggregate", "source_column": None, "aggregate": "count"},
+                {"kind": "column", "source_column": "t1.countryname"},
+            ],
+            "group_by": ["countries.countryname"],
+            "aggregations": ["count(*)"],
+        },
+    }
+
+    scores = score_plans(gold, predicted)
+
+    assert scores["aggregation_f1"] == 1.0
+    assert scores["group_by_f1"] == 1.0
+    assert scores["output_slot_order_match"] == 0.0
 
 
 def test_extract_schema_inventory_reads_compact_and_create_table_schema() -> None:

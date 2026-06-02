@@ -19,6 +19,7 @@ PLANNER_PROMOTION_POLICY = {
         "skeleton_f1": 0.70,
         "selected_count_match": 0.70,
         "selected_expression_order_match": 0.90,
+        "output_slot_order_match": 0.90,
         "duplicate_policy_match": 0.90,
     },
     "maximum_conditional_zero_rates": {
@@ -52,7 +53,7 @@ def _gold_group_by_required(row: dict[str, Any]) -> bool:
 
 def _predicted_projection_empty(row: dict[str, Any]) -> bool:
     projection = (row.get("predicted_plan") or {}).get("projection_shape") or {}
-    return not bool(projection.get("selected_expressions") or [])
+    return not bool(projection.get("selected_expressions") or projection.get("output_slots") or [])
 
 
 def _rate(count: int, total: int) -> float:
@@ -68,6 +69,7 @@ def _risk_names(summary: dict[str, Any]) -> list[str]:
         "column_linking": summary["column_zero_count"],
         "projection_shape": summary["selected_count_mismatch_count"],
         "projection_order": summary["selected_expression_order_mismatch_count"],
+        "output_slot_order": summary["output_slot_order_mismatch_count"],
         "empty_projection_expression": summary["empty_projection_expression_count"],
         "join_path": summary["join_zero_when_gold_join_count"],
         "group_by": summary["group_by_zero_when_gold_group_by_count"],
@@ -115,6 +117,9 @@ def summarize_planner_readiness(
     selected_order_mismatch = sum(
         1 for row in rows if _score(row, "selected_expression_order_match") == 0.0
     )
+    output_slot_order_mismatch = sum(
+        1 for row in rows if _score(row, "output_slot_order_match") == 0.0
+    )
     empty_projection = sum(1 for row in rows if _predicted_projection_empty(row))
     join_zero = sum(
         1 for row in rows if _gold_join_required(row) and _score(row, "join_f1") == 0.0
@@ -145,6 +150,8 @@ def summarize_planner_readiness(
         "selected_count_mismatch_rate": _rate(selected_mismatch, total),
         "selected_expression_order_mismatch_count": selected_order_mismatch,
         "selected_expression_order_mismatch_rate": _rate(selected_order_mismatch, total),
+        "output_slot_order_mismatch_count": output_slot_order_mismatch,
+        "output_slot_order_mismatch_rate": _rate(output_slot_order_mismatch, total),
         "empty_projection_expression_count": empty_projection,
         "empty_projection_expression_rate": _rate(empty_projection, total),
         "join_zero_when_gold_join_count": join_zero,

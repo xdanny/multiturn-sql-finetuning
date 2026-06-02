@@ -39,6 +39,7 @@ PLAN_FIELDS = (
     "group_by_f1",
     "selected_count_match",
     "selected_expression_order_match",
+    "output_slot_order_match",
     "duplicate_policy_match",
     "macro_planner_score",
 )
@@ -69,6 +70,20 @@ def _projection_order_key(value: Any) -> str:
 
 def _projection_order_keys(values: Iterable[Any] | None) -> list[str]:
     return [_projection_order_key(value) for value in values or [] if value not in (None, "")]
+
+
+def _output_slot_signatures(values: Iterable[dict[str, Any]] | None) -> list[tuple[Any, ...]]:
+    signatures = []
+    for slot in values or []:
+        signatures.append(
+            (
+                _normalize_identifier(slot.get("kind")),
+                _projection_order_key(slot.get("source_column")) if slot.get("source_column") else None,
+                _normalize_identifier(slot.get("aggregate")) if slot.get("aggregate") else None,
+                bool(slot.get("distinct", False)),
+            )
+        )
+    return signatures
 
 
 def _identifier_tokens(value: str, *, split_compound_parts: bool = False) -> set[str]:
@@ -148,6 +163,10 @@ def score_plans(gold_plan: dict[str, Any] | None, predicted_plan: dict[str, Any]
         "selected_expression_order_match": float(
             _projection_order_keys(gold_projection["selected_expressions"])
             == _projection_order_keys(predicted_projection["selected_expressions"])
+        ),
+        "output_slot_order_match": float(
+            _output_slot_signatures(gold_projection["output_slots"])
+            == _output_slot_signatures(predicted_projection["output_slots"])
         ),
         "duplicate_policy_match": float(
             gold_projection["preserve_duplicates"] == predicted_projection["preserve_duplicates"]

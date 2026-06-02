@@ -351,9 +351,10 @@ predicted-planner comparison, schema-context repair, lexical projection and
 table-selection repairs, train-split planner-SFT data paths, bounded planner-SFT
 readiness evidence, a projection-sequence planner adapter, a corrected
 schema-label-source planner adapter/readiness run, and an alias-insensitive
-projection-order scorer repair exist. The corrected adapter still misses the
-ordered selected-expression threshold, so no new SQL execution pair or SQL win
-is claimed.
+projection-order scorer repair exist. The contract now models ordered
+projection output slots separately from flat selected expressions. The
+corrected adapter still has not passed slot-aware readiness, so no new SQL
+execution pair or SQL win is claimed.
 
 Train or prompt a planner only on training-split gold labels. Evaluate planner
 F1 on held-out rows before feeding predicted plans into SQL generation.
@@ -569,23 +570,28 @@ Latest Checkpoint 5 evidence from 2026-05-31:
   two count-column/count-distinct misses, one destination-airport distinct-count
   miss, and one group-key/aggregate order reversal. The evidence file is
   `docs/training_runs/planner_alias_normalized_readiness_20260601.json`.
+- `projection_shape.output_slots` now models ordered answer slots directly with
+  `kind`, `source_column`, `aggregate`, `distinct`, and `display_order`, while
+  legacy `selected_expressions` still derive slots for old artifacts.
+- `eval.planner_eval` now reports `output_slot_order_match`, and
+  `eval.planner_readiness` includes it in the promotion policy, so
+  count-distinct/count-star and group-key/aggregate reversals can block
+  endpoint-pair promotion explicitly. This is a contract/scorer fix, not a new
+  planner-readiness pass or SQL win.
+- The evidence file is
+  `docs/training_runs/planner_output_slot_contract_20260602.json`.
 
-The next Checkpoint 5 work should fix the remaining count-aggregate and
-group/aggregation projection-order mismatches before another bounded same-row
-SQL pair. A positive value-accuracy delta remains required before promoting the
+The next Checkpoint 5 work should regenerate planner-SFT targets or planner
+predictions under the output-slot contract, rerun slot-aware clean-holdout
+readiness, and only then run another bounded same-row SQL pair if readiness
+passes. A positive value-accuracy delta remains required before promoting the
 planner path.
 
-Architecture note after the alias-normalized readiness run: do not spend the
-next planner iteration on another broad prompt or SFT sweep with the same flat
-planner target. The remaining failures are not table-alias noise; they are
-projection-slot semantics. The current contract stores answer order in
-`selected_expressions` while aggregation and grouping live in neighboring lists,
-which makes `count(distinct column)` versus `count(*)` and
-`group_key, aggregate` versus `aggregate, group_key` too easy to blur. The next
-planner architecture should model ordered output slots directly, for example
-`[{kind, source_column, aggregate, distinct, display_order}]`, and keep relevant
-filter/join columns separate from answer columns. Only after that contract and
-scorer change should another planner-SFT dataset or endpoint SQL pair run.
+Architecture note after the output-slot contract change: keep relevant
+filter/join columns separate from answer columns. The next planner target should
+train or predict ordered `output_slots` directly rather than relying on the flat
+`selected_expressions` field alone. Only after a slot-aware readiness summary
+passes should another planner-SFT SQL endpoint pair run.
 
 ## Checkpoint 6: Semantic Layer And Value Grounding
 

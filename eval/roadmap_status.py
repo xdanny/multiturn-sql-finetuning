@@ -237,9 +237,10 @@ def summarize_roadmap_status(
                 "docs/training_runs/planner_schema_label_source_sft_1000_20260601.json",
                 "docs/training_runs/planner_schema_label_source_readiness_20260601.json",
                 "docs/training_runs/planner_alias_normalized_readiness_20260601.json",
+                "docs/training_runs/planner_output_slot_contract_20260602.json",
             ],
             open_items=[
-                "fix remaining count-aggregate and group/aggregation projection-order mismatches",
+                "regenerate planner targets or predictions under output-slot contract and rerun slot-aware clean-holdout readiness",
             ],
         ),
         _entry(

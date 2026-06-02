@@ -70,6 +70,15 @@ def test_normalize_plan_returns_stable_fields() -> None:
     assert plan["query_skeleton"]["where"] is True
     assert plan["query_skeleton"]["join"] is False
     assert plan["projection_shape"]["selected_expressions"] == ["airlines.name"]
+    assert plan["projection_shape"]["output_slots"] == [
+        {
+            "kind": "column",
+            "source_column": "name",
+            "aggregate": None,
+            "distinct": False,
+            "display_order": 0,
+        }
+    ]
     assert plan["projection_shape"]["preserve_duplicates"] is False
 
 
@@ -85,6 +94,91 @@ def test_normalize_plan_preserves_projection_expression_order() -> None:
     )
 
     assert plan["projection_shape"]["selected_expressions"] == ["users.name", "users.id"]
+    assert [slot["source_column"] for slot in plan["projection_shape"]["output_slots"]] == [
+        "name",
+        "id",
+    ]
+
+
+def test_normalize_plan_derives_aggregate_output_slots_from_legacy_expressions() -> None:
+    plan = normalize_plan(
+        {
+            "projection_shape": {
+                "selected_expressions": [
+                    "count(distinct T1.CountryId)",
+                    "T1.CountryName",
+                    "sum(Sales.Amount) AS total_amount",
+                ],
+            },
+        }
+    )
+
+    assert plan["projection_shape"]["selected_count"] == 3
+    assert plan["projection_shape"]["output_slots"] == [
+        {
+            "kind": "aggregate",
+            "source_column": "countryid",
+            "aggregate": "count",
+            "distinct": True,
+            "display_order": 0,
+        },
+        {
+            "kind": "column",
+            "source_column": "countryname",
+            "aggregate": None,
+            "distinct": False,
+            "display_order": 1,
+        },
+        {
+            "kind": "aggregate",
+            "source_column": "amount",
+            "aggregate": "sum",
+            "distinct": False,
+            "display_order": 2,
+        },
+    ]
+
+
+def test_normalize_plan_accepts_explicit_output_slots() -> None:
+    plan = normalize_plan(
+        {
+            "relevant_tables": ["Countries"],
+            "projection_shape": {
+                "output_slots": [
+                    {
+                        "display_order": 1,
+                        "kind": "aggregate",
+                        "source_column": "T1.CountryId",
+                        "aggregate": "COUNT",
+                        "distinct": True,
+                    },
+                    {
+                        "display_order": 0,
+                        "kind": "column",
+                        "source_column": "T1.CountryName",
+                    },
+                ],
+            },
+        }
+    )
+
+    assert plan["projection_shape"]["selected_count"] == 2
+    assert plan["projection_shape"]["output_slots"] == [
+        {
+            "kind": "column",
+            "source_column": "countryname",
+            "aggregate": None,
+            "distinct": False,
+            "display_order": 0,
+        },
+        {
+            "kind": "aggregate",
+            "source_column": "countryid",
+            "aggregate": "count",
+            "distinct": True,
+            "display_order": 1,
+        },
+    ]
 
 
 def test_validate_prepared_record_contract_requires_gold_plan_per_assistant_turn() -> None:
@@ -182,3 +276,24 @@ def test_predicted_planning_hint_accepts_legacy_minimal_predicted_plan() -> None
 
     assert "Relevant tables: orders" in hint
     assert "Query skeleton: select" in hint
+
+
+def test_predicted_planning_hint_accepts_output_slot_only_projection() -> None:
+    hint = predicted_planning_hint_from_plan(
+        {
+            "relevant_tables": ["Countries"],
+            "projection_shape": {
+                "output_slots": [
+                    {
+                        "kind": "aggregate",
+                        "source_column": "Countries.CountryId",
+                        "aggregate": "count",
+                        "distinct": True,
+                    }
+                ],
+            },
+        }
+    )
+
+    assert "1 selected expression(s)" in hint
+    assert "Output slots: count distinct(countryid)" in hint
