@@ -63,6 +63,22 @@ Use these files to generate same-row predictions for the metric-DSL adapter and
 the direct-SQL control. The generated outputs still belong under `results/`, not
 in this directory.
 
+### Metric DSL Clean-Holdout Candidates
+
+- `metric_dsl_clean_holdout_candidates.manifest.json`
+
+`data.metric_dsl_clean_holdout_readiness` writes the generated candidate JSONL
+under `data/processed/metric_dsl/` and records compact provenance here. The
+candidate slice is selected from `cosql_dev_clean_holdout_v1` turns with
+metric-shaped SQL labels such as aggregation, grouping, having, ordering, or
+limit structure.
+
+This artifact is readiness evidence only. The prompt rows stop before the
+current assistant label and keep reference SQL, gold plans, and gold Metric DSL
+scorer-side. The current blocker is explicit: the clean-holdout candidates do
+not yet have structured gold Metric DSL labels for scoring `MEASURE(...)`
+preservation and compiled-SQL comparisons.
+
 ### Behavior Recovery Finetuning Rows
 
 - `behavior_recovery_training_rows.jsonl`

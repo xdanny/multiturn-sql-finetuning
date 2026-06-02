@@ -184,6 +184,18 @@ def _structured_brief_comparison_evidence() -> dict:
     }
 
 
+def _metric_dsl_readiness_evidence() -> dict:
+    return {
+        "artifact_type": "metric_dsl_clean_holdout_candidate_summary",
+        "candidate_count": 42,
+        "split_roles": {"clean_local_holdout": 42},
+        "readiness_blockers": {
+            "structured gold Metric DSL labels missing": 42,
+        },
+        "promotion_status": "not_ready",
+    }
+
+
 def _write_checkpoint3_config(tmp_path: Path, *, complete: bool) -> Path:
     config_path = tmp_path / "configs" / "direct_sql_full_non_oracle.yaml"
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -329,6 +341,13 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         / "structured_brief_clean_holdout_comparison_20260602.json",
         _structured_brief_comparison_evidence(),
     )
+    _write_json(
+        tmp_path
+        / "docs"
+        / "training_runs"
+        / "metric_dsl_clean_holdout_readiness_20260602.json",
+        _metric_dsl_readiness_evidence(),
+    )
     checkpoint3 = _write_checkpoint3_config(tmp_path, complete=True)
 
     summary = summarize_roadmap_status(
@@ -399,7 +418,13 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         "eval.compare_metric_dsl_direct_sql promotion policy"
         in by_checkpoint[7]["evidence"]
     )
+    assert "data.metric_dsl_clean_holdout_readiness" in by_checkpoint[7]["evidence"]
+    assert (
+        "docs/training_runs/metric_dsl_clean_holdout_readiness_20260602.json"
+        in by_checkpoint[7]["evidence"]
+    )
     assert by_checkpoint[7]["open_items"] == [
+        "structured gold Metric DSL labels missing",
         "Metric DSL clean-holdout promotion policy must pass"
     ]
     assert by_checkpoint[9]["status"] == "pending"

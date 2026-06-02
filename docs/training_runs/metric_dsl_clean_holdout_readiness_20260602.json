@@ -1,0 +1,33 @@
+{
+  "artifact_type": "metric_dsl_clean_holdout_candidate_summary",
+  "candidate_count": 313,
+  "checkpoint": 7,
+  "claim_boundary": "Clean-holdout Metric DSL candidate-slice readiness only; no generated DSL, compiled SQL execution score, value delta, or method win is claimed.",
+  "comparison_contract": "metric_dsl_clean_holdout_candidate_slice",
+  "database_count": 19,
+  "dialog_count": 141,
+  "input_path": "/home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl",
+  "metric_signal_counts": {
+    "aggregation": 233,
+    "group_by": 87,
+    "having": 38,
+    "limit": 101,
+    "order_by": 114
+  },
+  "next_step": "derive or author scorer-side gold Metric DSL labels, then generate same-row Metric DSL and direct-SQL predictions for eval.run_metric_dsl_comparison",
+  "oracle_policy": "non_oracle_generation",
+  "promotion_status": "not_ready",
+  "readiness_blockers": {
+    "structured gold Metric DSL labels missing": 313
+  },
+  "reference_sql_visible_to_model_prompt": false,
+  "run_id": "metric_dsl_clean_holdout_readiness_20260602",
+  "schema_version": 1,
+  "scorer_fields_visible_to_model_prompt": false,
+  "split_ids": {
+    "cosql_dev_clean_holdout_v1": 313
+  },
+  "split_roles": {
+    "clean_local_holdout": 313
+  }
+}

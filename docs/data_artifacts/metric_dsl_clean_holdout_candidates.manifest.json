@@ -1,0 +1,24 @@
+{
+  "artifact_type": "metric_dsl_clean_holdout_candidate_manifest",
+  "candidate_count": 313,
+  "command": [
+    "/tmp/multiturn-roadmap-next/data/metric_dsl_clean_holdout_readiness.py",
+    "--input",
+    "/home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl",
+    "--output",
+    "data/processed/metric_dsl/clean_holdout_candidates.jsonl",
+    "--summary-output",
+    "docs/training_runs/metric_dsl_clean_holdout_readiness_20260602.json",
+    "--manifest-output",
+    "docs/data_artifacts/metric_dsl_clean_holdout_candidates.manifest.json"
+  ],
+  "input_path": "/home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl",
+  "input_sha256": "aaa5a0aa7e216b409cfcc8d58442f555d364d3c1a0425d191aec40a965ae3cf2",
+  "oracle_policy": "non_oracle_generation",
+  "output_path": "data/processed/metric_dsl/clean_holdout_candidates.jsonl",
+  "output_sha256": "9a13d67355ea7a87afe06243c0cd6b432be3fa232760d90980484f5034656092",
+  "promotion_status": "not_ready",
+  "schema_version": 1,
+  "summary_path": "docs/training_runs/metric_dsl_clean_holdout_readiness_20260602.json",
+  "summary_sha256": "2c71a7462bf598a6a563ff0a1f0d49eed18b3b16fddf643189bb5a60c643b614"
+}
