@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "artifact_type": "semantic_value_clean_holdout_preflight_evidence",
+  "checkpoint": 6,
+  "run_id": "semantic_value_clean_holdout_preflight_20260602",
+  "claim_boundary": "Clean-holdout semantic value-retrieval endpoint-pair preflight only; no SQL execution result, value delta, or method win is claimed.",
+  "inputs": {
+    "direct_input_path": "data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl",
+    "direct_input_sha256": "aaa5a0aa7e216b409cfcc8d58442f555d364d3c1a0425d191aec40a965ae3cf2",
+    "semantic_input_path": "/tmp/semantic-cp6-run/cosql_dev_clean_holdout_semantic_value_retrieval.jsonl",
+    "semantic_input_sha256": "992c84b0e68193204a06306a8bc058e547e4498ea6f7fcadc03529b647687c75",
+    "split_id": "cosql_dev_clean_holdout_v1",
+    "split_role": "clean_local_holdout",
+    "model_name": "unsloth/Qwen3.5-9B",
+    "oracle_prompt_rows": 0
+  },
+  "commands": {
+    "value_index": "PYTHONPATH=/tmp/multiturn-semantic-cp6 VIRTUAL_ENV=/home/dan/docs/multiturn-sql-finetuning/.venv PATH=/home/dan/docs/multiturn-sql-finetuning/.venv/bin:$PATH UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m data.value_index --input /home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl --database-root /home/dan/docs/multiturn-sql-finetuning/data/raw/cosql_dataset/database --output /tmp/semantic-cp6-run/value_index_clean_holdout.jsonl --summary /tmp/semantic-cp6-run/value_index_clean_holdout_summary.json --manifest /tmp/semantic-cp6-run/value_index_clean_holdout.manifest.json --labels /tmp/semantic-cp6-run/missing-labels.jsonl --labels-manifest /tmp/semantic-cp6-run/missing-labels.manifest.json",
+    "semantic_inputs": "PYTHONPATH=/tmp/multiturn-semantic-cp6 VIRTUAL_ENV=/home/dan/docs/multiturn-sql-finetuning/.venv PATH=/home/dan/docs/multiturn-sql-finetuning/.venv/bin:$PATH UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m data.semantic_value_retrieval_inputs --input /home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl --value-index /tmp/semantic-cp6-run/value_index_clean_holdout.jsonl --value-index-manifest /tmp/semantic-cp6-run/value_index_clean_holdout.manifest.json --output /tmp/semantic-cp6-run/cosql_dev_clean_holdout_semantic_value_retrieval.jsonl --summary-output /tmp/semantic-cp6-run/cosql_dev_clean_holdout_semantic_value_retrieval_summary.json --manifest-output /tmp/semantic-cp6-run/cosql_dev_clean_holdout_semantic_value_retrieval.manifest.json --max-matches-per-turn 12",
+    "preflight": "PYTHONPATH=/tmp/multiturn-semantic-cp6 VIRTUAL_ENV=/home/dan/docs/multiturn-sql-finetuning/.venv PATH=/home/dan/docs/multiturn-sql-finetuning/.venv/bin:$PATH UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync python -m eval.run_semantic_value_retrieval_comparison --direct-input /home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl --semantic-input /tmp/semantic-cp6-run/cosql_dev_clean_holdout_semantic_value_retrieval.jsonl --value-index-manifest /tmp/semantic-cp6-run/value_index_clean_holdout.manifest.json --output-dir /tmp/semantic-cp6-run/results --run-id semantic_value_clean_holdout_preflight_20260602 --model-name unsloth/Qwen3.5-9B --preflight-output /tmp/semantic-cp6-run/semantic_value_clean_holdout_preflight_20260602.preflight.json --preflight-only"
+  },
+  "artifacts": {
+    "value_index": {
+      "path": "/tmp/semantic-cp6-run/value_index_clean_holdout.jsonl",
+      "row_count": 12661,
+      "database_count": 20,
+      "sha256": "7fbeee645021906ebb53239cdcbcb55f78d422c1c81269adb74ae8389d14e73a"
+    },
+    "value_index_summary": {
+      "path": "/tmp/semantic-cp6-run/value_index_clean_holdout_summary.json",
+      "sha256": "b8aee818b62909cf916889200a2eaa547bc6f315b9ad83e8c5f3d7b3862d6a15"
+    },
+    "value_index_manifest": {
+      "path": "/tmp/semantic-cp6-run/value_index_clean_holdout.manifest.json",
+      "sha256": "8694dee013ceae4495d7021f56df670071209efae82482140d9968409c049856"
+    },
+    "semantic_prepared": {
+      "path": "/tmp/semantic-cp6-run/cosql_dev_clean_holdout_semantic_value_retrieval.jsonl",
+      "dialog_count": 193,
+      "assistant_turn_count": 680,
+      "matched_row_count": 155,
+      "matched_turn_count": 510,
+      "matched_value_count": 3611,
+      "sha256": "992c84b0e68193204a06306a8bc058e547e4498ea6f7fcadc03529b647687c75"
+    },
+    "semantic_prepared_summary": {
+      "path": "/tmp/semantic-cp6-run/cosql_dev_clean_holdout_semantic_value_retrieval_summary.json",
+      "sha256": "cd3102da3b52d0760ff1161d2ddb3da145c9f090f5f23b67802823ca32390082"
+    },
+    "semantic_prepared_manifest": {
+      "path": "/tmp/semantic-cp6-run/cosql_dev_clean_holdout_semantic_value_retrieval.manifest.json",
+      "sha256": "941fd917f7fa98ea45e6dade02928be8dca8d4f828dd43a72535aa919c6c7386"
+    },
+    "preflight": {
+      "path": "/tmp/semantic-cp6-run/semantic_value_clean_holdout_preflight_20260602.preflight.json",
+      "row_count": 680,
+      "dialog_count": 193,
+      "database_count": 20,
+      "status": "ready_for_endpoint_pair",
+      "sha256": "0e3a3147fd63c060f781d357c1fcc7c51fbd9aec8b7102219fff8c43fdfa859e"
+    }
+  },
+  "preflight": {
+    "status": "ready_for_endpoint_pair",
+    "row_count": 680,
+    "dialog_count": 193,
+    "database_count": 20,
+    "direct_evaluation_mode": "non_oracle_generation",
+    "semantic_evaluation_mode": "non_oracle_generation",
+    "value_index_index_source": "database_contents"
+  },
+  "interpretation": [
+    "The clean-holdout semantic value-retrieval and direct-SQL inputs are row-identity matched and ready for an endpoint pair.",
+    "The semantic input differs from direct SQL only by non-oracle database-derived value retrieval context matched against user text seen so far.",
+    "This preflight does not measure SQL accuracy; the next Checkpoint 6 step must run the endpoint pair and require a positive value-accuracy delta with no strict-accuracy regression."
+  ]
+}
