@@ -555,9 +555,9 @@ Current Checkpoint 7 evidence from 2026-06-02:
 
 ## Checkpoint 8: Generated-History Recovery
 
-Status: `[~]` in progress. Rollout evaluators and one-row recovery diagnostics
-exist; generated-history recovery has not beaten direct SQL on multi-dialog
-rollout.
+Status: `[~]` in progress. Rollout evaluators, one-row recovery diagnostics,
+and a clean-holdout multi-dialog rollout candidate slice exist;
+generated-history recovery has not beaten direct SQL on multi-dialog rollout.
 
 Move recovery evaluation from one synthetic row to multi-dialog rollout. Later
 turns must see generated SQL and observed results, not prior gold SQL.
@@ -575,6 +575,23 @@ The minimum rollout manifest should record:
 - scorer-visible reference SQL and expected rows;
 - whether each later turn saw generated or teacher-forced history;
 - value-only, strict, syntax, and interaction-level metrics.
+
+Current Checkpoint 8 evidence from 2026-06-02:
+
+- `data.generated_history_recovery_readiness` selects multi-turn dialogs from
+  the prepared CoSQL clean holdout that can exercise generated-history rollout.
+  The generated candidate JSONL remains under ignored
+  `data/processed/generated_history_recovery/`, with provenance recorded in
+  `docs/data_artifacts/generated_history_recovery_candidates.manifest.json`.
+- The readiness pass found 191 candidate dialogs across 20 databases, covering
+  678 assistant turns and 487 later turns where prior generated SQL can affect
+  the prompt. The compact readiness summary is
+  `docs/training_runs/generated_history_recovery_readiness_20260602.json`.
+- This is readiness evidence only. It does not include a recovery adapter
+  rollout, direct-SQL generated-history control comparison, value delta, or
+  method win. The next step is to run `eval.run_behavior_recovery_comparison`
+  on this candidate slice for the recovery adapter and the direct-SQL control,
+  then compare identical model-generated-history rollout rows.
 
 ## Checkpoint 9: Hosted And Target Benchmark Transfer
 

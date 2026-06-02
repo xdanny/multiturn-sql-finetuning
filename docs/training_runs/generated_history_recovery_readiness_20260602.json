@@ -1,0 +1,29 @@
+{
+  "artifact_type": "generated_history_recovery_readiness_summary",
+  "candidate_dialog_count": 191,
+  "candidate_turn_count": 678,
+  "checkpoint": 8,
+  "claim_boundary": "Clean-holdout generated-history recovery rollout readiness only; no recovery adapter rollout, direct-SQL comparison, value delta, or method win is claimed.",
+  "comparison_contract": "generated_history_recovery_clean_holdout_rollout",
+  "database_count": 20,
+  "future_turns_visible_to_model_prompt": false,
+  "input_path": "/home/dan/docs/multiturn-sql-finetuning/data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl",
+  "next_step": "run eval.run_behavior_recovery_comparison on this candidate slice for the recovery adapter and the direct-SQL control, then compare identical model-generated-history rollout rows",
+  "oracle_policy": "non_oracle_generation",
+  "promotion_status": "not_ready",
+  "readiness_blockers": {
+    "multi-dialog recovery adapter rollout missing": 191
+  },
+  "recoverable_later_turn_count": 487,
+  "reference_sql_visible_to_model_prompt": false,
+  "rollout_target_history_policy": "model_generated_sql_rollout",
+  "run_id": "generated_history_recovery_readiness_20260602",
+  "schema_version": 1,
+  "scorer_labels_visible_to_model_prompt": false,
+  "split_ids": {
+    "cosql_dev_clean_holdout_v1": 191
+  },
+  "split_roles": {
+    "clean_local_holdout": 191
+  }
+}

@@ -24,6 +24,9 @@ DEFAULT_STRUCTURED_BRIEF_COMPARISON_EVIDENCE = Path(
 DEFAULT_METRIC_DSL_READINESS_EVIDENCE = Path(
     "docs/training_runs/metric_dsl_clean_holdout_readiness_20260602.json"
 )
+DEFAULT_GENERATED_HISTORY_RECOVERY_READINESS_EVIDENCE = Path(
+    "docs/training_runs/generated_history_recovery_readiness_20260602.json"
+)
 
 
 CHECKPOINTS: dict[int, str] = {
@@ -168,6 +171,29 @@ def _metric_dsl_open_items(evidence: Mapping[str, Any] | None) -> list[str]:
     return items
 
 
+def _generated_history_recovery_readiness_recorded(
+    evidence: Mapping[str, Any] | None,
+) -> bool:
+    if not evidence:
+        return False
+    if evidence.get("artifact_type") != "generated_history_recovery_readiness_summary":
+        return False
+    if not _positive_int(evidence.get("candidate_dialog_count")):
+        return False
+    split_roles = evidence.get("split_roles") or {}
+    return _positive_int(split_roles.get("clean_local_holdout"))
+
+
+def _generated_history_recovery_open_items(
+    evidence: Mapping[str, Any] | None,
+) -> list[str]:
+    items = []
+    if _generated_history_recovery_readiness_recorded(evidence):
+        items.extend(str(blocker) for blocker in (evidence.get("readiness_blockers") or {}))
+    items.append("multi-dialog generated-history recovery win is still missing")
+    return items
+
+
 def summarize_roadmap_status(
     *,
     experiment_registry_path: Path = DEFAULT_EXPERIMENT_REGISTRY,
@@ -177,6 +203,9 @@ def summarize_roadmap_status(
         DEFAULT_STRUCTURED_BRIEF_COMPARISON_EVIDENCE
     ),
     metric_dsl_readiness_evidence_path: Path = DEFAULT_METRIC_DSL_READINESS_EVIDENCE,
+    generated_history_recovery_readiness_evidence_path: Path = (
+        DEFAULT_GENERATED_HISTORY_RECOVERY_READINESS_EVIDENCE
+    ),
 ) -> dict[str, Any]:
     """Return checkpoint statuses derived from current repo evidence."""
 
@@ -249,6 +278,28 @@ def summarize_roadmap_status(
             [
                 "data.metric_dsl_clean_holdout_readiness",
                 str(metric_dsl_readiness_evidence_path),
+            ]
+        )
+    resolved_generated_history_recovery_readiness_path = _resolve_from_config_root(
+        experiment_registry_path, generated_history_recovery_readiness_evidence_path
+    )
+    generated_history_recovery_readiness = _load_optional_json(
+        resolved_generated_history_recovery_readiness_path
+    )
+    generated_history_recovery_readiness_recorded = (
+        _generated_history_recovery_readiness_recorded(
+            generated_history_recovery_readiness
+        )
+    )
+    generated_history_recovery_evidence = [
+        f"experiment_status={_experiment_status(experiments, 'generated_history_recovery_vs_direct')}",
+        "rollout evaluators and one-row recovery diagnostics exist",
+    ]
+    if generated_history_recovery_readiness_recorded:
+        generated_history_recovery_evidence.extend(
+            [
+                "data.generated_history_recovery_readiness",
+                str(generated_history_recovery_readiness_evidence_path),
             ]
         )
 
@@ -329,11 +380,10 @@ def summarize_roadmap_status(
         _entry(
             8,
             status="in_progress",
-            evidence=[
-                f"experiment_status={_experiment_status(experiments, 'generated_history_recovery_vs_direct')}",
-                "rollout evaluators and one-row recovery diagnostics exist",
-            ],
-            open_items=["multi-dialog generated-history recovery win is still missing"],
+            evidence=generated_history_recovery_evidence,
+            open_items=_generated_history_recovery_open_items(
+                generated_history_recovery_readiness
+            ),
         ),
         _entry(
             9,

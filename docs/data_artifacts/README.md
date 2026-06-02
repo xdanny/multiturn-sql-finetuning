@@ -106,6 +106,23 @@ SQL is visible as prior assistant history, while the repair SQL remains a
 held-out assistant label for the final turn. Use this artifact to smoke the
 rollout path before spending endpoint time on the larger CoSQL proxy slice.
 
+### Generated-History Recovery Clean-Holdout Candidates
+
+- `generated_history_recovery_candidates.manifest.json`
+
+`data.generated_history_recovery_readiness` writes the generated candidate JSONL
+under `data/processed/generated_history_recovery/` and records compact
+provenance here. The candidate slice selects multi-turn dialogs from
+`cosql_dev_clean_holdout_v1` so generated-history rollout can test later turns
+that see the model's own earlier SQL instead of teacher-forced gold SQL.
+
+This artifact is readiness evidence only. It keeps the dialog-level reference
+SQL labels for scoring by `eval.rollout_eval`, but the rollout evaluator must
+stop prompts before the current assistant label and replace prior assistant
+labels with generated SQL at runtime. A recovery claim still requires a
+row-matched generated-history rollout comparison between a recovery adapter and
+the direct-SQL control.
+
 ### Value/Schema Repair Rollout Inputs
 
 - `value_schema_repair_rollout_inputs.jsonl`
