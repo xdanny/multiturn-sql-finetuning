@@ -252,9 +252,10 @@ def summarize_roadmap_status(
                 "docs/training_runs/semantic_value_clean_holdout_preflight_20260602.json",
                 "docs/training_runs/semantic_value_clean_holdout_full_20260602.json",
                 "docs/training_runs/semantic_value_regression_diagnosis_20260602.json",
+                "docs/training_runs/semantic_value_pruned_preflight_20260602.json",
             ],
             open_items=[
-                "prune semantic value retrieval before another endpoint pair",
+                "run pruned semantic value-retrieval endpoint pair and require positive value delta with no strict regression",
             ],
         ),
         _entry(

@@ -176,9 +176,12 @@ inference time.
 under `data/processed/` because it is a generated benchmark input. The summary
 and manifest may be written here to record provenance.
 
-The builder matches value-index aliases against user-authored text visible up to
-each turn. It intentionally does not use reference SQL, gold planner labels,
-expected rows, assistant SQL, or future user turns for retrieval matching.
+The builder defaults to matching value-index aliases against the current
+user-authored turn only, capping retrieval volume at 4 matches per turn and
+pruning short ambiguous aliases while retaining numeric aliases. It intentionally
+does not use reference SQL, gold planner labels, expected rows, assistant SQL, or
+future user turns for retrieval matching. History-scope retrieval is available
+only for explicitly labeled diagnostics.
 
 ## What Should Be Added Here
 

@@ -67,6 +67,31 @@ def _value_index_rows() -> list[dict]:
     ]
 
 
+def test_retrieve_value_matches_prunes_short_ambiguous_aliases() -> None:
+    rows = [
+        {
+            "artifact_type": "non_oracle_value_index_entry",
+            "schema_version": 1,
+            "index_source": "database_contents",
+            "database_id": "store",
+            "table": "countries",
+            "column": "code2",
+            "raw_value": "IS",
+            "normalized_value": "is",
+            "aliases": ["IS"],
+            "source_frequency": 3,
+        },
+        *_value_index_rows(),
+    ]
+
+    matches = retrieve_value_matches(
+        text="What country is Alice from?",
+        value_index_rows=rows,
+    )
+
+    assert [match["raw_value"] for match in matches] == ["Alice Smith"]
+
+
 def test_retrieve_value_matches_uses_alias_boundaries() -> None:
     matches = retrieve_value_matches(
         text="Only Alice this time, not malice.",
@@ -109,9 +134,24 @@ def test_build_semantic_value_retrieval_inputs_summarizes_scope() -> None:
     assert summary["row_count"] == 1
     assert summary["assistant_turn_count"] == 2
     assert summary["matched_turn_count"] == 2
-    assert summary["matched_value_count"] == 3
+    assert summary["matched_value_count"] == 2
+    assert summary["max_matches_per_turn"] == 3
+    assert summary["retrieval_scope"] == "current_turn"
+    assert summary["min_alias_chars"] == 3
     assert "reference SQL" in summary["leakage_boundary"]
     assert summary["evaluation_gate"] == "eval.run_semantic_value_retrieval_comparison"
+
+
+def test_build_semantic_value_retrieval_inputs_can_use_history_scope() -> None:
+    _rows, summary = build_semantic_value_retrieval_inputs(
+        prepared_rows=[_prepared_record()],
+        value_index_rows=_value_index_rows(),
+        max_matches_per_turn=3,
+        retrieval_scope="history",
+    )
+
+    assert summary["matched_value_count"] == 3
+    assert summary["retrieval_scope"] == "history"
 
 
 def test_build_semantic_value_retrieval_inputs_rejects_oracle_record() -> None:
@@ -159,5 +199,8 @@ def test_write_semantic_value_retrieval_input_artifacts(tmp_path) -> None:
     summary = json.loads(summary_path.read_text())
     assert output_rows[0]["semantic_value_retrieval"]["index_source"] == "database_contents"
     assert summary["oracle_policy"] == "non_oracle_database_value_index_matched_to_user_text_only"
+    assert manifest["max_matches_per_turn"] == 4
+    assert manifest["retrieval_scope"] == "current_turn"
+    assert manifest["min_alias_chars"] == 3
     assert manifest["output_sha256"] == sha256_file(output_path)
     assert manifest["value_index_manifest_sha256"] == sha256_file(value_index_manifest_path)
