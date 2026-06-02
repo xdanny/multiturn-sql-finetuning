@@ -589,8 +589,9 @@ scorer change should another planner-SFT dataset or endpoint SQL pair run.
 ## Checkpoint 6: Semantic Layer And Value Grounding
 
 Status: `[~]` in progress. Value labels, a non-oracle value index, semantic
-retrieval inputs, and alias/column context inputs exist; a same-row semantic
-SQL win on a clean holdout does not.
+retrieval inputs, alias/column context inputs, and a clean-holdout semantic
+value-retrieval endpoint-pair preflight exist; a same-row semantic SQL win on a
+clean holdout does not.
 
 Replace mechanically generated semantic hints with versioned semantic artifacts:
 
@@ -616,6 +617,26 @@ non-oracle direct-SQL comparison, database-derived value-index provenance, a
 clean-holdout split role, enough comparable rows, a positive value-accuracy
 delta, and no strict-accuracy regression. A proxy comparison can guide
 iteration, but it is not a clean-holdout semantic win.
+
+Latest Checkpoint 6 evidence from 2026-06-02:
+
+- A clean-holdout value index was regenerated from database contents for the
+  same 20 CoSQL dev databases used by `cosql_dev_clean_holdout_v1`; it produced
+  12,661 non-oracle value entries.
+- Semantic value-retrieval prepared input was generated for all 193
+  clean-holdout dialogs / 680 assistant turns. It matched 3,611 value entries
+  across 510 user turns and 155 dialogs using only user-visible text seen so far.
+- `eval.run_semantic_value_retrieval_comparison --preflight-only` verified the
+  direct-SQL and semantic inputs are row-identity matched and endpoint-pair
+  ready on 680 turns, 193 dialogs, and 20 databases.
+- This is preflight evidence only: no endpoint SQL generations ran, no
+  value-accuracy delta exists, and no semantic method win is claimed. The
+  evidence file is
+  `docs/training_runs/semantic_value_clean_holdout_preflight_20260602.json`.
+
+The next Checkpoint 6 work should run the clean-holdout endpoint pair and require
+a positive value-accuracy delta without strict-accuracy regression before
+promoting semantic value retrieval.
 
 ## Checkpoint 7: Metric DSL
 

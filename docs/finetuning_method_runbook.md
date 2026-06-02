@@ -186,10 +186,17 @@ Preflight outputs from this runner are run-specific and should be written under
 `results/`. They prove input compatibility only; they are not evidence that the
 method improved SQL execution.
 
-Next useful movement: generate the semantic prepared input on the fixed CoSQL
-rows, run the paired endpoint experiment versus direct SQL, then inspect whether
-the remaining misses are value lookup, entity resolution, join path, or query
-shape failures.
+Latest movement:
+`docs/training_runs/semantic_value_clean_holdout_preflight_20260602.json`
+records a clean-holdout endpoint-pair preflight. The semantic prepared input
+matched 3,611 database-derived values across 510 user turns and 155 dialogs, and
+the direct-SQL and semantic inputs are row-identity matched across 680 turns, 193
+dialogs, and 20 databases. This is preflight evidence only; no SQL execution
+delta or method win is claimed.
+
+Next useful movement: run the paired clean-holdout endpoint experiment versus
+direct SQL, then inspect whether the remaining misses are value lookup, entity
+resolution, join path, or query shape failures.
 
 ## `MEASURE()`-Preserving Metric DSL
 

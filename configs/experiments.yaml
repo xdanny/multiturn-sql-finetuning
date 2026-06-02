@@ -80,7 +80,7 @@ experiments:
 
   - experiment_id: semantic_value_retrieval_vs_direct
     checkpoint: 6
-    status: ready_for_proxy_pair
+    status: semantic_clean_holdout_preflight_ready
     hypothesis_id: semantic_value_grounding
     hypothesis: >-
       Database-derived value retrieval and semantic context improve
@@ -88,7 +88,7 @@ experiments:
     train_split_id: cosql_train_v1
     validation_split_id: cosql_dev_100_proxy_seen_v1
     test_split_id: cosql_dev_clean_holdout_v1
-    dataset_role: proxy_dev_seen
+    dataset_role: clean_local_holdout
     benchmark_protocol_id: cosql_dev_100_teacher_forced_proxy
     model: unsloth/Qwen3.5-9B
     adapter: outputs/experiments/semantic_value_retrieval/final
@@ -99,8 +99,10 @@ experiments:
     control_experiment_id: direct_sql_full_non_oracle_control
     primary_metric: semantic_value_delta_vs_direct_sql
     claim_boundary: >-
-      Proxy pair is ready to run, but a clean holdout win is still required for
-      a publishable method claim.
+      Clean-holdout semantic value-retrieval and direct-SQL inputs are
+      row-identity matched and endpoint-pair ready, but a clean-holdout endpoint
+      run with a positive value delta and no strict-regression is still required
+      for a publishable method claim.
 
   - experiment_id: metric_dsl_vs_direct_sql
     checkpoint: 7

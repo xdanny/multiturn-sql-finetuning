@@ -38,6 +38,10 @@ def test_experiment_registry_names_roadmap_runs() -> None:
     assert planner["control_experiment_id"] == "direct_sql_full_non_oracle_control"
     assert planner["status"] == "planner_alias_normalized_readiness_order_negative"
 
+    semantic = next(row for row in experiments if row["method"] == "semantic_value_retrieval")
+    assert semantic["dataset_role"] == "clean_local_holdout"
+    assert semantic["status"] == "semantic_clean_holdout_preflight_ready"
+
 
 def test_experiment_registry_loader_rejects_missing_required_field(tmp_path) -> None:
     config = tmp_path / "experiments.yaml"
@@ -164,5 +168,5 @@ experiments:
 def test_experiment_registry_map_is_keyed_by_stable_id() -> None:
     experiments = experiment_registry_map(REPO_ROOT / "configs" / "experiments.yaml")
 
-    assert experiments["semantic_value_retrieval_vs_direct"]["dataset_role"] == "proxy_dev_seen"
+    assert experiments["semantic_value_retrieval_vs_direct"]["dataset_role"] == "clean_local_holdout"
     assert experiments["hosted_bird_interact_transfer"]["checkpoint"] == 9

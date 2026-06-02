@@ -32,7 +32,7 @@ def _write_registry(path: Path) -> None:
         (
             "semantic_value_retrieval_vs_direct",
             6,
-            "ready_for_proxy_pair",
+            "semantic_clean_holdout_preflight_ready",
             "semantic_value_retrieval",
             "direct_sql_full_non_oracle_control",
         ),
@@ -400,8 +400,12 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         "eval.compare_semantic_value_retrieval promotion policy"
         in by_checkpoint[6]["evidence"]
     )
+    assert (
+        "docs/training_runs/semantic_value_clean_holdout_preflight_20260602.json"
+        in by_checkpoint[6]["evidence"]
+    )
     assert by_checkpoint[6]["open_items"] == [
-        "semantic clean-holdout promotion policy must pass"
+        "run semantic clean-holdout endpoint pair and require positive value delta without strict regression"
     ]
     assert (
         "eval.compare_metric_dsl_direct_sql promotion policy"
