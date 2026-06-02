@@ -556,11 +556,22 @@ Current Checkpoint 7 evidence from 2026-06-02:
   candidates. The other 275 remain unlabelled because their SQL shape is not yet
   supported by this scorer-side derivation path, most commonly order-by, where,
   nested-query, having, or missing semantic-model measure/join coverage.
-- This is still readiness evidence only. It clears the minimum row-count
-  blocker for a labelled Metric DSL comparison subset, but no generated DSL,
-  compiled SQL score, value delta, or method win is claimed. The next step is
-  same-row Metric DSL and direct-SQL prediction generation on the labelled rows,
-  followed by `eval.run_metric_dsl_comparison` and the promotion audit.
+- `data.metric_dsl_clean_holdout_prediction_inputs` turns the labelled subset
+  into paired Metric DSL and direct-SQL generation inputs. It keeps scorer
+  fields out of prompts, drops gold plans from prediction rows, and records one
+  excluded row where a teacher-forced previous turn repeated the current
+  reference SQL exactly.
+- The prediction-input pass produced 37 paired clean-holdout rows from the 38
+  labelled rows, still above the 24-row comparison floor. The compact evidence
+  file is
+  `docs/training_runs/metric_dsl_clean_holdout_prediction_inputs_20260602.json`,
+  with provenance in
+  `docs/data_artifacts/metric_dsl_clean_holdout_prediction_inputs.manifest.json`.
+- This is still readiness evidence only. It clears the labelled-input blocker
+  for a Metric DSL comparison subset, but no generated DSL, compiled SQL score,
+  value delta, or method win is claimed. The next step is same-row Metric DSL
+  and direct-SQL output generation on the 37 paired rows, followed by scoring,
+  `eval.compare_metric_dsl_direct_sql`, and the promotion audit.
 
 ## Checkpoint 8: Generated-History Recovery
 
