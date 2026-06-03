@@ -4,9 +4,8 @@ This is the canonical long-term roadmap for the multi-turn SQL fine-tuning
 program. It replaces the old gate-heavy day-to-day direction with smaller,
 row-matched method comparisons.
 
-Last audited: 2026-06-03 after the Checkpoint 7 Metric DSL negative
-clean-holdout comparison and the Checkpoint 8 bounded generated-history
-recovery comparison.
+Last audited: 2026-06-03 after the Checkpoint 9 three-way hosted-transfer
+target-gap comparison.
 
 Checkpoint status legend:
 
@@ -32,7 +31,7 @@ Current checkpoint progress:
 - `[x]` Checkpoint 6: Semantic Layer And Value Grounding.
 - `[x]` Checkpoint 7: Metric DSL.
 - `[x]` Checkpoint 8: Generated-History Recovery.
-- `[ ]` Checkpoint 9: Hosted And Target Benchmark Transfer.
+- `[x]` Checkpoint 9: Hosted And Target Benchmark Transfer.
 
 Audit the current checkpoint statuses without running GPU training or endpoints:
 
@@ -52,7 +51,11 @@ holdout, a Checkpoint 5 structured query-brief clean-holdout win, and one
 narrow clean-holdout semantic value-retrieval win under the current comparer.
 Metric DSL failed its generated-output clean-holdout comparison, while
 generated-history recovery has a narrow bounded clean-holdout rollout win.
-These are local method-comparison results, not hosted benchmark claims.
+Checkpoint 9 then compared the best finetuned recovery adapter against raw base
+Qwen and OpenRouter Claude Sonnet 4.6 on the same bounded generated-history
+slice. The finetuned adapter tied raw Qwen and trailed Sonnet, so the current
+hosted-transfer evidence is a target-gap measurement, not a hosted benchmark
+claim.
 
 Supported non-oracle claims are still scoped. The full direct-SQL LoRA improves
 over its base-model control on the configured local rows: proxy value/strict
@@ -642,23 +645,36 @@ Current Checkpoint 8 evidence:
 
 ## Checkpoint 9: Hosted And Target Benchmark Transfer
 
-Status: `[ ]` pending. Hosted and BIRD-Interact-style transfer should wait
-until a local winner is selected for transfer under an explicit hosted protocol.
+Status: `[x]` complete for the current roadmap pass as a same-row hosted SOTA
+target-gap measurement. This is not an external benchmark claim.
 
-Run hosted baselines only after a local method beats direct SQL on a clean local
-holdout. The first real external target should be BIRD-Interact Lite or
-LiveSQLBench, with Spider 2.0 and BIRD-style data used only under their allowed
-protocols.
+On 2026-06-03, the best local finetuned recovery adapter, raw base
+`unsloth/Qwen3.5-9B`, and OpenRouter `anthropic/claude-sonnet-4.6` were run on
+the same 12 clean-holdout generated-history dialogs from Checkpoint 8: 43
+assistant turns, 10 databases, non-oracle prompts, no future turns, and the same
+SQL execution scorer.
 
-The final claim requires:
+The three-way result was:
 
-- same input rows;
-- same scorer and test cases;
-- same oracle policy;
-- no reference SQL, expected rows, gold plans, gold DSL, repair labels, or
-  future turns in production prompts;
-- hosted and local manifests with model, prompt, latency, and cost metadata;
-- a positive local delta against the hosted baseline under the same protocol.
+- raw base Qwen: `0.558` value accuracy and `0.302` strict accuracy;
+- best finetuned recovery adapter: `0.558` value accuracy and `0.302` strict
+  accuracy, a `+0.000` value/strict delta versus raw Qwen;
+- OpenRouter Claude Sonnet 4.6: `0.674` value accuracy and `0.395` strict
+  accuracy;
+- finetuned recovery delta versus Sonnet: `-0.116` value and `-0.093` strict.
+
+The compact evidence is
+`docs/training_runs/hosted_transfer_openrouter_sonnet_4_6_20260603.json`. The
+hosted result recorded latency, token usage, and estimated OpenRouter cost:
+`39,104` total tokens and `$0.138084` estimated generation cost for the 43
+turns.
+
+This completes the initial hosted-transfer checkpoint as negative/inconclusive
+evidence: the current finetuning recipe does not improve over raw Qwen on this
+slice and does not approach the hosted SOTA comparator. The next roadmap should
+focus on better data construction, prompt format, and chain-of-thought-free
+decomposition targets before attempting BIRD-Interact Lite, LiveSQLBench,
+Spider 2.0, or hosted benchmark claims.
 
 ## Future Repo Interfaces
 

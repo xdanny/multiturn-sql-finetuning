@@ -53,7 +53,7 @@ def _write_registry(path: Path) -> None:
         (
             "hosted_bird_interact_transfer",
             9,
-            "pending_local_winner",
+            "target_gap_recorded",
             "hosted_transfer_comparison",
             "direct_sql_full_non_oracle_control",
         ),
@@ -278,6 +278,38 @@ def _generated_history_recovery_comparison_evidence() -> dict:
         "direct_sql_value_execution_accuracy": 0.535,
         "behavior_recovery_value_delta_vs_direct_sql": 0.023,
         "promotion_status": "narrow_positive",
+    }
+
+
+def _hosted_transfer_comparison_evidence() -> dict:
+    return {
+        "artifact_type": "hosted_transfer_comparison_summary",
+        "checkpoint": 9,
+        "comparable_row_count": 43,
+        "evaluated_dialog_count": 12,
+        "split_roles": {"clean_local_holdout": 43},
+        "history_policy": "model_generated_sql_rollout",
+        "oracle_policy": "non_oracle_generation",
+        "reference_sql_visible_to_model_prompt": False,
+        "scorer_labels_visible_to_model_prompt": False,
+        "future_turns_visible_to_model_prompt": False,
+        "hosted_endpoint": "https://openrouter.ai/api/v1",
+        "hosted_model_name": "anthropic/claude-sonnet-4.6",
+        "hosted_value_execution_accuracy": 0.674,
+        "hosted_strict_execution_accuracy": 0.395,
+        "hosted_mean_latency_ms": 2426.0,
+        "hosted_total_estimated_generation_cost_usd": 0.138,
+        "local_model_name": "behavior_recovery_5steps_cp8_limit12",
+        "local_base_qwen_model_name": "qwen35_9b_base_cp9_limit12",
+        "local_same_row_identity_verified": True,
+        "local_base_qwen_value_execution_accuracy": 0.558,
+        "local_base_qwen_strict_execution_accuracy": 0.302,
+        "local_value_delta_vs_base_qwen": 0.0,
+        "local_strict_delta_vs_base_qwen": 0.0,
+        "local_value_delta_vs_hosted": -0.116,
+        "local_strict_delta_vs_hosted": -0.093,
+        "input_sha256": "same-input",
+        "promotion_status": "target_gap_recorded",
     }
 
 
@@ -638,6 +670,38 @@ def test_summarize_roadmap_status_completes_checkpoint8_with_recorded_comparison
         in by_checkpoint[8]["evidence"]
     )
     assert str(comparison_path) in by_checkpoint[8]["evidence"]
+
+
+def test_summarize_roadmap_status_completes_checkpoint9_with_three_way_comparison(
+    tmp_path: Path,
+) -> None:
+    registry = tmp_path / "configs" / "experiments.yaml"
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    _write_registry(registry)
+    evidence_path = (
+        tmp_path
+        / "docs"
+        / "training_runs"
+        / "hosted_transfer_openrouter_sonnet_4_6_20260603.json"
+    )
+    _write_json(evidence_path, _hosted_transfer_comparison_evidence())
+    checkpoint3 = _write_checkpoint3_config(tmp_path, complete=False)
+
+    summary = summarize_roadmap_status(
+        experiment_registry_path=registry,
+        checkpoint3_config_path=checkpoint3,
+        hosted_transfer_comparison_evidence_path=evidence_path,
+    )
+
+    by_checkpoint = {row["checkpoint"]: row for row in summary["checkpoints"]}
+    assert by_checkpoint[9]["status"] == "complete"
+    assert by_checkpoint[9]["open_items"] == []
+    assert (
+        "OpenRouter anthropic/claude-sonnet-4.6 same-protocol hosted comparator"
+        in by_checkpoint[9]["evidence"]
+    )
+    assert "raw Qwen same-row local baseline" in by_checkpoint[9]["evidence"]
+    assert str(evidence_path) in by_checkpoint[9]["evidence"]
 
 
 def test_summarize_roadmap_status_accepts_recorded_endpoint_evidence(

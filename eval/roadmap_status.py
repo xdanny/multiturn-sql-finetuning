@@ -39,6 +39,9 @@ DEFAULT_GENERATED_HISTORY_RECOVERY_READINESS_EVIDENCE = Path(
 DEFAULT_GENERATED_HISTORY_RECOVERY_COMPARISON_EVIDENCE = Path(
     "docs/training_runs/generated_history_recovery_clean_holdout_comparison_20260603.json"
 )
+DEFAULT_HOSTED_TRANSFER_COMPARISON_EVIDENCE = Path(
+    "docs/training_runs/hosted_transfer_openrouter_sonnet_4_6_20260603.json"
+)
 METRIC_DSL_MIN_COMPARABLE_ROWS = 24
 
 
@@ -308,6 +311,51 @@ def _generated_history_recovery_comparison_recorded(
     )
 
 
+def _hosted_transfer_comparison_recorded(evidence: Mapping[str, Any] | None) -> bool:
+    if not evidence:
+        return False
+    if evidence.get("artifact_type") != "hosted_transfer_comparison_summary":
+        return False
+    if int(evidence.get("checkpoint") or 0) != 9:
+        return False
+    comparable_row_count = int(evidence.get("comparable_row_count") or 0)
+    if comparable_row_count <= 0:
+        return False
+    split_roles = evidence.get("split_roles") or {}
+    if int(split_roles.get("clean_local_holdout") or 0) != comparable_row_count:
+        return False
+    for field in (
+        "local_value_delta_vs_base_qwen",
+        "local_strict_delta_vs_base_qwen",
+        "local_value_delta_vs_hosted",
+        "local_strict_delta_vs_hosted",
+        "local_base_qwen_value_execution_accuracy",
+        "local_base_qwen_strict_execution_accuracy",
+        "hosted_value_execution_accuracy",
+        "hosted_strict_execution_accuracy",
+    ):
+        if evidence.get(field) is None:
+            return False
+    hosted_cost = evidence.get("hosted_total_estimated_generation_cost_usd")
+    hosted_latency = evidence.get("hosted_mean_latency_ms")
+    return (
+        evidence.get("oracle_policy") == "non_oracle_generation"
+        and evidence.get("history_policy") == "model_generated_sql_rollout"
+        and evidence.get("local_same_row_identity_verified") is True
+        and evidence.get("reference_sql_visible_to_model_prompt") is False
+        and evidence.get("scorer_labels_visible_to_model_prompt") is False
+        and evidence.get("future_turns_visible_to_model_prompt") is False
+        and str(evidence.get("hosted_endpoint") or "").startswith("https://")
+        and bool(evidence.get("hosted_model_name"))
+        and bool(evidence.get("local_base_qwen_model_name"))
+        and bool(evidence.get("input_sha256"))
+        and hosted_cost is not None
+        and float(hosted_cost) >= 0.0
+        and hosted_latency is not None
+        and float(hosted_latency) > 0.0
+    )
+
+
 def summarize_roadmap_status(
     *,
     experiment_registry_path: Path = DEFAULT_EXPERIMENT_REGISTRY,
@@ -327,6 +375,9 @@ def summarize_roadmap_status(
     ),
     generated_history_recovery_comparison_evidence_path: Path = (
         DEFAULT_GENERATED_HISTORY_RECOVERY_COMPARISON_EVIDENCE
+    ),
+    hosted_transfer_comparison_evidence_path: Path = (
+        DEFAULT_HOSTED_TRANSFER_COMPARISON_EVIDENCE
     ),
 ) -> dict[str, Any]:
     """Return checkpoint statuses derived from current repo evidence."""
@@ -487,6 +538,33 @@ def summarize_roadmap_status(
                 str(generated_history_recovery_comparison_evidence_path),
             ]
         )
+    resolved_hosted_transfer_comparison_path = _resolve_from_config_root(
+        experiment_registry_path, hosted_transfer_comparison_evidence_path
+    )
+    hosted_transfer_comparison = _load_optional_json(
+        resolved_hosted_transfer_comparison_path
+    )
+    hosted_transfer_comparison_recorded = _hosted_transfer_comparison_recorded(
+        hosted_transfer_comparison
+    )
+    hosted_transfer_evidence = [
+        f"experiment_status={_experiment_status(experiments, 'hosted_bird_interact_transfer')}",
+        "external target split manifests are pending records",
+    ]
+    if hosted_transfer_comparison_recorded:
+        hosted_transfer_evidence.extend(
+            [
+                "OpenRouter anthropic/claude-sonnet-4.6 same-protocol hosted comparator",
+                "raw Qwen same-row local baseline",
+                "eval.compare_hosted_baseline same-row hosted comparison",
+                str(hosted_transfer_comparison_evidence_path),
+            ]
+        )
+    hosted_transfer_open_items = (
+        []
+        if hosted_transfer_comparison_recorded
+        else ["hosted transfer needs an explicit target protocol and same-row hosted run"]
+    )
 
     entries = [
         _entry(
@@ -582,14 +660,9 @@ def summarize_roadmap_status(
         ),
         _entry(
             9,
-            status="pending",
-            evidence=[
-                f"experiment_status={_experiment_status(experiments, 'hosted_bird_interact_transfer')}",
-                "external target split manifests are pending records",
-            ],
-            open_items=[
-                "hosted transfer needs an explicit target protocol and same-row hosted run"
-            ],
+            status="complete" if hosted_transfer_comparison_recorded else "pending",
+            evidence=hosted_transfer_evidence,
+            open_items=hosted_transfer_open_items,
         ),
     ]
     return {

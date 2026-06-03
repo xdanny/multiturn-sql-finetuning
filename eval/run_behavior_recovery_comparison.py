@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from pathlib import Path
 
 from openai import OpenAI
@@ -15,12 +16,11 @@ from eval.compare_rollout_history import compare_rollout_manifest_files
 from eval.local_generation import local_adapter_generate_fn
 from eval.result_manifest import build_result_manifest, write_result_manifest
 from eval.rollout_eval import (
+    GenerateFn,
     evaluate_rollout_records,
     load_rollout_prepared_records,
 )
-from eval.run_eval import generate_sql, summarize_eval_metrics, write_results
-
-GenerateFn = Callable[[list[dict[str, str]]], tuple[str, float]]
+from eval.run_eval import generate_sql_with_usage, summarize_eval_metrics, write_results
 
 
 def _endpoint_generate_fn(
@@ -33,8 +33,8 @@ def _endpoint_generate_fn(
 ) -> GenerateFn:
     client = OpenAI(base_url=endpoint, api_key=api_key)
 
-    def generate(messages: list[dict[str, str]]) -> tuple[str, float]:
-        return generate_sql(
+    def generate(messages: list[dict[str, str]]):
+        return generate_sql_with_usage(
             client,
             model_name=model_name,
             messages=messages,
@@ -55,6 +55,8 @@ def _write_rollout_eval(
     database_root: Path | None,
     generate_fn: GenerateFn,
     command: Sequence[str],
+    prompt_token_cost_usd_per_1k: float = 0.0,
+    completion_token_cost_usd_per_1k: float = 0.0,
 ) -> None:
     records = load_rollout_prepared_records(input_path)
     results = evaluate_rollout_records(
@@ -62,11 +64,17 @@ def _write_rollout_eval(
         generate_fn=generate_fn,
         model_name=model_name,
         database_root=database_root,
+        prompt_token_cost_usd_per_1k=prompt_token_cost_usd_per_1k,
+        completion_token_cost_usd_per_1k=completion_token_cost_usd_per_1k,
     )
     written = write_results(results, output_path)
     metrics = summarize_eval_metrics(results)
     metrics["history_policy"] = "model_generated_sql_rollout"
     metrics["rollout_dialog_count"] = len(records)
+    metrics["token_cost_rates_usd_per_1k"] = {
+        "prompt": prompt_token_cost_usd_per_1k,
+        "completion": completion_token_cost_usd_per_1k,
+    }
     evaluation_modes = metrics.get("evaluation_modes", {})
     evaluation_mode = (
         next(iter(evaluation_modes))
@@ -120,6 +128,8 @@ def run_behavior_recovery_comparison(
     endpoint: str = "offline",
     limit_dialogs: int | None = None,
     command: Sequence[str] | None = None,
+    prompt_token_cost_usd_per_1k: float = 0.0,
+    completion_token_cost_usd_per_1k: float = 0.0,
 ) -> dict:
     """Write rollout, teacher-forced, and comparison manifests for one recovery run."""
 
@@ -146,6 +156,8 @@ def run_behavior_recovery_comparison(
         database_root=database_root,
         generate_fn=generate_fn,
         command=command,
+        prompt_token_cost_usd_per_1k=prompt_token_cost_usd_per_1k,
+        completion_token_cost_usd_per_1k=completion_token_cost_usd_per_1k,
     )
     run_behavior_recovery_teacher_forced(
         input_path=input_for_run,
@@ -170,7 +182,7 @@ def main() -> int:
     parser.add_argument("--model-name", required=True)
     parser.add_argument("--result-model-name", default=None)
     parser.add_argument("--endpoint", default="http://localhost:8000/v1")
-    parser.add_argument("--api-key", default="EMPTY")
+    parser.add_argument("--api-key", default=os.environ.get("OPENAI_API_KEY", "EMPTY"))
     parser.add_argument("--temperature", type=float, default=0.0)
     parser.add_argument("--max-tokens", type=int, default=512)
     parser.add_argument("--database-root", type=Path, default=None)
@@ -178,6 +190,8 @@ def main() -> int:
     parser.add_argument("--adapter-path", type=Path, default=None)
     parser.add_argument("--max-memory-gb", type=int, default=30)
     parser.add_argument("--limit-dialogs", type=int, default=None)
+    parser.add_argument("--prompt-token-cost-usd-per-1k", type=float, default=0.0)
+    parser.add_argument("--completion-token-cost-usd-per-1k", type=float, default=0.0)
     args = parser.parse_args()
     if args.backend == "local":
         generate_fn = local_adapter_generate_fn(
@@ -206,6 +220,8 @@ def main() -> int:
         endpoint=endpoint,
         limit_dialogs=args.limit_dialogs,
         generate_fn=generate_fn,
+        prompt_token_cost_usd_per_1k=args.prompt_token_cost_usd_per_1k,
+        completion_token_cost_usd_per_1k=args.completion_token_cost_usd_per_1k,
         command=sys.argv,
     )
     metrics = compared["metrics"]

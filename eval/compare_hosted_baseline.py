@@ -23,7 +23,12 @@ HOSTED_LATENCY_KEYS = (
     "p50_latency_ms",
     "latency_ms",
 )
-HOSTED_COST_KEYS = ("total_cost_usd", "estimated_cost_usd", "cost_usd")
+HOSTED_COST_KEYS = (
+    "total_cost_usd",
+    "total_estimated_generation_cost_usd",
+    "estimated_cost_usd",
+    "cost_usd",
+)
 ORACLE_MARKERS = (
     "Oracle SQL planning hints",
     "SQL planning hints:",
