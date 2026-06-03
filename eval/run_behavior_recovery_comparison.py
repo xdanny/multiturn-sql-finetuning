@@ -14,13 +14,12 @@ from openai import OpenAI
 from eval.behavior_recovery_teacher_forced import run_behavior_recovery_teacher_forced
 from eval.compare_rollout_history import compare_rollout_manifest_files
 from eval.local_generation import local_adapter_generate_fn
-from eval.result_manifest import build_result_manifest, write_result_manifest
 from eval.rollout_eval import (
     GenerateFn,
-    evaluate_rollout_records,
     load_rollout_prepared_records,
+    write_rollout_eval_artifacts,
 )
-from eval.run_eval import generate_sql_with_usage, summarize_eval_metrics, write_results
+from eval.run_eval import generate_sql_with_usage
 
 
 def _endpoint_generate_fn(
@@ -59,44 +58,21 @@ def _write_rollout_eval(
     completion_token_cost_usd_per_1k: float = 0.0,
 ) -> None:
     records = load_rollout_prepared_records(input_path)
-    results = evaluate_rollout_records(
-        records,
-        generate_fn=generate_fn,
+    write_rollout_eval_artifacts(
+        records=records,
+        input_path=input_path,
+        output_path=output_path,
+        manifest_output=manifest_output,
         model_name=model_name,
+        endpoint=endpoint,
         database_root=database_root,
+        generate_fn=generate_fn,
+        oracle_allowed=False,
+        prompt_variant=None,
+        command=list(command),
         prompt_token_cost_usd_per_1k=prompt_token_cost_usd_per_1k,
         completion_token_cost_usd_per_1k=completion_token_cost_usd_per_1k,
     )
-    written = write_results(results, output_path)
-    metrics = summarize_eval_metrics(results)
-    metrics["history_policy"] = "model_generated_sql_rollout"
-    metrics["rollout_dialog_count"] = len(records)
-    metrics["token_cost_rates_usd_per_1k"] = {
-        "prompt": prompt_token_cost_usd_per_1k,
-        "completion": completion_token_cost_usd_per_1k,
-    }
-    evaluation_modes = metrics.get("evaluation_modes", {})
-    evaluation_mode = (
-        next(iter(evaluation_modes))
-        if len(evaluation_modes) == 1
-        else ",".join(sorted(evaluation_modes)) or "unknown"
-    )
-    manifest = build_result_manifest(
-        run_id=output_path.stem,
-        benchmark="prepared_rollout",
-        input_path=input_path,
-        output_path=output_path,
-        model_name=model_name,
-        endpoint=endpoint,
-        evaluation_mode=evaluation_mode,
-        oracle_allowed=False,
-        prompt_variant=None,
-        database_root=database_root,
-        command=list(command),
-        row_count=written,
-        metrics=metrics,
-    )
-    write_result_manifest(manifest, manifest_output)
 
 
 def _effective_input_path(

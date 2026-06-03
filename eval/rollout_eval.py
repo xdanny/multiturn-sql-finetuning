@@ -216,6 +216,65 @@ def evaluate_rollout_records(
     return results
 
 
+def write_rollout_eval_artifacts(
+    *,
+    records: list[dict[str, Any]],
+    input_path: Path,
+    output_path: Path,
+    manifest_output: Path,
+    model_name: str,
+    endpoint: str,
+    database_root: Path | None,
+    generate_fn: GenerateFn,
+    oracle_allowed: bool,
+    prompt_variant: str | None,
+    command: Sequence[str],
+    prompt_token_cost_usd_per_1k: float = 0.0,
+    completion_token_cost_usd_per_1k: float = 0.0,
+) -> tuple[int, dict[str, Any]]:
+    """Evaluate rollout records, write rows and manifest, and return metrics."""
+
+    results = evaluate_rollout_records(
+        records,
+        generate_fn=generate_fn,
+        model_name=model_name,
+        database_root=database_root,
+        prompt_token_cost_usd_per_1k=prompt_token_cost_usd_per_1k,
+        completion_token_cost_usd_per_1k=completion_token_cost_usd_per_1k,
+    )
+    written = write_results(results, output_path)
+    metrics = summarize_eval_metrics(results)
+    metrics["history_policy"] = MODEL_GENERATED_SQL_ROLLOUT
+    metrics["rollout_dialog_count"] = len(records)
+    metrics["token_cost_rates_usd_per_1k"] = {
+        "prompt": prompt_token_cost_usd_per_1k,
+        "completion": completion_token_cost_usd_per_1k,
+    }
+    evaluation_modes = metrics.get("evaluation_modes", {})
+    evaluation_mode = (
+        next(iter(evaluation_modes))
+        if len(evaluation_modes) == 1
+        else ",".join(sorted(evaluation_modes)) or "unknown"
+    )
+    manifest = build_result_manifest(
+        run_id=output_path.stem,
+        benchmark="prepared_rollout",
+        input_path=input_path,
+        output_path=output_path,
+        model_name=model_name,
+        endpoint=endpoint,
+        evaluation_mode=evaluation_mode,
+        oracle_allowed=oracle_allowed,
+        prompt_variant=prompt_variant,
+        database_root=database_root,
+        command=list(command),
+        row_count=written,
+        metrics=metrics,
+    )
+    write_result_manifest(manifest, manifest_output)
+    return written, metrics
+
+
 def run_rollout_eval(
     *,
     endpoint: str,
@@ -252,46 +311,23 @@ def run_rollout_eval(
             max_tokens=max_tokens,
         )
 
-    results = evaluate_rollout_records(
-        records,
-        generate_fn=endpoint_generate,
+    if manifest_output is None:
+        manifest_output = output.with_suffix(".manifest.json")
+    written, metrics = write_rollout_eval_artifacts(
+        records=records,
+        input_path=input_path,
+        output_path=output,
+        manifest_output=manifest_output,
         model_name=model_name,
+        endpoint=endpoint,
         database_root=database_root,
+        generate_fn=endpoint_generate,
+        oracle_allowed=allow_oracle_plan,
+        prompt_variant=prompt_variant,
+        command=list(command or sys.argv),
         prompt_token_cost_usd_per_1k=prompt_token_cost_usd_per_1k,
         completion_token_cost_usd_per_1k=completion_token_cost_usd_per_1k,
     )
-    written = write_results(results, output)
-    metrics = summarize_eval_metrics(results)
-    metrics["history_policy"] = MODEL_GENERATED_SQL_ROLLOUT
-    metrics["rollout_dialog_count"] = len(records)
-    metrics["token_cost_rates_usd_per_1k"] = {
-        "prompt": prompt_token_cost_usd_per_1k,
-        "completion": completion_token_cost_usd_per_1k,
-    }
-    if manifest_output is None:
-        manifest_output = output.with_suffix(".manifest.json")
-    evaluation_modes = metrics.get("evaluation_modes", {})
-    evaluation_mode = (
-        next(iter(evaluation_modes))
-        if len(evaluation_modes) == 1
-        else ",".join(sorted(evaluation_modes)) or "unknown"
-    )
-    manifest = build_result_manifest(
-        run_id=output.stem,
-        benchmark="prepared_rollout",
-        input_path=input_path,
-        output_path=output,
-        model_name=model_name,
-        endpoint=endpoint,
-        evaluation_mode=evaluation_mode,
-        oracle_allowed=allow_oracle_plan,
-        prompt_variant=prompt_variant,
-        database_root=database_root,
-        command=list(command or sys.argv),
-        row_count=written,
-        metrics=metrics,
-    )
-    write_result_manifest(manifest, manifest_output)
     print(f"Wrote {written} rollout rows to {output}")
     print(f"Wrote rollout result manifest to {manifest_output}")
     print(f"Mean rollout execution score: {metrics.get('execution_accuracy', 0.0):.3f}")
