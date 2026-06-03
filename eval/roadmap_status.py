@@ -36,6 +36,9 @@ DEFAULT_METRIC_DSL_COMPARISON_EVIDENCE = Path(
 DEFAULT_GENERATED_HISTORY_RECOVERY_READINESS_EVIDENCE = Path(
     "docs/training_runs/generated_history_recovery_readiness_20260602.json"
 )
+DEFAULT_GENERATED_HISTORY_RECOVERY_COMPARISON_EVIDENCE = Path(
+    "docs/training_runs/generated_history_recovery_clean_holdout_comparison_20260603.json"
+)
 METRIC_DSL_MIN_COMPARABLE_ROWS = 24
 
 
@@ -270,12 +273,39 @@ def _generated_history_recovery_readiness_recorded(
 
 def _generated_history_recovery_open_items(
     evidence: Mapping[str, Any] | None,
+    comparison_evidence: Mapping[str, Any] | None,
 ) -> list[str]:
+    if _generated_history_recovery_comparison_recorded(comparison_evidence):
+        return []
     items = []
     if _generated_history_recovery_readiness_recorded(evidence):
         items.extend(str(blocker) for blocker in (evidence.get("readiness_blockers") or {}))
     items.append("multi-dialog generated-history recovery win is still missing")
     return items
+
+
+def _generated_history_recovery_comparison_recorded(
+    evidence: Mapping[str, Any] | None,
+) -> bool:
+    if not evidence:
+        return False
+    if evidence.get("artifact_type") != "generated_history_recovery_clean_holdout_comparison_summary":
+        return False
+    comparable_row_count = int(evidence.get("comparable_row_count") or 0)
+    evaluated_dialog_count = int(evidence.get("evaluated_dialog_count") or 0)
+    if comparable_row_count <= 0 or evaluated_dialog_count <= 1:
+        return False
+    split_roles = evidence.get("split_roles") or {}
+    if int(split_roles.get("clean_local_holdout") or 0) != comparable_row_count:
+        return False
+    value_delta = float(evidence.get("behavior_recovery_value_delta_vs_direct_sql") or 0.0)
+    return (
+        value_delta > 0.0
+        and evidence.get("oracle_policy") == "non_oracle_generation"
+        and evidence.get("history_policy") == "model_generated_sql_rollout"
+        and evidence.get("reference_sql_visible_to_model_prompt") is False
+        and evidence.get("scorer_labels_visible_to_model_prompt") is False
+    )
 
 
 def summarize_roadmap_status(
@@ -294,6 +324,9 @@ def summarize_roadmap_status(
     metric_dsl_comparison_evidence_path: Path = DEFAULT_METRIC_DSL_COMPARISON_EVIDENCE,
     generated_history_recovery_readiness_evidence_path: Path = (
         DEFAULT_GENERATED_HISTORY_RECOVERY_READINESS_EVIDENCE
+    ),
+    generated_history_recovery_comparison_evidence_path: Path = (
+        DEFAULT_GENERATED_HISTORY_RECOVERY_COMPARISON_EVIDENCE
     ),
 ) -> dict[str, Any]:
     """Return checkpoint statuses derived from current repo evidence."""
@@ -425,6 +458,17 @@ def summarize_roadmap_status(
             generated_history_recovery_readiness
         )
     )
+    resolved_generated_history_recovery_comparison_path = _resolve_from_config_root(
+        experiment_registry_path, generated_history_recovery_comparison_evidence_path
+    )
+    generated_history_recovery_comparison = _load_optional_json(
+        resolved_generated_history_recovery_comparison_path
+    )
+    generated_history_recovery_comparison_recorded = (
+        _generated_history_recovery_comparison_recorded(
+            generated_history_recovery_comparison
+        )
+    )
     generated_history_recovery_evidence = [
         f"experiment_status={_experiment_status(experiments, 'generated_history_recovery_vs_direct')}",
         "rollout evaluators and one-row recovery diagnostics exist",
@@ -434,6 +478,13 @@ def summarize_roadmap_status(
             [
                 "data.generated_history_recovery_readiness",
                 str(generated_history_recovery_readiness_evidence_path),
+            ]
+        )
+    if generated_history_recovery_comparison_recorded:
+        generated_history_recovery_evidence.extend(
+            [
+                "eval.run_behavior_recovery_comparison clean-holdout generated-history comparison",
+                str(generated_history_recovery_comparison_evidence_path),
             ]
         )
 
@@ -518,10 +569,15 @@ def summarize_roadmap_status(
         ),
         _entry(
             8,
-            status="in_progress",
+            status=(
+                "complete"
+                if generated_history_recovery_comparison_recorded
+                else "in_progress"
+            ),
             evidence=generated_history_recovery_evidence,
             open_items=_generated_history_recovery_open_items(
-                generated_history_recovery_readiness
+                generated_history_recovery_readiness,
+                generated_history_recovery_comparison,
             ),
         ),
         _entry(
@@ -531,7 +587,9 @@ def summarize_roadmap_status(
                 f"experiment_status={_experiment_status(experiments, 'hosted_bird_interact_transfer')}",
                 "external target split manifests are pending records",
             ],
-            open_items=["hosted transfer waits for a local clean-holdout winner"],
+            open_items=[
+                "hosted transfer needs an explicit target protocol and same-row hosted run"
+            ],
         ),
     ]
     return {

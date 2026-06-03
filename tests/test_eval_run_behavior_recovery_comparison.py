@@ -59,3 +59,29 @@ def test_run_behavior_recovery_comparison_writes_rollout_teacher_and_comparison(
     )
     assert compared["metrics"]["rollout_value_delta_vs_teacher_forced"] == 0.0
     assert compared["metrics"]["teacher_forced_comparable_row_count"] == 1
+
+
+def test_run_behavior_recovery_comparison_can_limit_dialogs(tmp_path) -> None:
+    input_path = tmp_path / "rollout_inputs.jsonl"
+    output_dir = tmp_path / "results" / "rollout"
+    first = _rollout_input()
+    second = _rollout_input()
+    second["id"] = "other_dialog"
+    second["dialog_id"] = "other_dialog"
+    _write_jsonl(input_path, [first, second])
+
+    compared = run_behavior_recovery_comparison(
+        input_path=input_path,
+        output_dir=output_dir,
+        run_id="recovery-limit",
+        model_name="local-9b",
+        generate_fn=lambda _messages: ("SELECT fixed;", 5.0),
+        limit_dialogs=1,
+        command=["python", "-m", "eval.run_behavior_recovery_comparison"],
+    )
+
+    limited_input = output_dir / "recovery-limit.limited_1_dialogs.input.jsonl"
+    assert limited_input.exists()
+    assert limited_input.read_text().count("\n") == 1
+    assert compared["input_path"] == str(limited_input)
+    assert compared["row_count"] == 1
