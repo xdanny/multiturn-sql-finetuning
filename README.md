@@ -27,7 +27,7 @@ bounded hosted comparison. It is not yet a BIRD-Interact or LiveSQLBench claim.
 | --- | ---: | ---: | ---: | --- |
 | Raw Qwen, clean holdout | 680 | 0.218 | 0.218 | direct-SQL base control |
 | Direct-SQL LoRA, clean holdout | 680 | 0.349 | 0.349 | full local direct-SQL control improved |
-| Structured-brief LoRA, clean holdout | 680 | 0.576 | 0.541 | best clean local method so far |
+| Structured-brief LoRA, clean holdout | 680 | 0.576 | 0.541 | strongest clean held-out SFT result listed here |
 | Raw Qwen, generated-history slice | 43 | 0.558 | 0.302 | CP9 local base control |
 | Recovery LoRA, same generated-history slice | 43 | 0.558 | 0.302 | tied raw Qwen; no transfer win |
 | Claude Sonnet 4.6 through OpenRouter, same slice | 43 | 0.674 | 0.395 | current hosted target gap |
@@ -35,8 +35,9 @@ bounded hosted comparison. It is not yet a BIRD-Interact or LiveSQLBench claim.
 What we learned:
 
 - Direct SQL fine-tuning helped, but did not solve multi-turn SQL.
-- Structured query briefs produced the strongest clean local gain, at the cost
-  of longer outputs and lower syntax rate than direct SQL.
+- Structured query briefs produced the strongest clean held-out SFT result in
+  the top-line table, at the cost of longer outputs and lower syntax rate than
+  direct SQL.
 - Semantic value retrieval has a narrow clean-holdout win, but it still needs a
   larger and simpler validation story.
 - Metric DSL failed its clean generated-output comparison. That is recorded as
