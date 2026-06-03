@@ -232,21 +232,6 @@ def test_compare_metric_dsl_direct_sql_requires_direct_execution_scores() -> Non
         )
 
 
-def test_compare_metric_dsl_direct_sql_rejects_oracle_messages_in_direct_rows() -> None:
-    direct_rows = _direct_rows()
-    direct_rows[0]["messages"] = [
-        {"role": "user", "content": "SQL planning hints:\nRelevant tables: orders"}
-    ]
-
-    with pytest.raises(ValueError, match="oracle"):
-        compare_metric_dsl_direct_sql_manifests(
-            metric_dsl_manifest=_metric_manifest(),
-            direct_sql_manifest=_direct_manifest(),
-            metric_dsl_rows=_metric_rows(),
-            direct_sql_rows=direct_rows,
-        )
-
-
 def test_compare_metric_dsl_direct_sql_rejects_row_identity_mismatch() -> None:
     direct_rows = _direct_rows()
     direct_rows[1]["reference_sql"] = "SELECT AVG(amount) FROM orders;"

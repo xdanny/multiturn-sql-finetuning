@@ -71,13 +71,13 @@ def _row(
             {"role": "user", "content": user_prompt},
         ],
         "semantic_model": fixture["semantic_model"],
-        "semantic_model_source": "synthetic_non_oracle_fixture",
+        "semantic_model_source": "synthetic_prompt_visible_fixture",
         "reference_sql": fixture["reference_sql"],
         "gold_dsl": gold_dsl,
         "database_id": fixture["schema_id"],
         "reference_sql_visible_to_model": False,
         "scoring_fields_visible_to_model": False,
-        "oracle_policy": "non_oracle_prompt_with_held_out_scorer_fields",
+        "leakage_policy": "prompt_with_held_out_scorer_fields",
         "label_source": fixture["label_source"],
         "comparison_contract": "same_fixture_metric_dsl_vs_direct_sql_predictions",
     }
@@ -127,9 +127,9 @@ def summarize_metric_dsl_prediction_inputs(
         "direct_sql_prediction_input_count": len(direct_rows),
         "fixture_ids": [row["fixture_id"] for row in metric_rows],
         "failure_mode_counts": dict(sorted(failure_modes.items())),
-        "oracle_policy": "non_oracle_prompt_with_held_out_scorer_fields",
+        "leakage_policy": "prompt_with_held_out_scorer_fields",
         "comparison_contract": "same_fixture_metric_dsl_vs_direct_sql_predictions",
-        "evaluation_gate": (
+        "evaluation_command": (
             "eval.run_metric_dsl_comparison after generated predictions are added "
             "to these same row identities"
         ),
@@ -175,8 +175,8 @@ def write_metric_dsl_prediction_input_artifacts(
         "direct_output_sha256": sha256_file(direct_output_path),
         "summary_path": str(summary_path),
         "summary_sha256": sha256_file(summary_path),
-        "oracle_policy": "non_oracle_prompt_with_held_out_scorer_fields",
-        "evaluation_gate": "eval.run_metric_dsl_comparison",
+        "leakage_policy": "prompt_with_held_out_scorer_fields",
+        "evaluation_command": "eval.run_metric_dsl_comparison",
         "command": command or sys.argv,
     }
     _write_json(manifest_path, manifest)

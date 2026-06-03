@@ -76,10 +76,6 @@ def evaluate_teacher_forced_records(
                 "history_policy": GOLD_SQL_TEACHER_FORCED,
                 "original_history_policy": record.get("history_policy"),
                 "evaluation_mode": record.get("evaluation_mode") or "non_oracle_generation",
-                "uses_oracle_planning_hints": bool(record.get("uses_oracle_planning_hints")),
-                "semantic_context_pruned_by_oracle_labels": bool(
-                    record.get("semantic_context_pruned_by_oracle_labels")
-                ),
                 "model_name": model_name,
                 "raw_generation": reference_sql,
                 "generated_sql": reference_sql,

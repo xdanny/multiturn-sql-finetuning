@@ -3,7 +3,7 @@
   "behavior_recovery_row_count": 1,
   "comparison_contract": "same_fixture_behavior_recovery_vs_direct_sql_control",
   "direct_sql_control_row_count": 1,
-  "evaluation_gate": "generated_history_rollout",
+  "evaluation_command": "generated_history_rollout",
   "failure_mode_counts": {
     "entity_resolution": 1,
     "recovery": 1,
@@ -12,6 +12,6 @@
   "fixture_ids": [
     "recovery_empty_result"
   ],
-  "oracle_policy": "synthetic_curated_label",
+  "leakage_policy": "synthetic_curated_label",
   "schema_version": 1
 }

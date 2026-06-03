@@ -24,13 +24,13 @@
     "world_1": 12,
     "wta_1": 7
   },
-  "evaluation_gate": "eval.run_semantic_value_retrieval_comparison",
+  "evaluation_command": "eval.run_semantic_value_retrieval_comparison",
   "leakage_boundary": "no reference SQL, gold plans, expected rows, assistant SQL, or future user turns are used for retrieval matching",
   "matched_row_count": 80,
   "matched_turn_count": 247,
   "matched_value_count": 1681,
   "max_matches_per_turn": 12,
-  "oracle_policy": "non_oracle_database_value_index_matched_to_user_text_only",
+  "leakage_policy": "non_oracle_database_value_index_matched_to_user_text_only",
   "row_count": 100,
   "schema_version": 1
 }

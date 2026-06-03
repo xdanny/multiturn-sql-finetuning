@@ -148,7 +148,6 @@ def test_compare_rollout_manifests_rejects_row_count_mismatch() -> None:
 def test_compare_rollout_manifests_rejects_oracle_rollout() -> None:
     rollout = _rollout_manifest()
     rollout["oracle_allowed"] = True
-    rollout["evaluation_mode"] = "oracle_planner_diagnostic"
 
     with pytest.raises(ValueError, match="non-oracle"):
         compare_rollout_manifests(
@@ -160,7 +159,6 @@ def test_compare_rollout_manifests_rejects_oracle_rollout() -> None:
 def test_compare_rollout_manifests_rejects_oracle_teacher_forced_manifest() -> None:
     teacher = _teacher_manifest()
     teacher["oracle_allowed"] = True
-    teacher["evaluation_mode"] = "oracle_planner_diagnostic"
 
     with pytest.raises(ValueError, match="non-oracle"):
         compare_rollout_manifests(

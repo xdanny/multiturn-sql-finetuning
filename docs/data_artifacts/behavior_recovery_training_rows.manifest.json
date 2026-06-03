@@ -5,13 +5,13 @@
     "/home/dan/docs/multiturn-sql-finetuning/data/behavior_recovery_training_rows.py"
   ],
   "control_output_path": "docs/data_artifacts/behavior_recovery_direct_sql_training_rows.jsonl",
-  "control_output_sha256": "4a4a87c6fda10081317f35505995d423b2e64ad99026bae6b80dd40e1edcfc94",
+  "control_output_sha256": "1de50f4515daab10449610d4aba356a7c73c8d4f62729a27b7f0b87b92744b04",
   "direct_sql_control_row_count": 1,
-  "evaluation_gate": "generated_history_rollout",
-  "oracle_policy": "synthetic_curated_label",
+  "evaluation_command": "generated_history_rollout",
+  "leakage_policy": "synthetic_curated_label",
   "recovery_output_path": "docs/data_artifacts/behavior_recovery_training_rows.jsonl",
-  "recovery_output_sha256": "4f451254b8761568e88ee3f2dd5973d17ae8be48d056aa895ccb65ab15e66674",
+  "recovery_output_sha256": "728df6f77479260569587f36788317068ed48b6d85261eb52e380a2d95526a1e",
   "schema_version": 1,
   "summary_path": "docs/data_artifacts/behavior_recovery_training_rows_summary.json",
-  "summary_sha256": "b3c88fdcf4dd372dda4e14e4ccd37aacf81e6ae14690b486178d67ec065203ea"
+  "summary_sha256": "5e83a2e889552f2ead8942bb450101b746877721ddf231a61b1155b350e9b2bc"
 }

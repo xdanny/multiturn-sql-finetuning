@@ -1,7 +1,7 @@
 {
   "artifact_type": "value_schema_repair_rollout_inputs",
   "comparison_contract": "same_dialog_value_schema_repair_rollout",
-  "evaluation_gate": "eval.run_behavior_recovery_comparison",
+  "evaluation_command": "eval.run_behavior_recovery_comparison",
   "failure_mode_counts": {
     "entity_resolution": 1,
     "recovery": 1,
@@ -13,7 +13,7 @@
   "history_policy_counts": {
     "seeded_generated_failure_then_value_schema_repair": 1
   },
-  "oracle_policy": "seeded_failure_visible_non_oracle_value_schema_context",
+  "leakage_policy": "seeded_failure_visible_value_schema_context",
   "rollout_input_count": 1,
   "schema_validation_guardrails_visible_to_model": true,
   "schema_version": 1,

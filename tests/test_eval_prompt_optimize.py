@@ -44,7 +44,6 @@ def test_load_prompt_variants_from_json(tmp_path) -> None:
                     "name": "grain",
                     "instruction": "Check grain before aggregating.",
                     "source": "unit",
-                    "requires_planning_hints": True,
                 }
             ]
         )
@@ -53,7 +52,7 @@ def test_load_prompt_variants_from_json(tmp_path) -> None:
     variants = load_prompt_variants(path)
 
     assert variants == [
-        PromptVariant("grain", "Check grain before aggregating.", "unit", True),
+        PromptVariant("grain", "Check grain before aggregating.", "unit"),
     ]
 
 
@@ -80,7 +79,6 @@ def test_write_summary_writes_csv(tmp_path) -> None:
             {
                 "prompt_variant": "baseline",
                 "prompt_variant_source": "static",
-                "prompt_variant_requires_planning_hints": False,
                 "accuracy": 0.5,
                 "syntax_accuracy": 1.0,
                 "mean_latency_ms": 12.0,

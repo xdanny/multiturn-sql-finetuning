@@ -22,9 +22,6 @@ def _record(*, content_suffix: str = "") -> dict:
         "database_id": "store",
         "source": "unit",
         "evaluation_mode": "non_oracle_generation",
-        "uses_oracle_planning_hints": False,
-        "semantic_context_pruned_by_oracle_labels": False,
-        "gold_plans": [{"parseable": True}],
         "messages": [
             {"role": "system", "content": "sql"},
             {"role": "user", "content": f"Show revenue.{content_suffix}"},

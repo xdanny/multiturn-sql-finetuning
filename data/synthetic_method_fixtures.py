@@ -1,4 +1,4 @@
-"""Curated synthetic fixtures for multi-turn SQL method gates.
+"""Curated synthetic fixtures for multi-turn SQL method smoke tests.
 
 These rows are intentionally small and deterministic. They are not benchmark
 results; they are data-engineering fixtures that isolate failure modes the real
@@ -22,7 +22,7 @@ ARTIFACT_TYPE = "synthetic_method_fixture_pack"
 DEFAULT_OUTPUT = Path("docs/data_artifacts/synthetic_method_fixtures.jsonl")
 DEFAULT_SUMMARY_OUTPUT = Path("docs/data_artifacts/synthetic_method_fixtures_summary.json")
 DEFAULT_MANIFEST_OUTPUT = Path("docs/data_artifacts/synthetic_method_fixtures.manifest.json")
-ORACLE_SCORING_FIELDS = (
+SCORER_ONLY_FIELDS = (
     "reference_sql",
     "expected_rows",
     "gold_metric_dsl",
@@ -176,7 +176,7 @@ def _base_fixture(
         "evaluation_checks": evaluation_checks,
         "direct_sql_trap": direct_sql_trap,
         "label_source": "synthetic_curated",
-        "oracle_policy": "non_oracle_inputs_only",
+        "leakage_policy": "prompt_visible_inputs_only",
         "claim_boundary": (
             "Synthetic fixture only: use it to test a failure mode or training "
             "target before making proxy, BIRD-Interact, or hosted-SOTA claims."
@@ -185,14 +185,14 @@ def _base_fixture(
     fixture["prompt_visible_input"] = prompt_visible_fixture_input(fixture)
     fixture["scoring_contract"] = {
         field: fixture[field]
-        for field in ORACLE_SCORING_FIELDS
+        for field in SCORER_ONLY_FIELDS
         if fixture.get(field) is not None
     }
     return fixture
 
 
 def prompt_visible_fixture_input(fixture: dict[str, Any]) -> dict[str, Any]:
-    """Return the model-facing fixture view with scoring/oracle fields removed."""
+    """Return the model-facing fixture view with scorer-only fields removed."""
 
     return {
         "schema_version": fixture["schema_version"],
@@ -204,7 +204,7 @@ def prompt_visible_fixture_input(fixture: dict[str, Any]) -> dict[str, Any]:
         "conversation": fixture["conversation"],
         "semantic_model": fixture["semantic_model"],
         "required_artifacts": fixture["required_artifacts"],
-        "oracle_policy": fixture["oracle_policy"],
+        "leakage_policy": fixture["leakage_policy"],
         "claim_boundary": fixture["claim_boundary"],
     }
 
@@ -255,7 +255,7 @@ def build_synthetic_method_fixtures() -> list[dict[str, Any]]:
             ],
             reference_sql=value_reference,
             failure_modes=["value_normalization", "context_carryover"],
-            training_targets=["planner_first_sql", "semantic_layer"],
+            training_targets=["direct_sql_with_value_context", "semantic_context"],
             required_artifacts=["value_index", "entity_resolution_labels"],
             evaluation_checks={
                 "requires_value_index": True,
@@ -277,7 +277,7 @@ def build_synthetic_method_fixtures() -> list[dict[str, Any]]:
             ],
             reference_sql=entity_reference,
             failure_modes=["entity_resolution", "context_carryover", "grain_change"],
-            training_targets=["planner_first_sql", "semantic_layer"],
+            training_targets=["direct_sql_with_value_context", "semantic_context"],
             required_artifacts=["entity_resolution_labels", "value_index"],
             evaluation_checks={
                 "requires_prior_turn_reference": True,
@@ -301,7 +301,7 @@ def build_synthetic_method_fixtures() -> list[dict[str, Any]]:
             ],
             reference_sql=fanout_reference,
             failure_modes=["grain_fanout", "duplicate_row_policy"],
-            training_targets=["planner_first_sql", "metric_dsl", "semantic_layer"],
+            training_targets=["direct_sql_with_schema_context", "metric_dsl", "semantic_context"],
             required_artifacts=["grain_fanout_fixtures", "semantic_model_manifest"],
             evaluation_checks={
                 "duplicate_row_policy": "dedupe_bridge_rows",
@@ -375,30 +375,30 @@ def build_synthetic_method_fixtures() -> list[dict[str, Any]]:
 
 
 def summarize_synthetic_method_fixtures(fixtures: list[dict[str, Any]]) -> dict[str, Any]:
-    """Summarize fixture coverage by failure mode, target, and artifact gate."""
+    """Summarize fixture coverage by failure mode, target, and artifact type."""
 
     failure_modes: Counter[str] = Counter()
     training_targets: Counter[str] = Counter()
     required_artifacts: Counter[str] = Counter()
     schema_ids: set[str] = set()
-    non_oracle_count = 0
+    prompt_safe_count = 0
     for fixture in fixtures:
         failure_modes.update(fixture["failure_modes"])
         training_targets.update(fixture["training_targets"])
         required_artifacts.update(fixture["required_artifacts"])
         schema_ids.add(str(fixture["schema_id"]))
         visible = prompt_visible_fixture_input(fixture)
-        if fixture["oracle_policy"] == "non_oracle_inputs_only" and set(
-            ORACLE_SCORING_FIELDS
+        if fixture["leakage_policy"] == "prompt_visible_inputs_only" and set(
+            SCORER_ONLY_FIELDS
         ).isdisjoint(visible):
-            non_oracle_count += 1
+            prompt_safe_count += 1
 
     return {
         "schema_version": SCHEMA_VERSION,
         "artifact_type": ARTIFACT_TYPE,
         "fixture_count": len(fixtures),
         "schema_count": len(schema_ids),
-        "non_oracle_fixture_count": non_oracle_count,
+        "prompt_safe_fixture_count": prompt_safe_count,
         "failure_mode_counts": dict(sorted(failure_modes.items())),
         "training_target_counts": dict(sorted(training_targets.items())),
         "required_artifact_counts": dict(sorted(required_artifacts.items())),
@@ -439,7 +439,7 @@ def write_synthetic_method_fixture_artifacts(
         "summary_path": str(summary_path),
         "summary_sha256": sha256_file(summary_path),
         "label_source": "synthetic_curated",
-        "oracle_policy": "non_oracle_inputs_only",
+        "leakage_policy": "prompt_visible_inputs_only",
         "command": command or sys.argv,
     }
     _write_json(manifest_path, manifest)

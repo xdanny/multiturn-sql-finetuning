@@ -315,7 +315,7 @@ def test_run_metric_dsl_eval_keeps_non_oracle_fixture_source_non_oracle(tmp_path
                 "predicted_dsl": "MEASURE(revenue)",
                 "gold_dsl": "MEASURE(revenue)",
                 "semantic_model": SEMANTIC_MODEL,
-                "semantic_model_source": "synthetic_non_oracle_fixture",
+                "semantic_model_source": "synthetic_prompt_visible_fixture",
             }
         ],
     )
@@ -347,7 +347,6 @@ def test_run_metric_dsl_eval_marks_oracle_derived_semantic_model_manifest(tmp_pa
                 "gold_dsl": "MEASURE(revenue)",
                 "semantic_model": SEMANTIC_MODEL,
                 "semantic_model_source": "gold_reference_sql_pruned_semantic_model",
-                "semantic_context_pruned_by_oracle_labels": True,
             }
         ],
     )

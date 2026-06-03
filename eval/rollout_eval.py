@@ -17,15 +17,12 @@ from typing import Any
 
 from openai import OpenAI
 
-from data.plan_contract import ORACLE_PLANNER_DIAGNOSTIC
-from data.prepare import ORACLE_DIAGNOSTIC_WARNING
 from eval.ragas_metrics import extract_sql, score_single_turn
 from eval.result_manifest import build_result_manifest, write_result_manifest
 from eval.run_eval import (
     database_path_for_record,
     generate_sql,
     messages_for_generation,
-    record_uses_oracle_plan,
     summarize_eval_metrics,
     write_results,
 )
@@ -38,7 +35,6 @@ def load_rollout_prepared_records(
     path: Path,
     *,
     limit_dialogs: int | None = None,
-    allow_oracle_plan: bool = False,
 ) -> list[dict[str, Any]]:
     """Load dialog-level prepared records for generated-history rollout."""
 
@@ -50,11 +46,6 @@ def load_rollout_prepared_records(
             if not line.strip():
                 continue
             record = json.loads(line)
-            if record_uses_oracle_plan(record) and not allow_oracle_plan:
-                raise ValueError(
-                    f"{path} contains gold SQL-derived oracle planning hints. "
-                    "Pass --allow-oracle-plan only for diagnostic upper-bound rollout."
-                )
             records.append(record)
     return records
 
@@ -62,8 +53,6 @@ def load_rollout_prepared_records(
 def _assistant_turn_payloads(record: dict[str, Any]) -> list[dict[str, Any]]:
     payloads = []
     turn_index = 0
-    gold_plans = record.get("gold_plans") or record.get("schema_link_labels") or []
-    predicted_plans = record.get("predicted_plans") or []
     schema_link_labels = record.get("schema_link_labels") or []
     for message_index, message in enumerate(record.get("messages", [])):
         if message.get("role") != "assistant":
@@ -73,10 +62,6 @@ def _assistant_turn_payloads(record: dict[str, Any]) -> list[dict[str, Any]]:
                 "message_index": message_index,
                 "turn_index": turn_index,
                 "reference_sql": message.get("content", ""),
-                "gold_plan": gold_plans[turn_index] if turn_index < len(gold_plans) else None,
-                "predicted_plan": predicted_plans[turn_index]
-                if turn_index < len(predicted_plans)
-                else None,
                 "schema_link_labels": schema_link_labels[turn_index]
                 if turn_index < len(schema_link_labels)
                 else None,
@@ -109,14 +94,6 @@ def _rollout_record(
         "history_policy": MODEL_GENERATED_SQL_ROLLOUT,
         "original_history_policy": record.get("history_policy"),
         "evaluation_mode": record.get("evaluation_mode") or "unknown",
-        "planning_label_source": record.get("planning_label_source"),
-        "uses_oracle_planning_hints": bool(record.get("uses_oracle_planning_hints")),
-        "semantic_context_pruned_by_oracle_labels": bool(
-            record.get("semantic_context_pruned_by_oracle_labels")
-        ),
-        "oracle_diagnostic_warning": record.get("oracle_diagnostic_warning"),
-        "gold_plan": turn_payload.get("gold_plan"),
-        "predicted_plan": turn_payload.get("predicted_plan"),
         "schema_link_labels": turn_payload.get("schema_link_labels"),
     }
 
@@ -196,7 +173,6 @@ def run_rollout_eval(
     api_key: str,
     temperature: float,
     max_tokens: int,
-    allow_oracle_plan: bool,
     manifest_output: Path | None = None,
     prompt_variant: str | None = None,
     command: Sequence[str] | None = None,
@@ -205,10 +181,7 @@ def run_rollout_eval(
     records = load_rollout_prepared_records(
         input_path,
         limit_dialogs=limit_dialogs,
-        allow_oracle_plan=allow_oracle_plan,
     )
-    if any(record.get("evaluation_mode") == ORACLE_PLANNER_DIAGNOSTIC for record in records):
-        print(f"WARNING: {ORACLE_DIAGNOSTIC_WARNING}")
 
     def endpoint_generate(messages: list[dict[str, str]]) -> tuple[str, float]:
         return generate_sql(
@@ -245,7 +218,7 @@ def run_rollout_eval(
         model_name=model_name,
         endpoint=endpoint,
         evaluation_mode=evaluation_mode,
-        oracle_allowed=allow_oracle_plan,
+        oracle_allowed=False,
         prompt_variant=prompt_variant,
         database_root=database_root,
         command=list(command or sys.argv),
@@ -272,11 +245,6 @@ def main() -> int:
     parser.add_argument("--max-tokens", type=int, default=512)
     parser.add_argument("--manifest-output", type=Path, default=None)
     parser.add_argument("--prompt-variant", default=None)
-    parser.add_argument(
-        "--allow-oracle-plan",
-        action="store_true",
-        help="Allow prepared inputs containing gold SQL-derived planning hints.",
-    )
     args = parser.parse_args()
     return run_rollout_eval(
         endpoint=args.endpoint,
@@ -288,7 +256,6 @@ def main() -> int:
         api_key=args.api_key,
         temperature=args.temperature,
         max_tokens=args.max_tokens,
-        allow_oracle_plan=args.allow_oracle_plan,
         manifest_output=args.manifest_output,
         prompt_variant=args.prompt_variant,
         command=sys.argv,

@@ -12,7 +12,7 @@
     "value_normalization": 2
   },
   "fixture_count": 5,
-  "non_oracle_fixture_count": 5,
+  "prompt_safe_fixture_count": 5,
   "required_artifact_counts": {
     "entity_resolution_labels": 2,
     "generated_history_trace": 1,
@@ -24,8 +24,10 @@
   "schema_version": 1,
   "training_target_counts": {
     "behavior_recovery": 1,
+    "direct_sql_with_schema_context": 1,
+    "direct_sql_with_value_context": 2,
     "metric_dsl": 2,
-    "planner_first_sql": 3,
-    "semantic_layer": 5
+    "semantic_context": 3,
+    "semantic_layer": 2
   }
 }

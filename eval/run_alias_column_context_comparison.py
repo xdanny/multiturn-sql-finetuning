@@ -51,8 +51,8 @@ def validate_comparison_inputs(
     alias_context_manifest: Path,
     limit: int | None,
 ) -> dict[str, Any]:
-    direct_rows = load_prepared_records(direct_input, limit=limit, allow_oracle_plan=False)
-    alias_rows = load_prepared_records(alias_input, limit=limit, allow_oracle_plan=False)
+    direct_rows = load_prepared_records(direct_input, limit=limit)
+    alias_rows = load_prepared_records(alias_input, limit=limit)
     if not direct_rows or not alias_rows:
         raise ValueError("alias/column comparison requires non-empty prepared inputs")
     _require_single_mode(direct_rows, label="direct SQL")
@@ -143,7 +143,7 @@ def _run_prepared_eval_with_generate_fn(
     prompt_variant: str,
     command: Sequence[str],
 ) -> None:
-    records = load_prepared_records(input_path, limit=limit, allow_oracle_plan=False)
+    records = load_prepared_records(input_path, limit=limit)
     results = []
     for record in records:
         raw_generation, generation_latency_ms = generate_fn(messages_for_generation(record))

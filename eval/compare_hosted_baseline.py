@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 NON_ORACLE_GENERATION = "non_oracle_generation"
-PRODUCTION_MODES = {"non_oracle_generation", "predicted_planner"}
+PRODUCTION_MODES = {NON_ORACLE_GENERATION}
 HOSTED_ENDPOINT_PREFIXES = ("https://", "anthropic:", "google:")
 HOSTED_LATENCY_KEYS = (
     "mean_latency_ms",
@@ -24,10 +24,6 @@ HOSTED_LATENCY_KEYS = (
     "latency_ms",
 )
 HOSTED_COST_KEYS = ("total_cost_usd", "estimated_cost_usd", "cost_usd")
-ORACLE_MARKERS = (
-    "Oracle SQL planning hints",
-    "SQL planning hints:",
-)
 
 
 def _metric(manifest: dict[str, Any], name: str) -> float:
@@ -52,7 +48,7 @@ def _is_hosted_endpoint(endpoint: Any) -> bool:
 
 
 def _validate_non_oracle(manifest: dict[str, Any], *, label: str) -> None:
-    if manifest.get("oracle_allowed") or manifest.get("evaluation_mode") == "oracle_planner_diagnostic":
+    if manifest.get("oracle_allowed"):
         raise ValueError(f"{label} manifest must be non-oracle")
 
 
@@ -78,17 +74,7 @@ def _validate_hosted_manifest(manifest: dict[str, Any]) -> None:
 
 
 def _row_uses_oracle(row: dict[str, Any]) -> bool:
-    if (
-        row.get("uses_oracle_planning_hints")
-        or row.get("semantic_context_pruned_by_oracle_labels")
-        or row.get("semantic_model_oracle_derived")
-    ):
-        return True
-    return any(
-        marker in str(message.get("content", ""))
-        for message in row.get("messages", [])
-        for marker in ORACLE_MARKERS
-    )
+    return bool(row.get("semantic_model_oracle_derived"))
 
 
 def _row_identity(row: dict[str, Any]) -> tuple[str, str, str, str]:

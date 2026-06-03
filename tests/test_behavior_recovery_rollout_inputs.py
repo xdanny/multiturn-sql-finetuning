@@ -15,8 +15,6 @@ def test_behavior_recovery_rollout_inputs_seed_generated_failure_dialog() -> Non
     assert record["id"] == "recovery_empty_result"
     assert record["history_policy"] == "seeded_generated_failure_then_rollout"
     assert record["evaluation_mode"] == "non_oracle_generation"
-    assert record["uses_oracle_planning_hints"] is False
-    assert record["semantic_context_pruned_by_oracle_labels"] is False
     assert record["seeded_failure_turn_index"] == 0
     assert record["messages"][1]["role"] == "user"
     assert record["messages"][2]["role"] == "assistant"
@@ -35,7 +33,7 @@ def test_behavior_recovery_rollout_summary_names_rollout_gate() -> None:
     assert summary["rollout_input_count"] == 1
     assert summary["fixture_ids"] == ["recovery_empty_result"]
     assert summary["history_policy_counts"] == {"seeded_generated_failure_then_rollout": 1}
-    assert "eval.rollout_eval" in summary["evaluation_gate"]
+    assert "eval.rollout_eval" in summary["evaluation_command"]
 
 
 def test_write_behavior_recovery_rollout_input_artifacts(tmp_path) -> None:

@@ -2,16 +2,16 @@
   "artifact_type": "alias_column_validity_rollout_inputs",
   "column_role_constraints_source": "schema_introspection_plus_visible_failure",
   "column_role_constraints_visible_to_model": true,
-  "column_validity_scoring_gate": "eval.alias_column_validity",
+  "column_validity_scoring_command": "eval.alias_column_validity",
   "command": [
     "/home/dan/docs/multiturn-sql-finetuning/data/alias_column_validity_rollout_inputs.py"
   ],
-  "evaluation_gate": "eval.run_behavior_recovery_comparison",
-  "oracle_policy": "seeded_failure_visible_non_oracle_alias_column_context",
+  "evaluation_command": "eval.run_behavior_recovery_comparison",
+  "leakage_policy": "seeded_failure_visible_alias_column_context",
   "output_path": "docs/data_artifacts/alias_column_validity_rollout_inputs.jsonl",
-  "output_sha256": "5280c2decdda6d50ed1743e8b16eec6b68e7a48e12e08998b0bc2ae2fe7d003d",
+  "output_sha256": "c40494debfa931125e12a083b4bb553c9b44a1791924d1cf395ae22d03cc2baa",
   "rollout_input_count": 1,
   "schema_version": 1,
   "summary_path": "docs/data_artifacts/alias_column_validity_rollout_inputs_summary.json",
-  "summary_sha256": "92d61b2b2498e79faf6eb225c6a5c286faff4938008bb5d3b0c094bedcf26db8"
+  "summary_sha256": "fc444bb5447bc582d48027eff5177232f7c8255ac88f119d4e14a871b259cf64"
 }

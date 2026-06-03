@@ -46,7 +46,7 @@ def test_write_behavior_recovery_finetuning_artifacts(tmp_path) -> None:
 
     assert manifest["behavior_recovery_row_count"] == 1
     assert manifest["direct_sql_control_row_count"] == 1
-    assert manifest["evaluation_gate"] == "generated_history_rollout"
+    assert manifest["evaluation_command"] == "generated_history_rollout"
     assert manifest["recovery_output_sha256"]
     assert manifest["control_output_sha256"]
     assert json.loads(summary_output.read_text()) == summary

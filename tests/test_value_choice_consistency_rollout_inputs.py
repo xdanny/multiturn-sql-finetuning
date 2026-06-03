@@ -29,7 +29,7 @@ def test_value_choice_consistency_summary_records_scoring_gate() -> None:
     )
 
     assert summary["rollout_input_count"] == 1
-    assert summary["value_choice_scoring_gate"] == "eval.value_choice_consistency"
+    assert summary["value_choice_scoring_command"] == "eval.value_choice_consistency"
     assert summary["matched_value_choice_source"] == "database_contents_plus_visible_user_text"
 
 

@@ -152,10 +152,6 @@ def add_semantic_value_retrieval_context(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Return one prepared record with retrieval context added to user turns."""
 
-    if record.get("uses_oracle_planning_hints") or record.get(
-        "semantic_context_pruned_by_oracle_labels"
-    ):
-        raise ValueError("semantic value-retrieval inputs must be non-oracle")
     messages = [dict(message) for message in record.get("messages") or []]
     database_id = str(record.get("database_id") or "")
     database_index = value_index_by_database.get(database_id) or []
@@ -231,12 +227,12 @@ def build_semantic_value_retrieval_inputs(
         "database_count": len(database_counts),
         "database_row_counts": dict(sorted(database_counts.items())),
         "max_matches_per_turn": max_matches_per_turn,
-        "oracle_policy": "non_oracle_database_value_index_matched_to_user_text_only",
+        "leakage_policy": "non_oracle_database_value_index_matched_to_user_text_only",
         "leakage_boundary": (
             "no reference SQL, gold plans, expected rows, assistant SQL, or future user turns "
             "are used for retrieval matching"
         ),
-        "evaluation_gate": "eval.run_semantic_value_retrieval_comparison",
+        "evaluation_command": "eval.run_semantic_value_retrieval_comparison",
     }
 
 
@@ -283,9 +279,9 @@ def write_semantic_value_retrieval_input_artifacts(
         "matched_row_count": summary["matched_row_count"],
         "matched_turn_count": summary["matched_turn_count"],
         "matched_value_count": summary["matched_value_count"],
-        "oracle_policy": summary["oracle_policy"],
+        "leakage_policy": summary["leakage_policy"],
         "leakage_boundary": summary["leakage_boundary"],
-        "evaluation_gate": summary["evaluation_gate"],
+        "evaluation_command": summary["evaluation_command"],
         "command": command or sys.argv,
     }
     _write_json(manifest_path, manifest)

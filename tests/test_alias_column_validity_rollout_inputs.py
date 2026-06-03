@@ -28,7 +28,7 @@ def test_alias_column_validity_summary_records_scoring_gate() -> None:
     )
 
     assert summary["rollout_input_count"] == 1
-    assert summary["column_validity_scoring_gate"] == "eval.alias_column_validity"
+    assert summary["column_validity_scoring_command"] == "eval.alias_column_validity"
     assert summary["column_role_constraints_source"] == "schema_introspection_plus_visible_failure"
 
 

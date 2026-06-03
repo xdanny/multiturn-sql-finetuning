@@ -12,29 +12,29 @@ def test_benchmark_protocols_define_claim_boundaries() -> None:
 
     protocol_ids = [row["protocol_id"] for row in protocols]
     assert protocol_ids == [
-        "cosql_dev_100_teacher_forced_proxy",
-        "cosql_generated_history_rollout",
-        "sparc_context_transfer",
-        "synthetic_schema_rich_method_fixture",
-        "bird_interact_same_protocol_transfer",
+        "cosql_proxy_teacher_forced",
+        "generated_history_rollout",
+        "synthetic_method_fixture",
+        "clean_local_holdout",
+        "hosted_sota_row_matched",
     ]
 
     cosql = protocols[0]
     assert cosql["supports_method_ranking"] is True
     assert cosql["supports_hosted_sota_claim"] is False
-    assert "BIRD-Interact transfer" in cosql["blocked_claims"]
+    assert "external benchmark transfer" in cosql["blocked_claims"]
     assert "future turns" in cosql["leakage_boundary"]
 
     synthetic = next(
-        row for row in protocols if row["protocol_id"] == "synthetic_schema_rich_method_fixture"
+        row for row in protocols if row["protocol_id"] == "synthetic_method_fixture"
     )
     assert synthetic["supports_method_ranking"] is False
     assert "real benchmark improvement" in synthetic["blocked_claims"]
 
-    bird = protocols[-1]
-    assert bird["supports_hosted_sota_claim"] is True
-    assert bird["blocked_claims"] == ()
-    assert "hosted result manifest" in bird["required_artifacts"]
+    hosted = protocols[-1]
+    assert hosted["supports_hosted_sota_claim"] is True
+    assert hosted["blocked_claims"] == ()
+    assert "hosted result manifest" in hosted["required_artifacts"]
 
 
 def test_benchmark_protocol_loader_rejects_missing_contract_field(tmp_path) -> None:
@@ -73,4 +73,6 @@ protocols:
 def test_benchmark_protocol_map_is_keyed_by_stable_id() -> None:
     protocols = benchmark_protocol_map(REPO_ROOT / "configs" / "benchmark_protocols.yaml")
 
-    assert protocols["sparc_context_transfer"]["benchmark"] == "SParC context-dependent SQL"
+    assert protocols["clean_local_holdout"]["benchmark"] == (
+        "frozen held-out local multi-turn SQL slice"
+    )

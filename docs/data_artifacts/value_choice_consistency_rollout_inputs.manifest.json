@@ -3,15 +3,15 @@
   "command": [
     "/home/dan/docs/multiturn-sql-finetuning/data/value_choice_consistency_rollout_inputs.py"
   ],
-  "evaluation_gate": "eval.run_behavior_recovery_comparison",
+  "evaluation_command": "eval.run_behavior_recovery_comparison",
+  "leakage_policy": "seeded_failure_visible_value_choice_context",
   "matched_value_choice_source": "database_contents_plus_visible_user_text",
   "matched_value_choices_visible_to_model": true,
-  "oracle_policy": "seeded_failure_visible_non_oracle_value_choice_context",
   "output_path": "docs/data_artifacts/value_choice_consistency_rollout_inputs.jsonl",
-  "output_sha256": "39f53c5d0b2d80cb4af1043ed892281bd7657669e1cc2690ed664463a830db0f",
+  "output_sha256": "d7e80dfe7846de347fa93728ac8c9b6f01aa2f7c89326e68ca2affc53bfa342b",
   "rollout_input_count": 1,
   "schema_version": 1,
   "summary_path": "docs/data_artifacts/value_choice_consistency_rollout_inputs_summary.json",
-  "summary_sha256": "1f26a87c6b0aaa5b1323d4aef196a9c40f32d0e7c9f52c6b39b5759ffc313aca",
-  "value_choice_scoring_gate": "eval.value_choice_consistency"
+  "summary_sha256": "885a353cb97be4cc89be24f89249e81ebf62591d43f9ae1491392969f8e1e47b",
+  "value_choice_scoring_command": "eval.value_choice_consistency"
 }

@@ -4,11 +4,8 @@ import json
 import sqlite3
 from pathlib import Path
 
-import pytest
-
 from data.alias_column_context_inputs import (
     add_alias_column_context,
-    build_alias_column_context_inputs,
     introspect_column_role_context,
     write_alias_column_context_input_artifacts,
 )
@@ -50,9 +47,6 @@ def _prepared_record() -> dict:
         "database_id": "store",
         "source": "unit",
         "evaluation_mode": "non_oracle_generation",
-        "uses_oracle_planning_hints": False,
-        "semantic_context_pruned_by_oracle_labels": False,
-        "gold_plans": [{"parseable": True}],
         "messages": [
             {"role": "system", "content": "sql"},
             {"role": "user", "content": "Show revenue by customer."},
@@ -88,18 +82,6 @@ def test_add_alias_column_context_uses_schema_not_gold_labels(tmp_path) -> None:
     assert summary["column_count"] == 6
 
 
-def test_build_alias_column_context_inputs_rejects_oracle_rows(tmp_path) -> None:
-    _make_database(tmp_path)
-    record = _prepared_record()
-    record["uses_oracle_planning_hints"] = True
-
-    with pytest.raises(ValueError, match="non-oracle"):
-        build_alias_column_context_inputs(
-            prepared_rows=[record],
-            database_root=tmp_path,
-        )
-
-
 def test_write_alias_column_context_input_artifacts(tmp_path) -> None:
     _make_database(tmp_path)
     input_path = tmp_path / "prepared.jsonl"
@@ -120,6 +102,6 @@ def test_write_alias_column_context_input_artifacts(tmp_path) -> None:
     output_rows = [json.loads(line) for line in output_path.read_text().splitlines()]
     summary = json.loads(summary_path.read_text())
     assert output_rows[0]["alias_column_context"]["source"] == "sqlite_schema_introspection"
-    assert summary["oracle_policy"] == "non_oracle_schema_introspection_only"
+    assert summary["leakage_policy"] == "schema_introspection_only"
     assert manifest["output_sha256"] == sha256_file(output_path)
     assert manifest["summary_sha256"] == sha256_file(summary_path)

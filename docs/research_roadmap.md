@@ -1,352 +1,230 @@
 # Research Roadmap
 
-This is the canonical long-term roadmap for the multi-turn SQL fine-tuning
-program. It replaces the old gate-heavy day-to-day direction with smaller,
-row-matched method comparisons.
+This is the canonical roadmap for the repo.
 
-The publishable benchmark claim is simple:
+The end goal is a measured multi-turn SQL claim:
 
-> A local fine-tuned method must beat the right direct-SQL control on clean
-> held-out multi-turn SQL tasks, then compare against hosted baselines under the
-> same protocol.
+> On held-out multi-turn analytical SQL tasks, the best local Qwen fine-tuned
+> method beats raw Qwen and is compared against a hosted SOTA model under the
+> same row-matched protocol.
 
-The current repo is not there yet. It has useful proxy evidence, method
-surfaces, and diagnostic artifacts, but most scored model evidence is still a
-100-turn CoSQL proxy slice. Many method artifacts are intentionally small:
-2 metric-DSL rows, 1 behavior-recovery row, and 5 synthetic fixtures.
-`data/processed/train.jsonl` is empty, so current training evidence mostly comes
-from small prepared files and outputs under `outputs/`.
+The roadmap is data-first. We should not spend more effort on elaborate
+planning abstractions until direct fine-tuning, clean splits, hosted baselines,
+and failure analysis are boring and reproducible.
 
-Supported non-oracle proxy claims are narrow: the base model reaches `0.590`
-value accuracy on the inspected 100-turn CoSQL proxy, the 100-step LoRA reaches
-`0.630`, and the best semantic prompt condition reaches `0.640`. The `0.890`
-schema-pruned result is an oracle diagnostic only because reference SQL-derived
-planning hints enter the run.
+## Current State
 
-## Research Anchors
+The repo has useful proxy evidence, not a final benchmark claim.
 
-These benchmarks and papers define the direction, but this repo should not
-borrow their claims until it runs matching protocols:
+- Raw Qwen 9B on the fixed 100-turn CoSQL proxy slice: `0.590` value accuracy,
+  `0.370` strict accuracy.
+- Direct SQL LoRA, 100 steps: `0.630` value accuracy, `0.530` strict accuracy,
+  `1.000` syntax accuracy.
+- Semantic-context LoRA, 50 steps: `0.640` value accuracy, `0.420` strict
+  accuracy, `1.000` syntax accuracy.
+- Answer-key-pruned diagnostic LoRA, 100 steps: `0.890` value accuracy,
+  `0.820` strict accuracy, `1.000` syntax accuracy. This is diagnostic only
+  because reference-derived context narrowed the task.
 
-- BIRD: https://arxiv.org/abs/2305.03111
-- BIRD-Interact: https://arxiv.org/abs/2510.05318 and
-  https://bird-interact.github.io/
-- LiveSQLBench: https://livesqlbench.ai/
-- Spider 2.0: https://spider2-sql.github.io/
-- CoSQL: https://yale-lily.github.io/cosql
-- SParC: https://arxiv.org/abs/1906.02285
-- ReViSQL clean-data/RLVR direction: https://arxiv.org/abs/2603.20004
+The biggest lesson so far is not that a hand-written planning layer is ready.
+It is that the model often fails to select the right schema objects, values, or
+query shape. The next work should teach and evaluate those skills through data,
+clean prompt-visible context, and benchmarks.
 
-## Checkpoint 0: Freeze The Current State
+## Principles
 
-The first checkpoint is historical cleanup, not new modeling.
+- Multi-turn is different from single-turn SQL because later questions depend
+  on dialog state, changed constraints, prior entities, and generated-history
+  errors.
+- The answer key can be used for scoring, failure analysis, and training-split
+  supervision. It must not be shown to the model during evaluation.
+- Every local-vs-local and local-vs-hosted claim must use the same row IDs,
+  same database files, same scorer, and comparable manifests.
+- Direct SQL is the control. Any semantic, DSL, value, or recovery method must
+  beat the direct-SQL version of the same model on the same rows.
+- Inconclusive or negative results are research evidence. Keep them visible and
+  label them as such.
 
-- Mark CoSQL dev 100 as `proxy_dev_seen`: an inspected, reproducible proxy
-  slice, not a clean benchmark.
-- Inventory current datasets, prepared rows, runs, adapters, results, and claims.
-- Remove checked-in gate ledgers, historical result-manifest snapshots, and
-  generated blog evidence from the active source tree. Keep run-specific outputs
-  under `results/` unless they are only old gate reports.
-- Remove the old ledger/readiness workflow from the main research loop. It
-  should not decide what researchers do each day.
-- Record that the raw local CoSQL data is much larger than the current scored
-  slice: 2,159 train dialogs / 7,343 train turns and 293 dev dialogs /
-  1,007 dev turns.
-- Record that `data/processed/train.jsonl` is empty and should not be treated as
-  evidence of full-scale training.
+## Checkpoint 0: Clean The Repo
 
-The output of this checkpoint should be an inventory file or notebook section
-that names the actual rows, manifests, adapters, outputs, and claims currently
-available.
+Status: in progress.
 
-## Checkpoint 1: Simplify The Research Loop
+Remove the old active process-heavy workflow from code and docs. Keep the useful
+evaluators, scorers, data generators, and result manifests. Keep small artifacts
+only when they define a fixture, data input, or measured run.
 
-Replace the gate-first workflow with four required guardrails:
+Done when:
 
-- split integrity;
-- prompt leakage prevention;
-- row identity matching;
-- run manifests.
+- Active code has no process-heavy cleanup-era entry points.
+- README explains what the repo does and how to reproduce the core run.
+- Old parallel docs are deleted or replaced by this roadmap.
+- Remaining checked-in artifacts are small and explainable.
 
-Everything else should become optional reporting until the empirical base is
-larger. Keep contract tests for leakage and scoring correctness. Stop expanding
-tests that only prove docs/config freshness.
+## Checkpoint 1: Split Integrity
 
-Introduce a compact experiment registry. Each run should name:
+Create durable split manifests before scaling training.
 
-- hypothesis;
-- train split;
-- validation split;
-- test split;
-- model and adapter path;
-- method;
-- scorer;
-- output path.
+Required roles:
 
-This registry should answer "what did we test and why?" before any generated
-status table or runbook checklist tries to rank the method.
+- `train`: rows allowed for supervised fine-tuning.
+- `validation`: rows allowed for method design and failure analysis.
+- `proxy_dev_seen`: historical CoSQL dev 100 continuity slice.
+- `clean_local_holdout`: rows reserved for local benchmark claims.
+- `external_target`: BIRD, BIRD-Interact, LiveSQLBench, Spider 2.0, or similar
+  transfer benchmarks.
 
-## Checkpoint 2: Establish Honest Dataset Roles
+Done when:
 
-Build explicit split manifests for:
+- Each split manifest records source, row IDs, database IDs, dialog IDs, turn
+  counts, hash, and intended role.
+- The 100-turn CoSQL proxy is explicitly marked as seen proxy evidence, not a
+  clean final benchmark.
+- Evaluation commands refuse accidental row mismatches in comparisons.
 
-- CoSQL train and dev;
-- SParC;
-- BIRD mini-dev;
-- synthetic fixtures;
-- future BIRD-Interact or LiveSQLBench tasks.
+## Checkpoint 2: Direct SQL Baselines At Scale
 
-Treat existing CoSQL dev 100 as `proxy_dev_seen`. Create at least one clean
-local holdout slice that is not used for prompt search, method selection,
-training, manual diagnostics, or evidence iteration.
+Rebuild the boring baseline before adding more methods.
 
-Dataset roles should be explicit:
+Compare:
 
-- `train`: allowed for supervised training and label extraction.
-- `validation`: allowed for method development and failure analysis.
-- `proxy_dev_seen`: allowed for continuity with historical evidence, but not for
-  clean benchmark claims.
-- `clean_local_holdout`: reserved for final local method comparisons.
-- `external_target`: BIRD-Interact, LiveSQLBench, Spider 2.0, or similar
-  transfer targets run only after the local loop is stable.
+- raw Qwen;
+- direct SQL LoRA trained on the larger available training split;
+- direct SQL LoRA with different step counts or mixtures only if the data role
+  is unchanged.
 
-For Spider 2.0 and BIRD-style released evaluation data, do not train on gold SQL
-that is intended for evaluation or prompt design. If gold SQL is available only
-for scoring, keep it scorer-side.
+Report:
 
-## Checkpoint 3: Rebuild Baselines At Real Scale
-
-Run direct SQL base and direct SQL LoRA on full available non-oracle training
-data, not 64-row or 128-row samples. Direct SQL is the stable control for every
-structured method.
-
-Report at least:
-
-- per-turn value accuracy;
+- value accuracy;
 - strict accuracy;
+- syntax accuracy;
 - interaction match;
 - generated-history rollout accuracy;
 - latency;
-- cost.
+- run cost when hosted models are used.
 
-The direct-SQL baseline must be boring, durable, and row-matched. Every planner,
-semantic-layer, metric-DSL, and recovery comparison should use the same row IDs,
-scorer, oracle policy, and manifest shape.
+Done when:
 
-## Checkpoint 4: Let Failure Analysis Choose Methods
+- Raw Qwen and best direct-SQL LoRA have row-matched manifests on validation and
+  clean holdout.
+- The best local direct-SQL adapter is selected without looking at holdout
+  results.
 
-Do not add another method arm because the ladder has a slot for it. Classify
-failures on clean validation first, then choose the method whose hypothesis
-matches the observed error concentration.
+## Checkpoint 3: Hosted SOTA Comparator
 
-Use this mapping:
+Use OpenRouter or another hosted endpoint as the SOTA comparator, not as a
+label-smuggling mechanism.
 
-- planner/schema linking: wrong tables, columns, joins, projection shape,
-  aggregation, grouping, or duplicate policy;
-- semantic value grounding: display-to-storage values, aliases, entities, and
-  context-carried values;
-- metric definitions: governed measures, dimensions, filters, grain, and
-  `MEASURE(...)` preservation;
-- recovery: empty result repair, syntax repair, invalid-column repair, and
-  continuation after earlier generated SQL.
+Compare:
 
-Tiny synthetic wins should not be scaled until they also move a real validation
-slice. Synthetic fixtures are useful for isolating failure modes, not for
-declaring a benchmark improvement.
+- raw Qwen baseline;
+- best local Qwen LoRA;
+- hosted SOTA model such as Claude Sonnet through the same prompt-visible
+  inputs.
 
-## Checkpoint 5: Planner First, But Non-Oracle
+Done when:
 
-Train or prompt a planner only on training-split gold labels. Evaluate planner
-F1 on held-out rows before feeding predicted plans into SQL generation.
+- Hosted and local outputs are scored on the same row IDs.
+- Hosted manifests include endpoint/model, latency, and cost fields.
+- The repo can say whether local fine-tuning closes, matches, or fails to close
+  the hosted gap.
 
-Planner outputs should cover:
+## Checkpoint 4: Failure Taxonomy
 
-- tables;
-- columns;
-- join path;
-- query skeleton;
-- projection shape;
-- aggregation and grouping;
-- duplicate-row policy;
-- value and entity slots.
+Let failures decide which method deserves more work.
 
-Then compare predicted-planner SQL against the same-model direct SQL control on
-identical rows. Gold plans remain scorer-side labels. Reference SQL-derived
-planner hints can enter prompts only in runs explicitly named as oracle
-diagnostics.
+Classify misses into:
 
-## Checkpoint 6: Semantic Layer And Value Grounding
+- dialog state: follow-up question misunderstood;
+- schema selection: wrong table, column, join, aggregation, grouping, or
+  duplicate policy;
+- value grounding: display value does not map to storage value;
+- metric semantics: governed measure, dimension, filter, or grain is wrong;
+- execution recovery: invalid SQL, empty result, or later turn degraded by
+  earlier generated SQL.
 
-Replace mechanically generated semantic hints with versioned semantic artifacts:
+Done when:
 
-- entities;
-- dimensions;
-- measures;
-- joins;
-- grain;
-- aliases;
-- value indexes.
+- Failure reports exist for raw Qwen, best direct-SQL LoRA, and hosted SOTA on
+  the same validation rows.
+- Method proposals are tied to the largest remaining failure bucket.
 
-Gold value labels stay scorer-side unless the run is explicitly diagnostic.
-Measure retrieval coverage first, then measure SQL accuracy delta versus direct
-SQL on the same rows.
+## Checkpoint 5: Data Pre-Training For Decomposition
 
-The value index should come from database contents and governed metadata that
-would be available at inference time. Gold SQL-derived labels are allowed for
-supervision, diagnostics, and scoring, but not as production prompt context.
+Replace planner-first code with data that teaches decomposition implicitly and
+measures whether it helps SQL outcomes.
 
-## Checkpoint 7: Metric DSL
+The model does not need to expose a separate planner product. We can train on
+examples whose assistant answer is still SQL, while the prompt and data mixture
+teach useful decomposition:
 
-Expand beyond the current 2-row DSL fixture before training a serious adapter.
-Parse rate and compile rate are prerequisites, not wins.
+- conversation state summaries;
+- schema object selection from prompt-visible schema;
+- value candidates from database-derived indexes;
+- metric definitions from governed semantic artifacts;
+- repair examples that show failed generated SQL and observed rows.
 
-A metric-DSL method can support a benefit claim only when:
+Done when:
 
-- DSL predictions are generated from prompt-visible inputs;
+- Training rows are generated from `train` data or synthetic fixtures with clear
+  provenance.
+- Validation prompts never include future turns, expected rows, or evaluation
+  reference SQL.
+- A decomposed-data adapter beats the direct-SQL adapter on the same validation
+  rows before it is tried on holdout.
+
+## Checkpoint 6: Semantic And Value Context
+
+Scale only context that can exist at inference time:
+
+- database schema introspection;
+- semantic model metadata;
+- value indexes from database contents;
+- aliases and column-role constraints;
+- retrieval summaries derived from visible user text.
+
+Done when:
+
+- Context generation has manifests and leakage boundaries.
+- Context coverage is measured before SQL accuracy is claimed.
+- The context-enhanced adapter or prompt beats direct SQL on row-matched
+  validation.
+
+## Checkpoint 7: Metric DSL Only If It Parses
+
+Metric DSL is still a research arm, not a primary API.
+
+Scale it only if:
+
 - generated DSL parses;
-- generated DSL compiles through the same semantic model;
-- governed `MEASURE(...)` intent is preserved;
-- compiled DSL SQL beats direct SQL on the same metric-heavy held-out tasks.
+- generated DSL compiles to executable SQL;
+- governed `MEASURE(...)` intent survives;
+- compiled SQL beats direct SQL on metric-heavy rows.
 
-If the DSL compiles but loses to direct SQL, the result is still useful: it says
-metric intent was represented but the method did not improve SQL outcomes.
+If it parses but loses, record that as evidence against scaling the arm.
 
 ## Checkpoint 8: Generated-History Recovery
 
-Move recovery evaluation from one synthetic row to multi-dialog rollout. Later
-turns must see generated SQL and observed results, not prior gold SQL.
+Teacher-forced history is not enough. Multi-turn recovery must evaluate later
+turns after earlier turns used generated SQL.
 
-Recovery wins only if a recovery-tuned adapter beats direct SQL under
-generated-history rollout. Teacher-forced history remains diagnostic: it shows
-how much clean previous SQL was hiding failures, but it is not the recovery win
-condition.
+Done when:
 
-The minimum rollout manifest should record:
+- rollout eval runs over multi-dialog slices;
+- recovery rows expose generated SQL and observed results, not future answers;
+- a recovery adapter beats the same direct-SQL adapter under generated-history
+  rollout.
 
-- dialog IDs and turn IDs;
-- generated SQL from prior turns;
-- observed result summaries from prior turns;
-- scorer-visible reference SQL and expected rows;
-- whether each later turn saw generated or teacher-forced history;
-- value-only, strict, syntax, and interaction-level metrics.
+## Checkpoint 9: Publishable Claim
 
-## Checkpoint 9: Hosted And Target Benchmark Transfer
+A publishable claim needs:
 
-Run hosted baselines only after a local method beats direct SQL on a clean local
-holdout. The first real external target should be BIRD-Interact Lite or
-LiveSQLBench, with Spider 2.0 and BIRD-style data used only under their allowed
-protocols.
+- clean local holdout result;
+- raw Qwen baseline;
+- best local fine-tuned model;
+- hosted SOTA comparator;
+- failure taxonomy;
+- negative evidence for methods that did not help;
+- reproduction commands and manifests.
 
-The final claim requires:
-
-- same input rows;
-- same scorer and test cases;
-- same oracle policy;
-- no reference SQL, expected rows, gold plans, gold DSL, repair labels, or
-  future turns in production prompts;
-- hosted and local manifests with model, prompt, latency, and cost metadata;
-- a positive local delta against the hosted baseline under the same protocol.
-
-## Future Repo Interfaces
-
-The reset should converge on these interfaces:
-
-- `docs/research_roadmap.md`: this checkpointed roadmap.
-- `configs/experiments.yaml`: compact registry for experiment hypotheses and
-  run definitions.
-- `configs/datasets.yaml` or `data/splits/*.json`: dataset roles and frozen row
-  IDs.
-- `results/runs/<run_id>/manifest.json`: one standard manifest shape for every
-  model run.
-
-A run manifest should include:
-
-```json
-{
-  "run_id": "YYYYMMDD-method-split-model",
-  "hypothesis_id": "direct_sql_full_cosql",
-  "dataset_role": "clean_local_holdout",
-  "train_split_id": "cosql_train_v1",
-  "validation_split_id": "cosql_val_v1",
-  "test_split_id": "cosql_clean_holdout_v1",
-  "row_ids_sha256": "...",
-  "model": "unsloth/Qwen3.5-9B",
-  "adapter": "outputs/experiments/<run>/final",
-  "method": "direct_sql",
-  "oracle_policy": "non_oracle_generation",
-  "scorer": "value_and_strict_execution_v1",
-  "outputs": {
-    "generations": "results/runs/<run_id>/generations.jsonl",
-    "scores": "results/runs/<run_id>/scores.jsonl"
-  }
-}
-```
-
-## Test Plan
-
-Add tests for durable research guardrails:
-
-- split-integrity tests proving train, validation, proxy, and test row IDs do
-  not overlap;
-- prompt-leakage tests for reference SQL, expected rows, future turns, gold
-  plans, gold DSL, and repair labels;
-- row-matched comparison tests for direct SQL versus planner, semantic, DSL, and
-  recovery methods;
-- scorer tests for value-only accuracy, strict accuracy, ordering, duplicates,
-  empty results, and syntax errors.
-
-Avoid broad generated-file freshness tests unless the generated file itself is a
-stable contract used by code or a public artifact.
-
-## Manual GPU Checkpoints
-
-Use `uv run ...` for Python commands. The exact config names may change as the
-experiment registry lands, but the manual checkpoints should remain:
-
-```bash
-uv run --active --no-sync python -m train.finetune \
-  --config configs/qwen35_9b_5090.yaml \
-  --data data/processed/train_smoke.jsonl \
-  --validate-data-only
-```
-
-```bash
-uv run --active --no-sync python -m train.finetune \
-  --config configs/qwen35_9b_5090.yaml \
-  --data data/processed/train_smoke.jsonl \
-  --output-dir outputs/experiments/direct_sql_smoke \
-  --max-steps 5
-```
-
-```bash
-uv run --active --no-sync python -m train.finetune \
-  --config configs/qwen35_9b_5090.yaml \
-  --data data/processed/train_full_non_oracle.jsonl \
-  --output-dir outputs/experiments/direct_sql_full
-```
-
-```bash
-uv run --active --no-sync python -m eval.run_eval \
-  --model-name <model-or-adapter-name> \
-  --input data/processed/<clean_holdout>.jsonl \
-  --output results/runs/<run_id>/generations.jsonl \
-  --manifest-output results/runs/<run_id>/manifest.json
-```
-
-```bash
-uv run --active --no-sync python -m eval.rollout_eval \
-  --input data/processed/<rollout_holdout>.jsonl \
-  --output results/runs/<run_id>/rollout.jsonl \
-  --manifest-output results/runs/<run_id>/rollout.manifest.json
-```
-
-## Operating Rule
-
-The next research step should be chosen by this question:
-
-> What clean, row-matched comparison would make the current method claim more
-> believable?
-
-If the answer is "another gate" or "another generated status table," the roadmap
-has drifted. If the answer is "a larger non-oracle direct-SQL control, a clean
-holdout, a failure analysis, or a same-row method comparison," it is on track.
+Until then, write the project as an empirical notebook: what we tried, how it
+was measured, what improved, what failed, and what the next clean test is.

@@ -70,15 +70,13 @@ def build_behavior_recovery_rollout_inputs() -> list[dict[str, Any]]:
             "database_id": fixture["schema_id"],
             "history_policy": HISTORY_POLICY,
             "evaluation_mode": "non_oracle_generation",
-            "uses_oracle_planning_hints": False,
-            "semantic_context_pruned_by_oracle_labels": False,
             "seeded_failure_turn_index": 0,
             "seed_failure_sql_visible_to_model": True,
             "repair_reference_sql": repair_reference_sql,
             "repair_reference_sql_visible_to_model": False,
             "failure_modes": fixture["failure_modes"],
             "required_artifacts": fixture["required_artifacts"],
-            "oracle_policy": "seeded_generated_failure_visible_repair_label_held_out",
+            "leakage_policy": "seeded_generated_failure_with_repair_label_held_out",
             "comparison_contract": "same_dialog_rollout_vs_teacher_forced_history",
             "messages": [
                 {"role": "system", "content": SYSTEM_PROMPT},
@@ -105,9 +103,9 @@ def summarize_behavior_recovery_rollout_inputs(rows: list[dict[str, Any]]) -> di
         "failure_mode_counts": dict(
             sorted(Counter(mode for row in rows for mode in row["failure_modes"]).items())
         ),
-        "oracle_policy": "seeded_generated_failure_visible_repair_label_held_out",
+        "leakage_policy": "seeded_generated_failure_with_repair_label_held_out",
         "comparison_contract": "same_dialog_rollout_vs_teacher_forced_history",
-        "evaluation_gate": "eval.rollout_eval then eval.compare_rollout_history",
+        "evaluation_command": "eval.rollout_eval then eval.compare_rollout_history",
     }
 
 
@@ -144,8 +142,8 @@ def write_behavior_recovery_rollout_input_artifacts(
         "output_sha256": sha256_file(output_path),
         "summary_path": str(summary_path),
         "summary_sha256": sha256_file(summary_path),
-        "oracle_policy": "seeded_generated_failure_visible_repair_label_held_out",
-        "evaluation_gate": "eval.rollout_eval then eval.compare_rollout_history",
+        "leakage_policy": "seeded_generated_failure_with_repair_label_held_out",
+        "evaluation_command": "eval.rollout_eval then eval.compare_rollout_history",
         "command": command or sys.argv,
     }
     _write_json(manifest_path, manifest)

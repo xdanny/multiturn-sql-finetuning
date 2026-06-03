@@ -53,8 +53,8 @@ for claims about CoSQL, SParC, or BIRD performance.
 - `metric_dsl_prediction_inputs_summary.json`
 - `metric_dsl_prediction_inputs.manifest.json`
 
-These rows are the paired generation inputs for the first metric-DSL comparison
-gate. The prompt messages contain only schema, conversation, and semantic-model
+These rows are the paired generation inputs for the first metric-DSL comparison.
+The prompt messages contain only schema, conversation, and semantic-model
 context. The scorer fields, including reference SQL and gold DSL, are held out
 from the prompt and carried only so generated outputs can be scored later by
 `eval.run_metric_dsl_comparison`.
@@ -144,7 +144,7 @@ separate from value choice and result matching.
 proxy-slice variant with schema-derived column-role constraints appended to the
 first user turn. The context comes from SQLite schema introspection only:
 allowed columns, primary keys, and foreign-key join keys. It does not use
-reference SQL, gold plans, expected rows, assistant SQL, or future turns. Use it
+reference SQL, expected rows, assistant SQL, or future turns. Use it
 for row-matched prompt comparisons before treating the single synthetic
 alias/column pass as a scalable method.
 
@@ -156,8 +156,7 @@ alias/column pass as a scalable method.
 
 These labels come from reference SQL on the fixed 100-turn CoSQL proxy slice.
 They are useful for analysis and scorer-side supervision, but they are not
-production prompt context. Treat them as diagnostic unless a run is explicitly
-marked as oracle-supervised.
+production prompt context.
 
 ### Non-Oracle Value Index
 
@@ -177,7 +176,7 @@ under `data/processed/` because it is a generated benchmark input. The summary
 and manifest may be written here to record provenance.
 
 The builder matches value-index aliases against user-authored text visible up to
-each turn. It intentionally does not use reference SQL, gold planner labels,
+each turn. It intentionally does not use reference SQL,
 expected rows, assistant SQL, or future user turns for retrieval matching.
 
 ## What Should Be Added Here
@@ -215,25 +214,24 @@ Those belong under `outputs/` or `results/`.
 
 ## Leakage Boundary
 
-Every artifact should make its oracle boundary clear.
+Every artifact should make its leakage boundary clear.
 
 Allowed model inputs:
 
 - user question,
 - dialog history up to the current turn,
 - schema,
-- non-oracle semantic context,
-- non-oracle value indexes.
+- semantic context available before evaluation,
+- value indexes derived from database contents.
 
 Scorer-only or diagnostic fields:
 
 - `reference_sql`,
 - expected rows,
-- gold planner labels,
 - gold metric DSL,
 - repair labels,
 - future dialog turns.
 
 Those fields may exist in an artifact for evaluation, but prompt builders must
-not expose them as model input unless the run is explicitly labeled as an oracle
-diagnostic.
+not expose them as model input during validation, holdout, or hosted
+comparisons.

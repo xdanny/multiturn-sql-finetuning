@@ -26,7 +26,7 @@ def _metric(manifest: dict[str, Any], name: str) -> float:
 
 
 def _validate_non_oracle(manifest: dict[str, Any], *, label: str) -> None:
-    if manifest.get("oracle_allowed") or manifest.get("evaluation_mode") == "oracle_planner_diagnostic":
+    if manifest.get("oracle_allowed"):
         raise ValueError(f"{label} manifest must be non-oracle")
 
 

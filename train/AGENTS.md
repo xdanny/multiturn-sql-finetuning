@@ -4,22 +4,19 @@ This subtree owns `train.finetune`, training-time validation, and run policy.
 
 Primary responsibilities:
 
-- Keep finetuning entry points aligned with the structured ladder in
-  `docs/finetuning_ladder.md`.
-- Reject misleading training inputs before GPU time is spent.
-- Make run naming, stage naming, and mixture intent explicit in documentation
-  and command examples.
-- Keep command examples aligned with the actual `train.finetune` CLI on
-  current `main`.
+- Keep fine-tuning entry points aligned with the measured repo workflow:
+  prepared chat JSONL, Qwen LoRA training, endpoint/local evaluation, and result
+  manifests.
+- Make run naming, data source, step count, adapter path, and mixture intent
+  explicit in docs and command examples.
+- Keep command examples aligned with the actual `train.finetune` CLI.
 
 Rules:
 
-- Preserve the `allow-oracle-diagnostic-data` guard. Oracle rows are diagnostic
-  unless the run is explicitly labeled that way.
 - Prefer `uv run python -m train.finetune ...` in repo docs and examples.
 - On this WSL machine, if Linux `gcc` / `clang` are absent but
   `/home/dan/.local/bin/cc` exists, export `CC=/home/dan/.local/bin/cc`
-  before `train.finetune` so Triton can compile its launchers. In constrained
+  before `train.finetune` so Triton can compile launchers. In constrained
   shells, also point Zig caches at writable directories such as `/tmp`.
 - Treat dataset mixture and stage naming as part of experiment meaning, not as
   optional metadata.
@@ -27,16 +24,14 @@ Rules:
   `docs/data_artifacts/README.md`. Most run-specific files belong under
   `outputs/` or `results/`, not in the source tree.
 - Current `train.finetune` supports `--validate-data-only`, `--dry-run`,
-  `--max-steps`, `--output-dir`, `--report-to`, and
-  `--allow-oracle-diagnostic-data`. Do not document unimplemented flags as if
-  they already exist.
-- If a new finetuning target is added, document which control it is expected to
+  `--max-steps`, `--output-dir`, and `--report-to`.
+- If a new fine-tuning target is added, document which control it is expected to
   beat and which eval command clears that claim.
 
 When editing here, inspect:
 
+- `README.md`
+- `data/prepare.py`
 - `train/finetune.py`
-- `docs/finetuning_ladder.md`
-- `docs/finetuning_smoke_matrix.md`
-- `docs/research_goal.md`
+- `docs/research_roadmap.md`
 - `tests/test_train_finetune.py`

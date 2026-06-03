@@ -1,138 +1,148 @@
 schema_version: 1
+
+split_roles:
+  train: supervised fine-tuning and training-split label extraction
+  validation: method design, prompt search, and failure analysis
+  proxy_dev_seen: historical continuity slice, not a clean benchmark claim
+  clean_local_holdout: final local method comparison
+  external_target: hosted or benchmark transfer target
+
 protocols:
-  - protocol_id: cosql_dev_100_teacher_forced_proxy
-    benchmark: CoSQL dev 100-turn proxy
-    role: fast local proxy for multi-turn SQL iteration
+  - protocol_id: cosql_proxy_teacher_forced
+    benchmark: CoSQL fixed proxy slice
+    role: fast local continuity signal for multi-turn SQL
     turn_policy: gold_sql_teacher_forced_history
-    row_identity_policy: fixed expanded turn ids across the same prepared input hash
-    scorer_policy: local SQLite execution with strict and value-only accuracy
+    row_identity_policy: expanded dialog turn ids over the same prepared input hash
+    scorer_policy: SQLite execution with value and strict accuracy
     primary_metrics:
       - value_accuracy
       - strict_accuracy
-      - syntax_validity
+      - syntax_accuracy
+      - interaction_match
     required_artifacts:
       - prepared input manifest
       - result manifest
-      - same-row comparison manifest when reporting a method delta
+      - same-row comparison manifest for deltas
     allowed_claims:
-      - proxy SQL generation improved on the fixed CoSQL slice
-      - planner/value/DSL artifacts are measurable on a stable local slice
+      - proxy improvement on a fixed seen CoSQL slice
+      - failure taxonomy for method selection
     blocked_claims:
+      - clean holdout improvement
       - hosted SOTA comparison
-      - BIRD-Interact transfer
-      - recovery after model-generated history
+      - external benchmark transfer
     leakage_boundary: >-
-      Prompts may use question, prior turns, schema, and non-oracle artifacts;
-      reference SQL, gold plans, expected rows, and future turns stay out of the
-      prompt.
+      Prompts may use the question, dialog history up to the current turn,
+      schema, semantic context, and database-derived retrieval context.
+      Reference SQL, expected rows, future turns, and evaluation answers stay
+      scorer-side.
     supports_method_ranking: true
     supports_hosted_sota_claim: false
 
-  - protocol_id: cosql_generated_history_rollout
-    benchmark: CoSQL generated-history rollout
-    role: recovery and self-conditioning diagnostic
+  - protocol_id: generated_history_rollout
+    benchmark: generated-history multi-turn rollout
+    role: recovery and self-conditioning evaluation
     turn_policy: model_generated_sql_rollout
-    row_identity_policy: dialog turn ids must match the teacher-forced control rows
-    scorer_policy: sequential local SQLite execution after each generated turn
+    row_identity_policy: dialog and turn ids match the teacher-forced control
+    scorer_policy: sequential SQLite execution after each generated turn
     primary_metrics:
       - rollout_value_accuracy
-      - empty_result_repair_rate
-      - syntax_validity_after_error
+      - rollout_strict_accuracy
+      - syntax_accuracy
+      - interaction_match
     required_artifacts:
       - rollout input manifest
       - rollout result manifest
       - teacher-forced comparison manifest
-      - direct-SQL control comparison manifest
     allowed_claims:
-      - generated-history evaluation is wired for the same dialogs
-      - recovery adapter beats a direct-SQL control under model-generated history
+      - a recovery method handles generated history better than direct SQL
     blocked_claims:
-      - hosted SOTA comparison
-      - BIRD-Interact transfer
+      - hosted SOTA comparison unless hosted rollout uses the same protocol
     leakage_boundary: >-
-      Prompts may include previous generated SQL and observed rows; repair
+      Prompts may include previous generated SQL and observed rows. Repair
       labels, reference SQL, expected rows, and future turns stay scorer-side.
     supports_method_ranking: true
     supports_hosted_sota_claim: false
 
-  - protocol_id: sparc_context_transfer
-    benchmark: SParC context-dependent SQL
-    role: supplemental transfer signal for context-dependent SQL
-    turn_policy: dataset-specific context history, not a full CoSQL dialog substitute
-    row_identity_policy: split, dialog id, and turn id must be frozen in a manifest
-    scorer_policy: same local execution scorer as CoSQL when SQLite databases are available
+  - protocol_id: synthetic_method_fixture
+    benchmark: small synthetic fixtures
+    role: isolated method smoke tests
+    turn_policy: curated single-turn or short generated-history rows
+    row_identity_policy: fixture ids versioned in artifact manifests
+    scorer_policy: fixture-specific parser, compiler, value, alias, or execution checks
     primary_metrics:
+      - parse_rate
+      - compile_rate
       - value_accuracy
       - strict_accuracy
-      - context_resolution_error_rate
-    required_artifacts:
-      - prepared input manifest
-      - result manifest
-      - same-row direct-SQL control manifest
-    allowed_claims:
-      - a method transfers to context-dependent SQL rows
-    blocked_claims:
-      - interactive recovery
-      - hosted SOTA comparison
-      - BIRD-Interact transfer
-    leakage_boundary: >-
-      Context comes from prior user turns only; reference SQL, gold plans,
-      expected rows, and future turns are not prompt inputs.
-    supports_method_ranking: true
-    supports_hosted_sota_claim: false
-
-  - protocol_id: synthetic_schema_rich_method_fixture
-    benchmark: Synthetic schema-rich SQL fixtures
-    role: isolated supervision for planner, semantic, metric, fanout, and recovery failures
-    turn_policy: curated single-turn or short generated-history fixtures
-    row_identity_policy: fixture ids are versioned in the data-artifact manifest
-    scorer_policy: fixture-specific parser, compiler, planner, and local execution checks
-    primary_metrics:
-      - planner_field_f1
-      - measure_preservation
-      - value_accuracy
       - recovery_success
     required_artifacts:
+      - fixture JSONL
       - fixture manifest
-      - method-specific prediction manifest
-      - direct-control comparison when claiming a method win
+      - method-specific result manifest
     allowed_claims:
-      - the target behavior is learnable and measurable in isolation
-      - a method is ready for proxy endpoint evaluation
+      - a behavior is measurable in isolation
+      - a method is ready for validation-slice testing
     blocked_claims:
       - real benchmark improvement
       - hosted SOTA comparison
-      - BIRD-Interact transfer
     leakage_boundary: >-
-      Fixtures may contain labels for training and scoring, but prompts for
-      non-oracle runs cannot include gold SQL, expected rows, or answer-derived
-      labels.
+      Synthetic labels may be training labels or scorer fields, but evaluation
+      prompts must not include hidden answers, expected rows, or future turns.
     supports_method_ranking: false
     supports_hosted_sota_claim: false
 
-  - protocol_id: bird_interact_same_protocol_transfer
-    benchmark: BIRD-Interact or Multi-BIRD transfer
-    role: target interactive data-analysis benchmark
-    turn_policy: benchmark-native interaction protocol with no teacher-forced future state
-    row_identity_policy: official or frozen benchmark ids shared by local and hosted runs
-    scorer_policy: benchmark-compatible execution scorer plus latency and cost metadata
+  - protocol_id: clean_local_holdout
+    benchmark: frozen held-out local multi-turn SQL slice
+    role: local benchmark claim
+    turn_policy: teacher-forced and generated-history variants recorded separately
+    row_identity_policy: frozen split manifest shared by every local method
+    scorer_policy: same SQLite scorer and database root for every run
     primary_metrics:
       - value_accuracy
-      - task_success
+      - strict_accuracy
+      - syntax_accuracy
+      - interaction_match
+      - latency
+    required_artifacts:
+      - split manifest
+      - prepared input manifest
+      - raw Qwen result manifest
+      - best local adapter result manifest
+      - local comparison manifest
+    allowed_claims:
+      - best local fine-tuned adapter beats raw Qwen on clean holdout
+      - a method beats direct SQL on clean holdout
+    blocked_claims:
+      - hosted SOTA comparison
+    leakage_boundary: >-
+      Method selection must happen before holdout scoring. Holdout answers can
+      be used by the scorer only.
+    supports_method_ranking: true
+    supports_hosted_sota_claim: false
+
+  - protocol_id: hosted_sota_row_matched
+    benchmark: local holdout or external target with hosted comparator
+    role: local-vs-hosted comparison
+    turn_policy: benchmark-specific, identical for local and hosted runs
+    row_identity_policy: local and hosted result rows must match exactly
+    scorer_policy: same scorer, database root, and row identity validation
+    primary_metrics:
+      - value_accuracy
+      - strict_accuracy
+      - interaction_match
       - latency
       - cost
     required_artifacts:
-      - benchmark input manifest
       - local result manifest
       - hosted result manifest
       - local-vs-hosted comparison manifest
     allowed_claims:
-      - local 9B competes with hosted models under the same interactive protocol
-      - a method transfers beyond the CoSQL proxy slice
+      - local fine-tuning closes, matches, or fails to close the hosted gap
+      - method transfers beyond the CoSQL proxy when an external target is used
     blocked_claims: []
     leakage_boundary: >-
-      Local and hosted prompts must receive the same non-oracle user-visible
-      inputs. Reference SQL, evaluator state, hidden benchmark answers, and
-      future turns stay outside all prompts.
+      Local and hosted prompts must receive the same prompt-visible inputs.
+      Hidden benchmark answers, expected rows, evaluator state, and future turns
+      stay outside all prompts.
     supports_method_ranking: true
     supports_hosted_sota_claim: true

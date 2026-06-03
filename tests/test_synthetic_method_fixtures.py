@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 from data.synthetic_method_fixtures import (
-    ORACLE_SCORING_FIELDS,
+    SCORER_ONLY_FIELDS,
     build_synthetic_method_fixtures,
     prompt_visible_fixture_input,
     summarize_synthetic_method_fixtures,
@@ -22,7 +22,7 @@ def test_synthetic_method_fixtures_cover_required_multi_turn_failures() -> None:
         "recovery_empty_result",
     }
     assert all(fixture["reference_sql_visible_to_model"] is False for fixture in fixtures)
-    assert all(fixture["oracle_policy"] == "non_oracle_inputs_only" for fixture in fixtures)
+    assert all(fixture["leakage_policy"] == "prompt_visible_inputs_only" for fixture in fixtures)
     assert all(fixture["expected_rows"] for fixture in fixtures)
 
     failure_modes = {
@@ -40,8 +40,8 @@ def test_synthetic_method_fixtures_cover_required_multi_turn_failures() -> None:
         target for fixture in fixtures for target in fixture["training_targets"]
     }
     assert {
-        "planner_first_sql",
-        "semantic_layer",
+        "direct_sql_with_value_context",
+        "semantic_context",
         "metric_dsl",
         "behavior_recovery",
     } <= training_targets
@@ -71,7 +71,7 @@ def test_synthetic_fixture_rows_expose_method_specific_contracts() -> None:
     assert recovery_fixture["evaluation_checks"]["requires_repair_action"] == "replace_display_value_with_storage_value"
 
 
-def test_synthetic_method_fixture_summary_counts_artifact_gates() -> None:
+def test_synthetic_method_fixture_summary_counts_artifacts() -> None:
     summary = summarize_synthetic_method_fixtures(build_synthetic_method_fixtures())
 
     assert summary["fixture_count"] == 5
@@ -80,7 +80,7 @@ def test_synthetic_method_fixture_summary_counts_artifact_gates() -> None:
     assert summary["failure_mode_counts"]["value_normalization"] == 2
     assert summary["training_target_counts"]["metric_dsl"] == 2
     assert summary["required_artifact_counts"]["semantic_model_manifest"] >= 2
-    assert summary["non_oracle_fixture_count"] == 5
+    assert summary["prompt_safe_fixture_count"] == 5
 
 
 def test_prompt_visible_fixture_projection_excludes_scoring_fields() -> None:
@@ -88,7 +88,7 @@ def test_prompt_visible_fixture_projection_excludes_scoring_fields() -> None:
         visible = prompt_visible_fixture_input(fixture)
 
         assert fixture["prompt_visible_input"] == visible
-        assert set(ORACLE_SCORING_FIELDS).isdisjoint(visible)
+        assert set(SCORER_ONLY_FIELDS).isdisjoint(visible)
         assert "scoring_contract" not in visible
         assert "schema_sql" in visible
         assert "conversation" in visible

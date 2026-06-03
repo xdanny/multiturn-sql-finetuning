@@ -1,13 +1,12 @@
 # Data AGENTS
 
 This subtree owns prepared data, synthetic fixtures, value artifacts, and
-semantic context used by finetuning and evaluation.
+semantic context used by fine-tuning and evaluation.
 
 Primary responsibilities:
 
-- Make every training or eval row explicit about benchmark, target, and
-  evaluation mode.
-- Keep oracle-derived labels separate from non-oracle retrieval artifacts.
+- Make every training or eval row explicit about source, target, split role, and
+  evaluation mode when that metadata is available.
 - Keep generated artifacts reproducible from commands, but avoid checking in
   run-specific outputs.
 - Maintain small canonical inputs that let another developer inspect a method
@@ -15,14 +14,14 @@ Primary responsibilities:
 
 Rules:
 
-- `reference_sql`, expected rows, gold plans, gold metric DSL, repair labels,
-  and future turns are scorer-side data unless a run is explicitly diagnostic.
-- Database-derived value indexes can be non-oracle; answer-derived labels are
-  diagnostic or supervision labels.
+- `reference_sql`, expected rows, gold metric DSL, repair labels, and future
+  turns are scorer-side data during validation, holdout, and hosted comparison.
+- Database-derived value indexes and schema introspection context are valid
+  model inputs when generated without evaluation answers.
 - Before adding files under `docs/data_artifacts/`, check
   `docs/data_artifacts/README.md`.
-- Prefer updating an existing artifact family over creating a parallel one
-  with overlapping meaning.
+- Prefer updating an existing artifact family over creating a parallel one with
+  overlapping meaning.
 
 When editing here, inspect:
 
@@ -32,4 +31,3 @@ When editing here, inspect:
 - `data/value_artifacts.py`
 - `data/value_index.py`
 - `data/synthetic_method_fixtures.py`
-- `docs/evidence_contract.md`

@@ -3,8 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
-
 from data.semantic_value_retrieval_inputs import (
     add_semantic_value_retrieval_context,
     build_semantic_value_retrieval_inputs,
@@ -25,9 +23,6 @@ def _prepared_record() -> dict:
         "database_id": "store",
         "source": "unit",
         "evaluation_mode": "non_oracle_generation",
-        "uses_oracle_planning_hints": False,
-        "semantic_context_pruned_by_oracle_labels": False,
-        "gold_plans": [{"parseable": True}],
         "messages": [
             {"role": "system", "content": "sql"},
             {"role": "user", "content": "Show French customers."},
@@ -111,18 +106,7 @@ def test_build_semantic_value_retrieval_inputs_summarizes_scope() -> None:
     assert summary["matched_turn_count"] == 2
     assert summary["matched_value_count"] == 3
     assert "reference SQL" in summary["leakage_boundary"]
-    assert summary["evaluation_gate"] == "eval.run_semantic_value_retrieval_comparison"
-
-
-def test_build_semantic_value_retrieval_inputs_rejects_oracle_record() -> None:
-    record = _prepared_record()
-    record["semantic_context_pruned_by_oracle_labels"] = True
-
-    with pytest.raises(ValueError, match="non-oracle"):
-        build_semantic_value_retrieval_inputs(
-            prepared_rows=[record],
-            value_index_rows=_value_index_rows(),
-        )
+    assert summary["evaluation_command"] == "eval.run_semantic_value_retrieval_comparison"
 
 
 def test_write_semantic_value_retrieval_input_artifacts(tmp_path) -> None:
@@ -158,6 +142,6 @@ def test_write_semantic_value_retrieval_input_artifacts(tmp_path) -> None:
     output_rows = [json.loads(line) for line in output_path.read_text().splitlines()]
     summary = json.loads(summary_path.read_text())
     assert output_rows[0]["semantic_value_retrieval"]["index_source"] == "database_contents"
-    assert summary["oracle_policy"] == "non_oracle_database_value_index_matched_to_user_text_only"
+    assert summary["leakage_policy"] == "non_oracle_database_value_index_matched_to_user_text_only"
     assert manifest["output_sha256"] == sha256_file(output_path)
     assert manifest["value_index_manifest_sha256"] == sha256_file(value_index_manifest_path)

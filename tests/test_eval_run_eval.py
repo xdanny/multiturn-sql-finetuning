@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from eval.run_eval import (
     assistant_turn_indices,
     database_path_for_record,
@@ -67,20 +65,9 @@ def test_load_prepared_records_expands_multi_turn_dialogs(tmp_path) -> None:
                 "source": "unit",
                 "database_id": "db1",
                 "history_policy": "gold_sql_teacher_forced",
-                "evaluation_mode": "oracle_planner_diagnostic",
-                "planning_label_source": "gold_reference_sql",
-                "uses_oracle_planning_hints": True,
-                "semantic_context_pruned_by_oracle_labels": True,
-                "oracle_diagnostic_warning": "oracle warning",
-                "gold_plans": [
-                    {"relevant_tables": ["one"], "projection_shape": {"selected_count": 1}},
-                    {"relevant_tables": ["two"], "projection_shape": {"selected_count": 1}},
-                ],
-                "predicted_plans": [
-                    {"prediction_source": "json_planner_predictions", "relevant_tables": ["one"]},
-                    {"prediction_source": "json_planner_predictions", "relevant_tables": ["wrong"]},
-                ],
-                "predicted_plan_source": "json_planner_predictions",
+                "evaluation_mode": "non_oracle_generation",
+                "schema_link_label_source": "reference_sql_for_scoring_only",
+                "schema_link_labels": [{"relevant_tables": ["one"]}, {"relevant_tables": ["two"]}],
                 "messages": [
                     {"role": "system", "content": "sys"},
                     {"role": "user", "content": "q1"},
@@ -93,10 +80,7 @@ def test_load_prepared_records_expands_multi_turn_dialogs(tmp_path) -> None:
         + "\n"
     )
 
-    with pytest.raises(ValueError, match="oracle planning hints"):
-        load_prepared_records(path)
-
-    records = load_prepared_records(path, allow_oracle_plan=True)
+    records = load_prepared_records(path)
 
     assert assistant_turn_indices(json.loads(path.read_text())["messages"]) == [2, 4]
     assert [record["reference_sql"] for record in records] == ["SELECT 1;", "SELECT 2;"]
@@ -105,40 +89,10 @@ def test_load_prepared_records_expands_multi_turn_dialogs(tmp_path) -> None:
     assert records[0]["messages"][-1]["content"] == "q1"
     assert records[1]["messages"][-1]["content"] == "q2"
     assert records[1]["messages"][2]["content"] == "SELECT 1;"
-    assert records[0]["evaluation_mode"] == "oracle_planner_diagnostic"
+    assert records[0]["evaluation_mode"] == "non_oracle_generation"
     assert records[0]["history_policy"] == "gold_sql_teacher_forced"
-    assert records[0]["planning_label_source"] == "gold_reference_sql"
-    assert records[0]["uses_oracle_planning_hints"] is True
-    assert records[0]["semantic_context_pruned_by_oracle_labels"] is True
-    assert records[0]["oracle_diagnostic_warning"] == "oracle warning"
-    assert records[0]["gold_plan"]["relevant_tables"] == ["one"]
-    assert records[1]["gold_plan"]["relevant_tables"] == ["two"]
-    assert records[0]["predicted_plan"]["relevant_tables"] == ["one"]
-    assert records[1]["predicted_plan"]["relevant_tables"] == ["wrong"]
-    assert records[0]["predicted_plan_source"] == "json_planner_predictions"
-    assert records[1]["predicted_plan_source"] == "json_planner_predictions"
-
-
-def test_load_prepared_records_rejects_legacy_oracle_hint_marker(tmp_path) -> None:
-    path = tmp_path / "prepared.jsonl"
-    path.write_text(
-        json.dumps(
-            {
-                "messages": [
-                    {"role": "system", "content": "sys"},
-                    {
-                        "role": "user",
-                        "content": "SQL planning hints:\nRelevant tables: singer\n\nQuestion:\nList singers.",
-                    },
-                    {"role": "assistant", "content": "SELECT name FROM singer;"},
-                ],
-            }
-        )
-        + "\n"
-    )
-
-    with pytest.raises(ValueError, match="oracle planning hints"):
-        load_prepared_records(path)
+    assert records[0]["schema_link_labels"]["relevant_tables"] == ["one"]
+    assert records[1]["schema_link_labels"]["relevant_tables"] == ["two"]
 
 
 def test_load_prepared_records_limit_applies_to_turns(tmp_path) -> None:
@@ -163,53 +117,18 @@ def test_load_prepared_records_limit_applies_to_turns(tmp_path) -> None:
     assert records[0]["reference_sql"] == "SELECT 1;"
 
 
-def test_load_prepared_records_rejects_predicted_mode_without_predictions(tmp_path) -> None:
-    path = tmp_path / "prepared.jsonl"
-    path.write_text(
-        json.dumps(
-            {
-                "evaluation_mode": "predicted_planner",
-                "gold_plans": [{"relevant_tables": ["singer"]}],
-                "messages": [
-                    {"role": "system", "content": "sys"},
-                    {"role": "user", "content": "q1"},
-                    {"role": "assistant", "content": "SELECT 1;"},
-                ],
-            }
-        )
-        + "\n"
-    )
-
-    with pytest.raises(ValueError, match="predicted planner"):
-        load_prepared_records(path)
-
-
-def test_messages_for_generation_adds_predicted_plan_without_oracle_language() -> None:
+def test_messages_for_generation_only_adds_sql_instruction() -> None:
     record = {
         "messages": [
             {"role": "system", "content": "sys"},
             {"role": "user", "content": "List airline names."},
         ],
-        "evaluation_mode": "predicted_planner",
-        "predicted_plan": {
-            "relevant_tables": ["airlines"],
-            "relevant_columns": ["airlines.name"],
-            "join_path": [],
-            "query_skeleton": {"select": True},
-            "projection_shape": {
-                "selected_count": 1,
-                "selected_expressions": ["airlines.name"],
-                "preserve_duplicates": True,
-            },
-        },
     }
 
     messages = messages_for_generation(record)
 
     assert "Return only one SQL query" in messages[0]["content"]
-    assert "Predicted SQL plan" in messages[-1]["content"]
-    assert "Relevant tables: airlines" in messages[-1]["content"]
-    assert "derived from reference SQL" not in messages[-1]["content"]
+    assert messages[-1]["content"] == "List airline names."
 
 
 def test_expand_prepared_record_uses_stable_fallback_dialog_id() -> None:
@@ -225,20 +144,6 @@ def test_expand_prepared_record_uses_stable_fallback_dialog_id() -> None:
 
     assert records[0]["dialog_id"] == "prepared-7"
     assert records[0]["id"] == "prepared-7:0"
-
-
-def test_messages_for_generation_rejects_empty_predicted_plan() -> None:
-    record = {
-        "messages": [
-            {"role": "system", "content": "sys"},
-            {"role": "user", "content": "List airline names."},
-        ],
-        "evaluation_mode": "predicted_planner",
-        "predicted_plan": {"query_skeleton": {"select": True}},
-    }
-
-    with pytest.raises(ValueError, match="relevant table or column"):
-        messages_for_generation(record)
 
 
 def test_write_results_writes_jsonl(tmp_path) -> None:

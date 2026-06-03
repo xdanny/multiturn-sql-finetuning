@@ -22,7 +22,7 @@ def test_value_schema_repair_rollout_input_exposes_non_oracle_repair_context() -
     assert '"storage_value": "FR"' in prompt
     assert "customers.customer_id" in prompt
     assert row["repair_reference_sql"] not in prompt
-    assert "future" not in row["oracle_policy"]
+    assert "future" not in row["leakage_policy"]
 
 
 def test_value_schema_repair_summary_records_artifact_boundaries() -> None:

@@ -88,12 +88,7 @@ def _semantic_model_source(row: dict[str, Any]) -> str:
 
 def _semantic_model_is_oracle_derived(row: dict[str, Any]) -> bool:
     source = _semantic_model_source(row).lower()
-    return (
-        bool(row.get("uses_oracle_planning_hints"))
-        or bool(row.get("semantic_context_pruned_by_oracle_labels"))
-        or "gold_reference" in source
-        or source.startswith("oracle_")
-    )
+    return "gold_reference" in source or source.startswith("oracle_")
 
 
 def _values_for_database_backed(

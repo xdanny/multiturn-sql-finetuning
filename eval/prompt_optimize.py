@@ -34,7 +34,6 @@ class PromptVariant:
     name: str
     instruction: str
     source: str = "static"
-    requires_planning_hints: bool = False
 
 
 DEFAULT_PROMPT_VARIANTS = [
@@ -101,7 +100,6 @@ def load_prompt_variants(path: Path | None) -> list[PromptVariant]:
             name=str(row["name"]),
             instruction=str(row["instruction"]),
             source=str(row.get("source") or "file"),
-            requires_planning_hints=bool(row.get("requires_planning_hints", False)),
         )
         for row in rows
     ]
@@ -152,7 +150,6 @@ def evaluate_variant(
                 "model_name": model_name,
                 "prompt_variant": variant.name,
                 "prompt_variant_source": variant.source,
-                "prompt_variant_requires_planning_hints": variant.requires_planning_hints,
                 "prompt_instruction": variant.instruction,
                 "raw_generation": raw_generation,
                 "generated_sql": generated_sql,
@@ -175,7 +172,6 @@ def write_summary(rows: Iterable[dict[str, Any]], output: Path) -> None:
     fieldnames = [
         "prompt_variant",
         "prompt_variant_source",
-        "prompt_variant_requires_planning_hints",
         "accuracy",
         "syntax_accuracy",
         "mean_latency_ms",
@@ -266,13 +262,11 @@ def run_prompt_search(
     max_tokens: int,
     variants_path: Path | None,
     dspy_proposals: int,
-    allow_oracle_plan: bool,
 ) -> int:
     records = load_benchmark_records(
         benchmark,
         input_path=input_path,
         limit=limit,
-        allow_oracle_plan=allow_oracle_plan,
     )
     if not records:
         raise ValueError("benchmark produced no records")
@@ -307,7 +301,6 @@ def run_prompt_search(
             {
                 "prompt_variant": variant.name,
                 "prompt_variant_source": variant.source,
-                "prompt_variant_requires_planning_hints": variant.requires_planning_hints,
                 **summary,
             }
         )
@@ -345,11 +338,6 @@ def main() -> int:
         default=0,
         help="Ask DSPy to propose this many additional prompt variants before scoring.",
     )
-    parser.add_argument(
-        "--allow-oracle-plan",
-        action="store_true",
-        help="Allow prepared inputs containing gold SQL-derived planning hints.",
-    )
     args = parser.parse_args()
     return run_prompt_search(
         benchmark=args.benchmark,
@@ -364,7 +352,6 @@ def main() -> int:
         max_tokens=args.max_tokens,
         variants_path=args.variants,
         dspy_proposals=args.dspy_proposals,
-        allow_oracle_plan=args.allow_oracle_plan,
     )
 
 

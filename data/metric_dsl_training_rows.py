@@ -89,7 +89,7 @@ def _row(
         "training_target": output_kind,
         "failure_modes": fixture["failure_modes"],
         "required_artifacts": fixture["required_artifacts"],
-        "oracle_policy": "synthetic_curated_label",
+        "leakage_policy": "synthetic_curated_label",
         "label_source": fixture["label_source"],
         "messages": [
             {"role": "system", "content": system_prompt},
@@ -143,7 +143,7 @@ def summarize_metric_dsl_finetuning_rows(
         "direct_sql_control_row_count": len(direct_sql_rows),
         "fixture_ids": [row["fixture_id"] for row in dsl_rows],
         "failure_mode_counts": dict(sorted(failure_modes.items())),
-        "oracle_policy": "synthetic_curated_label",
+        "leakage_policy": "synthetic_curated_label",
         "comparison_contract": "same_fixture_metric_dsl_vs_direct_sql_control",
     }
 
@@ -186,7 +186,7 @@ def write_metric_dsl_finetuning_artifacts(
         "direct_sql_output_sha256": sha256_file(direct_sql_output_path),
         "summary_path": str(summary_path),
         "summary_sha256": sha256_file(summary_path),
-        "oracle_policy": "synthetic_curated_label",
+        "leakage_policy": "synthetic_curated_label",
         "command": command or sys.argv,
     }
     _write_json(manifest_path, manifest)

@@ -70,7 +70,7 @@ def _row(
         "training_target": output_kind,
         "failure_modes": fixture["failure_modes"],
         "required_artifacts": fixture["required_artifacts"],
-        "oracle_policy": "synthetic_curated_label",
+        "leakage_policy": "synthetic_curated_label",
         "label_source": fixture["label_source"],
         "history_policy": "generated_history_trace",
         "messages": [
@@ -122,9 +122,9 @@ def summarize_behavior_recovery_finetuning_rows(
         "direct_sql_control_row_count": len(control_rows),
         "fixture_ids": [row["fixture_id"] for row in recovery_rows],
         "failure_mode_counts": dict(sorted(failure_modes.items())),
-        "oracle_policy": "synthetic_curated_label",
+        "leakage_policy": "synthetic_curated_label",
         "comparison_contract": "same_fixture_behavior_recovery_vs_direct_sql_control",
-        "evaluation_gate": "generated_history_rollout",
+        "evaluation_command": "generated_history_rollout",
     }
 
 
@@ -166,8 +166,8 @@ def write_behavior_recovery_finetuning_artifacts(
         "control_output_sha256": sha256_file(control_output_path),
         "summary_path": str(summary_path),
         "summary_sha256": sha256_file(summary_path),
-        "oracle_policy": "synthetic_curated_label",
-        "evaluation_gate": "generated_history_rollout",
+        "leakage_policy": "synthetic_curated_label",
+        "evaluation_command": "generated_history_rollout",
         "command": command or sys.argv,
     }
     _write_json(manifest_path, manifest)

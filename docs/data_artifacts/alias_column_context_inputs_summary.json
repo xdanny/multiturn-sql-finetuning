@@ -25,10 +25,10 @@
     "world_1": 12,
     "wta_1": 7
   },
-  "evaluation_gate": "eval.run_eval or eval.rollout_eval plus eval.alias_column_validity",
+  "evaluation_command": "eval.run_eval or eval.rollout_eval plus eval.alias_column_validity",
   "join_key_count": 359,
   "leakage_boundary": "no reference SQL, gold plans, expected rows, assistant SQL, or future user turns are used to build column-role context",
-  "oracle_policy": "non_oracle_schema_introspection_only",
+  "leakage_policy": "schema_introspection_only",
   "row_count": 100,
   "schema_version": 1,
   "table_count": 441

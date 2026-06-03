@@ -64,8 +64,8 @@ def validate_comparison_inputs(
 ) -> dict[str, Any]:
     """Validate direct and semantic prepared inputs before endpoint eval."""
 
-    direct_rows = load_prepared_records(direct_input, limit=limit, allow_oracle_plan=False)
-    semantic_rows = load_prepared_records(semantic_input, limit=limit, allow_oracle_plan=False)
+    direct_rows = load_prepared_records(direct_input, limit=limit)
+    semantic_rows = load_prepared_records(semantic_input, limit=limit)
     if not direct_rows or not semantic_rows:
         raise ValueError("semantic value-retrieval comparison requires non-empty prepared inputs")
 
@@ -210,7 +210,6 @@ def run_semantic_value_retrieval_comparison(
         api_key=api_key,
         temperature=temperature,
         max_tokens=max_tokens,
-        allow_oracle_plan=False,
         manifest_output=direct_manifest,
         prompt_variant="direct_sql_control",
         command=[
@@ -236,7 +235,6 @@ def run_semantic_value_retrieval_comparison(
         api_key=api_key,
         temperature=temperature,
         max_tokens=max_tokens,
-        allow_oracle_plan=False,
         manifest_output=semantic_manifest,
         prompt_variant="semantic_value_retrieval",
         command=[

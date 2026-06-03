@@ -3,12 +3,12 @@
   "command": [
     "/home/dan/docs/multiturn-sql-finetuning/data/behavior_recovery_rollout_inputs.py"
   ],
-  "evaluation_gate": "eval.rollout_eval then eval.compare_rollout_history",
-  "oracle_policy": "seeded_generated_failure_visible_repair_label_held_out",
+  "evaluation_command": "eval.rollout_eval then eval.compare_rollout_history",
+  "leakage_policy": "seeded_generated_failure_with_repair_label_held_out",
   "output_path": "docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl",
-  "output_sha256": "43629d5c9fae887421aa1d9a5f7b7bb9fa93bd09fdb785d7c333c634d63a1690",
+  "output_sha256": "2c81e82d449f206a8c8e36b1be0441e2fde9a7eeb10c4ab4921bb0c579559786",
   "rollout_input_count": 1,
   "schema_version": 1,
   "summary_path": "docs/data_artifacts/behavior_recovery_rollout_inputs_summary.json",
-  "summary_sha256": "d1b3cfe518997f13e3486e900e7806c19059609532170e294584649a02051544"
+  "summary_sha256": "276f9075fd778a25644f335fe8a9d712017468e7eaafa3094c9488a45c1c9d55"
 }

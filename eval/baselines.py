@@ -31,11 +31,6 @@ def main() -> int:
     parser.add_argument("--database-root", type=Path, default=None)
     parser.add_argument("--endpoint", default=None)
     parser.add_argument("--api-key", default="EMPTY")
-    parser.add_argument(
-        "--allow-oracle-plan",
-        action="store_true",
-        help="Allow prepared inputs containing gold SQL-derived planning hints.",
-    )
     args = parser.parse_args()
 
     baseline = BASELINES[args.model]
@@ -51,7 +46,6 @@ def main() -> int:
         api_key=args.api_key,
         temperature=0.0,
         max_tokens=512,
-        allow_oracle_plan=args.allow_oracle_plan,
     )
 
 

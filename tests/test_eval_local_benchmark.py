@@ -42,7 +42,7 @@ def test_enforce_sql_only_instruction_adds_system_message() -> None:
     assert SQL_ONLY_INSTRUCTION in messages[0]["content"]
 
 
-def test_run_local_benchmark_injects_predicted_plan_messages(tmp_path, monkeypatch) -> None:
+def test_run_local_benchmark_uses_plain_prepared_messages(tmp_path, monkeypatch) -> None:
     input_path = tmp_path / "prepared.jsonl"
     output_path = tmp_path / "results.jsonl"
     input_path.write_text(
@@ -61,15 +61,7 @@ def test_run_local_benchmark_injects_predicted_plan_messages(tmp_path, monkeypat
                     },
                     {"role": "assistant", "content": "SELECT name FROM customers;"},
                 ],
-                "evaluation_mode": "predicted_planner",
-                "gold_plans": [{"relevant_tables": ["customers"]}],
-                "predicted_plans": [
-                    {
-                        "relevant_tables": ["customers"],
-                        "relevant_columns": ["customers.name"],
-                        "projection_shape": {"selected_count": 1},
-                    }
-                ],
+                "evaluation_mode": "non_oracle_generation",
             }
         )
         + "\n"
@@ -110,11 +102,10 @@ def test_run_local_benchmark_injects_predicted_plan_messages(tmp_path, monkeypat
             max_new_tokens=32,
             max_memory_gb=None,
             database_root=None,
-            allow_oracle_plan=False,
         )
         == 0
     )
 
     prompt_text = json.dumps(captured["messages"])
-    assert "Predicted SQL plan" in prompt_text
-    assert "Relevant tables: customers" in prompt_text
+    assert "Predicted SQL plan" not in prompt_text
+    assert "Return only one SQL query" in prompt_text

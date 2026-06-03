@@ -12,6 +12,8 @@ from eval.run_semantic_value_retrieval_comparison import (
     validate_comparison_inputs,
     write_comparison_preflight,
 )
+
+
 def _write_jsonl(path: Path, rows: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(json.dumps(row) for row in rows) + "\n")
@@ -26,22 +28,6 @@ def _record(*, semantic: bool = False, sql: str = "SELECT name FROM singer;") ->
         "database_id": "music",
         "source": "unit",
         "evaluation_mode": "non_oracle_generation",
-        "uses_oracle_planning_hints": False,
-        "semantic_context_pruned_by_oracle_labels": False,
-        "gold_plans": [
-            {
-                "parseable": True,
-                "relevant_tables": ["singer"],
-                "relevant_columns": ["singer.name"],
-                "join_path": [],
-                "query_skeleton": {"select": True},
-                "projection_shape": {
-                    "selected_count": 1,
-                    "selected_expressions": ["singer.name"],
-                    "preserve_duplicates": True,
-                },
-            }
-        ],
         "messages": [
             {"role": "system", "content": "sql"},
             {"role": "user", "content": question},

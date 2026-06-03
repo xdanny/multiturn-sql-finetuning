@@ -1,35 +1,29 @@
 # Notebooks AGENTS
 
-This subtree owns shareable labs and notebook support code. Notebooks are
-companion material for a specific public explanation, not the source of truth
-for benchmark claims.
+This subtree owns shareable analysis notebooks. Notebooks are companion
+material, not the source of truth for benchmark claims.
 
 Primary responsibilities:
 
-- Keep labs small enough for readers to run on CPU by default, with accelerator
-  use treated as optional.
-- Make notebook examples explain method shape: direct SQL, planner/DSL first,
-  semantic-layer state, `MEASURE()` preservation, and behavior recovery.
-- Keep reusable logic in Python support modules instead of large notebook cells.
-- Make published HTML labs discoverable without turning every old blog post
-  into a notebook project.
+- Keep notebooks small, deterministic, and runnable without a live endpoint by
+  default.
+- Use notebooks to explain measured evidence, failure examples, and reproduction
+  paths.
+- Keep reusable logic in normal Python modules when it is part of the repo
+  workflow.
 
 Rules:
 
-- Use notebook code to illustrate the repo contracts; do not let notebook-only
-  results become benchmark evidence.
-- Do not expose reference SQL, gold plans, gold metric DSL, expected rows,
-  repair labels, or future turns as production-style model inputs.
-- Prefer static, deterministic examples over live endpoint calls.
-- If a lab cites a result, point to the manifest, artifact, or generated evidence
-  file that supports it.
-- Keep notebook exports synchronized only when the source notebook intentionally
-  changes. Avoid regenerating unrelated notebooks in the same PR.
+- Notebook-only results are not benchmark evidence.
+- Do not expose reference SQL, expected rows, repair labels, or future turns as
+  model inputs for validation, holdout, or hosted comparisons.
+- If a notebook cites a result, point to the manifest or compact evidence
+  artifact that supports it.
+- Avoid rigid article scaffolds. Let blog prose and notebooks follow the
+  research question and measured results.
 
 When editing here, inspect:
 
-- `notebooks/labs/local_multiturn_sql_lab.py`
-- `notebooks/labs/local_multiturn_sql_lab_support.py`
+- `README.md`
+- `docs/research_roadmap.md`
 - `docs/blog/README.md`
-- `docs/finetuning_measurement_plan.md`
-- `docs/evidence_contract.md`

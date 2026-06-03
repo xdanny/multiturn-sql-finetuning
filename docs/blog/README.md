@@ -1,35 +1,20 @@
-# Blog-Attached Code Lab
+# Blog Notes
 
-The public post links to this repository as an attached codebase and to a
-published HTML lab at `/labs/local-multiturn-sql-finetuning/`. The same lab can
-be rerun from the source code with Marimo:
+This directory should not contain generated evidence bundles or rigid article
+templates.
 
-```bash
-marimo edit notebooks/labs/local_multiturn_sql_lab.py
-```
+A good writeup for this project should start with the research question, then
+walk through the literature-shaped ideas, the implementation, the measurements,
+and the mistakes:
 
-A portable Jupyter export is also available:
+- why multi-turn SQL is harder than single-turn SQL;
+- why local fine-tuning is being compared against raw Qwen and hosted SOTA;
+- what data was used for training, validation, proxy evidence, and holdout;
+- which methods improved value or strict accuracy;
+- which methods failed or stayed inconclusive;
+- what the next benchmark-ready test is.
 
-```bash
-jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb
-```
-
-The lab is CPU-safe and auto-selects CUDA, MPS, or XPU
-when PyTorch can detect an accelerator, then falls back to CPU. It compares direct SQL,
-planner-first SQL, semantic-layer state, `MEASURE()`-preserving DSL, and
-behavior/recovery tuning on a small four-turn scenario. It should stay a
-portable lab, not a serving or dependency-installation guide.
-
-The post should use the lab as the code attachment and cite run manifests or
-small canonical data artifacts for any larger endpoint, planner, metric-DSL, or
-rollout result. It should not turn local setup, vLLM serving, generated evidence
-bundles, or environment notes into the public reader path.
-
-The intended pattern is:
-
-1. The post frames a claim.
-2. The matching lab section runs the smallest executable version of the claim or
-   diagnostic.
-3. Run manifests or canonical data artifacts support larger endpoint and planner
-   results.
-4. The post states what the artifact proves and what it does not prove.
+Blog claims must point back to checked-in commands, manifests, or compact
+evidence artifacts. If a result is diagnostic because it used answer-key-derived
+context, call it diagnostic and explain what it teaches rather than presenting
+it as production accuracy.

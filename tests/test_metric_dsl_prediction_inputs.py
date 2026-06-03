@@ -46,7 +46,7 @@ def test_metric_dsl_prediction_input_summary_records_eval_command() -> None:
     assert summary["metric_dsl_prediction_input_count"] == 2
     assert summary["direct_sql_prediction_input_count"] == 2
     assert summary["comparison_contract"] == "same_fixture_metric_dsl_vs_direct_sql_predictions"
-    assert "eval.run_metric_dsl_comparison" in summary["evaluation_gate"]
+    assert "eval.run_metric_dsl_comparison" in summary["evaluation_command"]
 
 
 def test_write_metric_dsl_prediction_input_artifacts(tmp_path) -> None:

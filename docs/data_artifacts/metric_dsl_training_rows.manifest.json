@@ -5,12 +5,12 @@
   ],
   "direct_sql_control_row_count": 2,
   "direct_sql_output_path": "docs/data_artifacts/metric_dsl_direct_sql_training_rows.jsonl",
-  "direct_sql_output_sha256": "27e7ce5ab3c855cae3a5f08c75820d3298c4dcc01dc399049a0ab8686a9b56ef",
+  "direct_sql_output_sha256": "1ae4e73bcd8d3f842e0cbd739e37b5b17fb8d01f9d93fd32814264b78b137d64",
+  "leakage_policy": "synthetic_curated_label",
   "metric_dsl_output_path": "docs/data_artifacts/metric_dsl_training_rows.jsonl",
-  "metric_dsl_output_sha256": "1bd4f21f6b668583eef7545c8561a9c04eeedd932dc11d1540a7bd78fc8c5ba0",
+  "metric_dsl_output_sha256": "452129c9496fbb7254f1145641fec8ea354dbb4d25ee8ae61446e94dae839be2",
   "metric_dsl_row_count": 2,
-  "oracle_policy": "synthetic_curated_label",
   "schema_version": 1,
   "summary_path": "docs/data_artifacts/metric_dsl_training_rows_summary.json",
-  "summary_sha256": "3d823abdcbd847f703029c983d4e7ddca0a8ea5a5fc6fbef0609261965dc1a2a"
+  "summary_sha256": "29a48e8c6a05e2fb1d8108ea925a0e5db0057bdbd2065925b568ae609116e29a"
 }

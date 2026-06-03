@@ -12,7 +12,7 @@
     "grain_fanout_bridge",
     "measure_preservation_metric"
   ],
+  "leakage_policy": "synthetic_curated_label",
   "metric_dsl_row_count": 2,
-  "oracle_policy": "synthetic_curated_label",
   "schema_version": 1
 }

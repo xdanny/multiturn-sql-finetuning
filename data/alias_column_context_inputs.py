@@ -100,10 +100,6 @@ def add_alias_column_context(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Return one prepared record with schema-derived column-role context."""
 
-    if record.get("uses_oracle_planning_hints") or record.get(
-        "semantic_context_pruned_by_oracle_labels"
-    ):
-        raise ValueError("alias/column context inputs must be non-oracle")
     messages = [dict(message) for message in record.get("messages") or []]
     database_id = str(record.get("database_id") or "")
     context = column_context_by_database[database_id]
@@ -173,12 +169,12 @@ def build_alias_column_context_inputs(
         "table_count": sum(summary["table_count"] for summary in row_summaries),
         "column_count": sum(summary["column_count"] for summary in row_summaries),
         "join_key_count": sum(summary["join_key_count"] for summary in row_summaries),
-        "oracle_policy": "non_oracle_schema_introspection_only",
+        "leakage_policy": "schema_introspection_only",
         "leakage_boundary": (
             "no reference SQL, gold plans, expected rows, assistant SQL, or future user turns "
             "are used to build column-role context"
         ),
-        "evaluation_gate": "eval.run_eval or eval.rollout_eval plus eval.alias_column_validity",
+        "evaluation_command": "eval.run_eval or eval.rollout_eval plus eval.alias_column_validity",
     }
 
 
@@ -212,9 +208,9 @@ def write_alias_column_context_input_artifacts(
         "row_count": summary["row_count"],
         "assistant_turn_count": summary["assistant_turn_count"],
         "database_count": summary["database_count"],
-        "oracle_policy": summary["oracle_policy"],
+        "leakage_policy": summary["leakage_policy"],
         "leakage_boundary": summary["leakage_boundary"],
-        "evaluation_gate": summary["evaluation_gate"],
+        "evaluation_command": summary["evaluation_command"],
         "command": command or sys.argv,
     }
     _write_json(manifest_path, manifest)

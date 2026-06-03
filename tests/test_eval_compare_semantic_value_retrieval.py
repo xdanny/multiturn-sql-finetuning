@@ -122,7 +122,7 @@ def test_compare_semantic_value_retrieval_rejects_value_index_mismatch() -> None
 
 def test_compare_semantic_value_retrieval_rejects_oracle_rows() -> None:
     semantic_rows = _rows()
-    semantic_rows[0]["semantic_context_pruned_by_oracle_labels"] = True
+    semantic_rows[0]["semantic_model_oracle_derived"] = True
 
     with pytest.raises(ValueError, match="oracle"):
         compare_semantic_value_retrieval_manifests(

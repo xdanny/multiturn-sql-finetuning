@@ -1,7 +1,7 @@
 {
   "artifact_type": "behavior_recovery_rollout_inputs",
   "comparison_contract": "same_dialog_rollout_vs_teacher_forced_history",
-  "evaluation_gate": "eval.rollout_eval then eval.compare_rollout_history",
+  "evaluation_command": "eval.rollout_eval then eval.compare_rollout_history",
   "failure_mode_counts": {
     "entity_resolution": 1,
     "recovery": 1,
@@ -13,7 +13,7 @@
   "history_policy_counts": {
     "seeded_generated_failure_then_rollout": 1
   },
-  "oracle_policy": "seeded_generated_failure_visible_repair_label_held_out",
+  "leakage_policy": "seeded_generated_failure_with_repair_label_held_out",
   "rollout_input_count": 1,
   "schema_version": 1
 }
