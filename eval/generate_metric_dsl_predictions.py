@@ -16,6 +16,7 @@ from eval.local_generation import local_adapter_generate_fn
 from eval.ragas_metrics import extract_sql
 
 GenerateFn = Callable[[list[dict[str, str]]], tuple[str, float]]
+__all__ = ["_chat_prompt", "generate_prediction_rows", "run_generate_metric_dsl_predictions"]
 
 
 def _load_jsonl(path: Path) -> list[dict[str, Any]]:

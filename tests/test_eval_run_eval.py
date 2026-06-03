@@ -2,24 +2,16 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
-import eval.run_eval as run_eval_module
 from eval.run_eval import (
     assistant_turn_indices,
     database_path_for_record,
     enforce_sql_only_instruction,
-    estimate_generation_cost_usd,
     expand_prepared_record,
-    extract_generated_sql,
     extract_reference_sql,
     generate_sql,
-    generate_sql_with_usage,
     load_prepared_records,
     messages_for_generation,
-    prompt_variant_for_record,
     summarize_eval_metrics,
-    usage_from_response,
     write_results,
 )
 
@@ -64,55 +56,6 @@ def test_load_prepared_records_hides_reference_assistant_turn(tmp_path) -> None:
     assert records[0]["turn_count"] == 1
 
 
-def test_load_prepared_records_preserves_split_provenance(tmp_path) -> None:
-    path = tmp_path / "prepared.jsonl"
-    path.write_text(
-        json.dumps(
-            {
-                "source": "cosql_dev_clean_holdout_v1",
-                "database_id": "car_1",
-                "evaluation_mode": "non_oracle_generation",
-                "planning_label_source": "gold_reference_sql",
-                "uses_oracle_planning_hints": False,
-                "semantic_context_pruned_by_oracle_labels": False,
-                "split_id": "cosql_dev_clean_holdout_v1",
-                "split_role": "clean_local_holdout",
-                "split_row_id": "cosql_dev:0100:car_1",
-                "split_source_path": "data/raw/cosql_dataset/sql_state_tracking/cosql_dev.json",
-                "split_source_sha256": "abc123",
-                "split_row_ids_sha256": "row-hash",
-                "schema_link_labels": [
-                    {"relevant_tables": ["cars"], "projection_shape": {"selected_count": 1}},
-                    {"relevant_tables": ["cars"], "projection_shape": {"selected_count": 1}},
-                ],
-                "gold_plans": [
-                    {"relevant_tables": ["cars"], "projection_shape": {"selected_count": 1}},
-                    {"relevant_tables": ["cars"], "projection_shape": {"selected_count": 1}},
-                ],
-                "messages": [
-                    {"role": "system", "content": "sys"},
-                    {"role": "user", "content": "q1"},
-                    {"role": "assistant", "content": "SELECT 1;"},
-                    {"role": "user", "content": "q2"},
-                    {"role": "assistant", "content": "SELECT 2;"},
-                ],
-            }
-        )
-        + "\n"
-    )
-
-    records = load_prepared_records(path)
-
-    assert [record["split_row_id"] for record in records] == [
-        "cosql_dev:0100:car_1",
-        "cosql_dev:0100:car_1",
-    ]
-    assert records[0]["split_id"] == "cosql_dev_clean_holdout_v1"
-    assert records[0]["split_role"] == "clean_local_holdout"
-    assert records[0]["split_source_sha256"] == "abc123"
-    assert records[1]["turn_index"] == 1
-
-
 def test_load_prepared_records_expands_multi_turn_dialogs(tmp_path) -> None:
     path = tmp_path / "prepared.jsonl"
     path.write_text(
@@ -122,20 +65,9 @@ def test_load_prepared_records_expands_multi_turn_dialogs(tmp_path) -> None:
                 "source": "unit",
                 "database_id": "db1",
                 "history_policy": "gold_sql_teacher_forced",
-                "evaluation_mode": "oracle_planner_diagnostic",
-                "planning_label_source": "gold_reference_sql",
-                "uses_oracle_planning_hints": True,
-                "semantic_context_pruned_by_oracle_labels": True,
-                "oracle_diagnostic_warning": "oracle warning",
-                "gold_plans": [
-                    {"relevant_tables": ["one"], "projection_shape": {"selected_count": 1}},
-                    {"relevant_tables": ["two"], "projection_shape": {"selected_count": 1}},
-                ],
-                "predicted_plans": [
-                    {"prediction_source": "json_planner_predictions", "relevant_tables": ["one"]},
-                    {"prediction_source": "json_planner_predictions", "relevant_tables": ["wrong"]},
-                ],
-                "predicted_plan_source": "json_planner_predictions",
+                "evaluation_mode": "non_oracle_generation",
+                "schema_link_label_source": "reference_sql_for_scoring_only",
+                "schema_link_labels": [{"relevant_tables": ["one"]}, {"relevant_tables": ["two"]}],
                 "messages": [
                     {"role": "system", "content": "sys"},
                     {"role": "user", "content": "q1"},
@@ -148,10 +80,7 @@ def test_load_prepared_records_expands_multi_turn_dialogs(tmp_path) -> None:
         + "\n"
     )
 
-    with pytest.raises(ValueError, match="oracle planning hints"):
-        load_prepared_records(path)
-
-    records = load_prepared_records(path, allow_oracle_plan=True)
+    records = load_prepared_records(path)
 
     assert assistant_turn_indices(json.loads(path.read_text())["messages"]) == [2, 4]
     assert [record["reference_sql"] for record in records] == ["SELECT 1;", "SELECT 2;"]
@@ -160,139 +89,10 @@ def test_load_prepared_records_expands_multi_turn_dialogs(tmp_path) -> None:
     assert records[0]["messages"][-1]["content"] == "q1"
     assert records[1]["messages"][-1]["content"] == "q2"
     assert records[1]["messages"][2]["content"] == "SELECT 1;"
-    assert records[0]["evaluation_mode"] == "oracle_planner_diagnostic"
+    assert records[0]["evaluation_mode"] == "non_oracle_generation"
     assert records[0]["history_policy"] == "gold_sql_teacher_forced"
-    assert records[0]["planning_label_source"] == "gold_reference_sql"
-    assert records[0]["uses_oracle_planning_hints"] is True
-    assert records[0]["semantic_context_pruned_by_oracle_labels"] is True
-    assert records[0]["oracle_diagnostic_warning"] == "oracle warning"
-    assert records[0]["gold_plan"]["relevant_tables"] == ["one"]
-    assert records[1]["gold_plan"]["relevant_tables"] == ["two"]
-    assert records[0]["predicted_plan"]["relevant_tables"] == ["one"]
-    assert records[1]["predicted_plan"]["relevant_tables"] == ["wrong"]
-    assert records[0]["predicted_plan_source"] == "json_planner_predictions"
-    assert records[1]["predicted_plan_source"] == "json_planner_predictions"
-
-
-def test_load_prepared_records_prefers_schema_labels_over_stale_gold_plans(tmp_path) -> None:
-    path = tmp_path / "prepared.jsonl"
-    path.write_text(
-        json.dumps(
-            {
-                "id": "dialog-a",
-                "evaluation_mode": "non_oracle_generation",
-                "uses_oracle_planning_hints": False,
-                "semantic_context_pruned_by_oracle_labels": False,
-                "schema_link_labels": [
-                    {
-                        "projection_shape": {
-                            "selected_expressions": ["name", "location"],
-                            "selected_count": 2,
-                        }
-                    }
-                ],
-                "gold_plans": [
-                    {
-                        "projection_shape": {
-                            "selected_expressions": ["location", "name"],
-                            "selected_count": 2,
-                        }
-                    }
-                ],
-                "messages": [
-                    {"role": "user", "content": "Show name and location."},
-                    {"role": "assistant", "content": "SELECT name, location FROM stadium;"},
-                ],
-            }
-        )
-        + "\n"
-    )
-
-    records = load_prepared_records(path)
-
-    assert records[0]["gold_plan"]["projection_shape"]["selected_expressions"] == [
-        "name",
-        "location",
-    ]
-    assert records[0]["schema_link_labels"]["projection_shape"]["selected_expressions"] == [
-        "name",
-        "location",
-    ]
-
-
-def test_load_prepared_records_falls_back_to_gold_plans_for_unlabeled_turns(tmp_path) -> None:
-    path = tmp_path / "prepared.jsonl"
-    path.write_text(
-        json.dumps(
-            {
-                "id": "dialog-a",
-                "evaluation_mode": "non_oracle_generation",
-                "uses_oracle_planning_hints": False,
-                "semantic_context_pruned_by_oracle_labels": False,
-                "schema_link_labels": [
-                    {
-                        "projection_shape": {
-                            "selected_expressions": ["first_schema_label"],
-                            "selected_count": 1,
-                        }
-                    }
-                ],
-                "gold_plans": [
-                    {
-                        "projection_shape": {
-                            "selected_expressions": ["first_gold_plan"],
-                            "selected_count": 1,
-                        }
-                    },
-                    {
-                        "projection_shape": {
-                            "selected_expressions": ["second_gold_plan"],
-                            "selected_count": 1,
-                        }
-                    },
-                ],
-                "messages": [
-                    {"role": "user", "content": "first"},
-                    {"role": "assistant", "content": "SELECT first;"},
-                    {"role": "user", "content": "second"},
-                    {"role": "assistant", "content": "SELECT second;"},
-                ],
-            }
-        )
-        + "\n"
-    )
-
-    records = load_prepared_records(path)
-
-    assert records[0]["gold_plan"]["projection_shape"]["selected_expressions"] == [
-        "first_schema_label",
-    ]
-    assert records[1]["gold_plan"]["projection_shape"]["selected_expressions"] == [
-        "second_gold_plan",
-    ]
-    assert records[1]["schema_link_labels"] is None
-
-
-def test_load_prepared_records_rejects_legacy_oracle_hint_marker(tmp_path) -> None:
-    path = tmp_path / "prepared.jsonl"
-    path.write_text(
-        json.dumps(
-            {
-                "messages": [
-                    {"role": "system", "content": "sys"},
-                    {
-                        "role": "user",
-                        "content": "SQL planning hints:\nRelevant tables: singer\n\nQuestion:\nList singers.",
-                    },
-                    {"role": "assistant", "content": "SELECT name FROM singer;"},
-                ],
-            }
-        )
-        + "\n"
-    )
-
-    with pytest.raises(ValueError, match="oracle planning hints"):
-        load_prepared_records(path)
+    assert records[0]["schema_link_labels"]["relevant_tables"] == ["one"]
+    assert records[1]["schema_link_labels"]["relevant_tables"] == ["two"]
 
 
 def test_load_prepared_records_limit_applies_to_turns(tmp_path) -> None:
@@ -317,115 +117,18 @@ def test_load_prepared_records_limit_applies_to_turns(tmp_path) -> None:
     assert records[0]["reference_sql"] == "SELECT 1;"
 
 
-def test_load_prepared_records_rejects_predicted_mode_without_predictions(tmp_path) -> None:
-    path = tmp_path / "prepared.jsonl"
-    path.write_text(
-        json.dumps(
-            {
-                "evaluation_mode": "predicted_planner",
-                "gold_plans": [{"relevant_tables": ["singer"]}],
-                "messages": [
-                    {"role": "system", "content": "sys"},
-                    {"role": "user", "content": "q1"},
-                    {"role": "assistant", "content": "SELECT 1;"},
-                ],
-            }
-        )
-        + "\n"
-    )
-
-    with pytest.raises(ValueError, match="predicted planner"):
-        load_prepared_records(path)
-
-
-def test_messages_for_generation_adds_predicted_plan_without_oracle_language() -> None:
+def test_messages_for_generation_only_adds_sql_instruction() -> None:
     record = {
         "messages": [
             {"role": "system", "content": "sys"},
             {"role": "user", "content": "List airline names."},
         ],
-        "evaluation_mode": "predicted_planner",
-        "predicted_plan": {
-            "relevant_tables": ["airlines"],
-            "relevant_columns": ["airlines.name"],
-            "join_path": [],
-            "query_skeleton": {"select": True},
-            "projection_shape": {
-                "selected_count": 1,
-                "selected_expressions": ["airlines.name"],
-                "preserve_duplicates": True,
-            },
-        },
     }
 
     messages = messages_for_generation(record)
 
     assert "Return only one SQL query" in messages[0]["content"]
-    assert "Predicted SQL plan" in messages[-1]["content"]
-    assert "Relevant tables: airlines" in messages[-1]["content"]
-    assert "derived from reference SQL" not in messages[-1]["content"]
-
-
-def test_messages_for_generation_preserves_structured_brief_prompt_variant() -> None:
-    record = {
-        "messages": [
-            {"role": "system", "content": "First write QUERY_BRIEF, then SQL."},
-            {"role": "user", "content": "List airline names."},
-        ],
-        "evaluation_mode": "non_oracle_generation",
-    }
-
-    messages = messages_for_generation(record, prompt_variant="structured_brief_sql")
-
-    assert messages == record["messages"]
-    assert "Return only one SQL query" not in messages[0]["content"]
-
-
-def test_extract_generated_sql_uses_sql_marker_for_structured_brief_variant() -> None:
-    raw_generation = (
-        "QUERY_BRIEF:\n"
-        "intent: select orders by customer\n"
-        "filters: none\n"
-        "SQL:\n"
-        "SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id;"
-    )
-
-    assert extract_generated_sql(raw_generation, prompt_variant="structured_brief_sql") == (
-        "SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id;"
-    )
-
-
-def test_extract_generated_sql_ignores_sql_marker_inside_query_literal() -> None:
-    raw_generation = (
-        "QUERY_BRIEF:\n"
-        "intent: select notes with migration marker\n"
-        "SQL:\n"
-        "SELECT note FROM events WHERE note = 'SQL: migration';"
-    )
-
-    assert extract_generated_sql(raw_generation, prompt_variant="structured_brief_sql") == (
-        "SELECT note FROM events WHERE note = 'SQL: migration';"
-    )
-
-
-def test_extract_generated_sql_keeps_generic_extraction_for_direct_sql() -> None:
-    raw_generation = "Brief says select orders.\nSELECT * FROM orders;"
-
-    assert extract_generated_sql(raw_generation) == "select orders.\nSELECT * FROM orders;"
-
-
-def test_prompt_variant_for_record_prefers_cli_value() -> None:
-    assert (
-        prompt_variant_for_record(
-            {"prompt_variant": "structured_brief_sql"},
-            prompt_variant="direct_sql_override",
-        )
-        == "direct_sql_override"
-    )
-    assert (
-        prompt_variant_for_record({"prompt_variant": "structured_brief_sql"})
-        == "structured_brief_sql"
-    )
+    assert messages[-1]["content"] == "List airline names."
 
 
 def test_expand_prepared_record_uses_stable_fallback_dialog_id() -> None:
@@ -441,20 +144,6 @@ def test_expand_prepared_record_uses_stable_fallback_dialog_id() -> None:
 
     assert records[0]["dialog_id"] == "prepared-7"
     assert records[0]["id"] == "prepared-7:0"
-
-
-def test_messages_for_generation_rejects_empty_predicted_plan() -> None:
-    record = {
-        "messages": [
-            {"role": "system", "content": "sys"},
-            {"role": "user", "content": "List airline names."},
-        ],
-        "evaluation_mode": "predicted_planner",
-        "predicted_plan": {"query_skeleton": {"select": True}},
-    }
-
-    with pytest.raises(ValueError, match="relevant table or column"):
-        messages_for_generation(record)
 
 
 def test_write_results_writes_jsonl(tmp_path) -> None:
@@ -520,249 +209,6 @@ def test_summarize_eval_metrics_records_teacher_forced_history_policy() -> None:
     assert metrics["history_policies"] == {"gold_sql_teacher_forced": 2}
 
 
-def test_summarize_eval_metrics_records_split_provenance_hashes() -> None:
-    metrics = summarize_eval_metrics(
-        [
-            {
-                "execution_score": 1.0,
-                "strict_execution_score": 1.0,
-                "value_execution_score": 1.0,
-                "syntax_valid": True,
-                "generation_latency_ms": 10.0,
-                "split_id": "cosql_dev_clean_holdout_v1",
-                "split_role": "clean_local_holdout",
-                "split_row_id": "cosql_dev:0100:car_1",
-                "split_source_sha256": "source-hash",
-                "turn_index": 0,
-            },
-            {
-                "execution_score": 0.0,
-                "strict_execution_score": 0.0,
-                "value_execution_score": 0.0,
-                "syntax_valid": True,
-                "generation_latency_ms": 20.0,
-                "split_id": "cosql_dev_clean_holdout_v1",
-                "split_role": "clean_local_holdout",
-                "split_row_id": "cosql_dev:0100:car_1",
-                "split_source_sha256": "source-hash",
-                "turn_index": 1,
-            },
-            {
-                "execution_score": 1.0,
-                "strict_execution_score": 1.0,
-                "value_execution_score": 1.0,
-                "syntax_valid": True,
-                "generation_latency_ms": 30.0,
-                "split_id": "cosql_dev_clean_holdout_v1",
-                "split_role": "clean_local_holdout",
-                "split_row_id": "cosql_dev:0101:poker_player",
-                "split_source_sha256": "source-hash",
-                "turn_index": 0,
-            },
-        ]
-    )
-
-    assert metrics["split_ids"] == {"cosql_dev_clean_holdout_v1": 3}
-    assert metrics["split_roles"] == {"clean_local_holdout": 3}
-    assert metrics["split_row_count"] == 2
-    assert metrics["split_eval_turn_count"] == 3
-    assert metrics["split_source_sha256s"] == ["source-hash"]
-    assert metrics["split_row_ids_sha256"]
-    assert metrics["split_eval_turn_ids_sha256"]
-    assert metrics["split_row_ids_sha256"] != metrics["split_eval_turn_ids_sha256"]
-
-
-def test_summarize_eval_metrics_records_token_and_cost_totals() -> None:
-    metrics = summarize_eval_metrics(
-        [
-            {
-                "execution_score": 1.0,
-                "strict_execution_score": 1.0,
-                "value_execution_score": 1.0,
-                "syntax_valid": True,
-                "generation_latency_ms": 10.0,
-                "prompt_tokens": 100,
-                "completion_tokens": 25,
-                "total_tokens": 125,
-                "estimated_generation_cost_usd": 0.00025,
-            },
-            {
-                "execution_score": 0.0,
-                "strict_execution_score": 0.0,
-                "value_execution_score": 0.0,
-                "syntax_valid": True,
-                "generation_latency_ms": 20.0,
-                "prompt_tokens": 80,
-                "completion_tokens": 20,
-                "total_tokens": 100,
-                "estimated_generation_cost_usd": 0.00020,
-            },
-        ]
-    )
-
-    assert metrics["token_usage_available_rows"] == 2
-    assert metrics["total_prompt_tokens"] == 180
-    assert metrics["total_completion_tokens"] == 45
-    assert metrics["total_tokens"] == 225
-    assert metrics["mean_prompt_tokens"] == 90
-    assert metrics["mean_completion_tokens"] == 22.5
-    assert metrics["mean_total_tokens"] == 112.5
-    assert metrics["total_estimated_generation_cost_usd"] == pytest.approx(0.00045)
-    assert metrics["mean_estimated_generation_cost_usd"] == pytest.approx(0.000225)
-
-
-def test_run_eval_manifest_records_prepared_split_provenance(tmp_path, monkeypatch) -> None:
-    input_path = tmp_path / "prepared.jsonl"
-    output_path = tmp_path / "results.jsonl"
-    manifest_path = tmp_path / "results.manifest.json"
-    input_path.write_text(
-        json.dumps(
-            {
-                "source": "cosql_dev_clean_holdout_v1",
-                "database_id": "car_1",
-                "evaluation_mode": "non_oracle_generation",
-                "planning_label_source": "gold_reference_sql",
-                "uses_oracle_planning_hints": False,
-                "semantic_context_pruned_by_oracle_labels": False,
-                "split_id": "cosql_dev_clean_holdout_v1",
-                "split_role": "clean_local_holdout",
-                "split_row_id": "cosql_dev:0100:car_1",
-                "split_source_path": "data/raw/cosql_dataset/sql_state_tracking/cosql_dev.json",
-                "split_source_sha256": "source-hash",
-                "split_row_ids_sha256": "row-hash",
-                "schema_link_labels": [
-                    {"relevant_tables": [], "projection_shape": {"selected_count": 1}},
-                ],
-                "gold_plans": [
-                    {"relevant_tables": [], "projection_shape": {"selected_count": 1}},
-                ],
-                "messages": [
-                    {"role": "system", "content": "sys"},
-                    {"role": "user", "content": "q1"},
-                    {"role": "assistant", "content": "SELECT 1"},
-                ],
-            }
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-
-    def fake_generate_sql_with_usage(*args, **kwargs):
-        return "SELECT 1", 12.0, {
-            "prompt_tokens": 100,
-            "completion_tokens": 25,
-            "total_tokens": 125,
-        }
-
-    monkeypatch.setattr(run_eval_module, "generate_sql_with_usage", fake_generate_sql_with_usage)
-
-    assert (
-        run_eval_module.run_eval(
-            benchmark="prepared",
-            endpoint="http://localhost:8000/v1",
-            model_name="unit-model",
-            output=output_path,
-            input_path=input_path,
-            limit=None,
-            database_root=None,
-            api_key="EMPTY",
-            temperature=0.0,
-            max_tokens=16,
-            allow_oracle_plan=False,
-            manifest_output=manifest_path,
-            command=["uv", "run", "python", "-m", "eval.run_eval"],
-            prompt_token_cost_usd_per_1k=0.001,
-            completion_token_cost_usd_per_1k=0.002,
-        )
-        == 0
-    )
-
-    result = json.loads(output_path.read_text(encoding="utf-8").splitlines()[0])
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert result["split_row_id"] == "cosql_dev:0100:car_1"
-    assert manifest["metrics"]["split_ids"] == {"cosql_dev_clean_holdout_v1": 1}
-    assert manifest["metrics"]["split_roles"] == {"clean_local_holdout": 1}
-    assert manifest["metrics"]["split_row_count"] == 1
-    assert manifest["metrics"]["split_eval_turn_count"] == 1
-    assert manifest["metrics"]["split_source_sha256s"] == ["source-hash"]
-    assert manifest["metrics"]["split_row_ids_sha256"]
-    assert manifest["metrics"]["split_eval_turn_ids_sha256"]
-    assert manifest["metrics"]["total_prompt_tokens"] == 100
-    assert manifest["metrics"]["total_completion_tokens"] == 25
-    assert manifest["metrics"]["total_tokens"] == 125
-    assert manifest["metrics"]["total_estimated_generation_cost_usd"] == pytest.approx(0.00015)
-    assert manifest["metrics"]["token_cost_rates_usd_per_1k"] == {
-        "prompt": 0.001,
-        "completion": 0.002,
-    }
-
-
-def test_run_eval_uses_row_level_structured_brief_prompt_variant(
-    tmp_path,
-    monkeypatch,
-) -> None:
-    input_path = tmp_path / "prepared.jsonl"
-    output_path = tmp_path / "results.jsonl"
-    manifest_path = tmp_path / "results.manifest.json"
-    input_path.write_text(
-        json.dumps(
-            {
-                "source": "unit",
-                "database_id": "car_1",
-                "evaluation_mode": "non_oracle_generation",
-                "prompt_variant": "structured_brief_sql",
-                "gold_plans": [
-                    {"relevant_tables": ["customers"], "projection_shape": {"selected_count": 1}},
-                ],
-                "messages": [
-                    {"role": "system", "content": "First write QUERY_BRIEF, then SQL."},
-                    {"role": "user", "content": "Question:\nList customers."},
-                    {"role": "assistant", "content": "SELECT name FROM customers;"},
-                ],
-            }
-        )
-        + "\n",
-        encoding="utf-8",
-    )
-    seen_messages = []
-
-    def fake_generate_sql_with_usage(*args, **kwargs):
-        seen_messages.append(kwargs["messages"])
-        return (
-            "QUERY_BRIEF:\nintent: select customers\nSQL:\nSELECT name FROM customers;",
-            12.0,
-            {"prompt_tokens": 10, "completion_tokens": 8, "total_tokens": 18},
-        )
-
-    monkeypatch.setattr(run_eval_module, "generate_sql_with_usage", fake_generate_sql_with_usage)
-
-    assert (
-        run_eval_module.run_eval(
-            benchmark="prepared",
-            endpoint="http://localhost:8000/v1",
-            model_name="unit-model",
-            output=output_path,
-            input_path=input_path,
-            limit=None,
-            database_root=None,
-            api_key="EMPTY",
-            temperature=0.0,
-            max_tokens=64,
-            allow_oracle_plan=False,
-            manifest_output=manifest_path,
-            command=["uv", "run", "python", "-m", "eval.run_eval"],
-        )
-        == 0
-    )
-
-    result = json.loads(output_path.read_text(encoding="utf-8").splitlines()[0])
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    assert "Return only one SQL query" not in seen_messages[0][0]["content"]
-    assert result["prompt_variant"] == "structured_brief_sql"
-    assert result["generated_sql"] == "SELECT name FROM customers;"
-    assert manifest["prompt_variant"] == "structured_brief_sql"
-
-
 def test_enforce_sql_only_instruction_appends_to_system_message() -> None:
     messages = enforce_sql_only_instruction(
         [{"role": "system", "content": "sys"}, {"role": "user", "content": "q"}]
@@ -813,69 +259,3 @@ def test_generate_sql_disables_qwen_thinking() -> None:
 
     assert text == "SELECT 1"
     assert latency_ms >= 0
-
-
-def test_generate_sql_with_usage_records_openai_token_usage() -> None:
-    class Message:
-        content = "SELECT 1"
-
-    class Choice:
-        message = Message()
-
-    class Usage:
-        prompt_tokens = 10
-        completion_tokens = 3
-        total_tokens = 13
-
-    class Response:
-        choices = [Choice()]
-        usage = Usage()
-
-    class Completions:
-        def create(self, **kwargs):
-            return Response()
-
-    class Chat:
-        completions = Completions()
-
-    class Client:
-        chat = Chat()
-
-    text, latency_ms, usage = generate_sql_with_usage(
-        Client(),
-        model_name="model",
-        messages=[{"role": "user", "content": "q"}],
-        temperature=0.0,
-        max_tokens=8,
-    )
-
-    assert text == "SELECT 1"
-    assert latency_ms >= 0
-    assert usage == {"prompt_tokens": 10, "completion_tokens": 3, "total_tokens": 13}
-
-
-def test_usage_from_response_accepts_dict_style_usage_and_derives_total() -> None:
-    class Response:
-        usage = {"input_tokens": 4, "output_tokens": 6}
-
-    assert usage_from_response(Response()) == {
-        "prompt_tokens": 4,
-        "completion_tokens": 6,
-        "total_tokens": 10,
-    }
-
-
-def test_estimate_generation_cost_returns_none_without_usage() -> None:
-    assert (
-        estimate_generation_cost_usd(
-            {"prompt_tokens": None, "completion_tokens": None, "total_tokens": None},
-            prompt_token_cost_usd_per_1k=0.001,
-            completion_token_cost_usd_per_1k=0.002,
-        )
-        is None
-    )
-    assert estimate_generation_cost_usd(
-        {"prompt_tokens": 100, "completion_tokens": 25, "total_tokens": 125},
-        prompt_token_cost_usd_per_1k=0.001,
-        completion_token_cost_usd_per_1k=0.002,
-    ) == pytest.approx(0.00015)

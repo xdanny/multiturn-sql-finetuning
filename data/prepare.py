@@ -12,7 +12,7 @@ import json
 import sys
 from collections import Counter
 from collections.abc import Callable, Iterable, Iterator
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -20,23 +20,7 @@ import yaml
 from datasets import Dataset, load_dataset
 from huggingface_hub.errors import HfHubHTTPError
 
-from data.plan_contract import (
-    assistant_turn_count,
-    evaluation_mode_from_flags,
-    normalize_plan,
-    validate_prepared_record_contract,
-)
-from data.sql_labels import (
-    labels_from_sql,
-    planning_hint_from_labels,
-    prune_semantic_model_context,
-    schema_columns_from_context,
-)
-
-ORACLE_DIAGNOSTIC_WARNING = (
-    "This record uses planning labels derived from reference SQL. Treat results as "
-    "teacher-forced/oracle diagnostics, not production text-to-SQL accuracy."
-)
+from data.sql_labels import labels_from_sql, schema_columns_from_context
 
 SYSTEM_PROMPT = (
     "You are a SQL expert. Given database context and a user question, generate only the "
@@ -58,8 +42,6 @@ class DatasetSpec:
     formatter: str
     weight: float = 1.0
     tables_path: str | None = None
-    include_sql_labels: bool = False
-    prune_semantic_model: bool = False
 
 
 Formatter = Callable[[dict[str, Any]], list[dict[str, str]]]
@@ -78,7 +60,6 @@ def _user_content(
     schema: str | None = None,
     semantic_model: str | None = None,
     database_id: str | None = None,
-    planning_hint: str | None = None,
 ) -> str:
     parts = []
     if database_id:
@@ -87,8 +68,6 @@ def _user_content(
         parts.append(f"Schema/context:\n{schema}")
     if semantic_model:
         parts.append(f"Semantic model:\n{semantic_model}")
-    if planning_hint:
-        parts.append(planning_hint)
     parts.append(f"Question:\n{question}")
     return "\n\n".join(parts)
 
@@ -104,9 +83,6 @@ def format_sparc(example: dict[str, Any]) -> list[dict[str, str]]:
     query = str(_required(example, "query"))
     database_id = str(example.get("database_id") or example.get("db_id") or "")
     semantic_model = example.get("semantic_model_context")
-    include_sql_labels = bool(example.get("include_sql_labels"))
-    schema_columns = example.get("schema_columns")
-    labels = labels_from_sql(query, schema_columns=schema_columns) if include_sql_labels else None
     return [
         {"role": "system", "content": SYSTEM_PROMPT},
         {
@@ -115,7 +91,6 @@ def format_sparc(example: dict[str, Any]) -> list[dict[str, str]]:
                 question,
                 semantic_model=str(semantic_model) if semantic_model else None,
                 database_id=database_id,
-                planning_hint=planning_hint_from_labels(labels) if labels else None,
             ),
         },
         {"role": "assistant", "content": query},
@@ -129,9 +104,6 @@ def format_gretelai(example: dict[str, Any]) -> list[dict[str, str]]:
     schema = str(_required(example, "sql_context"))
     query = str(_required(example, "sql"))
     semantic_model = example.get("semantic_model_context")
-    include_sql_labels = bool(example.get("include_sql_labels"))
-    schema_columns = example.get("schema_columns") or schema_columns_from_context(schema)
-    labels = labels_from_sql(query, schema_columns=schema_columns) if include_sql_labels else None
     return [
         {"role": "system", "content": SYSTEM_PROMPT},
         {
@@ -140,7 +112,6 @@ def format_gretelai(example: dict[str, Any]) -> list[dict[str, str]]:
                 question,
                 schema=schema,
                 semantic_model=str(semantic_model) if semantic_model else None,
-                planning_hint=planning_hint_from_labels(labels) if labels else None,
             ),
         },
         {"role": "assistant", "content": query},
@@ -156,9 +127,6 @@ def format_bird(example: dict[str, Any]) -> list[dict[str, str]]:
     schema = f"Evidence:\n{evidence}" if evidence else None
     database_id = str(example.get("db_id") or "")
     semantic_model = example.get("semantic_model_context")
-    include_sql_labels = bool(example.get("include_sql_labels"))
-    schema_columns = example.get("schema_columns")
-    labels = labels_from_sql(query, schema_columns=schema_columns) if include_sql_labels else None
     return [
         {"role": "system", "content": SYSTEM_PROMPT},
         {
@@ -168,7 +136,6 @@ def format_bird(example: dict[str, Any]) -> list[dict[str, str]]:
                 schema=schema,
                 semantic_model=str(semantic_model) if semantic_model else None,
                 database_id=database_id,
-                planning_hint=planning_hint_from_labels(labels) if labels else None,
             ),
         },
         {"role": "assistant", "content": query},
@@ -196,10 +163,7 @@ def format_cosql(example: dict[str, Any]) -> list[dict[str, str]]:
 
     schema = example.get("schema") or example.get("database_schema") or example.get("db_schema")
     semantic_model = example.get("semantic_model_context")
-    include_sql_labels = bool(example.get("include_sql_labels"))
-    prune_semantic_model = bool(example.get("prune_semantic_model"))
     database_id = example.get("database_id") or example.get("db_id")
-    schema_columns = example.get("schema_columns") or schema_columns_from_context(str(schema) if schema else None)
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
 
     usable_turns = 0
@@ -210,25 +174,15 @@ def format_cosql(example: dict[str, Any]) -> list[dict[str, str]]:
         query = _turn_text(turn, "query", "sql", "SQL")
         if not question or not query:
             continue
-        labels = labels_from_sql(query, schema_columns=schema_columns)
-        planning_hint = planning_hint_from_labels(labels) if include_sql_labels else None
         semantic_model_for_turn = str(semantic_model) if semantic_model else None
-        if semantic_model_for_turn and prune_semantic_model:
-            semantic_model_for_turn = prune_semantic_model_context(
-                semantic_model_for_turn,
-                labels.get("relevant_tables") or [],
-            )
         messages.append(
             {
                 "role": "user",
                 "content": _user_content(
                     question,
                     schema=str(schema) if index == 0 and schema else None,
-                    semantic_model=semantic_model_for_turn
-                    if semantic_model_for_turn and (index == 0 or prune_semantic_model)
-                    else None,
+                    semantic_model=semantic_model_for_turn if semantic_model_for_turn and index == 0 else None,
                     database_id=str(database_id) if index == 0 and database_id else None,
-                    planning_hint=planning_hint,
                 ),
             }
         )
@@ -379,41 +333,31 @@ def build_conversation(
     *,
     database_id: str | None = None,
     schema_columns: Iterable[str] | None = None,
-    uses_oracle_planning_hints: bool = False,
-    semantic_context_pruned_by_oracle_labels: bool = False,
 ) -> dict[str, Any]:
     """Wrap chat messages with lightweight metadata for training/evaluation."""
 
     if len(messages) < 3:
         raise FormatterError("conversation must include system, user, and assistant messages")
-    assistant_turns = assistant_turn_count(messages)
+    assistant_turns = sum(1 for message in messages if message.get("role") == "assistant")
     record: dict[str, Any] = {
         "messages": messages,
         "source": source,
         "assistant_turn_count": assistant_turns,
         "turn_format": "multi_turn_dialog" if assistant_turns > 1 else "single_turn",
         "history_policy": "gold_sql_teacher_forced" if assistant_turns > 1 else "single_turn",
+        "evaluation_mode": "non_oracle_generation",
+        "uses_oracle_planning_hints": False,
+        "semantic_context_pruned_by_oracle_labels": False,
     }
-    oracle_labels = [
+    schema_link_labels = [
         labels_from_sql(message["content"], schema_columns=schema_columns)
         for message in messages
         if message.get("role") == "assistant"
     ]
-    gold_plans = [normalize_plan(labels) for labels in oracle_labels]
-    record["schema_link_labels"] = oracle_labels
-    record["gold_plans"] = gold_plans
-    record["planning_label_source"] = "gold_reference_sql"
-    record["uses_oracle_planning_hints"] = uses_oracle_planning_hints
-    record["semantic_context_pruned_by_oracle_labels"] = semantic_context_pruned_by_oracle_labels
-    record["evaluation_mode"] = evaluation_mode_from_flags(
-        uses_oracle_planning_hints=uses_oracle_planning_hints,
-        semantic_context_pruned_by_oracle_labels=semantic_context_pruned_by_oracle_labels,
-    )
-    if record["evaluation_mode"] == "oracle_planner_diagnostic":
-        record["oracle_diagnostic_warning"] = ORACLE_DIAGNOSTIC_WARNING
+    record["schema_link_labels"] = schema_link_labels
+    record["schema_link_label_source"] = "reference_sql_for_scoring_only"
     if database_id:
         record["database_id"] = database_id
-    validate_prepared_record_contract(record)
     return record
 
 
@@ -436,8 +380,6 @@ def parse_dataset_specs(config_path: Path | None, *, section: str = "train") -> 
                 formatter=formatter,
                 weight=float(item.get("weight", 1.0)),
                 tables_path=item.get("tables_path"),
-                include_sql_labels=bool(item.get("include_sql_labels", False)),
-                prune_semantic_model=bool(item.get("prune_semantic_model", False)),
             )
         )
     return specs
@@ -486,16 +428,12 @@ def iter_formatted_records(
             semantic_model = semantic_model_map.get(database_id)
             if semantic_model:
                 row["semantic_model_context"] = semantic_model
-        row["include_sql_labels"] = spec.include_sql_labels
-        row["prune_semantic_model"] = spec.prune_semantic_model
         messages = formatter(row)
         yield build_conversation(
             messages,
             source=spec.name,
             database_id=str(database_id) if database_id else None,
             schema_columns=row.get("schema_columns"),
-            uses_oracle_planning_hints=spec.include_sql_labels,
-            semantic_context_pruned_by_oracle_labels=spec.prune_semantic_model,
         )
 
 
@@ -535,8 +473,6 @@ def build_dataset_manifest(
                 "formatter": spec.formatter,
                 "configured_weight": spec.weight,
                 "tables_path": spec.tables_path,
-                "include_sql_labels": spec.include_sql_labels,
-                "prune_semantic_model": spec.prune_semantic_model,
             }
             for spec in specs
         ],
@@ -561,33 +497,9 @@ def main() -> int:
     )
     parser.add_argument("--limit", type=int, default=None, help="Limit examples per dataset")
     parser.add_argument("--strict", action="store_true", help="Fail if a configured dataset is unavailable")
-    parser.add_argument(
-        "--include-sql-labels",
-        action="store_true",
-        help="Add gold SQL-derived schema-link and projection planning hints to prompts.",
-    )
-    parser.add_argument(
-        "--prune-semantic-model",
-        action="store_true",
-        help="Prune semantic model context to gold relevant tables for each turn.",
-    )
     args = parser.parse_args()
 
     specs = parse_dataset_specs(args.config, section=args.section)
-    if args.include_sql_labels or args.prune_semantic_model:
-        print(
-            "WARNING: creating oracle planner diagnostic data from gold/reference SQL. "
-            "Do not report these runs as production text-to-SQL accuracy.",
-            file=sys.stderr,
-        )
-        specs = [
-            replace(
-                spec,
-                include_sql_labels=spec.include_sql_labels or args.include_sql_labels,
-                prune_semantic_model=spec.prune_semantic_model or args.prune_semantic_model,
-            )
-            for spec in specs
-        ]
     all_records: list[dict[str, Any]] = []
     counts: dict[str, int] = {}
 

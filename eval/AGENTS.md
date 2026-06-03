@@ -28,5 +28,5 @@ When editing here, inspect:
 - `eval/metric_dsl_eval.py`
 - `eval/run_semantic_value_retrieval_comparison.py`
 - `eval/compare_semantic_value_retrieval.py`
-- `docs/evidence_contract.md`
+- `docs/research_roadmap.md`
 - `docs/data_artifacts/README.md`

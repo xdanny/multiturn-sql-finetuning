@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 
 from eval.generate_metric_dsl_predictions import (
-    generate_prediction_rows,
     _chat_prompt,
+    generate_prediction_rows,
     run_generate_metric_dsl_predictions,
 )
 

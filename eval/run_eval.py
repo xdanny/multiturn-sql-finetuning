@@ -18,13 +18,6 @@ from typing import Any
 from datasets import load_dataset
 from openai import OpenAI
 
-from data.plan_contract import (
-    ORACLE_PLANNER_DIAGNOSTIC,
-    PREDICTED_PLANNER,
-    predicted_planning_hint_from_plan,
-    validate_prepared_record_contract,
-)
-from data.prepare import ORACLE_DIAGNOSTIC_WARNING
 from eval.ragas_metrics import extract_sql, score_single_turn
 from eval.result_manifest import build_result_manifest, write_result_manifest
 
@@ -120,31 +113,12 @@ def enforce_sql_only_instruction(messages: list[dict[str, str]]) -> list[dict[st
     return [{"role": "system", "content": SQL_ONLY_INSTRUCTION}, *updated]
 
 
-def add_predicted_plan_to_last_user_message(
-    messages: list[dict[str, str]], predicted_plan: dict[str, Any]
-) -> list[dict[str, str]]:
-    """Append non-oracle planner output to the current user turn."""
-
-    updated = [dict(message) for message in messages]
-    hint = predicted_planning_hint_from_plan(predicted_plan)
-    for message in reversed(updated):
-        if message.get("role") == "user":
-            message["content"] = f"{message['content']}\n\n{hint}"
-            return updated
-    return [*updated, {"role": "user", "content": hint}]
-
-
 def messages_for_generation(
     record: dict[str, Any], *, prompt_variant: str | None = None
 ) -> list[dict[str, str]]:
     """Return the prompt sent to the model for one expanded eval turn."""
 
     messages = record["messages"]
-    if record.get("evaluation_mode") == PREDICTED_PLANNER:
-        predicted_plan = record.get("predicted_plan")
-        if not predicted_plan:
-            raise ValueError("predicted_planner eval records must include predicted_plan")
-        messages = add_predicted_plan_to_last_user_message(messages, predicted_plan)
     if prompt_variant == "structured_brief_sql":
         return [dict(message) for message in messages]
     return enforce_sql_only_instruction(messages)
@@ -196,13 +170,7 @@ def expand_prepared_record(record: dict[str, Any], *, index: int) -> list[dict[s
     database_id = record.get("database_id")
     history_policy = record.get("history_policy")
     schema_link_labels = record.get("schema_link_labels") or []
-    gold_plans = record.get("gold_plans") or []
-    predicted_plans = record.get("predicted_plans") or []
     evaluation_mode = record.get("evaluation_mode") or "unknown"
-    uses_oracle_planning_hints = bool(record.get("uses_oracle_planning_hints"))
-    semantic_context_pruned_by_oracle_labels = bool(
-        record.get("semantic_context_pruned_by_oracle_labels")
-    )
     split_provenance = {
         field: record[field] for field in SPLIT_PROVENANCE_FIELDS if record.get(field) is not None
     }
@@ -211,16 +179,6 @@ def expand_prepared_record(record: dict[str, Any], *, index: int) -> list[dict[s
     for turn_index, assistant_index in enumerate(assistant_indices):
         schema_label = (
             schema_link_labels[turn_index] if turn_index < len(schema_link_labels) else None
-        )
-        gold_plan = (
-            schema_label
-            if schema_label is not None
-            else gold_plans[turn_index]
-            if turn_index < len(gold_plans)
-            else None
-        )
-        predicted_plan = (
-            predicted_plans[turn_index] if turn_index < len(predicted_plans) else None
         )
         expanded.append(
             {
@@ -236,17 +194,9 @@ def expand_prepared_record(record: dict[str, Any], *, index: int) -> list[dict[s
                 "history_policy": history_policy,
                 "evaluation_mode": evaluation_mode,
                 "prompt_variant": record.get("prompt_variant"),
-                "planning_label_source": record.get("planning_label_source"),
-                "uses_oracle_planning_hints": uses_oracle_planning_hints,
-                "semantic_context_pruned_by_oracle_labels": semantic_context_pruned_by_oracle_labels,
-                "oracle_diagnostic_warning": record.get("oracle_diagnostic_warning"),
-                "gold_plan": gold_plan,
-                "predicted_plan": predicted_plan,
-                "predicted_plan_source": (
-                    predicted_plan.get("prediction_source")
-                    if isinstance(predicted_plan, dict) and predicted_plan.get("prediction_source")
-                    else record.get("predicted_plan_source")
-                ),
+                "uses_oracle_planning_hints": False,
+                "semantic_context_pruned_by_oracle_labels": False,
+                "gold_plan": schema_label,
                 "schema_link_labels": schema_label,
             }
         )
@@ -265,13 +215,13 @@ def load_prepared_records(
             if limit is not None and len(records) >= limit:
                 break
             record = json.loads(line)
-            if record.get("evaluation_mode"):
-                validate_prepared_record_contract(record)
             if record_uses_oracle_plan(record) and not allow_oracle_plan:
                 raise ValueError(
                     f"{path} contains gold SQL-derived oracle planning hints. "
-                    "Pass --allow-oracle-plan only for diagnostic upper-bound evaluation."
+                    "Oracle planner diagnostics have been removed from active evaluation."
                 )
+            if record_uses_oracle_plan(record) and allow_oracle_plan:
+                raise ValueError("oracle planner diagnostics have been removed from active evaluation")
             for expanded in expand_prepared_record(record, index=line_index):
                 if limit is not None and len(records) >= limit:
                     break
@@ -528,8 +478,6 @@ def run_eval(
         limit=limit,
         allow_oracle_plan=allow_oracle_plan,
     )
-    if any(record.get("evaluation_mode") == ORACLE_PLANNER_DIAGNOSTIC for record in records):
-        print(f"WARNING: {ORACLE_DIAGNOSTIC_WARNING}")
     results = []
     for record in records:
         active_prompt_variant = prompt_variant_for_record(record, prompt_variant=prompt_variant)
@@ -638,11 +586,6 @@ def main() -> int:
     parser.add_argument("--prompt-variant", default=None)
     parser.add_argument("--prompt-token-cost-usd-per-1k", type=float, default=0.0)
     parser.add_argument("--completion-token-cost-usd-per-1k", type=float, default=0.0)
-    parser.add_argument(
-        "--allow-oracle-plan",
-        action="store_true",
-        help="Allow prepared inputs containing gold SQL-derived planning hints.",
-    )
     args = parser.parse_args()
 
     return run_eval(
@@ -656,7 +599,7 @@ def main() -> int:
         api_key=args.api_key,
         temperature=args.temperature,
         max_tokens=args.max_tokens,
-        allow_oracle_plan=args.allow_oracle_plan,
+        allow_oracle_plan=False,
         manifest_output=args.manifest_output,
         prompt_variant=args.prompt_variant,
         prompt_token_cost_usd_per_1k=args.prompt_token_cost_usd_per_1k,

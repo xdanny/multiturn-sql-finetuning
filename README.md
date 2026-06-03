@@ -1,652 +1,176 @@
 # Multi-Turn SQL Fine-Tuning
 
-Fine-tune and evaluate a small specialized local model for multi-turn analytical
-SQL. The research question is whether a 9B-class local model can learn the
-behavior and semantic concepts needed to outperform much larger state-of-the-art
-general models on multi-turn data-analysis tasks.
-
-The project target is not "make CoSQL go up" in isolation. CoSQL is the first
-small, reproducible multi-turn proxy slice. The longer benchmark direction is a
-BIRD-Interact-style comparison with the same interaction protocol, SQL execution
-checks, cost accounting, and larger-model baselines.
-
-See `docs/research_roadmap.md` for the checkpointed empirical reset roadmap:
-freeze the current proxy evidence, simplify the research loop, establish clean
-dataset roles, rebuild full-scale controls, and move only row-matched method
-comparisons toward hosted or BIRD-style claims.
-See `docs/current_research_inventory.md` for the current audited inventory that
-backs Roadmap Checkpoint 0: checked-in rows, manifests, evidence snapshots,
-runtime output references, and active claim boundaries.
-See `docs/research_goal.md` for the explicit research program, including the
-fine-tuning methods this repo should compare: direct SQL SFT, structured query
-briefs, semantic-layer tuning, `MEASURE()`-preserving metric DSLs, and
-behavior/recovery tuning.
-See `docs/finetuning_ladder.md` for the compact step-by-step map of those
-methods, their controls, and the evidence needed before a method can be called a
-win.
-See `docs/finetuning_smoke_matrix.md` for the current-main smoke commands and
-the checked-in method rows that make metric-DSL and recovery finetuning smokes
-runnable.
-See `docs/finetuning_measurement_plan.md` for the metrics, controls, and
-comparison artifacts required before any smoke run becomes a benchmark claim.
-See `docs/finetuning_method_runbook.md` for the practical runbook that turns
-structured-brief, semantic-layer, metric-DSL, behavior/recovery, and hosted
-benchmark ideas into row-matched comparisons with explicit controls.
-See `configs/experiments.yaml` for the compact registry of roadmap experiments,
-including each hypothesis, split ids, method, scorer, output path, and control
-arm.
-See `data/splits/` for the frozen split-role manifests that separate CoSQL
-train, the inspected CoSQL dev proxy, the clean local holdout, synthetic
-fixtures, and pending external targets.
-
-The first metric-DSL experiment surface is documented in
-`docs/metric_dsl_contract.md`, implemented in `data.metric_dsl`, and evaluated
-offline through `eval.generate_metric_dsl_predictions`, `eval.metric_dsl_eval`, and
-`eval.run_metric_dsl_comparison`.
-Generated-history rollout evaluation is documented in
-`docs/rollout_eval_contract.md`, seeded by
-`data.behavior_recovery_rollout_inputs`, and implemented in
-`eval.run_behavior_recovery_comparison`, which writes rollout, teacher-forced,
-and comparison artifacts from one run id.
-The checked-in files under `docs/data_artifacts/` are explained in
-`docs/data_artifacts/README.md`; use that guide before adding new generated
-files to the repo. Metric DSL now has separate training rows and prediction
-input rows, so generation-time prompts can stay separate from scorer-only
-reference fields.
-
-> Oracle diagnostic: the `0.890` schema-pruned result uses gold SQL-derived
-> planning hints in the eval prompt. It is an upper bound for the
-> schema-linking/planning layer, not a production evaluation. Production-style
-> evals omit `--allow-oracle-plan`, and training rejects those rows unless
-> `--allow-oracle-diagnostic-data` is passed explicitly.
-
-## Current State
-
-This repo is now organized around four research guardrails:
-
-- BIRD-Interact/BIRD-style evaluation is the target direction; CoSQL is the
-  current local proxy while that harness is built.
-- Split integrity, prompt leakage prevention, row identity matching, and run
-  manifests are the required checks before a result can support a method claim.
-- Data preparation writes TRL-compatible `messages` JSONL.
-- Data preparation now injects Cube-inspired semantic model hints from Spider/CoSQL `tables.json` when available.
-- Training consumes prepared JSONL and supports bounded smoke tests with `--max-steps`.
-- Evaluation compares base and fine-tuned models through either a local Transformers runner or an OpenAI-compatible endpoint.
-- Endpoint evaluation writes a manifest that records the input hash, output hash, model, mode, command, and metrics behind each reported number.
-- Generated-history rollout evaluation is now wired so behavior/recovery can be
-  tested without teacher-forcing prior gold SQL into later turns.
-- Tests cover dataset formatting, training-data validation, SQL scoring, result loading, and plotting.
-- vLLM serving is verified in a separate `.venv-vllm` environment on WSL2 + RTX 5090.
-- The best oracle-conditioned endpoint run is the schema-pruned 100-step LoRA adapter at `0.890` value accuracy, `0.820` strict accuracy, and `1.000` syntax accuracy on the fixed 100-turn CoSQL dev slice. That run is a diagnostic upper bound because the planning hints are derived from gold/reference SQL.
-- The first semantic-context 50-step adapter is complete. It ties the plain 50-step adapter on execution accuracy (`0.420`) without semantic eval prompts.
-- Evaluating that semantic adapter with semantic prompts and the promoted `semantic_grounding` prompt policy improves strict execution accuracy to `0.440`.
-- The evaluator now also reports value-only execution accuracy, which ignores harmless alias differences while preserving duplicate rows and order-sensitive outputs. Under this repaired metric, semantic-50 reaches `0.630`, tying the 100-step adapter, and `minimal_executable` reaches `0.640`.
-
-Known constraints:
-
-- CoSQL is sourced from the official Yale/Google Drive archive, not from the stale `alpineai/cosql` Hugging Face ID.
-- The accessible `jellyChiru/SParC` Hugging Face mirror is flattened to question/query rows, not full dialogs.
-- BIRD mini-dev uses splits such as `mini_dev_sqlite`, not `validation`.
-- System `nvcc` is still absent in WSL. PyTorch CUDA and vLLM wheels work, but source builds and FlashInfer sampler JIT need a full toolkit.
-- vLLM serving is intentionally separate from the training setup. `.venv` is for Unsloth training; `.venv-vllm` is for serving.
-- Qwen thinking mode must be disabled during endpoint evaluation with `chat_template_kwargs.enable_thinking=false`; otherwise generations can include reasoning prose.
-- Semantic model context increases prompt length. The current semantic endpoint run shows this cost directly, so future semantic prompts need retrieval and pruning.
-- DSPy-backed prompt search is available through `eval.prompt_optimize`; it can propose and score prompt variants against execution accuracy.
-- The old non-oracle `predicted_planner` path is now historical negative
-  evidence, not the active roadmap direction. The next structured-method path
-  is train-split query-brief data followed by row-matched SQL benchmark
-  comparison against direct SQL.
-- A `MEASURE()`-preserving metric-DSL evaluator is now wired for offline
-  JSONL predictions; it scores semantic intent, compiles through a semantic
-  model, optionally executes compiled SQL, and writes result manifests.
-- A first value-grounding label artifact is generated from the fixed CoSQL proxy
-  slice. It extracts gold SQL literal predicates into auditable rows for
-  current-turn values, history-carried values, and display-to-storage
-  normalization failures. This is a supervision/evaluation artifact, not a
-  production prompt hint.
-- A first non-oracle value index is generated from the fixed-slice SQLite
-  database contents. Its coverage report separates stored-value coverage from
-  user-mention alias coverage, so value/entity work has a measurable next target.
-- A first synthetic schema-rich fixture pack is generated under
-  `docs/data_artifacts/synthetic_method_fixtures.jsonl`. It turns value
-  normalization, entity resolution, grain/fanout, `MEASURE()` preservation, and
-  recovery into curated rows with expected outputs before spending endpoint time.
-- Local execution scoring reports both strict label-aware accuracy and value-only accuracy. Treat older single `accuracy` numbers as strict-era results unless they come from `results/rescored/`.
-- Failure analysis now classifies every wrong rescored turn into actionable labels and compares adapters or prompt variants against a baseline under `plots/failure_taxonomy/`.
-- Schema-link label generation and semantic prompt pruning are available through `data.prepare --include-sql-labels --prune-semantic-model`. These flags now mark produced rows as `evaluation_mode=oracle_planner_diagnostic`. On the fixed 100-turn CoSQL slice, the best oracle prompt-only pruned-label run reaches `0.850` value accuracy, and training on that oracle-labelled format reaches `0.890`.
-- The end-to-end methodology, dataset roles, training strategy boundaries, and
-  benchmark claim rules are documented in `docs/methodology.md`.
-- The public post now has one attached codebase and a published HTML lab; see
-  `docs/blog/README.md`.
-
-## Blog-Attached Lab
-
-The blog post should point readers to the attached codebase and a published HTML
-lab at `/labs/local-multiturn-sql-finetuning/`. The same lab can be rerun from
-the source code with Marimo:
-
-```bash
-marimo edit notebooks/labs/local_multiturn_sql_lab.py
-```
-
-A portable Jupyter export remains available for readers who prefer notebooks:
-
-```bash
-jupyter lab notebooks/labs/local_multiturn_sql_lab.ipynb
-```
-
-The lab compares five fine-tuning targets: direct SQL, structured query briefs,
-semantic-layer state, `MEASURE()`-preserving DSL, and behavior/recovery tuning.
-It also separates dataset roles for BIRD-Interact, BIRD mini-dev, CoSQL, SParC,
-synthetic schema-rich SQL, and the tiny SQLite lab so the repo does not treat
-every SQL row as interchangeable training data.
-It auto-selects CUDA, MPS, or XPU when PyTorch can see an accelerator and falls
-back to CPU. It should stay a portable lab, not a serving, dependency
-installation, or generated-evidence publishing guide.
-
-Deeper evidence maintenance stays separate from the public reader path. Expensive
-GPU training, vLLM serving, and local setup notes stay in scripts and docs outside
-the public lab flow.
-
-## Leakage Policy
-
-This repo separates three different claims that are easy to blur:
-
-| Mode | Inputs available at inference | What it can prove |
-| --- | --- | --- |
-| `non_oracle_generation` | Question, conversation history, schema, semantic context, and any non-oracle retrieval artifacts | A deployable text-to-SQL path can work under those inputs. |
-| `oracle_planner_diagnostic` | The same inputs plus planning hints extracted from reference SQL, or semantic context pruned by those hints | An upper bound: SQL generation becomes easier when schema linking, join choice, projection shape, and duplicate policy are already solved. |
-| Historical `predicted_planner` | Planner output predicted from question, history, schema, and optional value indexes | Negative planner-to-SQL evidence and leakage diagnostics only; it is not the active Checkpoint 5 path. |
-
-Any row prepared with `--include-sql-labels` or `--prune-semantic-model` is
-teacher-forced by gold SQL. The code writes `uses_oracle_planning_hints`,
-`semantic_context_pruned_by_oracle_labels`, `planning_label_source`, and
-`evaluation_mode` fields into JSONL records so downstream training and eval
-outputs carry that caveat with them. Training on those rows is still useful, but
-it should be reported as learning to consume an oracle planning contract, not as
-solving multi-turn SQL end to end. `train.finetune` now fails on oracle
-diagnostic rows by default; pass `--allow-oracle-diagnostic-data` only when the
-run name, result manifest, and writeup all label the run as a diagnostic.
-
-Checkpoint 5 now uses a simpler, measured comparison:
-
-1. build structured query-brief supervision from training-split data only;
-2. finetune a model to emit a compact visible brief before SQL;
-3. evaluate that adapter and the direct-SQL control on the same clean-holdout
-   rows;
-4. compare result manifests with
-   `uv run --active --no-sync python -m eval.run_structured_brief_comparison`.
-
-Clean-holdout prompts must not include reference SQL, expected rows, future
-turns, gold plans, gold metric DSL, or repair labels. The structured-brief path
-supports a method claim only if its comparison manifest reports a positive
-`structured_brief_value_delta_vs_direct_sql` against the direct-SQL control, with
-strict accuracy, syntax rate, interaction behavior, latency, and cost reported.
-
-Historical planner artifacts remain useful as negative evidence and leakage
-tests, but they are no longer a promoted workflow or reader-facing runbook.
-
-## Value Grounding Artifacts
-
-The first concrete data-engineering artifact turns reference SQL predicates into
-labels for value grounding:
-
-```bash
-python -m data.value_artifacts \
-  --input data/processed/eval_cosql_dev_100.jsonl \
-  --output docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl \
-  --summary docs/data_artifacts/value_grounding_labels_cosql_dev_100_summary.json \
-  --manifest docs/data_artifacts/value_grounding_labels_cosql_dev_100.manifest.json
-```
-
-The current label artifact contains 106 SQL value references across 17 databases
-on the fixed CoSQL proxy slice. It separates values stated in the current user
-turn, values recovered from previous user turns, values carried by prior SQL,
-and stored literals that are missing from user text. Those missing-text rows are
-the practical seed for entity-resolution labels and alias expansion.
-
-The labels are derived from gold/reference SQL, so they are valid as
-supervision, scoring targets, and coverage diagnostics. They are not valid as
-production inference context unless a non-oracle retriever or model-produced
-artifact recovers the same bindings from the question, history, schema, and
-allowed value/entity artifacts.
-
-Build the corresponding non-oracle value index from database contents:
-
-```bash
-python -m data.value_index \
-  --input data/processed/eval_cosql_dev_100.jsonl \
-  --database-root data/raw/cosql_dataset/database \
-  --output docs/data_artifacts/value_index_cosql_dev_100.jsonl \
-  --summary docs/data_artifacts/value_index_cosql_dev_100_summary.json \
-  --manifest docs/data_artifacts/value_index_cosql_dev_100.manifest.json \
-  --labels docs/data_artifacts/value_grounding_labels_cosql_dev_100.jsonl
-```
-
-The current index contains 12,661 database-derived entries across 20 CoSQL
-databases. Against the gold labels, it covers 78.3% of resolved stored values but
-only 75.5% of user-visible mention aliases. That gap is the next concrete
-semantic-layer problem: add alias/entity expansion, then score value retrieval
-before SQL generation.
-
-## Metric DSL Evaluation
-
-Metric-DSL evaluation is the first runnable check for testing whether a model
-should produce semantic intent before SQL. Input rows contain a predicted DSL, a
-reference DSL, a semantic model, and optional reference SQL/database path:
-
-```json
-{
-  "id": "metric-1",
-  "generated_metric_dsl": "MEASURE(revenue) BY customer_country",
-  "reference_metric_dsl": "MEASURE(revenue) BY customer_country",
-  "semantic_model": {"base_table": "orders", "measures": {}, "dimensions": {}},
-  "reference_sql": "SELECT ...",
-  "database_path": "data/raw/metric_fixtures/store.sqlite"
-}
-```
-
-Run the offline evaluator:
-
-```bash
-python -m eval.metric_dsl_eval \
-  --input results/metric_dsl/<run-id>.predictions.jsonl \
-  --output results/metric_dsl/<run-id>.jsonl \
-  --manifest-output results/metric_dsl/<run-id>.manifest.json \
-  --model-name <served-or-offline-model-name>
-```
-
-The manifest reports parse rate, compile rate, measure preservation, measure F1,
-dimension F1, filter F1, database-backed compiled-SQL value accuracy, and the
-semantic-model hashes used by the run. Execution accuracy is computed only over
-rows with both `reference_sql` and `database_path`. A row that expands
-`SUM(orders.amount)` instead of emitting `MEASURE(revenue)` fails the metric-DSL
-parse check, so it cannot be hidden by a compiled SQL score.
-
-Before claiming DSL-first generation is better than direct SQL, run a direct-SQL
-baseline on the same metric-heavy rows and compare manifests:
-
-```bash
-python -m eval.compare_metric_dsl_direct_sql \
-  --metric-dsl-manifest results/metric_dsl/<run-id>.manifest.json \
-  --direct-sql-manifest results/direct_sql/<run-id>.manifest.json \
-  --output results/metric_dsl/<run-id>.compared.manifest.json
-```
-
-The direct baseline must use `benchmark=metric_dsl_direct_sql` and
-`evaluation_mode=non_oracle_generation`. The metric-DSL and direct-SQL models may
-differ, but the output rows must have matching identities and no oracle markers.
-A metric-DSL win requires the compared manifest to reference the direct
-manifest, preserve `MEASURE(...)`, cover every row with database-backed
-execution, and show a positive value delta.
-
-## Generated-History Rollout
-
-Teacher-forced CoSQL evaluation answers a narrow question: can the model produce
-the current SQL when prior turns are clean reference SQL? Rollout evaluation asks
-the harder multi-turn question: what happens when the model has to continue from
-its own earlier SQL?
-
-The behavior/recovery smoke path uses a small synthetic rollout input first, so
-the paired control can be checked before spending endpoint time on the larger
-CoSQL proxy slice:
-
-```bash
-uv run --active --no-sync python -m eval.run_behavior_recovery_comparison \
-  --model-name multiturn-sql-100 \
-  --endpoint http://127.0.0.1:8000/v1 \
-  --input docs/data_artifacts/behavior_recovery_rollout_inputs.jsonl \
-  --output-dir results/rollout \
-  --run-id multiturn_sql_100_behavior_recovery
-```
-
-The paired runner writes generated-history rollout rows, a teacher-forced
-diagnostic on the same input rows, and one comparison manifest. The comparison refuses
-mismatched models, mismatched input hashes, oracle diagnostics, and non-rollout
-manifests.
-
-The optional `data.prepare --manifest-output` file records dataset composition:
-source counts, evaluation modes, turn formats, history policies, assistant-turn
-totals, and configured dataset weights. Use it when reporting a training or eval
-artifact so dataset mixing is not hidden in prose.
-
-Historical proxy numbers should be reported through run manifests and the
-current claim boundaries in `docs/evidence_contract.md`.
-
-## Stack
-
-| Layer | Tool | Status |
-| --- | --- | --- |
-| Base model | `Qwen/Qwen3.5-9B` / `unsloth/Qwen3.5-9B` | HF metadata reachable |
-| Training | Unsloth + TRL `SFTTrainer` | wired for JSONL SFT |
-| Serving | vLLM OpenAI-compatible server | verified in `.venv-vllm` |
-| Evaluation | deterministic SQL parser/result metrics | implemented |
-| Historical planner eval | non-oracle planner prediction vs gold SQL-derived labels | retained for diagnostics |
-| Plotting | accuracy-vs-latency summary | implemented |
-| Compute | WSL2 + RTX 5090 | PyTorch CUDA verified |
-
-## Datasets
-
-| Dataset | Role | Current handling |
-| --- | --- | --- |
-| `jellyChiru/SParC` | SQL question/query training and validation | accessible, flattened |
-| `gretelai/synthetic_text_to_sql` | schema-rich SQL reinforcement | accessible |
-| `birdsql/bird_mini_dev` | SQLite benchmark rows | accessible via `mini_dev_sqlite` |
-| CoSQL | multi-turn dialog training and eval | official local archive under `data/raw/cosql_dataset` |
-
-## Quick Start
-
-```bash
-source .venv/bin/activate
-
-# Download official CoSQL if data/raw/cosql_dataset is absent.
-gdown 1Y3ydpFiQQ3FC0bzdfy3groV95O_f1nXF -O data/raw/cosql_dataset.zip
-
-# Verify the local training stack. Use --phase serving when vLLM/nvcc matter.
-python scripts/verify_blackwell.py --phase training
-
-# Prepare training data from accessible configured datasets.
-python -m data.prepare --config configs/qwen35_9b_5090.yaml --limit 100
-
-# Prepare evaluation data from CoSQL dev, SParC validation, and BIRD mini-dev.
-python -m data.prepare \
-  --config configs/qwen35_9b_5090.yaml \
-  --section eval \
-  --limit 25 \
-  --output data/processed/eval.jsonl
-
-# Validate prepared JSONL without loading GPU/model libraries.
-python -m train.finetune \
-  --config configs/qwen35_9b_5090.yaml \
-  --data data/processed/train.jsonl \
-  --validate-data-only
-
-# Run a bounded fine-tuning smoke test on the 5090.
-python -m train.finetune \
-  --config configs/qwen35_9b_5090.yaml \
-  --data data/processed/train.jsonl \
-  --max-steps 1 \
-  --report-to none
-```
-
-## Benchmark Flow
-
-Run a local base-model benchmark directly through Transformers:
-
-```bash
-python -m eval.local_benchmark \
-  --model-name unsloth/Qwen3.5-9B \
-  --benchmark prepared \
-  --input data/processed/eval.jsonl \
-  --database-root data/raw/cosql_dataset/database \
-  --limit 25 \
-  --output results/qwen35_9b_base_cosql.jsonl
-```
-
-Run the same benchmark with the fine-tuned LoRA adapter:
-
-```bash
-python -m eval.local_benchmark \
-  --model-name unsloth/Qwen3.5-9B \
-  --adapter-path outputs/qwen35_9b_multiturn_sql_50steps/final \
-  --benchmark prepared \
-  --input data/processed/eval.jsonl \
-  --database-root data/raw/cosql_dataset/database \
-  --limit 25 \
-  --output results/qwen35_9b_lora_cosql.jsonl
-```
-
-Plot a selected comparison. Use `--include` to avoid mixing old smoke runs into the same summary:
-
-```bash
-python -m eval.plot_pareto \
-  --results-dir results \
-  --output-dir plots/dev_100turns_lora50 \
-  --include 'qwen35_9b_base_cosql_dev_100turns.jsonl' \
-  --include 'qwen35_9b_lora50_cosql_dev_100turns.jsonl'
-```
-
-Optional vLLM serving is available through the checked-in script. It uses `.venv-vllm` when
-that environment exists and disables the FlashInfer sampler JIT by default:
-
-```bash
-MODEL=unsloth/Qwen3.5-9B \
-LORA_PATH=outputs/qwen35_9b_multiturn_sql_50steps/final \
-bash serve/serve_vllm.sh
-```
-
-For the current reliable vLLM path, serve one adapter at a time. Multi-adapter
-serving was attempted, but the current WSL2 + RTX 5090 setup hit cache/CUDA graph
-memory pressure with several LoRAs mounted together:
-
-```bash
-CC=/home/dan/.local/bin/cc \
-VLLM_USE_FLASHINFER_SAMPLER=0 \
-PATH="$PWD/.venv-vllm/bin:$PATH" \
-vllm serve unsloth/Qwen3.5-9B \
-  --enable-lora \
-  --lora-modules multiturn-sql-100=outputs/qwen35_9b_multiturn_sql_100steps/final \
-  --max-lora-rank 64 \
-  --max-loras 1 \
-  --port 8000 \
-  --max-model-len 4096 \
-  --gpu-memory-utilization 0.82 \
-  --tensor-parallel-size 1 \
-  --dtype bfloat16 \
-  --max-num-seqs 64
-```
-
-Endpoint evaluation:
-
-```bash
-python -m eval.run_eval \
-  --benchmark prepared \
-  --endpoint http://127.0.0.1:8000/v1 \
-  --model-name multiturn-sql-100 \
-  --input data/processed/eval_cosql_dev_100.jsonl \
-  --limit 100 \
-  --max-tokens 192 \
-  --database-root data/raw/cosql_dataset/database \
-  --output results/vllm_qwen35_9b_lora100_cosql_dev_100turns.jsonl
-```
+This repo tests one practical question:
+
+Can a local Qwen LoRA learn enough multi-turn analytical SQL behavior to beat
+its raw base model, and how far is it from a strong hosted model when every
+model is scored on the same rows?
+
+The project is not a generic text-to-SQL demo. It is a measured research
+workspace for multi-turn SQL: follow-up questions, carried context, value
+grounding, generated-history recovery, and same-row comparisons.
+
+`docs/research_roadmap.md` is the canonical roadmap. It replaces the old
+gate-heavy workflow with four guardrails:
+
+- split integrity;
+- prompt leakage prevention;
+- row identity matching;
+- run manifests.
 
 ## Current Results
 
-`plots/vllm_semantic_iterations_100turns/summary.csv`:
+The current evidence is useful but still scoped to local CoSQL splits and a
+bounded hosted comparison. It is not yet a BIRD-Interact or LiveSQLBench claim.
 
-| Model | Execution accuracy | Syntax accuracy | Mean latency ms | Samples |
-| --- | ---: | ---: | ---: | ---: |
-| `multiturn-sql-100` | 0.530 | 1.000 | 392.88 | 100 |
-| `multiturn-sql-128each-50` | 0.420 | 0.990 | 390.05 | 100 |
-| `multiturn-sql-50` | 0.420 | 0.980 | 360.07 | 100 |
-| `multiturn-sql-semantic-50` | 0.420 | 1.000 | 2285.79 | 100 |
-| `unsloth/Qwen3.5-9B` | 0.370 | 1.000 | 292.79 | 100 |
+| Comparison | Rows | Value accuracy | Strict accuracy | What it means |
+| --- | ---: | ---: | ---: | --- |
+| Raw Qwen, clean holdout | 680 | 0.218 | 0.218 | direct-SQL base control |
+| Direct-SQL LoRA, clean holdout | 680 | 0.349 | 0.349 | full local direct-SQL control improved |
+| Structured-brief LoRA, clean holdout | 680 | 0.576 | 0.541 | best clean local method so far |
+| Raw Qwen, generated-history slice | 43 | 0.558 | 0.302 | CP9 local base control |
+| Recovery LoRA, same generated-history slice | 43 | 0.558 | 0.302 | tied raw Qwen; no transfer win |
+| Claude Sonnet 4.6 through OpenRouter, same slice | 43 | 0.674 | 0.395 | current hosted target gap |
 
-Latest semantic prompt iteration, from `plots/vllm_semantic_prompt_iteration_100turns/summary.csv`:
+What we learned:
 
-| Model | Prompt variant | Execution accuracy | Syntax accuracy | Mean latency ms | Samples |
-| --- | --- | ---: | ---: | ---: | ---: |
-| `multiturn-sql-100` | none | 0.530 | 1.000 | 392.88 | 100 |
-| `multiturn-sql-semantic-50` | `semantic_grounding` | 0.440 | 1.000 | 542.19 | 100 |
-| `multiturn-sql-semantic-50` | none | 0.420 | 1.000 | 2285.79 | 100 |
-| `multiturn-sql-50` | none | 0.420 | 0.980 | 360.07 | 100 |
-| `unsloth/Qwen3.5-9B` | none | 0.370 | 1.000 | 292.79 | 100 |
+- Direct SQL fine-tuning helped, but did not solve multi-turn SQL.
+- Structured query briefs produced the strongest clean local gain, at the cost
+  of longer outputs and lower syntax rate than direct SQL.
+- Semantic value retrieval has a narrow clean-holdout win, but it still needs a
+  larger and simpler validation story.
+- Metric DSL failed its clean generated-output comparison. That is recorded as
+  negative evidence, not hidden.
+- Generated-history recovery is much harder than teacher-forced evaluation. The
+  best recovery adapter tied raw Qwen on the hosted-transfer slice.
+- The old planner/oracle path was overbuilt for the claim we need. Useful label
+  extraction remains as scorer-side metadata, but planner prompt injection is no
+  longer an active workflow.
 
-Re-scored value-aware comparison, from `plots/rescored_vllm_semantic_prompt_iteration_100turns/summary.csv`:
+Inconclusive evidence stays visible. Failed or tied runs record what was
+learned and what remains unproven so future writeups do not turn a dead end
+into a success story.
 
-| Model | Prompt variant | Value accuracy | Strict accuracy | Syntax accuracy | Samples |
-| --- | --- | ---: | ---: | ---: | ---: |
-| `multiturn-sql-semantic-50` | `minimal_executable` | 0.640 | 0.420 | 1.000 | 100 |
-| `multiturn-sql-100` | none | 0.630 | 0.530 | 1.000 | 100 |
-| `multiturn-sql-semantic-50` | none | 0.630 | 0.420 | 1.000 | 100 |
-| `multiturn-sql-semantic-50` | `semantic_grounding` | 0.630 | 0.440 | 1.000 | 100 |
-| `multiturn-sql-50` | none | 0.610 | 0.420 | 0.980 | 100 |
-| `unsloth/Qwen3.5-9B` | none | 0.590 | 0.370 | 1.000 | 100 |
+## Repo Shape
 
-Failure taxonomy comparison, from `plots/failure_taxonomy/comparison/model_error_summary.csv`:
+- `data/prepare.py`: convert datasets into chat-style JSONL.
+- `data/prepare_split.py`: prepare rows from frozen split manifests.
+- `train/finetune.py`: Qwen LoRA fine-tuning with Unsloth and TRL.
+- `eval/run_eval.py`: endpoint evaluation and result manifests.
+- `eval/rollout_eval.py`: generated-history rollout evaluation.
+- `eval/local_benchmark.py`: local adapter evaluation.
+- `eval/compare_hosted_baseline.py`: same-row local-vs-hosted comparison.
+- `configs/experiments.yaml`: compact registry of current experiments.
+- `docs/research_roadmap.md`: checkpoint status, evidence, and next direction.
+- `docs/training_runs/`: small checked-in summaries of important runs.
+- `docs/data_artifacts/README.md`: rules for checked-in data artifacts.
 
-| Run | Value accuracy | Correct | Schema link | Join path | Value grounding | Projection | History turns | Invalid SQL |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `multiturn-sql-semantic-50[minimal_executable]` | 0.640 | 64 | 7 | 7 | 6 | 11 | 18 | 0 |
-| `multiturn-sql-100` | 0.630 | 63 | 7 | 4 | 8 | 9 | 17 | 0 |
-| `multiturn-sql-semantic-50[semantic_grounding]` | 0.630 | 63 | 8 | 5 | 6 | 11 | 19 | 0 |
-| `multiturn-sql-semantic-50` | 0.630 | 63 | 8 | 4 | 7 | 11 | 18 | 0 |
-| `multiturn-sql-50` | 0.610 | 61 | 11 | 3 | 6 | 9 | 19 | 2 |
-| `unsloth/Qwen3.5-9B` | 0.590 | 59 | 11 | 6 | 11 | 5 | 25 | 0 |
+Run-specific outputs live under `outputs/` and `results/`. Checked-in docs
+should summarize evidence, not replace the raw run artifacts.
 
-Pairwise comparison against `unsloth/Qwen3.5-9B` shows `minimal_executable` has
-the best net movement: 9 fixed turns, 4 regressed turns, and a net +5. Its fixes
-come from schema linking, value grounding, and aggregation; its regressions are
-projection and schema-link misses.
+## Reproduce
 
-Oracle schema-pruned label iteration, from
-`plots/failure_taxonomy/schema_pruned_projection_schemafix_comparison/model_error_summary.csv`:
+Use `uv run --active --no-sync ...` for Python commands.
 
-| Run | Value accuracy | Strict accuracy | Interaction match | Schema link | Join path | Projection | History turns |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `multiturn-sql-semantic-50[schema_pruned_minimal]` | 0.850 | 0.640 | 0.59375 | 0 | 1 | 0 | 9 |
-| `multiturn-sql-semantic-50[minimal_executable]` | 0.640 | 0.420 | 0.3125 | 7 | 7 | 11 | 18 |
-
-Against `minimal_executable`, `schema_pruned_minimal` fixes 25 turns, regresses
-4, and nets +21. It removes all primary schema-link and projection failures on
-the same 100 CoSQL turns. This is an oracle-label diagnostic result because the
-labels are extracted from gold SQL.
-
-Oracle schema-pruned labelled training, from
-`plots/failure_taxonomy/schema_pruned_trained100_comparison/model_error_summary.csv`:
-
-| Run | Value accuracy | Strict accuracy | Interaction match | Schema link | Join path | Projection | History turns |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `multiturn-sql-schema-pruned-100[schema_pruned_minimal]` | 0.890 | 0.820 | 0.75000 | 0 | 0 | 0 | 5 |
-| `multiturn-sql-semantic-50[schema_pruned_minimal]` | 0.850 | 0.640 | 0.59375 | 0 | 1 | 0 | 9 |
-| `multiturn-sql-semantic-50[minimal_executable]` | 0.640 | 0.420 | 0.31250 | 7 | 7 | 11 | 18 |
-
-The new trained adapter fixes 28 `minimal_executable` failures, regresses 3,
-and nets +25. The remaining failures are concentrated in value grounding
-(`7`), execution errors (`3`), and grain/fanout (`1`), which makes non-oracle
-planning, value canonicalization, alias-role validation, and adversarial
-fixtures the next bottlenecks.
-
-`plots/vllm_semantic_iterations_100turns/dialog_summary.csv`:
-
-| Model | Dialog execution accuracy | Dialog syntax accuracy | Interaction match rate | Dialogs | Turns |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| `multiturn-sql-100` | 0.515 | 1.000 | 0.15625 | 32 | 100 |
-| `multiturn-sql-128each-50` | 0.389 | 0.995 | 0.12500 | 32 | 100 |
-| `multiturn-sql-50` | 0.382 | 0.977 | 0.09375 | 32 | 100 |
-| `multiturn-sql-semantic-50` | 0.384 | 1.000 | 0.09375 | 32 | 100 |
-| `unsloth/Qwen3.5-9B` | 0.347 | 1.000 | 0.06250 | 32 | 100 |
-
-Interpretation:
-
-- The schema-pruned 100-step adapter is the best oracle-conditioned endpoint
-  result, but its eval path still uses gold SQL-derived planning labels.
-- The semantic 50-step adapter improves syntax reliability and reaches `0.440` with semantic eval prompts plus `semantic_grounding`.
-- After value-aware re-scoring, semantic-50 is competitive with the 100-step adapter and `minimal_executable` is the best prompt variant on the current 100-turn slice.
-- Oracle schema-link labels plus prompt pruning are now the strongest diagnostic
-  path, moving the semantic adapter to `0.850` value accuracy and the labelled
-  100-step adapter to `0.890` without reducing syntax accuracy.
-- Semantic context should become a governed, pruned artifact rather than an exhaustive prompt dump.
-
-## Verification
+Audit roadmap status:
 
 ```bash
-ruff check .
-pytest -q
-uv pip check --python .venv/bin/python
-python -m compileall -q data/prepare.py eval train scripts tests
+uv run --active --no-sync python -m eval.roadmap_status --format markdown
 ```
 
-Re-score existing results without regenerating model output:
+Prepare a frozen CoSQL split:
 
 ```bash
-python -m eval.rescore_results \
-  --input results/prompt_search_semantic50_semantic_grounding_100/semantic_grounding.jsonl \
-  --output results/rescored/semantic_grounding.jsonl
+uv run --active --no-sync python -m data.prepare_split \
+  --split-id cosql_dev_clean_holdout_v1 \
+  --output data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl \
+  --manifest-output data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.manifest.json \
+  --source-root .
 ```
 
-Classify failures and compare prompt or adapter regressions:
+Validate training rows without loading GPU libraries:
 
 ```bash
-python -m eval.classify_errors \
-  --input results/rescored/minimal_executable.jsonl \
-  --output results/classified/minimal_executable.jsonl \
-  --summary plots/failure_taxonomy/minimal_executable.csv
-
-python -m eval.compare_failures \
-  --input results/classified/vllm_qwen35_9b_base_cosql_dev_100turns.jsonl \
-  --input results/classified/vllm_qwen35_9b_lora100_cosql_dev_100turns.jsonl \
-  --input results/classified/minimal_executable.jsonl \
-  --output-dir plots/failure_taxonomy/comparison \
-  --baseline 'unsloth/Qwen3.5-9B'
+uv run --active --no-sync python -m train.finetune \
+  --config configs/direct_sql_full_non_oracle.yaml \
+  --data data/processed/direct_sql_full/cosql_train_v1.jsonl \
+  --validate-data-only
 ```
 
-Generate the oracle schema-pruned labelled eval slice and run the promoted
-prompt:
+Run a bounded fine-tuning smoke:
 
 ```bash
-python -m data.prepare \
-  --config configs/qwen35_9b_5090.yaml \
-  --section eval \
-  --limit 100 \
-  --output data/processed/eval_100_each_semantic_pruned_labels.jsonl \
-  --include-sql-labels \
-  --prune-semantic-model \
-  --strict
+UV_CACHE_DIR=/tmp/uv-cache \
+uv run --active --no-sync python -m train.finetune \
+  --config configs/direct_sql_full_non_oracle.yaml \
+  --data data/processed/direct_sql_full/cosql_train_v1.jsonl \
+  --max-steps 1 \
+  --output-dir outputs/gpu_access_smoke_1step \
+  --report-to none
+```
 
-# Oracle diagnostic only: eval prompt contains labels extracted from reference SQL.
-python -m eval.prompt_optimize \
+Evaluate an OpenAI-compatible endpoint:
+
+```bash
+uv run --active --no-sync python -m eval.run_eval \
   --benchmark prepared \
-  --endpoint http://127.0.0.1:8000/v1 \
-  --model-name multiturn-sql-semantic-50 \
-  --input data/processed/eval_100_each_semantic_pruned_labels.jsonl \
-  --limit 100 \
-  --max-tokens 192 \
-  --database-root data/raw/cosql_dataset/database \
-  --output-dir results/prompt_search_schema_pruned_projection_schemafix_100 \
-  --variants configs/prompt_variants/schema_pruned_projection.json \
-  --allow-oracle-plan \
-  --dspy-proposals 2
+  --endpoint http://localhost:8000/v1 \
+  --model-name direct_sql_full_non_oracle_lora \
+  --input data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl \
+  --output results/runs/direct_sql_full_non_oracle_control/lora_clean_holdout.jsonl \
+  --manifest-output results/runs/direct_sql_full_non_oracle_control/lora_clean_holdout.manifest.json \
+  --database-root data/raw/cosql_dataset/database
 ```
 
-Prompt optimization smoke:
+Compare a hosted run only after both manifests are row-matched:
 
 ```bash
-python -m eval.prompt_optimize \
-  --benchmark prepared \
-  --endpoint http://127.0.0.1:8000/v1 \
-  --model-name multiturn-sql-semantic-50 \
-  --input data/processed/eval_100_each_semantic.jsonl \
-  --limit 30 \
-  --database-root data/raw/cosql_dataset/database \
-  --output-dir results/prompt_search_semantic50_limit30 \
-  --dspy-proposals 2
+uv run --active --no-sync python -m eval.compare_hosted_baseline \
+  --local-manifest results/generated_history_recovery_clean_holdout/behavior_recovery_5steps_cp8_limit12.rollout.manifest.json \
+  --hosted-manifest results/hosted_transfer_cp9/openrouter_claude_sonnet_4_6_cp9_limit12.rollout.manifest.json \
+  --output results/hosted_transfer_cp9/behavior_recovery_5steps_cp8_limit12.vs_openrouter_claude_sonnet_4_6.manifest.json
 ```
 
-The current WSL environment verifies PyTorch CUDA on RTX 5090, but
-`scripts/verify_blackwell.py --phase serving` reports missing system `nvcc`; the `.venv-vllm`
-wheel install is nevertheless sufficient for the verified endpoint runs above when FlashInfer sampler JIT is disabled.
+Run tests:
 
-Latest local smoke evidence:
+```bash
+UV_CACHE_DIR=/tmp/uv-cache uv run --active --no-sync pytest
+```
 
-- 5-step Unsloth LoRA training completed on RTX 5090 and wrote `outputs/qwen35_9b_multiturn_sql/final`.
-- A 50-step LoRA run on 192 mixed SQL-chat examples completed on the RTX 5090 and wrote `outputs/qwen35_9b_multiturn_sql_50steps/final`.
-- A structured Stage 3 semantic-layer 5-step smoke run completed on RTX 5090
-  and wrote `outputs/experiments/semantic_layer_5steps/final` plus
-  `outputs/experiments/semantic_layer_5steps/training.manifest.json`.
-  This run used `CC=/home/dan/.local/bin/cc`; in restricted shells where Zig
-  cache writes are blocked, also set `ZIG_LOCAL_CACHE_DIR=/tmp/zig-cache` and
-  `ZIG_GLOBAL_CACHE_DIR=/tmp/zig-global-cache`.
-- On a 100-turn CoSQL-dev local benchmark spanning 32 dialogs, base Qwen scored 0.360 per-turn execution accuracy and the 50-step adapter scored 0.420.
-- Dialog-level aggregation over the same 100 turns reports base dialog execution accuracy 0.337 and interaction-match rate 0.0625; the 50-step adapter reports dialog execution accuracy 0.382 and interaction-match rate 0.09375.
-- The filtered plot command above was verified and wrote `plots/dev_100turns_lora50/summary.csv` plus `plots/dev_100turns_lora50/dialog_summary.csv`.
-- vLLM endpoint iteration testing improved from base `0.370` to `0.530` with the 100-step adapter on the same 100-turn CoSQL-dev slice.
-- Semantic-context 50-step endpoint testing completed at `0.420` execution accuracy and `1.000` syntax accuracy on the same slice.
-- Semantic prompt iteration completed at `0.440` execution accuracy with `semantic_grounding` on the same slice.
-- Value-aware re-scoring completed under `results/rescored/`, showing semantic-50 at `0.630` and `minimal_executable` at `0.640`.
-- Failure classification completed under `results/classified/`; comparison reports are in `plots/failure_taxonomy/comparison/`.
-- Oracle schema-pruned DSPy label evaluation completed under `results/prompt_search_schema_pruned_projection_schemafix_100/`, with comparison reports in `plots/failure_taxonomy/schema_pruned_projection_schemafix_comparison/`.
+## Data And Leakage Rules
 
-See `docs/5090_benchmark_report.md` for the current research notes, commands, observed results, and remaining quality work.
-See `docs/multiturn_semantic_modeling_research.md` for the deeper research pass and the semantic-modeling fine-tuning changes.
-See `docs/blog/` for the rewritten blog series, including `06_data_engineering_for_multiturn_sql_eval.md`.
+Model prompts may use the current question, visible conversation history,
+schema, semantic context, database-derived value indexes, and generated prior
+SQL when the run is explicitly a generated-history rollout.
+
+Model prompts must not include future turns, reference SQL, expected rows, gold
+Metric DSL, repair labels, or answer-key-derived planner hints. Scorer-side
+labels may exist in expanded rows for auditing and failure analysis, but they
+are not model-facing context.
+
+Clean claims require:
+
+1. frozen split roles;
+2. no answer-key leakage in prompts;
+3. identical row identity between method and control;
+4. result manifests with hashes, metrics, model names, commands, and costs when
+   available.
+
+## GPU Notes
+
+This repo is run from WSL. GPU visibility can differ between the sandbox and the
+real shell. Before diagnosing training, check `/usr/lib/wsl/lib/nvidia-smi` and
+a PyTorch CUDA probe from the real WSL environment. `uv.lock` is local
+environment churn here and should not be committed.
+
+## Direction
+
+The next credible claim is a clean benchmark story, not another complicated
+planner abstraction:
+
+1. keep scaling direct-SQL and structured-brief training on clean split roles;
+2. compare against raw Qwen and hosted models on the same multi-turn rows;
+3. use failure analysis to decide whether semantic context, value retrieval,
+   Metric DSL, or recovery deserves the next training run;
+4. move to BIRD-Interact-style evaluation only after the local protocol is
+   stable and honest.

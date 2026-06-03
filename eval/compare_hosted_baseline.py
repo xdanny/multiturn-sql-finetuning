@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 NON_ORACLE_GENERATION = "non_oracle_generation"
-PRODUCTION_MODES = {"non_oracle_generation", "predicted_planner"}
+PRODUCTION_MODES = {"non_oracle_generation"}
 HOSTED_ENDPOINT_PREFIXES = ("https://", "anthropic:", "google:")
 HOSTED_LATENCY_KEYS = (
     "mean_latency_ms",

@@ -18,8 +18,6 @@ from typing import Any
 
 from openai import OpenAI
 
-from data.plan_contract import ORACLE_PLANNER_DIAGNOSTIC
-from data.prepare import ORACLE_DIAGNOSTIC_WARNING
 from eval.ragas_metrics import extract_sql, score_single_turn
 from eval.result_manifest import build_result_manifest, write_result_manifest
 from eval.run_eval import (
@@ -73,8 +71,10 @@ def load_rollout_prepared_records(
             if record_uses_oracle_plan(record) and not allow_oracle_plan:
                 raise ValueError(
                     f"{path} contains gold SQL-derived oracle planning hints. "
-                    "Pass --allow-oracle-plan only for diagnostic upper-bound rollout."
+                    "Oracle planner diagnostics have been removed from rollout evaluation."
                 )
+            if record_uses_oracle_plan(record) and allow_oracle_plan:
+                raise ValueError("oracle planner diagnostics have been removed from rollout evaluation")
             records.append(record)
     return records
 
@@ -82,8 +82,6 @@ def load_rollout_prepared_records(
 def _assistant_turn_payloads(record: dict[str, Any]) -> list[dict[str, Any]]:
     payloads = []
     turn_index = 0
-    gold_plans = record.get("gold_plans") or record.get("schema_link_labels") or []
-    predicted_plans = record.get("predicted_plans") or []
     schema_link_labels = record.get("schema_link_labels") or []
     for message_index, message in enumerate(record.get("messages", [])):
         if message.get("role") != "assistant":
@@ -93,10 +91,6 @@ def _assistant_turn_payloads(record: dict[str, Any]) -> list[dict[str, Any]]:
                 "message_index": message_index,
                 "turn_index": turn_index,
                 "reference_sql": message.get("content", ""),
-                "gold_plan": gold_plans[turn_index] if turn_index < len(gold_plans) else None,
-                "predicted_plan": predicted_plans[turn_index]
-                if turn_index < len(predicted_plans)
-                else None,
                 "schema_link_labels": schema_link_labels[turn_index]
                 if turn_index < len(schema_link_labels)
                 else None,
@@ -129,14 +123,9 @@ def _rollout_record(
         "history_policy": MODEL_GENERATED_SQL_ROLLOUT,
         "original_history_policy": record.get("history_policy"),
         "evaluation_mode": record.get("evaluation_mode") or "unknown",
-        "planning_label_source": record.get("planning_label_source"),
-        "uses_oracle_planning_hints": bool(record.get("uses_oracle_planning_hints")),
-        "semantic_context_pruned_by_oracle_labels": bool(
-            record.get("semantic_context_pruned_by_oracle_labels")
-        ),
-        "oracle_diagnostic_warning": record.get("oracle_diagnostic_warning"),
-        "gold_plan": turn_payload.get("gold_plan"),
-        "predicted_plan": turn_payload.get("predicted_plan"),
+        "uses_oracle_planning_hints": False,
+        "semantic_context_pruned_by_oracle_labels": False,
+        "gold_plan": turn_payload.get("schema_link_labels"),
         "schema_link_labels": turn_payload.get("schema_link_labels"),
     }
 
@@ -240,9 +229,6 @@ def run_rollout_eval(
         limit_dialogs=limit_dialogs,
         allow_oracle_plan=allow_oracle_plan,
     )
-    if any(record.get("evaluation_mode") == ORACLE_PLANNER_DIAGNOSTIC for record in records):
-        print(f"WARNING: {ORACLE_DIAGNOSTIC_WARNING}")
-
     def endpoint_generate(messages: list[dict[str, str]]) -> GenerationResult:
         return generate_sql_with_usage(
             client,
@@ -313,11 +299,6 @@ def main() -> int:
     parser.add_argument("--prompt-variant", default=None)
     parser.add_argument("--prompt-token-cost-usd-per-1k", type=float, default=0.0)
     parser.add_argument("--completion-token-cost-usd-per-1k", type=float, default=0.0)
-    parser.add_argument(
-        "--allow-oracle-plan",
-        action="store_true",
-        help="Allow prepared inputs containing gold SQL-derived planning hints.",
-    )
     args = parser.parse_args()
     return run_rollout_eval(
         endpoint=args.endpoint,
@@ -329,7 +310,7 @@ def main() -> int:
         api_key=args.api_key,
         temperature=args.temperature,
         max_tokens=args.max_tokens,
-        allow_oracle_plan=args.allow_oracle_plan,
+        allow_oracle_plan=False,
         manifest_output=args.manifest_output,
         prompt_variant=args.prompt_variant,
         prompt_token_cost_usd_per_1k=args.prompt_token_cost_usd_per_1k,

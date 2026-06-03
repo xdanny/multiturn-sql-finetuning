@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from eval.rollout_eval import (
     MODEL_GENERATED_SQL_ROLLOUT,
     evaluate_rollout_records,
@@ -18,7 +16,6 @@ def _dialog_record() -> dict:
         "database_id": "db1",
         "history_policy": "gold_sql_teacher_forced",
         "evaluation_mode": "non_oracle_generation",
-        "gold_plans": [{}, {}],
         "messages": [
             {"role": "system", "content": "sys"},
             {"role": "user", "content": "Question:\nfirst"},
@@ -85,32 +82,6 @@ def test_rollout_continues_after_invalid_generated_sql() -> None:
     assert prompts[1][2] == {"role": "assistant", "content": "not sql at all"}
 
 
-def test_rollout_records_hosted_token_usage_and_cost() -> None:
-    def fake_generate(_messages: list[dict[str, str]]):
-        return (
-            "SELECT generated;",
-            7.0,
-            {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120},
-        )
-
-    record = _dialog_record()
-    record["messages"] = record["messages"][:3]
-
-    rows = evaluate_rollout_records(
-        [record],
-        generate_fn=fake_generate,
-        model_name="hosted-frontier",
-        database_root=None,
-        prompt_token_cost_usd_per_1k=3.0,
-        completion_token_cost_usd_per_1k=15.0,
-    )
-
-    assert rows[0]["prompt_tokens"] == 100
-    assert rows[0]["completion_tokens"] == 20
-    assert rows[0]["total_tokens"] == 120
-    assert rows[0]["estimated_generation_cost_usd"] == pytest.approx(0.6)
-
-
 def test_rollout_treats_seeded_failure_turn_as_history_only() -> None:
     record = _dialog_record()
     record["history_policy"] = "seeded_generated_failure_then_rollout"
@@ -140,43 +111,9 @@ def test_rollout_treats_seeded_failure_turn_as_history_only() -> None:
     assert prompts[0][2] == {"role": "assistant", "content": "SELECT gold_first;"}
 
 
-def test_rollout_preserves_non_oracle_predicted_plan_hint_for_each_turn() -> None:
-    record = _dialog_record()
-    record["evaluation_mode"] = "predicted_planner"
-    record["predicted_plans"] = [
-        {"relevant_tables": ["orders"], "projection_shape": {"selected_count": 1}},
-        {"relevant_tables": ["customers"], "projection_shape": {"selected_count": 1}},
-    ]
-    prompts: list[list[dict[str, str]]] = []
-
-    def fake_generate(messages: list[dict[str, str]]) -> tuple[str, float]:
-        prompts.append(messages)
-        return "SELECT 1;", 1.0
-
-    rows = evaluate_rollout_records(
-        [record],
-        generate_fn=fake_generate,
-        model_name="local-9b",
-        database_root=None,
-    )
-
-    assert rows[0]["predicted_plan"]["relevant_tables"] == ["orders"]
-    assert rows[1]["predicted_plan"]["relevant_tables"] == ["customers"]
-    assert "Predicted SQL plan" in prompts[0][-1]["content"]
-    assert "Relevant tables: orders" in prompts[0][-1]["content"]
-    assert "Relevant tables: customers" in prompts[1][-1]["content"]
-    assert "derived from reference SQL" not in prompts[1][-1]["content"]
-
-
-def test_load_rollout_prepared_records_rejects_oracle_inputs_by_default(tmp_path) -> None:
+def test_load_rollout_prepared_records_loads_dialogs(tmp_path) -> None:
     path = tmp_path / "prepared.jsonl"
     record = _dialog_record()
-    record["evaluation_mode"] = "oracle_planner_diagnostic"
-    record["planning_label_source"] = "gold_reference_sql"
-    record["uses_oracle_planning_hints"] = True
     path.write_text(json.dumps(record) + "\n")
 
-    with pytest.raises(ValueError, match="oracle planning hints"):
-        load_rollout_prepared_records(path)
-
-    assert load_rollout_prepared_records(path, allow_oracle_plan=True)[0]["id"] == "dialog-a"
+    assert load_rollout_prepared_records(path)[0]["id"] == "dialog-a"

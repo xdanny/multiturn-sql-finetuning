@@ -33,7 +33,7 @@ def _resolve_source_path(manifest: dict[str, Any], *, source_roots: Iterable[Pat
         raise ValueError(f"{manifest['split_id']}: split manifest has no source_path")
 
     path = Path(str(source_path))
-    candidates = [path] if path.is_absolute() else [Path.cwd() / path, *(root / path for root in source_roots)]
+    candidates = [path] if path.is_absolute() else [*(root / path for root in source_roots), Path.cwd() / path]
     for candidate in candidates:
         if candidate.exists():
             return candidate
@@ -107,8 +107,6 @@ def prepare_records_from_split(
         split=str(manifest.get("source_split") or manifest["role"]),
         formatter="cosql",
         tables_path=str(resolved_tables_path) if resolved_tables_path else None,
-        include_sql_labels=False,
-        prune_semantic_model=False,
     )
     records = list(iter_formatted_records(selected, spec=spec, limit=None))
     row_ids = list(manifest.get("row_ids") or [])[: len(records)]

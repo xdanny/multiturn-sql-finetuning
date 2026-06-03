@@ -12,6 +12,8 @@ from eval.run_semantic_value_retrieval_comparison import (
     validate_comparison_inputs,
     write_comparison_preflight,
 )
+
+
 def _write_jsonl(path: Path, rows: list[dict]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(json.dumps(row) for row in rows) + "\n")
