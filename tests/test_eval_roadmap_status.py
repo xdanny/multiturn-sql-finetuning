@@ -264,6 +264,23 @@ def _generated_history_recovery_readiness_evidence() -> dict:
     }
 
 
+def _generated_history_recovery_comparison_evidence() -> dict:
+    return {
+        "artifact_type": "generated_history_recovery_clean_holdout_comparison_summary",
+        "evaluated_dialog_count": 12,
+        "comparable_row_count": 43,
+        "split_roles": {"clean_local_holdout": 43},
+        "history_policy": "model_generated_sql_rollout",
+        "oracle_policy": "non_oracle_generation",
+        "reference_sql_visible_to_model_prompt": False,
+        "scorer_labels_visible_to_model_prompt": False,
+        "behavior_recovery_value_execution_accuracy": 0.558,
+        "direct_sql_value_execution_accuracy": 0.535,
+        "behavior_recovery_value_delta_vs_direct_sql": 0.023,
+        "promotion_status": "narrow_positive",
+    }
+
+
 def _write_checkpoint3_config(tmp_path: Path, *, complete: bool) -> Path:
     config_path = tmp_path / "configs" / "direct_sql_full_non_oracle.yaml"
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -556,7 +573,7 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
     ]
     assert by_checkpoint[9]["status"] == "pending"
     assert by_checkpoint[9]["open_items"] == [
-        "hosted transfer waits for a local clean-holdout winner"
+        "hosted transfer needs an explicit target protocol and same-row hosted run"
     ]
 
 
@@ -583,6 +600,44 @@ def test_summarize_roadmap_status_keeps_checkpoint3_in_progress_until_artifacts_
     by_checkpoint = {row["checkpoint"]: row for row in summary["checkpoints"]}
     assert by_checkpoint[3]["status"] == "in_progress"
     assert any("missing manifest" in issue for issue in by_checkpoint[3]["open_items"])
+
+
+def test_summarize_roadmap_status_completes_checkpoint8_with_recorded_comparison(
+    tmp_path: Path,
+) -> None:
+    registry = tmp_path / "configs" / "experiments.yaml"
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    _write_registry(registry)
+    _write_json(
+        tmp_path
+        / "docs"
+        / "training_runs"
+        / "generated_history_recovery_readiness_20260602.json",
+        _generated_history_recovery_readiness_evidence(),
+    )
+    comparison_path = (
+        tmp_path
+        / "docs"
+        / "training_runs"
+        / "generated_history_recovery_clean_holdout_comparison_20260603.json"
+    )
+    _write_json(comparison_path, _generated_history_recovery_comparison_evidence())
+    checkpoint3 = _write_checkpoint3_config(tmp_path, complete=False)
+
+    summary = summarize_roadmap_status(
+        experiment_registry_path=registry,
+        checkpoint3_config_path=checkpoint3,
+        generated_history_recovery_comparison_evidence_path=comparison_path,
+    )
+
+    by_checkpoint = {row["checkpoint"]: row for row in summary["checkpoints"]}
+    assert by_checkpoint[8]["status"] == "complete"
+    assert by_checkpoint[8]["open_items"] == []
+    assert (
+        "eval.run_behavior_recovery_comparison clean-holdout generated-history comparison"
+        in by_checkpoint[8]["evidence"]
+    )
+    assert str(comparison_path) in by_checkpoint[8]["evidence"]
 
 
 def test_summarize_roadmap_status_accepts_recorded_endpoint_evidence(

@@ -4,10 +4,9 @@ This is the canonical long-term roadmap for the multi-turn SQL fine-tuning
 program. It replaces the old gate-heavy day-to-day direction with smaller,
 row-matched method comparisons.
 
-Last audited: 2026-06-02 after the Checkpoint 3 endpoint evaluation,
-generated-history rollout, clean-holdout failure analysis, Checkpoint 5 full
-structured query-brief training and clean-holdout comparison, and Checkpoint 6
-pruned semantic value-retrieval endpoint comparison.
+Last audited: 2026-06-03 after the Checkpoint 7 Metric DSL negative
+clean-holdout comparison and the Checkpoint 8 bounded generated-history
+recovery comparison.
 
 Checkpoint status legend:
 
@@ -32,7 +31,7 @@ Current checkpoint progress:
 - `[x]` Checkpoint 5: Structured Query Brief SFT.
 - `[x]` Checkpoint 6: Semantic Layer And Value Grounding.
 - `[x]` Checkpoint 7: Metric DSL.
-- `[~]` Checkpoint 8: Generated-History Recovery.
+- `[x]` Checkpoint 8: Generated-History Recovery.
 - `[ ]` Checkpoint 9: Hosted And Target Benchmark Transfer.
 
 Audit the current checkpoint statuses without running GPU training or endpoints:
@@ -51,9 +50,9 @@ The current repo is not at a hosted benchmark claim yet. It now has a full
 direct-SQL local control baseline for the configured CoSQL proxy and clean
 holdout, a Checkpoint 5 structured query-brief clean-holdout win, and one
 narrow clean-holdout semantic value-retrieval win under the current comparer.
-Other structured method arms still need same-row clean-holdout wins. Many
-method artifacts remain intentionally small: 2 metric-DSL rows, 1
-behavior-recovery row, and 5 synthetic fixtures.
+Metric DSL failed its generated-output clean-holdout comparison, while
+generated-history recovery has a narrow bounded clean-holdout rollout win.
+These are local method-comparison results, not hosted benchmark claims.
 
 Supported non-oracle claims are still scoped. The full direct-SQL LoRA improves
 over its base-model control on the configured local rows: proxy value/strict
@@ -588,9 +587,9 @@ Current Checkpoint 7 evidence from 2026-06-02:
 
 ## Checkpoint 8: Generated-History Recovery
 
-Status: `[~]` in progress. Rollout evaluators, one-row recovery diagnostics,
-and a clean-holdout multi-dialog rollout candidate slice exist;
-generated-history recovery has not beaten direct SQL on multi-dialog rollout.
+Status: `[x]` complete for the current roadmap pass. Rollout evaluators,
+one-row recovery diagnostics, a clean-holdout multi-dialog rollout candidate
+slice, and a bounded same-row recovery-vs-direct comparison exist.
 
 Move recovery evaluation from one synthetic row to multi-dialog rollout. Later
 turns must see generated SQL and observed results, not prior gold SQL.
@@ -609,7 +608,7 @@ The minimum rollout manifest should record:
 - whether each later turn saw generated or teacher-forced history;
 - value-only, strict, syntax, and interaction-level metrics.
 
-Current Checkpoint 8 evidence from 2026-06-02:
+Current Checkpoint 8 evidence:
 
 - `data.generated_history_recovery_readiness` selects multi-turn dialogs from
   the prepared CoSQL clean holdout that can exercise generated-history rollout.
@@ -620,16 +619,31 @@ Current Checkpoint 8 evidence from 2026-06-02:
   678 assistant turns and 487 later turns where prior generated SQL can affect
   the prompt. The compact readiness summary is
   `docs/training_runs/generated_history_recovery_readiness_20260602.json`.
-- This is readiness evidence only. It does not include a recovery adapter
-  rollout, direct-SQL generated-history control comparison, value delta, or
-  method win. The next step is to run `eval.run_behavior_recovery_comparison`
-  on this candidate slice for the recovery adapter and the direct-SQL control,
-  then compare identical model-generated-history rollout rows.
+- On 2026-06-03, `eval.run_behavior_recovery_comparison` ran the trained
+  5-step behavior-recovery adapter and its direct-SQL control on the first 12
+  clean-holdout candidate dialogs: 43 comparable assistant turns, 31 later turns
+  where generated SQL history can affect the prompt, and 10 databases.
+- The recovery adapter scored `0.558` value accuracy and `0.302` strict
+  accuracy. The direct-SQL control scored `0.535` value accuracy and `0.279`
+  strict accuracy. Recovery delta versus direct SQL was `+0.023` for value and
+  `+0.023` for strict; recovery interaction match was `0.333` versus direct
+  SQL `0.250`.
+- Both arms remained far below teacher-forced history: recovery value delta
+  versus teacher-forced was `-0.419`, and direct-SQL value delta versus
+  teacher-forced was `-0.442`. This confirms that generated-history rollout is
+  still materially harder than clean-history scoring.
+- The compact comparison evidence is
+  `docs/training_runs/generated_history_recovery_clean_holdout_comparison_20260603.json`.
+  This is a narrow local positive result, not a hosted benchmark claim and not a
+  full 191-dialog clean-holdout rollout. A full-slice recovery rollout was
+  attempted first, but stopped after roughly 24 minutes with no artifacts
+  because the evaluator buffers output until completion; future full-slice runs
+  should add streaming writes or explicit batching.
 
 ## Checkpoint 9: Hosted And Target Benchmark Transfer
 
-Status: `[ ]` pending. Hosted and BIRD-Interact-style transfer should wait until
-a local method beats direct SQL on a clean local holdout.
+Status: `[ ]` pending. Hosted and BIRD-Interact-style transfer should wait
+until a local winner is selected for transfer under an explicit hosted protocol.
 
 Run hosted baselines only after a local method beats direct SQL on a clean local
 holdout. The first real external target should be BIRD-Interact Lite or

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from collections.abc import Callable, Sequence
 from pathlib import Path
@@ -90,6 +91,24 @@ def _write_rollout_eval(
     write_result_manifest(manifest, manifest_output)
 
 
+def _effective_input_path(
+    *,
+    input_path: Path,
+    output_dir: Path,
+    run_id: str,
+    limit_dialogs: int | None,
+) -> Path:
+    if limit_dialogs is None:
+        return input_path
+    records = load_rollout_prepared_records(input_path, limit_dialogs=limit_dialogs)
+    limited_path = output_dir / f"{run_id}.limited_{limit_dialogs}_dialogs.input.jsonl"
+    limited_path.parent.mkdir(parents=True, exist_ok=True)
+    with limited_path.open("w", encoding="utf-8") as handle:
+        for record in records:
+            handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
+    return limited_path
+
+
 def run_behavior_recovery_comparison(
     *,
     input_path: Path,
@@ -99,12 +118,19 @@ def run_behavior_recovery_comparison(
     generate_fn: GenerateFn,
     database_root: Path | None = None,
     endpoint: str = "offline",
+    limit_dialogs: int | None = None,
     command: Sequence[str] | None = None,
 ) -> dict:
     """Write rollout, teacher-forced, and comparison manifests for one recovery run."""
 
     command = list(command or sys.argv)
     output_dir.mkdir(parents=True, exist_ok=True)
+    input_for_run = _effective_input_path(
+        input_path=input_path,
+        output_dir=output_dir,
+        run_id=run_id,
+        limit_dialogs=limit_dialogs,
+    )
     rollout_output = output_dir / f"{run_id}.rollout.jsonl"
     rollout_manifest = output_dir / f"{run_id}.rollout.manifest.json"
     teacher_output = output_dir / f"{run_id}.teacher_forced.jsonl"
@@ -112,7 +138,7 @@ def run_behavior_recovery_comparison(
     comparison_manifest = output_dir / f"{run_id}.comparison.manifest.json"
 
     _write_rollout_eval(
-        input_path=input_path,
+        input_path=input_for_run,
         output_path=rollout_output,
         manifest_output=rollout_manifest,
         model_name=model_name,
@@ -122,7 +148,7 @@ def run_behavior_recovery_comparison(
         command=command,
     )
     run_behavior_recovery_teacher_forced(
-        input_path=input_path,
+        input_path=input_for_run,
         output_path=teacher_output,
         manifest_output=teacher_manifest,
         model_name=model_name,
@@ -151,6 +177,7 @@ def main() -> int:
     parser.add_argument("--backend", choices=["endpoint", "local"], default="endpoint")
     parser.add_argument("--adapter-path", type=Path, default=None)
     parser.add_argument("--max-memory-gb", type=int, default=30)
+    parser.add_argument("--limit-dialogs", type=int, default=None)
     args = parser.parse_args()
     if args.backend == "local":
         generate_fn = local_adapter_generate_fn(
@@ -177,6 +204,7 @@ def main() -> int:
         model_name=args.result_model_name or args.model_name,
         database_root=args.database_root,
         endpoint=endpoint,
+        limit_dialogs=args.limit_dialogs,
         generate_fn=generate_fn,
         command=sys.argv,
     )

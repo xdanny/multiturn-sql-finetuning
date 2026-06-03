@@ -40,60 +40,67 @@ def evaluate_teacher_forced_records(
     *,
     model_name: str,
 ) -> list[dict[str, Any]]:
-    """Score the final repair label as a teacher-forced diagnostic row."""
+    """Score assistant labels as teacher-forced diagnostic rows."""
 
     rows = []
-    for record in records:
+    for record_index, record in enumerate(records):
         messages = record["messages"]
         assistant_indices = _assistant_indices(messages)
         if not assistant_indices:
             raise ValueError(f"{record.get('id')} has no assistant reference SQL")
-        assistant_index = assistant_indices[-1]
-        reference_sql = messages[assistant_index]["content"]
-        score = score_single_turn(reference_sql, reference_sql, database_path=None)
-        strict_score = (
-            score.strict_execution_score
-            if score.strict_execution_score is not None
-            else score.execution_score
+        dialog_id = str(
+            record.get("dialog_id") or record.get("id") or f"prepared-{record_index}"
         )
-        value_score = (
-            score.value_execution_score
-            if score.value_execution_score is not None
-            else score.execution_score
-        )
-        dialog_id = str(record.get("dialog_id") or record.get("id"))
-        turn_index = len(assistant_indices) - 1
-        rows.append(
-            {
-                "id": f"{dialog_id}:{turn_index}",
-                "dialog_id": dialog_id,
-                "turn_index": turn_index,
-                "turn_count": len(assistant_indices),
-                "messages": [dict(message) for message in messages[:assistant_index]],
-                "reference_sql": reference_sql,
-                "source": record.get("source", "behavior_recovery_rollout_input"),
-                "database_id": record.get("database_id"),
-                "history_policy": GOLD_SQL_TEACHER_FORCED,
-                "original_history_policy": record.get("history_policy"),
-                "evaluation_mode": record.get("evaluation_mode") or "non_oracle_generation",
-                "uses_oracle_planning_hints": bool(record.get("uses_oracle_planning_hints")),
-                "semantic_context_pruned_by_oracle_labels": bool(
-                    record.get("semantic_context_pruned_by_oracle_labels")
-                ),
-                "model_name": model_name,
-                "raw_generation": reference_sql,
-                "generated_sql": reference_sql,
-                "generation_latency_ms": 0.0,
-                "execution_score": score.execution_score,
-                "strict_execution_score": strict_score,
-                "value_execution_score": value_score,
-                "order_sensitive": score.order_sensitive,
-                "normalized_match": score.normalized_match,
-                "syntax_valid": score.syntax_valid,
-                "score_error": score.error,
-                "database_path": None,
-            }
-        )
+        seeded_history_turn_index = record.get("seeded_failure_turn_index")
+        for turn_index, assistant_index in enumerate(assistant_indices):
+            if turn_index == seeded_history_turn_index:
+                continue
+            reference_sql = messages[assistant_index]["content"]
+            score = score_single_turn(reference_sql, reference_sql, database_path=None)
+            strict_score = (
+                score.strict_execution_score
+                if score.strict_execution_score is not None
+                else score.execution_score
+            )
+            value_score = (
+                score.value_execution_score
+                if score.value_execution_score is not None
+                else score.execution_score
+            )
+            rows.append(
+                {
+                    "id": f"{dialog_id}:{turn_index}",
+                    "dialog_id": dialog_id,
+                    "turn_index": turn_index,
+                    "turn_count": len(assistant_indices),
+                    "messages": [dict(message) for message in messages[:assistant_index]],
+                    "reference_sql": reference_sql,
+                    "source": record.get("source", "behavior_recovery_rollout_input"),
+                    "database_id": record.get("database_id"),
+                    "history_policy": GOLD_SQL_TEACHER_FORCED,
+                    "original_history_policy": record.get("history_policy"),
+                    "evaluation_mode": record.get("evaluation_mode")
+                    or "non_oracle_generation",
+                    "uses_oracle_planning_hints": bool(
+                        record.get("uses_oracle_planning_hints")
+                    ),
+                    "semantic_context_pruned_by_oracle_labels": bool(
+                        record.get("semantic_context_pruned_by_oracle_labels")
+                    ),
+                    "model_name": model_name,
+                    "raw_generation": reference_sql,
+                    "generated_sql": reference_sql,
+                    "generation_latency_ms": 0.0,
+                    "execution_score": score.execution_score,
+                    "strict_execution_score": strict_score,
+                    "value_execution_score": value_score,
+                    "order_sensitive": score.order_sensitive,
+                    "normalized_match": score.normalized_match,
+                    "syntax_valid": score.syntax_valid,
+                    "score_error": score.error,
+                    "database_path": None,
+                }
+            )
     return rows
 
 
