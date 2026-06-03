@@ -78,22 +78,6 @@ def test_format_single_turn_can_include_semantic_model_context() -> None:
     assert "Cube orders" in messages[1]["content"]
 
 
-def test_format_single_turn_can_include_sql_planning_hints() -> None:
-    messages = format_sparc(
-        {
-            "database_id": "store",
-            "question": "How many orders are completed?",
-            "query": "SELECT COUNT(*) FROM orders WHERE status = 'completed';",
-            "include_sql_labels": True,
-        }
-    )
-
-    assert "Oracle SQL planning hints" in messages[1]["content"]
-    assert "derived from reference SQL" in messages[1]["content"]
-    assert "Relevant tables: orders" in messages[1]["content"]
-    assert "Projection shape: 1 selected expression" in messages[1]["content"]
-
-
 def test_format_cosql_keeps_multi_turn_pairs() -> None:
     messages = format_cosql(
         {
@@ -134,7 +118,7 @@ def test_format_cosql_includes_semantic_model_on_first_turn_only() -> None:
     assert "Semantic model:" not in messages[3]["content"]
 
 
-def test_format_cosql_can_prune_semantic_model_per_turn_and_add_hints() -> None:
+def test_format_cosql_keeps_full_semantic_model_context() -> None:
     messages = format_cosql(
         {
             "database_id": "store",
@@ -149,8 +133,6 @@ def test_format_cosql_can_prune_semantic_model_per_turn_and_add_hints() -> None:
                     "  Measures: count",
                 ]
             ),
-            "include_sql_labels": True,
-            "prune_semantic_model": True,
             "interaction": [
                 {"utterance": "List customers.", "query": "SELECT name FROM customers;"},
                 {"utterance": "How many orders?", "query": "SELECT COUNT(*) FROM orders;"},
@@ -159,11 +141,10 @@ def test_format_cosql_can_prune_semantic_model_per_turn_and_add_hints() -> None:
     )
 
     assert "Cube customers" in messages[1]["content"]
-    assert "Cube orders" not in messages[1]["content"]
-    assert "Oracle SQL planning hints" in messages[1]["content"]
-    assert "Cube orders" in messages[3]["content"]
-    assert "Cube customers" not in messages[3]["content"]
-    assert "Relevant tables: orders" in messages[3]["content"]
+    assert "Cube orders" in messages[1]["content"]
+    assert "Semantic model:" not in messages[3]["content"]
+    assert "planning hints" not in messages[1]["content"].lower()
+    assert "planning hints" not in messages[3]["content"].lower()
 
 
 def test_format_cosql_rejects_empty_interaction() -> None:
@@ -211,8 +192,8 @@ def test_build_dataset_manifest_summarizes_composition(tmp_path) -> None:
         },
     ]
     specs = [
-        DatasetSpec("cosql", "train", "cosql", weight=0.5, include_sql_labels=False),
-        DatasetSpec("sparc", "train", "sparc", weight=0.25, include_sql_labels=True),
+        DatasetSpec("cosql", "train", "cosql", weight=0.5),
+        DatasetSpec("sparc", "train", "sparc", weight=0.25),
     ]
 
     manifest = build_dataset_manifest(
@@ -228,7 +209,7 @@ def test_build_dataset_manifest_summarizes_composition(tmp_path) -> None:
     assert manifest["history_policies"] == {"gold_sql_teacher_forced": 1, "single_turn": 1}
     assert manifest["assistant_turns"] == {"total": 3, "max_per_record": 2}
     assert manifest["dataset_specs"][0]["configured_weight"] == 0.5
-    assert manifest["dataset_specs"][1]["include_sql_labels"] is True
+    assert "sql_label_prompt_flags" not in manifest["dataset_specs"][1]
 
     output = tmp_path / "manifest.json"
     write_dataset_manifest(manifest, output)
@@ -314,7 +295,7 @@ def test_iter_formatted_records_adds_semantic_model_from_tables_path(tmp_path) -
     assert records[0]["history_policy"] == "gold_sql_teacher_forced"
 
 
-def test_iter_formatted_records_respects_sql_label_and_pruning_spec(tmp_path) -> None:
+def test_iter_formatted_records_keeps_semantic_model_unpruned(tmp_path) -> None:
     tables_path = tmp_path / "tables.json"
     tables_path.write_text(
         json.dumps(
@@ -351,24 +332,18 @@ def test_iter_formatted_records_respects_sql_label_and_pruning_spec(tmp_path) ->
                 "train",
                 "cosql",
                 tables_path=str(tables_path),
-                include_sql_labels=True,
-                prune_semantic_model=True,
             ),
             limit=None,
         )
     )
 
     content = records[0]["messages"][1]["content"]
-    assert "Oracle SQL planning hints" in content
     assert "Cube orders" in content
-    assert "Cube customers" not in content
-    assert records[0]["evaluation_mode"] == "oracle_planner_diagnostic"
-    assert records[0]["uses_oracle_planning_hints"] is True
-    assert records[0]["semantic_context_pruned_by_oracle_labels"] is True
-    assert records[0]["planning_label_source"] == "gold_reference_sql"
-    assert records[0]["gold_plans"][0]["relevant_tables"] == ["orders"]
-    assert set(records[0]["gold_plans"][0]["query_skeleton"]) >= {"select", "where", "join"}
-    assert "teacher-forced/oracle diagnostics" in records[0]["oracle_diagnostic_warning"]
+    assert "Cube customers" in content
+    assert "planning hints" not in content.lower()
+    assert records[0]["evaluation_mode"] == "non_oracle_generation"
+    assert records[0]["schema_link_label_source"] == "reference_sql_for_scoring_only"
+    assert records[0]["schema_link_labels"][0]["relevant_tables"] == ["orders"]
 
 
 def test_iter_formatted_records_marks_non_oracle_generation(tmp_path) -> None:
@@ -387,13 +362,11 @@ def test_iter_formatted_records_marks_non_oracle_generation(tmp_path) -> None:
     )
 
     assert records[0]["evaluation_mode"] == "non_oracle_generation"
-    assert records[0]["uses_oracle_planning_hints"] is False
-    assert records[0]["semantic_context_pruned_by_oracle_labels"] is False
-    assert records[0]["gold_plans"][0]["relevant_tables"] == ["customers"]
+    assert records[0]["schema_link_labels"][0]["relevant_tables"] == ["customers"]
     assert records[0]["assistant_turn_count"] == 1
     assert records[0]["turn_format"] == "single_turn"
     assert records[0]["history_policy"] == "single_turn"
-    assert "oracle_diagnostic_warning" not in records[0]
+    assert records[0]["schema_link_label_source"] == "reference_sql_for_scoring_only"
 
 
 def test_local_json_dataset_loading(tmp_path) -> None:

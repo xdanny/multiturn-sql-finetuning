@@ -1,6 +1,0 @@
-data:
-  eval_datasets:
-    - name: "data/raw/cosql_dataset/sql_state_tracking/cosql_dev.json"
-      split: "validation"
-      formatter: "cosql"
-      tables_path: "data/raw/cosql_dataset/tables.json"

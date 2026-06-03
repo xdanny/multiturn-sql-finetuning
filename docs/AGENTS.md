@@ -1,7 +1,7 @@
 # Docs AGENTS
 
-This subtree owns the research narrative, runbooks, evidence contracts, and
-small checked-in documentation artifacts for the SQL finetuning program.
+This subtree owns the research narrative, roadmap, and small checked-in
+documentation artifacts for the SQL finetuning program.
 
 Primary responsibilities:
 
@@ -33,12 +33,5 @@ When editing here, inspect:
 
 - `docs/research_roadmap.md`
 - `docs/current_research_inventory.md`
-- `docs/research_goal.md`
-- `docs/methodology.md`
-- `docs/evidence_contract.md`
-- `docs/finetuning_ladder.md`
-- `docs/finetuning_method_runbook.md`
-- `docs/finetuning_smoke_matrix.md`
-- `docs/finetuning_measurement_plan.md`
 - `docs/data_artifacts/README.md`
 - `README.md`

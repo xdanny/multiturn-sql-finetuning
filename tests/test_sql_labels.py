@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from data.sql_labels import (
     labels_from_sql,
-    planning_hint_from_labels,
-    prune_semantic_model_context,
     schema_columns_from_context,
 )
 
@@ -105,30 +103,3 @@ def test_labels_from_sql_detects_nested_distinct_duplicate_policy() -> None:
     assert labels["projection_shape"]["distinct"]
     assert not labels["projection_shape"]["preserve_duplicates"]
 
-
-def test_prune_semantic_model_context_keeps_relevant_cube_blocks() -> None:
-    semantic_model = "\n".join(
-        [
-            "- Cube customers (grain: one row per customers)",
-            "  Dimensions: id [number], name [string]",
-            "  Measures: count",
-            "- Cube orders (grain: one row per orders)",
-            "  Dimensions: id [number], customer_id [number]",
-            "  Measures: count",
-        ]
-    )
-
-    pruned = prune_semantic_model_context(semantic_model, ["orders"])
-
-    assert "Cube orders" in pruned
-    assert "Cube customers" not in pruned
-
-
-def test_planning_hint_from_labels_includes_projection_and_duplicate_policy() -> None:
-    labels = labels_from_sql("SELECT DISTINCT name FROM singer")
-
-    hint = planning_hint_from_labels(labels)
-
-    assert "Relevant tables: singer" in hint
-    assert "Projection shape: 1 selected expression" in hint
-    assert "Duplicate policy: deduplicate rows" in hint

@@ -8,7 +8,7 @@ Primary responsibilities:
 
 - Keep labs small enough for readers to run on CPU by default, with accelerator
   use treated as optional.
-- Make notebook examples explain method shape: direct SQL, planner/DSL first,
+- Make notebook examples explain method shape: direct SQL, structured briefs,
   semantic-layer state, `MEASURE()` preservation, and behavior recovery.
 - Keep reusable logic in Python support modules instead of large notebook cells.
 - Make published HTML labs discoverable without turning every old blog post
@@ -28,8 +28,5 @@ Rules:
 
 When editing here, inspect:
 
-- `notebooks/labs/local_multiturn_sql_lab.py`
-- `notebooks/labs/local_multiturn_sql_lab_support.py`
 - `docs/blog/README.md`
-- `docs/finetuning_measurement_plan.md`
-- `docs/evidence_contract.md`
+- `docs/research_roadmap.md`

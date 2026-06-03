@@ -10,8 +10,8 @@ Primary responsibilities:
 - Separate setup diagnostics from benchmark evidence.
 - Prefer scripts that verify prerequisites or run a bounded smoke path over
   scripts that silently mutate training data or result artifacts.
-- Document any machine-specific workaround next to the script and in the
-  relevant runbook.
+- Document any machine-specific workaround next to the script and, when it
+  affects research evidence, in the relevant checked-in run summary.
 
 Rules:
 
@@ -30,6 +30,6 @@ When editing here, inspect:
 
 - `scripts/verify_blackwell.py`
 - `scripts/setup_5090.sh`
-- `docs/finetuning_smoke_matrix.md`
+- `docs/research_roadmap.md`
 - `README.md`
 - `train/AGENTS.md`

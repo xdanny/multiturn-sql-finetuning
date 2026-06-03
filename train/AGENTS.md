@@ -4,8 +4,8 @@ This subtree owns `train.finetune`, training-time validation, and run policy.
 
 Primary responsibilities:
 
-- Keep finetuning entry points aligned with the structured ladder in
-  `docs/finetuning_ladder.md`.
+- Keep finetuning entry points aligned with `docs/research_roadmap.md` and
+  `configs/experiments.yaml`.
 - Reject misleading training inputs before GPU time is spent.
 - Make run naming, stage naming, and mixture intent explicit in documentation
   and command examples.
@@ -14,8 +14,6 @@ Primary responsibilities:
 
 Rules:
 
-- Preserve the `allow-oracle-diagnostic-data` guard. Oracle rows are diagnostic
-  unless the run is explicitly labeled that way.
 - Prefer `uv run python -m train.finetune ...` in repo docs and examples.
 - On this WSL machine, if Linux `gcc` / `clang` are absent but
   `/home/dan/.local/bin/cc` exists, export `CC=/home/dan/.local/bin/cc`
@@ -27,16 +25,14 @@ Rules:
   `docs/data_artifacts/README.md`. Most run-specific files belong under
   `outputs/` or `results/`, not in the source tree.
 - Current `train.finetune` supports `--validate-data-only`, `--dry-run`,
-  `--max-steps`, `--output-dir`, `--report-to`, and
-  `--allow-oracle-diagnostic-data`. Do not document unimplemented flags as if
-  they already exist.
+  `--max-steps`, `--output-dir`, and `--report-to`. Do not document
+  unimplemented flags as if they already exist.
 - If a new finetuning target is added, document which control it is expected to
   beat and which eval command clears that claim.
 
 When editing here, inspect:
 
 - `train/finetune.py`
-- `docs/finetuning_ladder.md`
-- `docs/finetuning_smoke_matrix.md`
-- `docs/research_goal.md`
+- `docs/research_roadmap.md`
+- `configs/experiments.yaml`
 - `tests/test_train_finetune.py`

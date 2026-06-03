@@ -95,13 +95,11 @@ def run_local_benchmark(
     max_new_tokens: int,
     max_memory_gb: int | None,
     database_root: Path | None,
-    allow_oracle_plan: bool,
 ) -> int:
     records = load_benchmark_records(
         benchmark,
         input_path=input_path,
         limit=limit,
-        allow_oracle_plan=allow_oracle_plan,
     )
     model, tokenizer = load_model_and_tokenizer(
         model_name=model_name,
@@ -158,11 +156,6 @@ def main() -> int:
     parser.add_argument("--max-new-tokens", type=int, default=256)
     parser.add_argument("--max-memory-gb", type=int, default=30)
     parser.add_argument("--database-root", type=Path, default=None)
-    parser.add_argument(
-        "--allow-oracle-plan",
-        action="store_true",
-        help="Allow prepared inputs containing gold SQL-derived planning hints.",
-    )
     args = parser.parse_args()
 
     return run_local_benchmark(
@@ -175,7 +168,6 @@ def main() -> int:
         max_new_tokens=args.max_new_tokens,
         max_memory_gb=args.max_memory_gb,
         database_root=args.database_root,
-        allow_oracle_plan=args.allow_oracle_plan,
     )
 
 

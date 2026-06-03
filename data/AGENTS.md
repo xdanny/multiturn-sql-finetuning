@@ -35,4 +35,4 @@ When editing here, inspect:
 - `data/value_index.py`
 - `data/synthetic_method_fixtures.py`
 - `data/split_manifest.py`
-- `docs/evidence_contract.md`
+- `docs/research_roadmap.md`

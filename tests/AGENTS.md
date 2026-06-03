@@ -28,7 +28,6 @@ Rules:
 
 When editing here, inspect:
 
-- `docs/finetuning_measurement_plan.md`
-- `docs/evidence_contract.md`
+- `docs/research_roadmap.md`
 - `eval/result_manifest.py`
 - `data/prepare.py`

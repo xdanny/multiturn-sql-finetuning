@@ -60,10 +60,10 @@ The current checked-in evidence snapshots are compact summaries under
 `docs/training_runs/`:
 
 - `gpu_finetuning_evidence.json`: records local RTX 5090 access, a fresh
-  one-step smoke, and previous adapter evidence. The supported non-oracle proxy
-  runs remain the 100-step direct-SQL LoRA at `0.630` value accuracy and the
-  semantic-50/minimal-executable condition at `0.640` value accuracy on CoSQL
-  dev 100. The `0.890` schema-pruned run is explicitly an oracle diagnostic.
+  one-step smoke, and previous adapter evidence. Current active claims should
+  use the full direct-SQL, structured-brief, semantic-value, Metric DSL,
+  recovery, and hosted-transfer summaries recorded separately under
+  `docs/training_runs/`.
 - `metric_dsl_prompt_baseline.json` and `metric_dsl_arm_5steps.json`: tiny
   two-row metric-DSL diagnostics. Both show that DSL output obedience and metric
   semantics are not learned yet.
@@ -86,9 +86,7 @@ Checked-in docs refer to local runtime paths such as:
 
 - `outputs/qwen35_9b_multiturn_sql_100steps/`
 - `outputs/qwen35_9b_multiturn_sql_semantic_50steps/`
-- `outputs/qwen35_9b_multiturn_sql_schema_pruned_100steps/`
 - `outputs/gpu_access_smoke_1step/`
-- `results/predicted_planner/`
 - `results/rescored/`
 
 These paths are not checked in on current `main`. Their recorded hashes and
@@ -96,12 +94,16 @@ metrics live in the compact evidence snapshots above.
 
 ## Active Claim Boundary
 
-Supported claims are proxy-only:
+Supported claims remain scoped to local CoSQL splits and bounded hosted
+comparisons:
 
-- Base Qwen reaches `0.590` value accuracy on the inspected CoSQL dev 100 proxy.
-- The 100-step direct-SQL LoRA reaches `0.630` value accuracy on that proxy.
-- The best semantic prompt condition reaches `0.640` value accuracy on that
-  proxy.
+- The full direct-SQL LoRA improves clean-holdout value/strict accuracy from
+  `0.218` to `0.349`.
+- The structured-brief LoRA reaches `0.576` value and `0.541` strict accuracy on
+  the same 680 clean-holdout turns.
+- The hosted-transfer slice records a target gap: the best local recovery
+  adapter ties raw Qwen at `0.558` value / `0.302` strict and trails OpenRouter
+  Claude Sonnet 4.6 at `0.674` value / `0.395` strict.
 
 Not supported yet:
 

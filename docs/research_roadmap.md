@@ -19,6 +19,7 @@ well-formed but does not cleanly support promotion, regression, or a benchmark
 claim, record the artifact, row scope, blocker, and remaining uncertainty. These
 records are inputs to future writeups: they explain why the roadmap paused,
 rerouted, or redesigned a method without overstating either success or failure.
+They should state what was learned and what remains unproven.
 
 Current checkpoint progress:
 
@@ -61,9 +62,7 @@ Supported non-oracle claims are still scoped. The full direct-SQL LoRA improves
 over its base-model control on the configured local rows: proxy value/strict
 accuracy moves from `0.223` to `0.355`, clean-holdout value/strict accuracy
 moves from `0.218` to `0.349`, and generated-history rollout value/strict
-accuracy moves from `0.049` to `0.090`. The `0.890` schema-pruned result remains
-an oracle diagnostic only because reference SQL-derived planning hints enter
-that older run.
+accuracy moves from `0.049` to `0.090`.
 
 ## Research Anchors
 
