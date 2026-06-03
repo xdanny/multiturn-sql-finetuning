@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
 from eval.run_behavior_recovery_comparison import run_behavior_recovery_comparison
 
 
@@ -85,3 +87,35 @@ def test_run_behavior_recovery_comparison_can_limit_dialogs(tmp_path) -> None:
     assert limited_input.read_text().count("\n") == 1
     assert compared["input_path"] == str(limited_input)
     assert compared["row_count"] == 1
+
+
+def test_run_behavior_recovery_comparison_records_hosted_cost_metrics(tmp_path) -> None:
+    input_path = tmp_path / "rollout_inputs.jsonl"
+    output_dir = tmp_path / "results" / "rollout"
+    _write_jsonl(input_path, [_rollout_input()])
+
+    run_behavior_recovery_comparison(
+        input_path=input_path,
+        output_dir=output_dir,
+        run_id="hosted-recovery",
+        model_name="anthropic/claude-sonnet-4.6",
+        endpoint="https://openrouter.ai/api/v1",
+        generate_fn=lambda _messages: (
+            "SELECT fixed;",
+            10.0,
+            {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120},
+        ),
+        prompt_token_cost_usd_per_1k=3.0,
+        completion_token_cost_usd_per_1k=15.0,
+        command=["python", "-m", "eval.run_behavior_recovery_comparison"],
+    )
+
+    manifest = json.loads(
+        (output_dir / "hosted-recovery.rollout.manifest.json").read_text()
+    )
+
+    assert manifest["endpoint"] == "https://openrouter.ai/api/v1"
+    assert manifest["metrics"]["total_prompt_tokens"] == 100
+    assert manifest["metrics"]["total_completion_tokens"] == 20
+    assert manifest["metrics"]["total_tokens"] == 120
+    assert manifest["metrics"]["total_estimated_generation_cost_usd"] == pytest.approx(0.6)

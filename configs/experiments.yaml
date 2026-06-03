@@ -146,11 +146,12 @@ experiments:
 
   - experiment_id: hosted_bird_interact_transfer
     checkpoint: 9
-    status: pending_local_winner
+    status: target_gap_recorded
     hypothesis_id: hosted_transfer
     hypothesis: >-
-      The best local candidate can be compared against hosted baselines only
-      after it beats direct SQL on a clean local holdout.
+      The best local finetuned candidate should be measured against both raw
+      base Qwen and a hosted SOTA comparator before any external benchmark
+      claim.
     train_split_id: cosql_train_v1
     validation_split_id: cosql_dev_clean_holdout_v1
     test_split_id: bird_interact_lite_pending_v1
@@ -165,5 +166,7 @@ experiments:
     control_experiment_id: direct_sql_full_non_oracle_control
     primary_metric: local_value_delta_vs_hosted
     claim_boundary: >-
-      Pending until a local clean-holdout winner exists and hosted baselines run
-      on the same protocol.
+      Same-row CoSQL generated-history target-gap evidence exists for raw
+      Qwen, the best finetuned recovery adapter, and OpenRouter Claude Sonnet
+      4.6. This is not a BIRD-Interact, LiveSQLBench, or external benchmark
+      claim.

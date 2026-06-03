@@ -85,6 +85,32 @@ def test_rollout_continues_after_invalid_generated_sql() -> None:
     assert prompts[1][2] == {"role": "assistant", "content": "not sql at all"}
 
 
+def test_rollout_records_hosted_token_usage_and_cost() -> None:
+    def fake_generate(_messages: list[dict[str, str]]):
+        return (
+            "SELECT generated;",
+            7.0,
+            {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120},
+        )
+
+    record = _dialog_record()
+    record["messages"] = record["messages"][:3]
+
+    rows = evaluate_rollout_records(
+        [record],
+        generate_fn=fake_generate,
+        model_name="hosted-frontier",
+        database_root=None,
+        prompt_token_cost_usd_per_1k=3.0,
+        completion_token_cost_usd_per_1k=15.0,
+    )
+
+    assert rows[0]["prompt_tokens"] == 100
+    assert rows[0]["completion_tokens"] == 20
+    assert rows[0]["total_tokens"] == 120
+    assert rows[0]["estimated_generation_cost_usd"] == pytest.approx(0.6)
+
+
 def test_rollout_treats_seeded_failure_turn_as_history_only() -> None:
     record = _dialog_record()
     record["history_policy"] = "seeded_generated_failure_then_rollout"
