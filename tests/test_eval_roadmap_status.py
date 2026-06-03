@@ -313,6 +313,47 @@ def _hosted_transfer_comparison_evidence() -> dict:
     }
 
 
+def _all_strategy_cp9_matrix_evidence() -> dict:
+    return {
+        "artifact_type": "all_strategy_cp9_matrix_summary",
+        "checkpoint": 9,
+        "comparable_row_count": 43,
+        "input_sha256": "same-input",
+        "history_policy": "model_generated_sql_rollout",
+        "reference_sql_visible_to_model_prompt": False,
+        "scorer_labels_visible_to_model_prompt": False,
+        "future_turns_visible_to_model_prompt": False,
+        "arms": [
+            {
+                "model_name": "qwen35_9b_base_cp9_matrix",
+                "claimable": True,
+                "delta_vs_raw_qwen_value": 0.0,
+                "value_execution_accuracy": 0.558,
+                "strict_execution_accuracy": 0.302,
+            },
+            {
+                "model_name": "semantic_50step_cp9_matrix",
+                "claimable": True,
+                "delta_vs_raw_qwen_value": 0.023,
+                "value_execution_accuracy": 0.581,
+                "strict_execution_accuracy": 0.326,
+            },
+            {
+                "model_name": "schema_pruned_100step_oracle_diagnostic_cp9_matrix",
+                "claimable": False,
+                "delta_vs_raw_qwen_value": 0.093,
+                "value_execution_accuracy": 0.651,
+                "strict_execution_accuracy": 0.465,
+            },
+        ],
+        "hosted_comparator": {
+            "model_name": "openrouter_claude_sonnet_4_6_cp9_limit12",
+            "value_execution_accuracy": 0.674,
+            "strict_execution_accuracy": 0.395,
+        },
+    }
+
+
 def _write_checkpoint3_config(tmp_path: Path, *, complete: bool) -> Path:
     config_path = tmp_path / "configs" / "direct_sql_full_non_oracle.yaml"
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -605,7 +646,8 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
     ]
     assert by_checkpoint[9]["status"] == "pending"
     assert by_checkpoint[9]["open_items"] == [
-        "hosted transfer needs an explicit target protocol and same-row hosted run"
+        "hosted transfer needs an explicit target protocol and same-row hosted run",
+        "all-strategy same-row matrix is missing",
     ]
 
 
@@ -685,12 +727,20 @@ def test_summarize_roadmap_status_completes_checkpoint9_with_three_way_compariso
         / "hosted_transfer_openrouter_sonnet_4_6_20260603.json"
     )
     _write_json(evidence_path, _hosted_transfer_comparison_evidence())
+    matrix_path = (
+        tmp_path
+        / "docs"
+        / "training_runs"
+        / "all_strategy_cp9_matrix_20260603.json"
+    )
+    _write_json(matrix_path, _all_strategy_cp9_matrix_evidence())
     checkpoint3 = _write_checkpoint3_config(tmp_path, complete=False)
 
     summary = summarize_roadmap_status(
         experiment_registry_path=registry,
         checkpoint3_config_path=checkpoint3,
         hosted_transfer_comparison_evidence_path=evidence_path,
+        all_strategy_cp9_matrix_evidence_path=matrix_path,
     )
 
     by_checkpoint = {row["checkpoint"]: row for row in summary["checkpoints"]}
@@ -701,7 +751,10 @@ def test_summarize_roadmap_status_completes_checkpoint9_with_three_way_compariso
         in by_checkpoint[9]["evidence"]
     )
     assert "raw Qwen same-row local baseline" in by_checkpoint[9]["evidence"]
+    assert "all saved adapter generated-history matrix" in by_checkpoint[9]["evidence"]
+    assert "schema-pruned diagnostic boundary" in by_checkpoint[9]["evidence"]
     assert str(evidence_path) in by_checkpoint[9]["evidence"]
+    assert str(matrix_path) in by_checkpoint[9]["evidence"]
 
 
 def test_summarize_roadmap_status_accepts_recorded_endpoint_evidence(

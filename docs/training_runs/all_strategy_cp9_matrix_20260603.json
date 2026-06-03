@@ -1,0 +1,162 @@
+{
+  "artifact_type": "all_strategy_cp9_matrix_summary",
+  "checkpoint": 9,
+  "claim_boundary": "Same-row generated-history diagnostic matrix on the bounded 12-dialog CoSQL clean-holdout slice used for CP9. Clean local adapters can be compared against raw Qwen on this slice. The schema-pruned adapter is reported as a diagnostic only because its training/evaluation path depends on answer-derived schema pruning.",
+  "comparable_row_count": 43,
+  "date": "2026-06-03",
+  "future_turns_visible_to_model_prompt": false,
+  "history_policy": "model_generated_sql_rollout",
+  "input_sha256": "becd32a781327b21687ee4315029116dc2717a8907dd01d23ecbb48f435f1fee",
+  "oracle_policy": "non_oracle_generation for clean arms; oracle/schema-pruned diagnostic for the schema-pruned arm",
+  "reference_sql_visible_to_model_prompt": false,
+  "run_dir": "results/all_strategy_cp9",
+  "schema_version": 1,
+  "scorer_labels_visible_to_model_prompt": false,
+  "summary": "Across saved final adapters on the same 43 generated-history rows, semantic 50-step and direct-SQL 50-step were the best clean local finetunes at +0.023 value accuracy over raw Qwen. The schema-pruned diagnostic arm reached 0.651 value accuracy, nearly matching Sonnet 4.6 at 0.674, but it is not clean claim evidence.",
+  "arms": [
+    {
+      "adapter_path": null,
+      "claimable": true,
+      "delta_vs_raw_qwen_value": 0.0,
+      "manifest_path": "results/all_strategy_cp9/qwen35_9b_base_cp9_matrix.rollout.manifest.json",
+      "manifest_sha256": "5f6f97f829a8a2ecebfdae59e65325bf4e2ed130bb3234b3e446926df74189a9",
+      "model_name": "qwen35_9b_base_cp9_matrix",
+      "notes": "Raw base model with no adapter.",
+      "strict_execution_accuracy": 0.3023255813953488,
+      "value_execution_accuracy": 0.5581395348837209
+    },
+    {
+      "adapter_path": "outputs/qwen35_9b_multiturn_sql_50steps/final",
+      "claimable": true,
+      "delta_vs_raw_qwen_value": 0.023255813953488413,
+      "manifest_path": "results/all_strategy_cp9/direct_sql_50step_cp9_matrix.rollout.manifest.json",
+      "manifest_sha256": "81a013a8c36a398813a6138ff782a08cdad5cc2c6eb9145bf09d424a8f3c1d00",
+      "model_name": "direct_sql_50step_cp9_matrix",
+      "notes": "Best clean local direct-SQL finetune on this slice by value accuracy.",
+      "strict_execution_accuracy": 0.3023255813953488,
+      "value_execution_accuracy": 0.5813953488372093
+    },
+    {
+      "adapter_path": "outputs/qwen35_9b_multiturn_sql_semantic_50steps/final",
+      "claimable": true,
+      "delta_vs_raw_qwen_value": 0.023255813953488413,
+      "manifest_path": "results/all_strategy_cp9/semantic_50step_cp9_matrix.rollout.manifest.json",
+      "manifest_sha256": "c367b360f57b40048615096a3be10bc1c5f397376673861e2711e111b4fd0629",
+      "model_name": "semantic_50step_cp9_matrix",
+      "notes": "Best clean local semantic finetune on this slice by value accuracy; slightly higher strict accuracy than direct-SQL 50-step.",
+      "strict_execution_accuracy": 0.32558139534883723,
+      "value_execution_accuracy": 0.5813953488372093
+    },
+    {
+      "adapter_path": "outputs/qwen35_9b_multiturn_sql_schema_pruned_100steps/final",
+      "claimable": false,
+      "delta_vs_raw_qwen_value": 0.09302325581395354,
+      "diagnostic_label": "schema_pruned_oracle_diagnostic",
+      "manifest_path": "results/all_strategy_cp9/schema_pruned_100step_oracle_diagnostic_cp9_matrix.rollout.manifest.json",
+      "manifest_sha256": "6e41b5c52f066fd44fc5f0931a13a1db7e70a21cb58c9e2094e3bd57dd1df1c6",
+      "model_name": "schema_pruned_100step_oracle_diagnostic_cp9_matrix",
+      "notes": "Strong evidence that schema selection matters, but not a clean model claim because the schema-pruned setup is answer-derived.",
+      "strict_execution_accuracy": 0.46511627906976744,
+      "value_execution_accuracy": 0.6511627906976745
+    },
+    {
+      "adapter_path": "outputs/experiments/behavior_recovery_5steps/final",
+      "claimable": true,
+      "delta_vs_raw_qwen_value": 0.0,
+      "manifest_path": "results/all_strategy_cp9/behavior_recovery_5step_cp9_matrix.rollout.manifest.json",
+      "manifest_sha256": "45774bcd72e991d6bd93842db529acce7fc93e98c14fc9df881e82afd4e62329",
+      "model_name": "behavior_recovery_5step_cp9_matrix",
+      "notes": "Tied raw Qwen on this same-row generated-history slice.",
+      "strict_execution_accuracy": 0.3023255813953488,
+      "value_execution_accuracy": 0.5581395348837209
+    },
+    {
+      "adapter_path": "outputs/experiments/metric_dsl_arm_5steps/final",
+      "claimable": true,
+      "delta_vs_raw_qwen_value": 0.0,
+      "manifest_path": "results/all_strategy_cp9/metric_dsl_5step_cp9_matrix.rollout.manifest.json",
+      "manifest_sha256": "8d6dc56cc128344329fa0fdbbd2784f9cdfeb9d4eb0d12b1ff72ef7394507a2c",
+      "model_name": "metric_dsl_5step_cp9_matrix",
+      "notes": "Tied raw Qwen as a SQL rollout adapter; separate Metric DSL contract tests remain negative.",
+      "strict_execution_accuracy": 0.3023255813953488,
+      "value_execution_accuracy": 0.5581395348837209
+    },
+    {
+      "adapter_path": "outputs/experiments/behavior_recovery_direct_sql_5steps/final",
+      "claimable": true,
+      "delta_vs_raw_qwen_value": -0.023255813953488413,
+      "manifest_path": "results/all_strategy_cp9/behavior_recovery_direct_sql_5step_cp9_matrix.rollout.manifest.json",
+      "manifest_sha256": "30a6aef9b27bd51a8cb8b17ffbcf9fd0f212d99b8754e815ddf828895d0a95b5",
+      "model_name": "behavior_recovery_direct_sql_5step_cp9_matrix",
+      "notes": "Under raw Qwen on this slice.",
+      "strict_execution_accuracy": 0.27906976744186046,
+      "value_execution_accuracy": 0.5348837209302325
+    },
+    {
+      "adapter_path": "outputs/qwen35_9b_multiturn_sql/final",
+      "claimable": true,
+      "delta_vs_raw_qwen_value": -0.023255813953488413,
+      "manifest_path": "results/all_strategy_cp9/direct_sql_5step_cp9_matrix.rollout.manifest.json",
+      "manifest_sha256": "92783999701cd0a0917f861ab0c58ac36a2f4bedeb6d243a881254d10b835939",
+      "model_name": "direct_sql_5step_cp9_matrix",
+      "notes": "Under raw Qwen on this slice.",
+      "strict_execution_accuracy": 0.27906976744186046,
+      "value_execution_accuracy": 0.5348837209302325
+    },
+    {
+      "adapter_path": "outputs/experiments/metric_dsl_direct_sql_arm_5steps/final",
+      "claimable": true,
+      "delta_vs_raw_qwen_value": -0.023255813953488413,
+      "manifest_path": "results/all_strategy_cp9/metric_dsl_direct_sql_5step_cp9_matrix.rollout.manifest.json",
+      "manifest_sha256": "a4abecf3f0c31d74e1c5040d0358c3c70dcf62ebb96a490ff6dcd1528482e4d2",
+      "model_name": "metric_dsl_direct_sql_5step_cp9_matrix",
+      "notes": "Under raw Qwen on this slice.",
+      "strict_execution_accuracy": 0.27906976744186046,
+      "value_execution_accuracy": 0.5348837209302325
+    },
+    {
+      "adapter_path": "outputs/experiments/semantic_layer_5steps/final",
+      "claimable": true,
+      "delta_vs_raw_qwen_value": -0.023255813953488413,
+      "manifest_path": "results/all_strategy_cp9/semantic_layer_5step_cp9_matrix.rollout.manifest.json",
+      "manifest_sha256": "59f2803265bcb814be0a9fe6faa70744692e7942fdebebf88cea86ae940d88fa",
+      "model_name": "semantic_layer_5step_cp9_matrix",
+      "notes": "Under raw Qwen on this slice.",
+      "strict_execution_accuracy": 0.27906976744186046,
+      "value_execution_accuracy": 0.5348837209302325
+    },
+    {
+      "adapter_path": "outputs/qwen35_9b_multiturn_sql_100steps/final",
+      "claimable": true,
+      "delta_vs_raw_qwen_value": -0.06976744186046513,
+      "manifest_path": "results/all_strategy_cp9/direct_sql_100step_cp9_matrix.rollout.manifest.json",
+      "manifest_sha256": "c67af161c0b76feee42f1a51da37adf87fef337e22c31ffc3b3f8f27ce96cf16",
+      "model_name": "direct_sql_100step_cp9_matrix",
+      "notes": "Higher strict accuracy than raw Qwen but lower value accuracy.",
+      "strict_execution_accuracy": 0.4186046511627907,
+      "value_execution_accuracy": 0.4883720930232558
+    },
+    {
+      "adapter_path": "outputs/qwen35_9b_multiturn_sql_128each_50steps/final",
+      "claimable": true,
+      "delta_vs_raw_qwen_value": -0.11627906976744184,
+      "manifest_path": "results/all_strategy_cp9/direct_sql_128each_50step_cp9_matrix.rollout.manifest.json",
+      "manifest_sha256": "4bf640755b732c568e78f813b37a3b4e39f55594af6e1daae7b406140eb79ec1",
+      "model_name": "direct_sql_128each_50step_cp9_matrix",
+      "notes": "Lowest value accuracy among saved clean local adapters in this matrix.",
+      "strict_execution_accuracy": 0.3488372093023256,
+      "value_execution_accuracy": 0.4418604651162791
+    }
+  ],
+  "hosted_comparator": {
+    "delta_vs_raw_qwen_value": 0.11627906976744184,
+    "model_name": "openrouter_claude_sonnet_4_6_cp9_limit12",
+    "strict_execution_accuracy": 0.3953488372093023,
+    "value_execution_accuracy": 0.6744186046511628
+  },
+  "main_takeaways": [
+    "The strongest clean local finetunes improved only slightly over raw Qwen on this generated-history slice.",
+    "The behavior-recovery adapter was not the best saved adapter once all saved strategies were run side by side.",
+    "The schema-pruned diagnostic result is the most interesting signal: better schema selection could close much of the gap to Sonnet, but it must be rebuilt without answer-derived pruning before it can support a clean claim."
+  ]
+}

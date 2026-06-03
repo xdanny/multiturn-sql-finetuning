@@ -42,6 +42,9 @@ DEFAULT_GENERATED_HISTORY_RECOVERY_COMPARISON_EVIDENCE = Path(
 DEFAULT_HOSTED_TRANSFER_COMPARISON_EVIDENCE = Path(
     "docs/training_runs/hosted_transfer_openrouter_sonnet_4_6_20260603.json"
 )
+DEFAULT_ALL_STRATEGY_CP9_MATRIX_EVIDENCE = Path(
+    "docs/training_runs/all_strategy_cp9_matrix_20260603.json"
+)
 METRIC_DSL_MIN_COMPARABLE_ROWS = 24
 
 
@@ -356,6 +359,45 @@ def _hosted_transfer_comparison_recorded(evidence: Mapping[str, Any] | None) -> 
     )
 
 
+def _all_strategy_cp9_matrix_recorded(evidence: Mapping[str, Any] | None) -> bool:
+    if not evidence:
+        return False
+    if evidence.get("artifact_type") != "all_strategy_cp9_matrix_summary":
+        return False
+    if int(evidence.get("checkpoint") or 0) != 9:
+        return False
+    if int(evidence.get("comparable_row_count") or 0) <= 0:
+        return False
+    if not evidence.get("input_sha256"):
+        return False
+    if evidence.get("reference_sql_visible_to_model_prompt") is not False:
+        return False
+    if evidence.get("scorer_labels_visible_to_model_prompt") is not False:
+        return False
+    if evidence.get("future_turns_visible_to_model_prompt") is not False:
+        return False
+    hosted = evidence.get("hosted_comparator") or {}
+    if not hosted.get("model_name"):
+        return False
+    arms = evidence.get("arms") or []
+    if not arms:
+        return False
+    by_name = {str(arm.get("model_name")): arm for arm in arms}
+    raw = by_name.get("qwen35_9b_base_cp9_matrix")
+    schema_pruned = by_name.get("schema_pruned_100step_oracle_diagnostic_cp9_matrix")
+    if not raw or not schema_pruned:
+        return False
+    if raw.get("claimable") is not True:
+        return False
+    if schema_pruned.get("claimable") is not False:
+        return False
+    return any(
+        arm.get("claimable") is True
+        and float(arm.get("delta_vs_raw_qwen_value") or 0.0) > 0.0
+        for arm in arms
+    )
+
+
 def summarize_roadmap_status(
     *,
     experiment_registry_path: Path = DEFAULT_EXPERIMENT_REGISTRY,
@@ -378,6 +420,9 @@ def summarize_roadmap_status(
     ),
     hosted_transfer_comparison_evidence_path: Path = (
         DEFAULT_HOSTED_TRANSFER_COMPARISON_EVIDENCE
+    ),
+    all_strategy_cp9_matrix_evidence_path: Path = (
+        DEFAULT_ALL_STRATEGY_CP9_MATRIX_EVIDENCE
     ),
 ) -> dict[str, Any]:
     """Return checkpoint statuses derived from current repo evidence."""
@@ -547,6 +592,13 @@ def summarize_roadmap_status(
     hosted_transfer_comparison_recorded = _hosted_transfer_comparison_recorded(
         hosted_transfer_comparison
     )
+    resolved_all_strategy_cp9_matrix_path = _resolve_from_config_root(
+        experiment_registry_path, all_strategy_cp9_matrix_evidence_path
+    )
+    all_strategy_cp9_matrix = _load_optional_json(resolved_all_strategy_cp9_matrix_path)
+    all_strategy_cp9_matrix_recorded = _all_strategy_cp9_matrix_recorded(
+        all_strategy_cp9_matrix
+    )
     hosted_transfer_evidence = [
         f"experiment_status={_experiment_status(experiments, 'hosted_bird_interact_transfer')}",
         "external target split manifests are pending records",
@@ -560,11 +612,24 @@ def summarize_roadmap_status(
                 str(hosted_transfer_comparison_evidence_path),
             ]
         )
-    hosted_transfer_open_items = (
-        []
-        if hosted_transfer_comparison_recorded
-        else ["hosted transfer needs an explicit target protocol and same-row hosted run"]
+    if all_strategy_cp9_matrix_recorded:
+        hosted_transfer_evidence.extend(
+            [
+                "all saved adapter generated-history matrix",
+                "schema-pruned diagnostic boundary",
+                str(all_strategy_cp9_matrix_evidence_path),
+            ]
+        )
+    cp9_complete = (
+        hosted_transfer_comparison_recorded and all_strategy_cp9_matrix_recorded
     )
+    hosted_transfer_open_items = []
+    if not hosted_transfer_comparison_recorded:
+        hosted_transfer_open_items.append(
+            "hosted transfer needs an explicit target protocol and same-row hosted run"
+        )
+    if not all_strategy_cp9_matrix_recorded:
+        hosted_transfer_open_items.append("all-strategy same-row matrix is missing")
 
     entries = [
         _entry(
@@ -660,7 +725,7 @@ def summarize_roadmap_status(
         ),
         _entry(
             9,
-            status="complete" if hosted_transfer_comparison_recorded else "pending",
+            status="complete" if cp9_complete else "pending",
             evidence=hosted_transfer_evidence,
             open_items=hosted_transfer_open_items,
         ),
@@ -712,6 +777,11 @@ def main() -> int:
         type=Path,
         default=DEFAULT_CHECKPOINT3_EVIDENCE,
     )
+    parser.add_argument(
+        "--all-strategy-cp9-matrix-evidence",
+        type=Path,
+        default=DEFAULT_ALL_STRATEGY_CP9_MATRIX_EVIDENCE,
+    )
     parser.add_argument("--format", choices=("json", "markdown"), default="json")
     args = parser.parse_args()
 
@@ -719,6 +789,7 @@ def main() -> int:
         experiment_registry_path=args.experiments,
         checkpoint3_config_path=args.checkpoint3_config,
         checkpoint3_evidence_path=args.checkpoint3_evidence,
+        all_strategy_cp9_matrix_evidence_path=args.all_strategy_cp9_matrix_evidence,
     )
     if args.format == "markdown":
         print(_render_markdown(summary), end="")

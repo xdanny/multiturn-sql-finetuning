@@ -4,10 +4,12 @@ This is the canonical long-term roadmap for the multi-turn SQL fine-tuning
 program. It replaces the old gate-heavy day-to-day direction with smaller,
 row-matched method comparisons.
 
-Last audited: 2026-06-03 after the Checkpoint 9 three-way hosted-transfer
-target-gap comparison.
+Last audited: 2026-06-03 after the Checkpoint 9 all-strategy generated-history
+matrix and hosted-transfer target-gap comparison.
 
-Checkpoint status legend:
+Checkpoint status legend. A complete checkpoint means the required artifact for
+this roadmap pass exists; it does not mean the method succeeded or supports a
+benchmark claim.
 
 - `[x]` complete for the current repo state.
 - `[~]` in progress with useful artifacts or code present, but the checkpoint's
@@ -45,25 +47,32 @@ The publishable benchmark claim is simple:
 > held-out multi-turn SQL tasks, then compare against hosted baselines under the
 > same protocol.
 
-The current repo is not at a hosted benchmark claim yet. It now has a full
-direct-SQL local control baseline for the configured CoSQL proxy and clean
-holdout, a Checkpoint 5 structured query-brief clean-holdout win, and one
-narrow clean-holdout semantic value-retrieval win under the current comparer.
-Metric DSL failed its generated-output clean-holdout comparison, while
-generated-history recovery has a narrow bounded clean-holdout rollout win.
-Checkpoint 9 then compared the best finetuned recovery adapter against raw base
-Qwen and OpenRouter Claude Sonnet 4.6 on the same bounded generated-history
-slice. The finetuned adapter tied raw Qwen and trailed Sonnet, so the current
-hosted-transfer evidence is a target-gap measurement, not a hosted benchmark
-claim.
+The current repo is not at a hosted benchmark claim yet. The local control
+evidence says the full direct-SQL LoRA improves over its base-model control on
+configured local rows: proxy value/strict accuracy moves from `0.223` to
+`0.355`, clean-holdout value/strict accuracy moves from `0.218` to `0.349`, and
+generated-history rollout value/strict accuracy moves from `0.049` to `0.090`.
 
-Supported non-oracle claims are still scoped. The full direct-SQL LoRA improves
-over its base-model control on the configured local rows: proxy value/strict
-accuracy moves from `0.223` to `0.355`, clean-holdout value/strict accuracy
-moves from `0.218` to `0.349`, and generated-history rollout value/strict
-accuracy moves from `0.049` to `0.090`. The `0.890` schema-pruned result remains
-an oracle diagnostic only because reference SQL-derived planning hints enter
-that older run.
+Later checkpoint evidence is mixed. The structured query-brief and semantic
+value-retrieval comparisons recorded narrow local wins. Metric DSL recorded a
+clean generated-output failure. Generated-history recovery recorded a narrow
+bounded win, but the all-strategy CP9 matrix later showed the saved
+behavior-recovery adapter tying raw Qwen on the same 43-row generated-history
+slice.
+
+Checkpoint 9 compared saved local adapters, raw base Qwen, and OpenRouter
+Claude Sonnet 4.6 on one bounded generated-history slice. The strongest clean
+local adapters are semantic 50-step and direct-SQL 50-step at `0.581` value
+accuracy, a small `+0.023` lift over raw Qwen. The schema-pruned adapter reaches
+`0.651`, nearly closing the gap to Sonnet at `0.674`, but remains diagnostic
+because its pruning path is answer-derived. The current hosted-transfer evidence
+is therefore a target-gap measurement, not a hosted benchmark claim.
+
+Two diagnostic results should stay separated. The older `0.890` schema-pruned
+result is an oracle diagnostic because reference SQL-derived planning hints
+enter that run. The CP9 schema-pruned result is also diagnostic, but the current
+lesson is narrower: answer-derived schema pruning suggests schema selection may
+be a major bottleneck.
 
 ## Research Anchors
 
@@ -152,9 +161,10 @@ The explicit split manifests are:
 - `data/splits/bird_mini_dev_pending_v1.json`;
 - `data/splits/bird_interact_lite_pending_v1.json`.
 
-Treat existing CoSQL dev 100 as `proxy_dev_seen`. Create at least one clean
-local holdout slice that is not used for prompt search, method selection,
-training, manual diagnostics, or evidence iteration.
+Treat existing CoSQL dev 100 as `proxy_dev_seen`. The current
+`clean_local_holdout` is the local method-comparison slice, not a final external
+benchmark. Any stronger public claim needs an untouched target slice or external
+target run after method iteration stops.
 
 Dataset roles should be explicit:
 
@@ -648,33 +658,41 @@ Current Checkpoint 8 evidence:
 Status: `[x]` complete for the current roadmap pass as a same-row hosted SOTA
 target-gap measurement. This is not an external benchmark claim.
 
-On 2026-06-03, the best local finetuned recovery adapter, raw base
-`unsloth/Qwen3.5-9B`, and OpenRouter `anthropic/claude-sonnet-4.6` were run on
-the same 12 clean-holdout generated-history dialogs from Checkpoint 8: 43
-assistant turns, 10 databases, non-oracle prompts, no future turns, and the same
-SQL execution scorer.
+On 2026-06-03, saved local adapters, raw base `unsloth/Qwen3.5-9B`, and
+OpenRouter `anthropic/claude-sonnet-4.6` were run on the same 12 clean-holdout
+generated-history dialogs from Checkpoint 8: 43 assistant turns, 10 databases,
+non-oracle prompts for claimable arms, no future turns, and the same SQL
+execution scorer. Claimable schema selection must come only from
+inference-time-visible inputs, not reference SQL, expected rows, clean-holdout
+labels, or manual per-row diagnosis.
 
-The three-way result was:
+The matrix result was:
 
 - raw base Qwen: `0.558` value accuracy and `0.302` strict accuracy;
-- best finetuned recovery adapter: `0.558` value accuracy and `0.302` strict
-  accuracy, a `+0.000` value/strict delta versus raw Qwen;
+- semantic 50-step adapter: `0.581` value accuracy and `0.326` strict accuracy,
+  a `+0.023` value delta versus raw Qwen;
+- direct-SQL 50-step adapter: `0.581` value accuracy and `0.302` strict
+  accuracy, a `+0.023` value delta versus raw Qwen;
+- behavior-recovery 5-step adapter: `0.558` value accuracy and `0.302` strict
+  accuracy, tied with raw Qwen;
+- schema-pruned 100-step diagnostic adapter: `0.651` value accuracy and `0.465`
+  strict accuracy, but not clean/non-oracle claim evidence;
 - OpenRouter Claude Sonnet 4.6: `0.674` value accuracy and `0.395` strict
-  accuracy;
-- finetuned recovery delta versus Sonnet: `-0.116` value and `-0.093` strict.
+  accuracy.
 
-The compact evidence is
+The compact evidence is in
+`docs/training_runs/all_strategy_cp9_matrix_20260603.json` and
 `docs/training_runs/hosted_transfer_openrouter_sonnet_4_6_20260603.json`. The
 hosted result recorded latency, token usage, and estimated OpenRouter cost:
-`39,104` total tokens and `$0.138084` estimated generation cost for the 43
-turns.
+`39,104` total tokens and `$0.138084` estimated generation cost for the 43 turns.
 
 This completes the initial hosted-transfer checkpoint as negative/inconclusive
-evidence: the current finetuning recipe does not improve over raw Qwen on this
-slice and does not approach the hosted SOTA comparator. The next roadmap should
-focus on better data construction, prompt format, and chain-of-thought-free
-decomposition targets before attempting BIRD-Interact Lite, LiveSQLBench,
-Spider 2.0, or hosted benchmark claims.
+evidence: clean fine-tuning gives a small observed lift, but does not approach
+the hosted comparator. The strongest signal is diagnostic: schema selection may
+matter a lot. The next roadmap should focus on clean schema selection, better
+data construction, prompt format, and chain-of-thought-free decomposition
+targets before attempting BIRD-Interact Lite, LiveSQLBench, Spider 2.0, or
+hosted benchmark claims.
 
 ## Future Repo Interfaces
 
