@@ -170,3 +170,33 @@ experiments:
       Qwen, the best finetuned recovery adapter, and OpenRouter Claude Sonnet
       4.6. This is not a BIRD-Interact, LiveSQLBench, or external benchmark
       claim.
+
+  - experiment_id: semantic_context_transfer_with_hosted
+    checkpoint: 10
+    status: planned_semantic_context_transfer
+    hypothesis_id: semantic_context_transfer
+    hypothesis: >-
+      The same non-oracle semantic/value context should improve database
+      navigation for local Qwen and OpenRouter Claude Sonnet 4.6, and may narrow
+      the local-versus-hosted gap if the local model benefits more.
+    train_split_id: cosql_train_v1
+    validation_split_id: cosql_dev_clean_holdout_v1
+    test_split_id: cosql_dev_clean_holdout_v1
+    dataset_role: clean_local_holdout
+    benchmark_protocol_id: cosql_semantic_context_transfer
+    model: unsloth/Qwen3.5-9B
+    adapter: outputs/experiments/structured_brief_sql/full_20260602/final
+    method: semantic_context_transfer
+    oracle_policy: non_oracle_generation
+    scorer: eval.compare_hosted_baseline:semantic_context_delta_vs_hosted
+    output_path: results/runs/semantic_context_transfer_with_hosted
+    control_experiment_id: hosted_bird_interact_transfer
+    primary_metric: local_semantic_context_value_delta_vs_hosted
+    claim_boundary: >-
+      Planned same-row semantic-context transfer comparison. Prompt context may
+      include schema-derived semantic context and database-derived value
+      matches, but must not include reference SQL, expected rows, future turns,
+      gold DSL, repair labels, answer-derived table or column hints, or any
+      value match produced by reading the reference answer. Sonnet 4.6 should
+      receive the same class of semantic/value context as the local model before
+      any local-versus-hosted gap claim is made.

@@ -56,6 +56,7 @@ CHECKPOINTS: dict[int, str] = {
     7: "Metric DSL",
     8: "Generated-History Recovery",
     9: "Hosted And Target Benchmark Transfer",
+    10: "Semantic Context Transfer",
 }
 
 
@@ -663,6 +664,20 @@ def summarize_roadmap_status(
             status="complete" if hosted_transfer_comparison_recorded else "pending",
             evidence=hosted_transfer_evidence,
             open_items=hosted_transfer_open_items,
+        ),
+        _entry(
+            10,
+            status="pending",
+            evidence=[
+                f"experiment_status={_experiment_status(experiments, 'semantic_context_transfer_with_hosted')}",
+                "planned same-row semantic/value context comparison",
+                "local and hosted models must receive the same non-oracle context class",
+            ],
+            open_items=[
+                "prepare row-matched semantic-context inputs for local and hosted arms",
+                "run OpenRouter Claude Sonnet 4.6 with semantic/value context",
+                "compare semantic-context deltas against normal-context controls",
+            ],
         ),
     ]
     return {

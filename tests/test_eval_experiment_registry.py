@@ -18,6 +18,7 @@ def test_experiment_registry_names_roadmap_runs() -> None:
         "metric_dsl_vs_direct_sql",
         "generated_history_recovery_vs_direct",
         "hosted_bird_interact_transfer",
+        "semantic_context_transfer_with_hosted",
     ]
 
     for row in experiments:
@@ -47,6 +48,12 @@ def test_experiment_registry_names_roadmap_runs() -> None:
     semantic = next(row for row in experiments if row["method"] == "semantic_value_retrieval")
     assert semantic["dataset_role"] == "clean_local_holdout"
     assert semantic["status"] == "semantic_pruned_clean_holdout_promoted"
+
+    transfer = experiments[-1]
+    assert transfer["method"] == "semantic_context_transfer"
+    assert transfer["checkpoint"] == 10
+    assert transfer["status"] == "planned_semantic_context_transfer"
+    assert transfer["control_experiment_id"] == "hosted_bird_interact_transfer"
 
 
 def test_experiment_registry_loader_rejects_missing_required_field(tmp_path) -> None:

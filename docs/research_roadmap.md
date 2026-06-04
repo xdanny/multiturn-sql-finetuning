@@ -33,6 +33,7 @@ Current checkpoint progress:
 - `[x]` Checkpoint 7: Metric DSL.
 - `[x]` Checkpoint 8: Generated-History Recovery.
 - `[x]` Checkpoint 9: Hosted And Target Benchmark Transfer.
+- `[ ]` Checkpoint 10: Semantic Context Transfer.
 
 Audit the current checkpoint statuses without running GPU training or endpoints:
 
@@ -63,6 +64,12 @@ over its base-model control on the configured local rows: proxy value/strict
 accuracy moves from `0.223` to `0.355`, clean-holdout value/strict accuracy
 moves from `0.218` to `0.349`, and generated-history rollout value/strict
 accuracy moves from `0.049` to `0.090`.
+
+The next phase should double down on what looked most promising: helping the
+model find the right database context. The core question is not whether another
+large planner can explain the query. It is whether the same non-oracle
+semantic/value context helps raw Qwen, finetuned Qwen, and OpenRouter Claude
+Sonnet 4.6 on the same rows.
 
 ## Research Anchors
 
@@ -674,6 +681,82 @@ slice and does not approach the hosted SOTA comparator. The next roadmap should
 focus on better data construction, prompt format, and chain-of-thought-free
 decomposition targets before attempting BIRD-Interact Lite, LiveSQLBench,
 Spider 2.0, or hosted benchmark claims.
+
+## Checkpoint 10: Semantic Context Transfer
+
+Status: `[ ]` pending. This is the next recommended phase after Checkpoint 9.
+
+The research question is:
+
+> Does the same non-oracle semantic/value context improve local and hosted
+> multi-turn SQL models, and does it narrow the gap between a local finetuned
+> Qwen adapter and OpenRouter Claude Sonnet 4.6?
+
+This checkpoint should focus on database context selection. The prior evidence
+suggests that the model often writes plausible SQL but chooses the wrong table,
+column, join path, or stored value. The old answer-derived schema-pruning
+diagnostic is useful only as a ceiling test; it should not become a model-facing
+method. The deployable question is whether schema-derived semantic context and
+database-derived value matches can give the model enough context without
+leaking the answer.
+
+Required comparison arms:
+
+- raw `unsloth/Qwen3.5-9B` with normal schema context;
+- raw `unsloth/Qwen3.5-9B` with semantic/value context;
+- direct-SQL LoRA with normal schema context;
+- structured-brief LoRA with normal schema context;
+- structured-brief LoRA with semantic/value context;
+- OpenRouter `anthropic/claude-sonnet-4.6` with normal schema context;
+- OpenRouter `anthropic/claude-sonnet-4.6` with semantic/value context.
+
+The first run can use the same bounded generated-history slice from Checkpoints
+8 and 9 to keep cost controlled and preserve row identity with the existing
+hosted baseline. If the signal is positive or ambiguous, rerun the strongest
+local and hosted semantic-context arms on a larger clean-holdout slice before
+making stronger claims.
+
+Leakage policy:
+
+- Allowed in prompts: current question, visible conversation history, schema,
+  schema-derived semantic context, database-derived value matches, and generated
+  prior SQL for generated-history rollout.
+- Forbidden in prompts: future turns, reference SQL, expected rows, gold Metric
+  DSL, repair labels, answer-derived table or column hints, and any value match
+  produced by reading the reference answer.
+- The hosted model must receive the same class of semantic/value context as the
+  local model. If local and hosted prompts differ for token-budget reasons, the
+  manifest must record the exact prompt policy and the comparison must be
+  labeled as asymmetric.
+
+Evidence requirements:
+
+- one prepared-input manifest per prompt policy with split id, row identities,
+  semantic/value context hashes, and leakage flags;
+- one result manifest per model arm with model name, endpoint, prompt policy,
+  row identities, value accuracy, strict accuracy, syntax rate, interaction
+  match, latency, token usage, and cost when available;
+- one row-matched comparison manifest for normal-context versus semantic-context
+  deltas within each model family;
+- one row-matched local-versus-hosted comparison manifest for the best local
+  semantic-context arm versus Sonnet 4.6 with the same semantic-context policy;
+- a compact training-run summary under `docs/training_runs/` that records
+  positive, negative, or inconclusive evidence without promoting a larger claim.
+
+Success criteria:
+
+- Semantic/value context is useful if it improves value accuracy without a
+  meaningful strict-accuracy or syntax-rate regression on the same rows.
+- It is a local improvement if the best local semantic-context arm beats its
+  normal-context local control on the same rows.
+- It is a general context improvement if Sonnet also improves with the same
+  semantic/value context.
+- It narrows the hosted gap only if the local semantic-context delta is larger
+  than the Sonnet semantic-context delta and the final local-versus-hosted gap
+  shrinks on row-matched results.
+- If semantic/value context helps Sonnet more than local Qwen, record that as
+  useful negative evidence: the context representation may be good, but the
+  local model may need better SFT data or prompt format before it can use it.
 
 ## Future Repo Interfaces
 
