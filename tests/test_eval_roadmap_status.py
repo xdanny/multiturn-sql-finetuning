@@ -320,6 +320,33 @@ def _hosted_transfer_comparison_evidence() -> dict:
     }
 
 
+def _semantic_context_transfer_input_manifest() -> dict:
+    return {
+        "schema_version": 1,
+        "artifact_type": "semantic_context_transfer_rollout_inputs",
+        "checkpoint": 10,
+        "dialog_count": 12,
+        "assistant_turn_count": 43,
+        "database_count": 10,
+        "oracle_policy": "non_oracle_generation",
+        "rollout_target_history_policy": "model_generated_sql_rollout",
+        "preflight_status": "ready_for_semantic_context_rollout_pair",
+    }
+
+
+def _semantic_context_transfer_preflight() -> dict:
+    return {
+        "schema_version": 1,
+        "artifact_type": "semantic_context_transfer_preflight",
+        "status": "ready_for_semantic_context_rollout_pair",
+        "row_count": 43,
+        "dialog_count": 12,
+        "oracle_policy": "non_oracle_generation",
+        "rollout_target_history_policy": "model_generated_sql_rollout",
+        "value_index_index_source": "database_contents",
+    }
+
+
 def _write_checkpoint3_config(tmp_path: Path, *, complete: bool) -> Path:
     config_path = tmp_path / "configs" / "direct_sql_full_non_oracle.yaml"
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -724,6 +751,50 @@ def test_summarize_roadmap_status_completes_checkpoint9_with_three_way_compariso
     )
     assert "raw Qwen same-row local baseline" in by_checkpoint[9]["evidence"]
     assert str(evidence_path) in by_checkpoint[9]["evidence"]
+
+
+def test_summarize_roadmap_status_records_checkpoint10_input_preflight(
+    tmp_path: Path,
+) -> None:
+    registry = tmp_path / "configs" / "experiments.yaml"
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    _write_registry(registry)
+    manifest_path = (
+        tmp_path
+        / "docs"
+        / "data_artifacts"
+        / "semantic_context_transfer_cp10_limit12.manifest.json"
+    )
+    preflight_path = (
+        tmp_path
+        / "docs"
+        / "training_runs"
+        / "semantic_context_transfer_cp10_limit12_preflight_20260604.json"
+    )
+    _write_json(manifest_path, _semantic_context_transfer_input_manifest())
+    _write_json(preflight_path, _semantic_context_transfer_preflight())
+    checkpoint3 = _write_checkpoint3_config(tmp_path, complete=False)
+
+    summary = summarize_roadmap_status(
+        experiment_registry_path=registry,
+        checkpoint3_config_path=checkpoint3,
+        semantic_context_transfer_input_manifest_path=manifest_path,
+        semantic_context_transfer_preflight_path=preflight_path,
+    )
+
+    by_checkpoint = {row["checkpoint"]: row for row in summary["checkpoints"]}
+    assert by_checkpoint[10]["status"] == "in_progress"
+    assert (
+        "data.semantic_context_transfer_inputs bounded clean-holdout input builder"
+        in by_checkpoint[10]["evidence"]
+    )
+    assert str(manifest_path) in by_checkpoint[10]["evidence"]
+    assert str(preflight_path) in by_checkpoint[10]["evidence"]
+    assert by_checkpoint[10]["open_items"] == [
+        "run OpenRouter Claude Sonnet 4.6 with semantic/value context",
+        "compare semantic-context deltas against normal-context controls for each model family",
+        "compare the best local semantic-context arm against Sonnet with the same semantic-context input",
+    ]
 
 
 def test_summarize_roadmap_status_accepts_recorded_endpoint_evidence(

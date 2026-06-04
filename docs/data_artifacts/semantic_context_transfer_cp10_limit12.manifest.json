@@ -1,0 +1,34 @@
+{
+  "artifact_type": "semantic_context_transfer_rollout_inputs",
+  "assistant_turn_count": 43,
+  "checkpoint": 10,
+  "command": [
+    "/home/dan/docs/multiturn-sql-finetuning/data/semantic_context_transfer_inputs.py"
+  ],
+  "database_count": 10,
+  "dialog_count": 12,
+  "input_path": "data/processed/direct_sql_full/cosql_dev_clean_holdout_v1.jsonl",
+  "input_sha256": "aaa5a0aa7e216b409cfcc8d58442f555d364d3c1a0425d191aec40a965ae3cf2",
+  "normal_output_path": "data/processed/semantic_context_transfer/cp10_limit12_normal.jsonl",
+  "normal_output_sha256": "ce5b2a7c4edbe9e4835f99f8fe702f03ca0b7e4473ae461e79b4563702f86271",
+  "oracle_policy": "non_oracle_generation",
+  "preflight_path": "docs/training_runs/semantic_context_transfer_cp10_limit12_preflight_20260604.json",
+  "preflight_sha256": "601301402936060e5342023afe1124284f82cf9fd227ccf3058fce9cfc728c3f",
+  "preflight_status": "ready_for_semantic_context_rollout_pair",
+  "rollout_target_history_policy": "model_generated_sql_rollout",
+  "schema_version": 1,
+  "semantic_matched_row_count": 9,
+  "semantic_matched_turn_count": 20,
+  "semantic_matched_value_count": 52,
+  "semantic_output_path": "data/processed/semantic_context_transfer/cp10_limit12_semantic_value.jsonl",
+  "semantic_output_sha256": "74748ae1723f2ddf5fd931ab32487dba98a137ec418ece3a7c8cd3797809f2b5",
+  "source_history_policies": {
+    "gold_sql_teacher_forced": 12
+  },
+  "summary_path": "docs/data_artifacts/semantic_context_transfer_cp10_limit12_summary.json",
+  "summary_sha256": "5c91c352d4ef193daa03bf2f18ab187247dcaf618916faee17f739f32a9b0c1a",
+  "value_index_manifest_path": "docs/data_artifacts/value_index_cosql_dev_100.manifest.json",
+  "value_index_manifest_sha256": "5b72ef44efe6cd4b96d9fc8d8de27856d9ce74da53a3d4c14caf7f7cf0be0e16",
+  "value_index_path": "docs/data_artifacts/value_index_cosql_dev_100.jsonl",
+  "value_index_sha256": "7fbeee645021906ebb53239cdcbcb55f78d422c1c81269adb74ae8389d14e73a"
+}

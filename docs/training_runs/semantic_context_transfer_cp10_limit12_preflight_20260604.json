@@ -1,0 +1,25 @@
+{
+  "artifact_type": "semantic_context_transfer_preflight",
+  "claim_boundary": "preflight only; no SQL execution claim",
+  "database_count": 10,
+  "dialog_count": 12,
+  "dialog_ids_sha256": "43110db560d03b6f495d46453ef144d0be5db10f4fa91825e7d5c553e4d826cd",
+  "history_policy": "model_generated_sql_rollout",
+  "leakage_boundary": "semantic/value context may use schema-derived context and database-derived value matches, but not reference SQL, expected rows, future turns, gold DSL, repair labels, or answer-derived table or column hints",
+  "normal_input_path": "data/processed/semantic_context_transfer/cp10_limit12_normal.jsonl",
+  "normal_input_sha256": "ce5b2a7c4edbe9e4835f99f8fe702f03ca0b7e4473ae461e79b4563702f86271",
+  "oracle_policy": "non_oracle_generation",
+  "rollout_target_history_policy": "model_generated_sql_rollout",
+  "row_count": 43,
+  "row_identities_sha256": "890180ef8ce00f486c2c548cba9ef639ad0c07b92f159a7a36ba5483d978d4a9",
+  "schema_version": 1,
+  "semantic_input_path": "data/processed/semantic_context_transfer/cp10_limit12_semantic_value.jsonl",
+  "semantic_input_sha256": "74748ae1723f2ddf5fd931ab32487dba98a137ec418ece3a7c8cd3797809f2b5",
+  "source_history_policies": {
+    "gold_sql_teacher_forced": 24
+  },
+  "status": "ready_for_semantic_context_rollout_pair",
+  "value_index_index_source": "database_contents",
+  "value_index_manifest_path": "docs/data_artifacts/value_index_cosql_dev_100.manifest.json",
+  "value_index_manifest_sha256": "5b72ef44efe6cd4b96d9fc8d8de27856d9ce74da53a3d4c14caf7f7cf0be0e16"
+}
