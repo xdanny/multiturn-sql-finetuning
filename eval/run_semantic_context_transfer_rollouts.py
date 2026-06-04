@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from eval.result_manifest import sha256_file
 from eval.rollout_eval import run_rollout_eval
 from eval.semantic_context_transfer import compare_semantic_context_transfer_manifest_files
 
@@ -26,18 +28,37 @@ DEFAULT_API_KEY_ENV = "OPENROUTER_API_KEY"
 OPENAI_API_KEY_ENV = "OPENAI_API_KEY"
 DEFAULT_PROMPT_TOKEN_COST_USD_PER_1K = 0.003
 DEFAULT_COMPLETION_TOKEN_COST_USD_PER_1K = 0.015
+PREFLIGHT_ARTIFACT_TYPE = "semantic_context_transfer_preflight"
 
 
 def _api_key_from_env(api_key_env: str) -> tuple[str, str]:
     value = os.environ.get(api_key_env)
     if value:
         return value, api_key_env
-    if api_key_env != OPENAI_API_KEY_ENV and os.environ.get(OPENAI_API_KEY_ENV):
-        return os.environ[OPENAI_API_KEY_ENV], OPENAI_API_KEY_ENV
     raise ValueError(
-        f"API key not found. Set {api_key_env} or {OPENAI_API_KEY_ENV}; "
-        "do not pass secrets on the command line."
+        f"API key not found. Set {api_key_env}; do not pass secrets on the command line."
     )
+
+
+def _load_json(path: Path) -> dict:
+    return json.loads(path.read_text())
+
+
+def _validate_preflight_before_rollout(
+    *,
+    normal_input: Path,
+    semantic_input: Path,
+    preflight_manifest: Path,
+) -> None:
+    preflight = _load_json(preflight_manifest)
+    if preflight.get("artifact_type") != PREFLIGHT_ARTIFACT_TYPE:
+        raise ValueError("preflight manifest must be a semantic context transfer preflight")
+    if preflight.get("normal_input_sha256") != sha256_file(normal_input):
+        raise ValueError("normal input does not match preflight")
+    if preflight.get("semantic_input_sha256") != sha256_file(semantic_input):
+        raise ValueError("semantic input does not match preflight")
+    if preflight.get("status") != "ready_for_semantic_context_rollout_pair":
+        raise ValueError("preflight manifest is not ready for rollout")
 
 
 def run_semantic_context_transfer_rollouts(
@@ -61,6 +82,11 @@ def run_semantic_context_transfer_rollouts(
 ) -> dict:
     """Run normal and semantic rollout arms, then compare semantic delta."""
 
+    _validate_preflight_before_rollout(
+        normal_input=normal_input,
+        semantic_input=semantic_input,
+        preflight_manifest=preflight_manifest,
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
     command = list(command or sys.argv)
     normal_output = output_dir / f"{run_id}.normal.rollout.jsonl"

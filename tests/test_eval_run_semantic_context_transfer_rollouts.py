@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from eval.result_manifest import sha256_file
 from eval.run_semantic_context_transfer_rollouts import (
     _api_key_from_env,
     run_semantic_context_transfer_rollouts,
@@ -21,11 +22,18 @@ def test_api_key_from_env_prefers_named_env(monkeypatch) -> None:
     assert source == "OPENROUTER_API_KEY"
 
 
-def test_api_key_from_env_falls_back_to_openai_env(monkeypatch) -> None:
+def test_api_key_from_env_does_not_fall_back_to_openai_for_openrouter(monkeypatch) -> None:
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.setenv("OPENAI_API_KEY", "openai-key")
 
-    value, source = _api_key_from_env("OPENROUTER_API_KEY")
+    with pytest.raises(ValueError, match="Set OPENROUTER_API_KEY"):
+        _api_key_from_env("OPENROUTER_API_KEY")
+
+
+def test_api_key_from_env_allows_explicit_openai_env(monkeypatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-key")
+
+    value, source = _api_key_from_env("OPENAI_API_KEY")
 
     assert value == "openai-key"
     assert source == "OPENAI_API_KEY"
@@ -48,7 +56,16 @@ def test_run_semantic_context_transfer_rollouts_runs_both_arms_then_compares(
     preflight = tmp_path / "preflight.json"
     normal_input.write_text("{}\n")
     semantic_input.write_text("{}\n")
-    preflight.write_text(json.dumps({"artifact_type": "semantic_context_transfer_preflight"}))
+    preflight.write_text(
+        json.dumps(
+            {
+                "artifact_type": "semantic_context_transfer_preflight",
+                "status": "ready_for_semantic_context_rollout_pair",
+                "normal_input_sha256": sha256_file(normal_input),
+                "semantic_input_sha256": sha256_file(semantic_input),
+            }
+        )
+    )
     output_dir = tmp_path / "results"
     run_calls: list[dict] = []
 
@@ -143,11 +160,27 @@ def test_run_semantic_context_transfer_rollouts_stops_after_failed_normal_arm(
         fake_run_rollout_eval,
     )
 
+    normal_input = tmp_path / "normal.jsonl"
+    semantic_input = tmp_path / "semantic.jsonl"
+    preflight = tmp_path / "preflight.json"
+    normal_input.write_text("{}\n")
+    semantic_input.write_text("{}\n")
+    preflight.write_text(
+        json.dumps(
+            {
+                "artifact_type": "semantic_context_transfer_preflight",
+                "status": "ready_for_semantic_context_rollout_pair",
+                "normal_input_sha256": sha256_file(normal_input),
+                "semantic_input_sha256": sha256_file(semantic_input),
+            }
+        )
+    )
+
     with pytest.raises(RuntimeError, match="normal-context rollout failed"):
         run_semantic_context_transfer_rollouts(
-            normal_input=tmp_path / "normal.jsonl",
-            semantic_input=tmp_path / "semantic.jsonl",
-            preflight_manifest=tmp_path / "preflight.json",
+            normal_input=normal_input,
+            semantic_input=semantic_input,
+            preflight_manifest=preflight,
             output_dir=tmp_path / "results",
             run_id="cp10",
             model_name="model",
@@ -159,3 +192,51 @@ def test_run_semantic_context_transfer_rollouts_stops_after_failed_normal_arm(
         )
 
     assert len(run_calls) == 1
+
+
+def test_run_semantic_context_transfer_rollouts_validates_preflight_before_endpoint_calls(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    normal_input = tmp_path / "normal.jsonl"
+    semantic_input = tmp_path / "semantic.jsonl"
+    preflight = tmp_path / "preflight.json"
+    normal_input.write_text("{}\n")
+    semantic_input.write_text("{}\n")
+    preflight.write_text(
+        json.dumps(
+            {
+                "artifact_type": "semantic_context_transfer_preflight",
+                "status": "ready_for_semantic_context_rollout_pair",
+                "normal_input_sha256": "stale",
+                "semantic_input_sha256": sha256_file(semantic_input),
+            }
+        )
+    )
+    run_calls = []
+
+    def fake_run_rollout_eval(**kwargs):
+        run_calls.append(kwargs)
+        return 0
+
+    monkeypatch.setattr(
+        "eval.run_semantic_context_transfer_rollouts.run_rollout_eval",
+        fake_run_rollout_eval,
+    )
+
+    with pytest.raises(ValueError, match="normal input does not match preflight"):
+        run_semantic_context_transfer_rollouts(
+            normal_input=normal_input,
+            semantic_input=semantic_input,
+            preflight_manifest=preflight,
+            output_dir=tmp_path / "results",
+            run_id="cp10",
+            model_name="model",
+            endpoint="endpoint",
+            api_key="secret-key",
+            api_key_source="OPENROUTER_API_KEY",
+            database_root=None,
+            command=["run-cp10"],
+        )
+
+    assert run_calls == []
