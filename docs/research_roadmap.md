@@ -33,7 +33,7 @@ Current checkpoint progress:
 - `[x]` Checkpoint 7: Metric DSL.
 - `[x]` Checkpoint 8: Generated-History Recovery.
 - `[x]` Checkpoint 9: Hosted And Target Benchmark Transfer.
-- `[ ]` Checkpoint 10: Semantic Context Transfer.
+- `[~]` Checkpoint 10: Semantic Context Transfer.
 
 Audit the current checkpoint statuses without running GPU training or endpoints:
 
@@ -684,7 +684,10 @@ Spider 2.0, or hosted benchmark claims.
 
 ## Checkpoint 10: Semantic Context Transfer
 
-Status: `[ ]` pending. This is the next recommended phase after Checkpoint 9.
+Status: `[~]` in progress. The repo now has preflight and row-matched
+normal-vs-semantic comparison contracts for generated-history rollout runs, but
+the required local and hosted semantic-context result manifests do not exist
+yet.
 
 The research question is:
 
@@ -742,6 +745,18 @@ Evidence requirements:
   semantic-context arm versus Sonnet 4.6 with the same semantic-context policy;
 - a compact training-run summary under `docs/training_runs/` that records
   positive, negative, or inconclusive evidence without promoting a larger claim.
+
+Current implementation surface:
+
+- `eval.semantic_context_transfer preflight` verifies that normal-schema and
+  semantic/value-context rollout inputs are row-matched, non-oracle, and backed
+  by a database-derived value-index manifest.
+- `eval.semantic_context_transfer compare` compares completed
+  `prepared_rollout` result manifests for one model family, records
+  value/strict/syntax deltas, and keeps negative or inconclusive evidence as
+  first-class output.
+- `eval.compare_hosted_baseline` remains the same-input local-versus-hosted
+  comparer for the final semantic-context local/Sonnet gap measurement.
 
 Success criteria:
 
