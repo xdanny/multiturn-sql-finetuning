@@ -627,6 +627,8 @@ def summarize_roadmap_status(
     semantic_context_transfer_evidence = [
         f"experiment_status={_experiment_status(experiments, 'semantic_context_transfer_with_hosted')}",
         "eval.semantic_context_transfer preflight and normal-vs-semantic comparison contracts",
+        "eval.run_semantic_context_transfer_rollouts endpoint runner contract",
+        "eval.summarize_semantic_context_transfer four-manifest evidence summary contract",
         "local and hosted models must receive the same non-oracle context class",
     ]
     if semantic_context_transfer_inputs_recorded:
