@@ -685,9 +685,10 @@ Spider 2.0, or hosted benchmark claims.
 ## Checkpoint 10: Semantic Context Transfer
 
 Status: `[~]` in progress. The repo now has preflight and row-matched
-normal-vs-semantic comparison contracts for generated-history rollout runs, but
-the required local and hosted semantic-context result manifests do not exist
-yet.
+normal-vs-semantic comparison contracts for generated-history rollout runs. The
+raw-Qwen and structured-brief local rollout arms are recorded, but the hosted
+Sonnet arms and final local-versus-hosted semantic-context summary are still
+missing.
 
 The research question is:
 
@@ -718,6 +719,24 @@ The first run can use the same bounded generated-history slice from Checkpoints
 hosted baseline. If the signal is positive or ambiguous, rerun the strongest
 local and hosted semantic-context arms on a larger clean-holdout slice before
 making stronger claims.
+
+Current local results:
+
+- On 2026-06-04, raw `unsloth/Qwen3.5-9B` ran on the bounded 12-dialog,
+  43-turn CP10 slice with normal schema context and with schema/value semantic
+  context. Normal schema context scored `0.535` value accuracy and `0.279`
+  strict accuracy. Semantic/value context scored `0.558` value accuracy and
+  `0.302` strict accuracy. The same-row semantic-context delta was `+0.023`
+  value and `+0.023` strict. This is small positive local baseline evidence,
+  not a hosted-transfer claim. See
+  `docs/training_runs/semantic_context_transfer_raw_qwen_local_20260604.json`.
+- On 2026-06-04, `structured_brief_sql_full_20260602` ran on the same slice.
+  Normal schema context scored `0.767` value accuracy and `0.721` strict
+  accuracy. Semantic/value context scored `0.651` value accuracy and `0.605`
+  strict accuracy. The same-row semantic-context delta was `-0.116` value and
+  `-0.116` strict, so semantic/value context hurt this stronger local adapter.
+  See
+  `docs/training_runs/semantic_context_transfer_structured_brief_local_20260604.json`.
 
 Leakage policy:
 
