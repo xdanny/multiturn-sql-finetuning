@@ -758,6 +758,9 @@ Current implementation surface:
 - `data.semantic_context_transfer_inputs` prepares the bounded 12-dialog
   clean-holdout normal/semantic rollout input pair and writes a preflight record
   for the first Checkpoint 10 run.
+- `eval.run_semantic_context_transfer_rollouts` runs one model family on that
+  normal/semantic input pair using an API key read from the environment, then
+  writes the row-matched semantic-context comparison manifest.
 - `eval.compare_hosted_baseline` remains the same-input local-versus-hosted
   comparer for the final semantic-context local/Sonnet gap measurement.
 
