@@ -192,3 +192,30 @@ def test_write_semantic_context_transfer_input_artifacts_requires_index_coverage
             preflight_path=tmp_path / "preflight.json",
             limit_dialogs=1,
         )
+
+
+def test_write_semantic_context_transfer_input_artifacts_rejects_mismatched_index_manifest(
+    tmp_path: Path,
+) -> None:
+    input_path = tmp_path / "clean.jsonl"
+    value_index_path, value_index_manifest = _write_value_index(tmp_path)
+    other_index_path = tmp_path / "other_value_index.jsonl"
+    _write_jsonl(other_index_path, _value_index_rows())
+    manifest = json.loads(value_index_manifest.read_text())
+    manifest["output_path"] = str(other_index_path)
+    manifest["output_sha256"] = sha256_file(other_index_path)
+    value_index_manifest.write_text(json.dumps(manifest) + "\n", encoding="utf-8")
+    _write_jsonl(input_path, [_dialog(0)])
+
+    with pytest.raises(ValueError, match="output_sha256|output_path"):
+        write_semantic_context_transfer_input_artifacts(
+            input_path=input_path,
+            value_index_path=value_index_path,
+            value_index_manifest_path=value_index_manifest,
+            normal_output_path=tmp_path / "normal.jsonl",
+            semantic_output_path=tmp_path / "semantic.jsonl",
+            summary_path=tmp_path / "summary.json",
+            manifest_path=tmp_path / "manifest.json",
+            preflight_path=tmp_path / "preflight.json",
+            limit_dialogs=1,
+        )

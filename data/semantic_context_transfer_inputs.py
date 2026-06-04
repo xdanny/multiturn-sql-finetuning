@@ -129,9 +129,20 @@ def _validate_value_index_coverage(
     selected_rows: list[dict[str, Any]],
     value_index_rows: list[dict[str, Any]],
     value_index_manifest: dict[str, Any],
+    value_index_path: Path,
 ) -> None:
+    if value_index_manifest.get("artifact_type") != "non_oracle_value_index_v1":
+        raise ValueError("value-index manifest must use artifact_type=non_oracle_value_index_v1")
     if value_index_manifest.get("index_source") != "database_contents":
         raise ValueError("semantic context transfer requires a database-derived value index")
+    if value_index_manifest.get("output_sha256") != sha256_file(value_index_path):
+        raise ValueError("value-index manifest output_sha256 does not match value-index file")
+    manifest_output_path = value_index_manifest.get("output_path")
+    if (
+        manifest_output_path is not None
+        and Path(manifest_output_path).resolve() != value_index_path.resolve()
+    ):
+        raise ValueError("value-index manifest output_path does not match value-index file")
     missing = {
         str(row.get("database_id"))
         for row in selected_rows
@@ -228,6 +239,7 @@ def write_semantic_context_transfer_input_artifacts(
         selected_rows=normal_rows,
         value_index_rows=value_index_rows,
         value_index_manifest=value_index_manifest,
+        value_index_path=value_index_path,
     )
     semantic_rows, semantic_summary = build_semantic_value_retrieval_inputs(
         prepared_rows=normal_rows,
