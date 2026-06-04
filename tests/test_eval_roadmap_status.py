@@ -651,6 +651,14 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         "eval.semantic_context_transfer preflight and normal-vs-semantic comparison contracts"
         in by_checkpoint[10]["evidence"]
     )
+    assert (
+        "eval.run_semantic_context_transfer_rollouts endpoint runner contract"
+        in by_checkpoint[10]["evidence"]
+    )
+    assert (
+        "eval.summarize_semantic_context_transfer four-manifest evidence summary contract"
+        in by_checkpoint[10]["evidence"]
+    )
     assert by_checkpoint[10]["open_items"] == [
         "run OpenRouter Claude Sonnet 4.6 with semantic/value context",
         "compare semantic-context deltas against normal-context controls for each model family",
