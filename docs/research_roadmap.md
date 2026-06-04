@@ -763,6 +763,11 @@ Current implementation surface:
   writes the row-matched semantic-context comparison manifest.
 - `eval.compare_hosted_baseline` remains the same-input local-versus-hosted
   comparer for the final semantic-context local/Sonnet gap measurement.
+- `eval.summarize_semantic_context_transfer` combines the local
+  normal-vs-semantic comparison, hosted normal-vs-semantic comparison,
+  normal-context local-vs-hosted comparison, and semantic-context
+  local-vs-hosted comparison into one compact evidence summary. It records
+  negative and inconclusive outcomes instead of forcing a promotion claim.
 
 Success criteria:
 
