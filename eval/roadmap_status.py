@@ -48,6 +48,12 @@ DEFAULT_SEMANTIC_CONTEXT_TRANSFER_INPUT_MANIFEST = Path(
 DEFAULT_SEMANTIC_CONTEXT_TRANSFER_PREFLIGHT = Path(
     "docs/training_runs/semantic_context_transfer_cp10_limit12_preflight_20260604.json"
 )
+DEFAULT_SEMANTIC_CONTEXT_TRANSFER_LOCAL_EVIDENCE = Path(
+    "docs/training_runs/semantic_context_transfer_structured_brief_local_20260604.json"
+)
+DEFAULT_SEMANTIC_CONTEXT_TRANSFER_RAW_QWEN_EVIDENCE = Path(
+    "docs/training_runs/semantic_context_transfer_raw_qwen_local_20260604.json"
+)
 METRIC_DSL_MIN_COMPARABLE_ROWS = 24
 
 
@@ -389,6 +395,31 @@ def _semantic_context_transfer_inputs_recorded(
     )
 
 
+def _semantic_context_transfer_local_evidence_recorded(
+    evidence: Mapping[str, Any] | None,
+) -> bool:
+    if not evidence:
+        return False
+    normal_context = evidence.get("normal_context") or {}
+    semantic_context = evidence.get("semantic_context") or {}
+    comparison = evidence.get("comparison") or {}
+    return (
+        evidence.get("artifact_type") == "semantic_context_transfer_local_evidence"
+        and int(evidence.get("checkpoint") or 0) == 10
+        and evidence.get("evaluation_mode") == "non_oracle_generation"
+        and evidence.get("oracle_allowed") is False
+        and evidence.get("history_policy") == "model_generated_sql_rollout"
+        and int(evidence.get("row_count") or 0) > 0
+        and normal_context.get("prompt_variant") == "normal_schema_context"
+        and semantic_context.get("prompt_variant")
+        == "schema_context_plus_database_value_retrieval"
+        and comparison.get("comparison_role") in {"best_local", "raw_qwen"}
+        and "semantic_context_value_delta_vs_normal" in comparison
+        and "semantic_context_strict_delta_vs_normal" in comparison
+        and bool(comparison.get("comparison_manifest_path"))
+    )
+
+
 def summarize_roadmap_status(
     *,
     experiment_registry_path: Path = DEFAULT_EXPERIMENT_REGISTRY,
@@ -417,6 +448,12 @@ def summarize_roadmap_status(
     ),
     semantic_context_transfer_preflight_path: Path = (
         DEFAULT_SEMANTIC_CONTEXT_TRANSFER_PREFLIGHT
+    ),
+    semantic_context_transfer_local_evidence_path: Path = (
+        DEFAULT_SEMANTIC_CONTEXT_TRANSFER_LOCAL_EVIDENCE
+    ),
+    semantic_context_transfer_raw_qwen_evidence_path: Path = (
+        DEFAULT_SEMANTIC_CONTEXT_TRANSFER_RAW_QWEN_EVIDENCE
     ),
 ) -> dict[str, Any]:
     """Return checkpoint statuses derived from current repo evidence."""
@@ -624,6 +661,32 @@ def summarize_roadmap_status(
             semantic_context_transfer_preflight,
         )
     )
+    resolved_semantic_context_transfer_local_evidence_path = _resolve_from_config_root(
+        experiment_registry_path,
+        semantic_context_transfer_local_evidence_path,
+    )
+    semantic_context_transfer_local_evidence = _load_optional_json(
+        resolved_semantic_context_transfer_local_evidence_path
+    )
+    semantic_context_transfer_local_evidence_recorded = (
+        _semantic_context_transfer_local_evidence_recorded(
+            semantic_context_transfer_local_evidence
+        )
+    )
+    resolved_semantic_context_transfer_raw_qwen_evidence_path = (
+        _resolve_from_config_root(
+            experiment_registry_path,
+            semantic_context_transfer_raw_qwen_evidence_path,
+        )
+    )
+    semantic_context_transfer_raw_qwen_evidence = _load_optional_json(
+        resolved_semantic_context_transfer_raw_qwen_evidence_path
+    )
+    semantic_context_transfer_raw_qwen_evidence_recorded = (
+        _semantic_context_transfer_local_evidence_recorded(
+            semantic_context_transfer_raw_qwen_evidence
+        )
+    )
     semantic_context_transfer_evidence = [
         f"experiment_status={_experiment_status(experiments, 'semantic_context_transfer_with_hosted')}",
         "eval.semantic_context_transfer preflight and normal-vs-semantic comparison contracts",
@@ -638,6 +701,20 @@ def summarize_roadmap_status(
                 "data.semantic_context_transfer_inputs bounded clean-holdout input builder",
                 str(semantic_context_transfer_input_manifest_path),
                 str(semantic_context_transfer_preflight_path),
+            ]
+        )
+    if semantic_context_transfer_local_evidence_recorded:
+        semantic_context_transfer_evidence.extend(
+            [
+                "structured-brief local semantic-context rollout evidence",
+                str(semantic_context_transfer_local_evidence_path),
+            ]
+        )
+    if semantic_context_transfer_raw_qwen_evidence_recorded:
+        semantic_context_transfer_evidence.extend(
+            [
+                "raw Qwen local semantic-context rollout evidence",
+                str(semantic_context_transfer_raw_qwen_evidence_path),
             ]
         )
 
