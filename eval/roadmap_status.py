@@ -42,6 +42,12 @@ DEFAULT_GENERATED_HISTORY_RECOVERY_COMPARISON_EVIDENCE = Path(
 DEFAULT_HOSTED_TRANSFER_COMPARISON_EVIDENCE = Path(
     "docs/training_runs/hosted_transfer_openrouter_sonnet_4_6_20260603.json"
 )
+DEFAULT_SEMANTIC_CONTEXT_TRANSFER_INPUT_MANIFEST = Path(
+    "docs/data_artifacts/semantic_context_transfer_cp10_limit12.manifest.json"
+)
+DEFAULT_SEMANTIC_CONTEXT_TRANSFER_PREFLIGHT = Path(
+    "docs/training_runs/semantic_context_transfer_cp10_limit12_preflight_20260604.json"
+)
 METRIC_DSL_MIN_COMPARABLE_ROWS = 24
 
 
@@ -357,6 +363,32 @@ def _hosted_transfer_comparison_recorded(evidence: Mapping[str, Any] | None) -> 
     )
 
 
+def _semantic_context_transfer_inputs_recorded(
+    manifest: Mapping[str, Any] | None,
+    preflight: Mapping[str, Any] | None,
+) -> bool:
+    if not manifest or not preflight:
+        return False
+    if manifest.get("artifact_type") != "semantic_context_transfer_rollout_inputs":
+        return False
+    if preflight.get("artifact_type") != "semantic_context_transfer_preflight":
+        return False
+    if int(manifest.get("checkpoint") or 0) != 10:
+        return False
+    if int(manifest.get("dialog_count") or 0) <= 0:
+        return False
+    if int(preflight.get("row_count") or 0) <= 0:
+        return False
+    return (
+        manifest.get("preflight_status") == "ready_for_semantic_context_rollout_pair"
+        and preflight.get("status") == "ready_for_semantic_context_rollout_pair"
+        and manifest.get("rollout_target_history_policy") == "model_generated_sql_rollout"
+        and preflight.get("rollout_target_history_policy") == "model_generated_sql_rollout"
+        and preflight.get("value_index_index_source") == "database_contents"
+        and manifest.get("oracle_policy") == "non_oracle_generation"
+    )
+
+
 def summarize_roadmap_status(
     *,
     experiment_registry_path: Path = DEFAULT_EXPERIMENT_REGISTRY,
@@ -379,6 +411,12 @@ def summarize_roadmap_status(
     ),
     hosted_transfer_comparison_evidence_path: Path = (
         DEFAULT_HOSTED_TRANSFER_COMPARISON_EVIDENCE
+    ),
+    semantic_context_transfer_input_manifest_path: Path = (
+        DEFAULT_SEMANTIC_CONTEXT_TRANSFER_INPUT_MANIFEST
+    ),
+    semantic_context_transfer_preflight_path: Path = (
+        DEFAULT_SEMANTIC_CONTEXT_TRANSFER_PREFLIGHT
     ),
 ) -> dict[str, Any]:
     """Return checkpoint statuses derived from current repo evidence."""
@@ -566,6 +604,39 @@ def summarize_roadmap_status(
         if hosted_transfer_comparison_recorded
         else ["hosted transfer needs an explicit target protocol and same-row hosted run"]
     )
+    resolved_semantic_context_transfer_input_manifest_path = _resolve_from_config_root(
+        experiment_registry_path,
+        semantic_context_transfer_input_manifest_path,
+    )
+    semantic_context_transfer_input_manifest = _load_optional_json(
+        resolved_semantic_context_transfer_input_manifest_path
+    )
+    resolved_semantic_context_transfer_preflight_path = _resolve_from_config_root(
+        experiment_registry_path,
+        semantic_context_transfer_preflight_path,
+    )
+    semantic_context_transfer_preflight = _load_optional_json(
+        resolved_semantic_context_transfer_preflight_path
+    )
+    semantic_context_transfer_inputs_recorded = (
+        _semantic_context_transfer_inputs_recorded(
+            semantic_context_transfer_input_manifest,
+            semantic_context_transfer_preflight,
+        )
+    )
+    semantic_context_transfer_evidence = [
+        f"experiment_status={_experiment_status(experiments, 'semantic_context_transfer_with_hosted')}",
+        "eval.semantic_context_transfer preflight and normal-vs-semantic comparison contracts",
+        "local and hosted models must receive the same non-oracle context class",
+    ]
+    if semantic_context_transfer_inputs_recorded:
+        semantic_context_transfer_evidence.extend(
+            [
+                "data.semantic_context_transfer_inputs bounded clean-holdout input builder",
+                str(semantic_context_transfer_input_manifest_path),
+                str(semantic_context_transfer_preflight_path),
+            ]
+        )
 
     entries = [
         _entry(
@@ -668,11 +739,7 @@ def summarize_roadmap_status(
         _entry(
             10,
             status="in_progress",
-            evidence=[
-                f"experiment_status={_experiment_status(experiments, 'semantic_context_transfer_with_hosted')}",
-                "eval.semantic_context_transfer preflight and normal-vs-semantic comparison contracts",
-                "local and hosted models must receive the same non-oracle context class",
-            ],
+            evidence=semantic_context_transfer_evidence,
             open_items=[
                 "run OpenRouter Claude Sonnet 4.6 with semantic/value context",
                 "compare semantic-context deltas against normal-context controls for each model family",

@@ -222,6 +222,24 @@ does not use reference SQL, gold planner labels, expected rows, assistant SQL, o
 future user turns for retrieval matching. History-scope retrieval is available
 only for explicitly labeled diagnostics.
 
+### Semantic Context Transfer Rollout Inputs
+
+- `semantic_context_transfer_cp10_limit12_summary.json`
+- `semantic_context_transfer_cp10_limit12.manifest.json`
+
+`data.semantic_context_transfer_inputs` writes the Checkpoint 10 bounded
+normal/semantic rollout input pair under `data/processed/semantic_context_transfer/`
+and records compact provenance here. The slice selects 12 multi-turn
+clean-holdout dialogs, reuses the database-derived CoSQL value index, and writes
+a matching preflight under `docs/training_runs/`.
+
+The normal input keeps the existing schema context. The semantic input adds
+database-derived value matches from user-authored text only. Both files keep
+reference SQL labels only for scorer-side rollout evaluation; prompts must stop
+before the current assistant label and generated-history rollout must replace
+prior assistant labels with model-generated SQL at runtime. This is input and
+preflight evidence only, not a semantic-context model result.
+
 ## What Should Be Added Here
 
 Add files here when they are small, stable inputs that another developer should

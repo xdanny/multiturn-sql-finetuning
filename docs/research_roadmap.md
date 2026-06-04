@@ -755,6 +755,9 @@ Current implementation surface:
   `prepared_rollout` result manifests for one model family, records
   value/strict/syntax deltas, and keeps negative or inconclusive evidence as
   first-class output.
+- `data.semantic_context_transfer_inputs` prepares the bounded 12-dialog
+  clean-holdout normal/semantic rollout input pair and writes a preflight record
+  for the first Checkpoint 10 run.
 - `eval.compare_hosted_baseline` remains the same-input local-versus-hosted
   comparer for the final semantic-context local/Sonnet gap measurement.
 
