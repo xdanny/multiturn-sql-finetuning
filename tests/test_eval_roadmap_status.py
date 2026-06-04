@@ -656,6 +656,10 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         in by_checkpoint[10]["evidence"]
     )
     assert (
+        "eval.finalize_semantic_context_transfer comparison finalizer contract"
+        in by_checkpoint[10]["evidence"]
+    )
+    assert (
         "eval.summarize_semantic_context_transfer four-manifest evidence summary contract"
         in by_checkpoint[10]["evidence"]
     )
