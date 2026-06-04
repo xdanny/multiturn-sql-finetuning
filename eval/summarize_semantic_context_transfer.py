@@ -32,6 +32,20 @@ def _metric(manifest: dict[str, Any], name: str) -> float:
     return float(value)
 
 
+def _input_sha(manifest: dict[str, Any], *, label: str) -> str:
+    value = manifest.get("input_sha256")
+    if not value:
+        raise ValueError(f"{label} is missing input_sha256")
+    return str(value)
+
+
+def _metric_text(manifest: dict[str, Any], name: str, *, label: str) -> str:
+    value = (manifest.get("metrics") or {}).get(name)
+    if not value:
+        raise ValueError(f"{label} is missing metric {name}")
+    return str(value)
+
+
 def _validate_context_comparison(manifest: dict[str, Any], *, label: str) -> None:
     if manifest.get("artifact_type") != CONTEXT_COMPARISON_ARTIFACT_TYPE:
         raise ValueError(f"{label} must be a semantic context transfer comparison")
@@ -54,6 +68,8 @@ def _validate_context_comparison(manifest: dict[str, Any], *, label: str) -> Non
         "semantic_context_transfer_comparable_row_count",
     ):
         _metric(manifest, metric)
+    _input_sha(manifest, label=label)
+    _metric_text(manifest, "normal_context_input_sha256", label=label)
 
 
 def _validate_hosted_comparison(manifest: dict[str, Any], *, label: str) -> None:
@@ -73,6 +89,76 @@ def _validate_hosted_comparison(manifest: dict[str, Any], *, label: str) -> None
         "hosted_comparable_row_count",
     ):
         _metric(manifest, metric)
+    _input_sha(manifest, label=label)
+    _metric_text(manifest, "hosted_input_sha256", label=label)
+
+
+def _validate_comparison_inputs_match(
+    *,
+    local_context_comparison: dict[str, Any],
+    hosted_context_comparison: dict[str, Any],
+    normal_local_vs_hosted_comparison: dict[str, Any],
+    semantic_local_vs_hosted_comparison: dict[str, Any],
+) -> dict[str, str]:
+    local_normal_sha = _metric_text(
+        local_context_comparison,
+        "normal_context_input_sha256",
+        label="local context comparison",
+    )
+    hosted_normal_sha = _metric_text(
+        hosted_context_comparison,
+        "normal_context_input_sha256",
+        label="hosted context comparison",
+    )
+    normal_gap_local_sha = _input_sha(
+        normal_local_vs_hosted_comparison,
+        label="normal local-vs-hosted comparison",
+    )
+    normal_gap_hosted_sha = _metric_text(
+        normal_local_vs_hosted_comparison,
+        "hosted_input_sha256",
+        label="normal local-vs-hosted comparison",
+    )
+    normal_hashes = {
+        local_normal_sha,
+        hosted_normal_sha,
+        normal_gap_local_sha,
+        normal_gap_hosted_sha,
+    }
+    if len(normal_hashes) != 1:
+        raise ValueError("normal-context comparison manifests must use the same input")
+
+    local_semantic_sha = _input_sha(
+        local_context_comparison,
+        label="local context comparison",
+    )
+    hosted_semantic_sha = _input_sha(
+        hosted_context_comparison,
+        label="hosted context comparison",
+    )
+    semantic_gap_local_sha = _input_sha(
+        semantic_local_vs_hosted_comparison,
+        label="semantic local-vs-hosted comparison",
+    )
+    semantic_gap_hosted_sha = _metric_text(
+        semantic_local_vs_hosted_comparison,
+        "hosted_input_sha256",
+        label="semantic local-vs-hosted comparison",
+    )
+    semantic_hashes = {
+        local_semantic_sha,
+        hosted_semantic_sha,
+        semantic_gap_local_sha,
+        semantic_gap_hosted_sha,
+    }
+    if len(semantic_hashes) != 1:
+        raise ValueError("semantic-context comparison manifests must use the same input")
+    if next(iter(normal_hashes)) == next(iter(semantic_hashes)):
+        raise ValueError("normal and semantic context inputs must differ")
+    return {
+        "normal_context_input_sha256": next(iter(normal_hashes)),
+        "semantic_context_input_sha256": next(iter(semantic_hashes)),
+    }
 
 
 def _context_metrics(manifest: dict[str, Any], *, prefix: str) -> dict[str, Any]:
@@ -153,6 +239,12 @@ def summarize_semantic_context_transfer_evidence(
         semantic_local_vs_hosted_comparison,
         label="semantic-context",
     )
+    input_hashes = _validate_comparison_inputs_match(
+        local_context_comparison=local_context_comparison,
+        hosted_context_comparison=hosted_context_comparison,
+        normal_local_vs_hosted_comparison=normal_local_vs_hosted_comparison,
+        semantic_local_vs_hosted_comparison=semantic_local_vs_hosted_comparison,
+    )
 
     local_count = int(
         (local_context_comparison.get("metrics") or {}).get(
@@ -192,6 +284,7 @@ def summarize_semantic_context_transfer_evidence(
         "oracle_policy": NON_ORACLE_GENERATION,
         "history_policy": MODEL_GENERATED_SQL_ROLLOUT,
         "comparable_row_count": local_count,
+        **input_hashes,
         **_context_metrics(local_context_comparison, prefix="local"),
         **_context_metrics(hosted_context_comparison, prefix="hosted"),
         **_hosted_gap_metrics(

@@ -17,6 +17,8 @@ def _context_comparison(
     model_name: str,
     normal_value: float,
     semantic_value: float,
+    normal_input_sha: str = "normal-input-sha",
+    semantic_input_sha: str = "semantic-input-sha",
     normal_strict: float = 0.5,
     semantic_strict: float = 0.5,
     normal_syntax: float = 1.0,
@@ -30,6 +32,7 @@ def _context_comparison(
         "benchmark": "prepared_rollout",
         "model_name": model_name,
         "endpoint": "https://example.test/v1",
+        "input_sha256": semantic_input_sha,
         "evaluation_mode": "non_oracle_generation",
         "oracle_allowed": False,
         "row_count": row_count,
@@ -38,6 +41,7 @@ def _context_comparison(
             "value_execution_accuracy": semantic_value,
             "strict_execution_accuracy": semantic_strict,
             "syntax_accuracy": semantic_syntax,
+            "normal_context_input_sha256": normal_input_sha,
             "normal_context_value_execution_accuracy": normal_value,
             "normal_context_strict_execution_accuracy": normal_strict,
             "normal_context_syntax_accuracy": normal_syntax,
@@ -55,6 +59,8 @@ def _hosted_comparison(
     run_id: str,
     local_value: float,
     hosted_value: float,
+    local_input_sha: str = "normal-input-sha",
+    hosted_input_sha: str = "normal-input-sha",
     local_strict: float = 0.5,
     hosted_strict: float = 0.6,
     row_count: int = 43,
@@ -65,6 +71,7 @@ def _hosted_comparison(
         "benchmark": "prepared_rollout",
         "model_name": "local",
         "endpoint": "http://127.0.0.1:8000/v1",
+        "input_sha256": local_input_sha,
         "evaluation_mode": "non_oracle_generation",
         "oracle_allowed": False,
         "row_count": row_count,
@@ -72,6 +79,7 @@ def _hosted_comparison(
             "history_policy": "model_generated_sql_rollout",
             "value_execution_accuracy": local_value,
             "strict_execution_accuracy": local_strict,
+            "hosted_input_sha256": hosted_input_sha,
             "hosted_value_execution_accuracy": hosted_value,
             "hosted_strict_execution_accuracy": hosted_strict,
             "local_value_delta_vs_hosted": local_value - hosted_value,
@@ -104,11 +112,15 @@ def test_summarize_semantic_context_transfer_marks_gap_narrowed() -> None:
             run_id="semantic-gap",
             local_value=0.65,
             hosted_value=0.72,
+            local_input_sha="semantic-input-sha",
+            hosted_input_sha="semantic-input-sha",
         ),
     )
 
     assert summary["artifact_type"] == "semantic_context_transfer_evidence_summary"
     assert summary["comparable_row_count"] == 43
+    assert summary["normal_context_input_sha256"] == "normal-input-sha"
+    assert summary["semantic_context_input_sha256"] == "semantic-input-sha"
     assert summary["local_semantic_value_delta_vs_normal"] == pytest.approx(0.15)
     assert summary["hosted_semantic_value_delta_vs_normal"] == pytest.approx(0.02)
     assert summary["normal_context_hosted_value_gap"] == pytest.approx(0.20)
@@ -145,6 +157,8 @@ def test_summarize_semantic_context_transfer_keeps_local_win_without_gap_claim()
             run_id="semantic-gap",
             local_value=0.55,
             hosted_value=0.90,
+            local_input_sha="semantic-input-sha",
+            hosted_input_sha="semantic-input-sha",
         ),
     )
 
@@ -180,6 +194,40 @@ def test_summarize_semantic_context_transfer_rejects_row_count_mismatch() -> Non
                 run_id="semantic-gap",
                 local_value=0.65,
                 hosted_value=0.72,
+                local_input_sha="semantic-input-sha",
+                hosted_input_sha="semantic-input-sha",
+            ),
+        )
+
+
+def test_summarize_semantic_context_transfer_rejects_input_hash_mismatch() -> None:
+    with pytest.raises(ValueError, match="semantic-context comparison manifests"):
+        summarize_semantic_context_transfer_evidence(
+            local_context_comparison=_context_comparison(
+                run_id="local-context",
+                model_name="local-lora",
+                normal_value=0.50,
+                semantic_value=0.65,
+                semantic_input_sha="semantic-input-sha",
+            ),
+            hosted_context_comparison=_context_comparison(
+                run_id="hosted-context",
+                model_name="sonnet",
+                normal_value=0.70,
+                semantic_value=0.72,
+                semantic_input_sha="other-semantic-input-sha",
+            ),
+            normal_local_vs_hosted_comparison=_hosted_comparison(
+                run_id="normal-gap",
+                local_value=0.50,
+                hosted_value=0.70,
+            ),
+            semantic_local_vs_hosted_comparison=_hosted_comparison(
+                run_id="semantic-gap",
+                local_value=0.65,
+                hosted_value=0.72,
+                local_input_sha="semantic-input-sha",
+                hosted_input_sha="semantic-input-sha",
             ),
         )
 
@@ -219,7 +267,13 @@ def test_summarize_semantic_context_transfer_files_writes_input_artifact_hashes(
     )
     semantic_gap.write_text(
         json.dumps(
-            _hosted_comparison(run_id="semantic-gap", local_value=0.65, hosted_value=0.72)
+            _hosted_comparison(
+                run_id="semantic-gap",
+                local_value=0.65,
+                hosted_value=0.72,
+                local_input_sha="semantic-input-sha",
+                hosted_input_sha="semantic-input-sha",
+            )
         )
     )
 
