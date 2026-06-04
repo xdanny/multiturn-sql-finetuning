@@ -667,16 +667,16 @@ def summarize_roadmap_status(
         ),
         _entry(
             10,
-            status="pending",
+            status="in_progress",
             evidence=[
                 f"experiment_status={_experiment_status(experiments, 'semantic_context_transfer_with_hosted')}",
-                "planned same-row semantic/value context comparison",
+                "eval.semantic_context_transfer preflight and normal-vs-semantic comparison contracts",
                 "local and hosted models must receive the same non-oracle context class",
             ],
             open_items=[
-                "prepare row-matched semantic-context inputs for local and hosted arms",
                 "run OpenRouter Claude Sonnet 4.6 with semantic/value context",
-                "compare semantic-context deltas against normal-context controls",
+                "compare semantic-context deltas against normal-context controls for each model family",
+                "compare the best local semantic-context arm against Sonnet with the same semantic-context input",
             ],
         ),
     ]

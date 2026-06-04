@@ -507,7 +507,7 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
         checkpoint3_config_path=checkpoint3,
     )
 
-    assert summary["status_counts"] == {"complete": 7, "in_progress": 2, "pending": 2}
+    assert summary["status_counts"] == {"complete": 7, "in_progress": 3, "pending": 1}
     by_checkpoint = {row["checkpoint"]: row for row in summary["checkpoints"]}
     assert by_checkpoint[3]["status"] == "complete"
     assert "docs/training_runs/direct_sql_full_lora_20260531.json" in by_checkpoint[3]["evidence"]
@@ -614,16 +614,20 @@ def test_summarize_roadmap_status_counts_current_checkpoints(tmp_path: Path) -> 
     assert by_checkpoint[9]["open_items"] == [
         "hosted transfer needs an explicit target protocol and same-row hosted run"
     ]
-    assert by_checkpoint[10]["status"] == "pending"
+    assert by_checkpoint[10]["status"] == "in_progress"
     assert by_checkpoint[10]["name"] == "Semantic Context Transfer"
     assert (
         "experiment_status=planned_semantic_context_transfer"
         in by_checkpoint[10]["evidence"]
     )
+    assert (
+        "eval.semantic_context_transfer preflight and normal-vs-semantic comparison contracts"
+        in by_checkpoint[10]["evidence"]
+    )
     assert by_checkpoint[10]["open_items"] == [
-        "prepare row-matched semantic-context inputs for local and hosted arms",
         "run OpenRouter Claude Sonnet 4.6 with semantic/value context",
-        "compare semantic-context deltas against normal-context controls",
+        "compare semantic-context deltas against normal-context controls for each model family",
+        "compare the best local semantic-context arm against Sonnet with the same semantic-context input",
     ]
 
 
@@ -745,7 +749,7 @@ def test_summarize_roadmap_status_accepts_recorded_endpoint_evidence(
         checkpoint3_evidence_path=evidence_path,
     )
 
-    assert summary["status_counts"] == {"complete": 7, "in_progress": 2, "pending": 2}
+    assert summary["status_counts"] == {"complete": 7, "in_progress": 3, "pending": 1}
     by_checkpoint = {row["checkpoint"]: row for row in summary["checkpoints"]}
     assert by_checkpoint[3]["status"] == "complete"
     assert by_checkpoint[3]["open_items"] == []
